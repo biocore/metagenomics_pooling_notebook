@@ -1,0 +1,9 @@
+pandas
+numpy
+nose
+pep8
+flake8=3.3.0
+matplotlib
+seaborn=0.7.1
+jupyter
+notebook
