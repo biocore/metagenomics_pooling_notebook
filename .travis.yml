@@ -3,7 +3,7 @@
 language: python
 os:
   - linux
-  - osx
+  # - osx
 env:
   matrix:
     - CONDA_PY=35
