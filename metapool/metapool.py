@@ -352,3 +352,45 @@ def combine_dfs(qpcr_df, dna_picklist, index_picklist):
     combined_df.reset_index(inplace=True)
 
     return(combined_df)
+
+
+def parse_dna_conc_csv(fp):
+    dna_df = pd.read_excel(fp, skiprows=4, parse_cols=[1,2,3,4,5])
+
+    dna_df = dna_df.loc[list(range(384)),]
+
+    dna_df['pico_conc'] = pd.to_numeric(dna_df['[Concentration]'], errors='Coerce')
+    return(dna_df)
+
+
+def add_dna_conc(combined_df, dna_df):
+    new_df = combined_df.set_index('Well')
+    dna = dna_df.set_index('Well')['pico_conc']
+    
+    new_df['pico_conc'] = dna_df.set_index('Well')['pico_conc']
+    
+    new_df.reset_index(inplace=True)
+    
+    return(new_df)
+
+
+def compute_pico_concentration(dna_vals, size=400):
+    """Computes molar concentration of libraries from library DNA concentration values.
+
+    Returns a 2D array of calculated concentrations, in nanomolar units
+
+    Parameters
+    ----------
+    dna_vals : numpy array of float
+        The DNA concentration in ng/uL
+    size : int
+        The average library molecule size in bp
+
+    Returns
+    -------
+    np.array of floats
+        A 2D array of floats
+    """
+    lib_concentration = (dna_vals / (660 * float(size))) * 10**6
+
+    return(lib_concentration)

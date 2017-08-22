@@ -14,10 +14,19 @@ class Tests(TestCase):
                                  [7.86, 8.07, 8.16, 9.64],
                                  [12.29, 7.64, 7.32, 13.74]])
 
+        self.dna_vals = np.array([[10.14, 7.89, 7.9, 15.48],
+                                  [7.86, 8.07, 8.16, 9.64],
+                                  [12.29, 7.64, 7.32, 13.74]])
+
         self.qpcr_conc = \
             np.array([[98.14626462, 487.8121413, 484.3480866, 2.183406934],
                       [498.3536649, 429.0839787, 402.4270321, 140.1601735],
                       [21.20533391, 582.9456031, 732.2655041, 7.545145988]])
+
+        self.pico_conc = \
+            np.array([[38.4090909, 29.8863636, 29.9242424, 58.6363636],
+                      [29.7727273, 30.5681818, 30.9090909, 36.5151515],
+                      [46.5530303, 28.9393939, 27.7272727, 52.0454545]])
 
     # def test_compute_shotgun_normalization_values(self):
     #     input_vol = 3.5
@@ -152,6 +161,33 @@ class Tests(TestCase):
         combined_df = combine_dfs(test_qpcr_df, test_dna_picklist_df, test_index_picklist_df)
 
         pd.testing.assert_frame_equal(combined_df, exp_df, check_like=True)
+
+    def test_add_dna_conc(self):
+        test_dna = '''Well\tpico_conc
+        A1\t2.5
+        C1\t20'''
+
+        test_combined = '''Well\tCp\tDNA Concentration\tDNA Transfer Volume\tSample Name\tPlate\tCounter\tPrimer i7\tSource Well i7\tIndex i7\tPrimer i5\tSource Well i5\tIndex i5
+        A1\t20.55\t12.751753\t80.0\t8_29_13_rk_rh\tABTX_35\t1841.0\tiTru7_110_05\tA23\tCGCTTAAC\tiTru5_01_G\tG1\tGTTCCATG
+        C1\t9.15\t17.582063\t57.5\t8_29_13_rk_lh\tABTX_35\t1842.0\tiTru7_110_06\tB23\tCACCACTA\tiTru5_01_H\tH1\tTAGCTGAG'''
+
+        test_exp_out = '''Well\tCp\tDNA Concentration\tDNA Transfer Volume\tSample Name\tPlate\tCounter\tPrimer i7\tSource Well i7\tIndex i7\tPrimer i5\tSource Well i5\tIndex i5\tpico_conc
+        A1\t20.55\t12.751753\t80.0\t8_29_13_rk_rh\tABTX_35\t1841.0\tiTru7_110_05\tA23\tCGCTTAAC\tiTru5_01_G\tG1\tGTTCCATG\t2.5
+        C1\t9.15\t17.582063\t57.5\t8_29_13_rk_lh\tABTX_35\t1842.0\tiTru7_110_06\tB23\tCACCACTA\tiTru5_01_H\tH1\tTAGCTGAG\t20'''
+
+        exp_df = pd.read_csv(StringIO(test_exp_out), header=0, sep='\t')
+        test_in_df = pd.read_csv(StringIO(test_combined), header=0, sep='\t')
+        test_dna_df = pd.read_csv(StringIO(test_dna), header=0, sep='\t')
+
+        obs_df = add_dna_conc(test_in_df, test_dna_df)
+
+        pd.testing.assert_frame_equal(obs_df, exp_df, check_like=True)
+
+    def test_compute_pico_concentration(self):
+            obs = compute_pico_concentration(self.dna_vals)
+            exp = self.pico_conc
+
+            npt.assert_allclose(obs, exp)
 
 
 if __name__ == "__main__":
