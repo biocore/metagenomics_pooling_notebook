@@ -60,6 +60,95 @@ class Tests(TestCase):
 
     #     npt.assert_almost_equal(obs_sample, exp_sample)
     #     npt.assert_almost_equal(obs_water, exp_water)
+    def test_read_plate_map_csv(self):
+        plate_map_csv = \
+        'Sample\tRow\tCol\tBlank\n' + \
+        'sam1\tA\t1\tFalse\n' + \
+        'sam2\tA\t2\tFalse\n' + \
+        'blank1\tB\t1\tTrue\n' + \
+        'sam3\tB\t2\tFalse\n' 
+
+        plate_map_f = StringIO(plate_map_csv)
+
+        exp_plate_df = pd.DataFrame({'Sample': ['sam1','sam2','blank1','sam3'],
+                                     'Row': ['A','A','B','B'],
+                                     'Col': [1,2,1,2],
+                                     'Well': ['A1','A2','B1','B2'],
+                                     'Blank': [False, False, True, False]})
+
+        obs_plate_df = read_plate_map_csv(plate_map_f)
+
+        pd.testing.assert_frame_equal(obs_plate_df, exp_plate_df, check_like=True)
+
+    def test_read_pico_csv(self):
+
+        pico_csv = '''Results
+
+        Well ID\tWell\t[Blanked-RFU]\t[Concentration]
+        SPL1\tA1\t5243.000\t3.432
+        SPL2\tA2\t4949.000\t3.239
+        SPL3\tB1\t15302.000\t10.016
+        SPL4\tB2\t4039.000\t2.644
+
+        Curve2 Fitting Results
+
+        Curve Name\tCurve Formula\tA\tB\tR2\tFit F Prob
+        Curve2\tY=A*X+B\t1.53E+003\t0\t0.995\t?????
+        '''
+        exp_pico_df = pd.DataFrame({'Well': ['A1','A2','B1','B2'],
+                                    'Sample DNA Concentration': 
+                                     [3.432, 3.239, 10.016, 2.644]})
+
+        pico_csv_f = StringIO(pico_csv)
+
+        obs_pico_df = read_pico_csv(pico_csv_f)
+
+        pd.testing.assert_frame_equal(obs_pico_df, exp_pico_df, check_like=True)
+
+    def test_calculate_norm_vol(self):
+        dna_concs = np.array([[2, 7.89],
+                              [np.nan, .0]])
+
+        exp_vols = np.array([[2500., 632.5],
+                              [3500., 3500.]])
+
+        obs_vols = calculate_norm_vol(dna_concs)
+
+        np.testing.assert_allclose(exp_vols, obs_vols)
+
+    def test_format_dna_norm_picklist(self):
+
+        exp_picklist = \
+        'Sample\tSource Plate Name\tSource Plate Type\tSource Well\t' + \
+        'Concentration\tTransfer Volume\tDestination Plate Name\tDestination Well\n' + \
+        'sam1\tWater\t384PP_AQ_SP2_HT\tA1\t2.0\t1000.0\tNormalizedDNA\tA1\n' + \
+        'sam2\tWater\t384PP_AQ_SP2_HT\tA2\t7.89\t2867.5\tNormalizedDNA\tA2\n' + \
+        'blank1\tWater\t384PP_AQ_SP2_HT\tB1\tnan\t0.0\tNormalizedDNA\tB1\n' + \
+        'sam3\tWater\t384PP_AQ_SP2_HT\tB2\t0.0\t0.0\tNormalizedDNA\tB2\n' + \
+        'sam1\tSample\t384PP_AQ_SP2_HT\tA1\t2.0\t2500.0\tNormalizedDNA\tA1\n' + \
+        'sam2\tSample\t384PP_AQ_SP2_HT\tA2\t7.89\t632.5\tNormalizedDNA\tA2\n' + \
+        'blank1\tSample\t384PP_AQ_SP2_HT\tB1\tnan\t3500.0\tNormalizedDNA\tB1\n' + \
+        'sam3\tSample\t384PP_AQ_SP2_HT\tB2\t0.0\t3500.0\tNormalizedDNA\tB2'
+
+        dna_vols = np.array([[2500., 632.5],
+                              [3500., 3500.]])
+
+        water_vols = 3500 - dna_vols
+
+        wells = np.array([['A1', 'A2'],
+                          ['B1', 'B2']])
+
+        sample_names =  np.array([['sam1', 'sam2'],
+                          ['blank1', 'sam3']])
+
+        dna_concs = np.array([[2, 7.89],
+                              [np.nan, .0]])
+
+        obs_picklist = format_dna_norm_picklist(dna_vols, water_vols, wells,
+                                                sample_names = sample_names,
+                                                dna_concs = dna_concs)
+
+        self.assertEqual(exp_picklist, obs_picklist)
 
     def test_compute_qpcr_concentration(self):
         obs = compute_qpcr_concentration(self.cp_vals)

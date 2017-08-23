@@ -6,6 +6,142 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from io import StringIO
 
+
+def read_plate_map_csv(f, sep = '\t'):
+    """
+    reads tab-delimited plate map into a Pandas dataframe
+
+    Parameters
+    ----------
+    f: fp or open filehandle
+        plate map file
+
+    Returns
+    -------
+    plate_df: pandas DataFrame object
+        DataFrame relating sample name, well location, and blank status
+    """
+    
+    plate_df = pd.read_csv(f, sep = sep)
+    plate_df['Well'] =  plate_df['Row'] + plate_df['Col'].map(str)
+        
+    return(plate_df)
+
+
+# method to read minipico output
+def read_pico_csv(f, sep='\t'):
+    """
+    reads tab-delimited pico quant
+
+    Parameters
+    ----------
+    f: fp or open filehandle
+        pico quant file
+    sep: str
+        sep char used in quant file
+
+    Returns
+    -------
+    pico_df: pandas DataFrame object
+        DataFrame relating well location and DNA concentration
+    """
+    
+    raw_df = pd.read_csv(f, sep = sep, skiprows=2, skipfooter=5)
+    
+    pico_df = raw_df[['Well','[Concentration]']]
+    pico_df.rename(columns={'[Concentration]':'Sample DNA Concentration'}, inplace=True)
+    
+    return(pico_df)
+
+
+def calculate_norm_vol(dna_concs, ng=5, min_vol=2.5, max_vol=3500, resolution=2.5):
+    """
+    Calculates nanoliters of each sample to add to achieve a normalized pool
+
+    Parameters
+    ----------
+    dna_concs : numpy array of float
+        The concentrations calculated via PicoGreen (ng/uL)
+    ng : float
+        The amount of DNA to pool (ng)
+    max_vol : float
+        The maximum volume to pool (nL)
+    min_vol : float
+        The minimum volume to pool (nL)
+
+    Returns
+    -------
+    sample_vols : numpy array of float
+        The volumes to pool (nL)
+    """
+    sample_vols = ng / np.nan_to_num(dna_concs) * 1000
+    
+    sample_vols = np.clip(sample_vols, min_vol, max_vol)
+
+    sample_vols = np.round(sample_vols / resolution) * resolution
+    
+    return(sample_vols)
+
+
+def format_dna_norm_picklist(dna_vols, water_vols, wells, dna_concs=None, sample_names=None,
+                             dna_plate_name='Sample', water_plate_name='Water',
+                             dna_plate_type='384PP_AQ_SP2_HT', water_plate_type='384PP_AQ_SP2_HT',
+                             dest_plate_name='NormalizedDNA'):
+    """
+    Writes Echo-format pick list to achieve a normalized input DNA pool
+
+    Parameters
+    ----------
+    dna_vols:  numpy array of float
+        The volumes of dna to add
+    water_vols:  numpy array of float
+        The volumes of water to add
+    wells: numpy array of str
+        The well codes in the same orientation as the DNA concentrations
+    dna_concs:  numpy array of float
+        The concentrations calculated via PicoGreen (ng/uL)
+    sample_names: numpy array of str
+        The sample names in the same orientation as the DNA concentrations
+ 
+    Returns
+    -------
+    picklist : str
+        The Echo formatted pick list
+    """
+    
+    # check that arrays are the right size
+    if dna_vols.shape != wells.shape != water_vols.shape:
+        raise ValueError('dna_vols %r has a size different from wells %r or water_vols' %
+                         (dna_vols.shape, wells.shape, water_vols.shape))
+        
+    if sample_names is None:
+        sample_names = np.empty(dna_vols.shape) * np.nan
+    if dna_concs is None:
+        dna_concs = np.empty(dna_vols.shape) * np.nan
+    if dna_concs.shape != sample_names.shape != dna_vols.shape:
+        raise ValueError('dna_vols %r has a size different from dna_concs %r or sample_names' %
+                         (dna_vols.shape, dna_concs.shape, sample_names.shape))
+        
+    picklist = ''
+    
+    # header
+    picklist += 'Sample\tSource Plate Name\tSource Plate Type\tSource Well\tConcentration\t' \
+                'Transfer Volume\tDestination Plate Name\tDestination Well'
+    
+    # water additions
+    for index, sample in np.ndenumerate(sample_names):
+        picklist += '\n' + '\t'.join([str(sample), water_plate_name, water_plate_type,
+                               str(wells[index]), str(dna_concs[index]), str(water_vols[index]),
+                               dest_plate_name, str(wells[index])]) 
+    # DNA additions
+    for index, sample in np.ndenumerate(sample_names):
+        picklist += '\n' + '\t'.join([str(sample), dna_plate_name, dna_plate_type,
+                               str(wells[index]), str(dna_concs[index]), str(dna_vols[index]),
+                               dest_plate_name, str(wells[index])])    
+    
+    return(picklist)
+
+
 def compute_qpcr_concentration(cp_vals, m=-3.231, b=12.059, dil_factor=25000):
     """Computes molar concentration of libraries from qPCR Cp values.
 
