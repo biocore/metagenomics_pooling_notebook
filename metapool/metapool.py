@@ -142,6 +142,79 @@ def format_dna_norm_picklist(dna_vols, water_vols, wells, dna_concs=None, sample
     return(picklist)
 
 
+def assign_index(samples, index_df, start_idx=0):
+    """
+    Writes Echo-format pick list to achieve a normalized input DNA pool
+
+    Parameters
+    ----------
+    samples:  int
+        The number of samples for which to get indices 
+    index_df:  pandas DataFrame
+        The dataframe of complete index combinations and information
+    start_idx: int
+        The starting index combo to use
+ 
+    Returns
+    -------
+    indices : pandasDataFrame
+        The index information for the chosen indices
+    """
+    
+    indices = index_df.iloc[start_idx:(start_idx + samples)]
+    
+    return(indices)
+
+
+def format_index_picklist(sample_names, sample_wells, indices,
+                          i5_vol=250, i7_vol=250,
+                          i5_plate_type='384LDV_AQ_B2_HT', i7_plate_type='384LDV_AQ_B2_HT',
+                          dest_plate_name='IndexPCRPlate'):
+    """
+    Writes Echo-format pick list to achieve a normalized input DNA pool
+
+    Parameters
+    ----------
+    sample_names:  array-like of str
+        The sample names matching index order of indices
+    sample_wells:  array-like of str
+        The wells matching sample name order
+    indices: pandas DataFrame
+        The dataframe with index info matching sample_names
+ 
+    Returns
+    -------
+    picklist : str
+        The Echo formatted pick list
+    """
+    
+    # check that arrays are the right size
+    if len(sample_names) != len(sample_wells) != len(indices):
+        raise ValueError('sample_names (%s) has a size different from sample_wells (%s) or index list (%s)' %
+                         (len(sample_names), len(sample_wells), len(indices)))
+            
+    picklist = ''
+    
+    # header
+    picklist += 'Sample\tSource Plate Name\tSource Plate Type\tSource Well\tTransfer Volume\t' \
+                'Index Name\tIndex Sequence\tIndex Combo\tDestination Plate Name\tDestination Well'
+    
+    # i5 additions
+    for i, (sample, well) in enumerate(zip(sample_names, sample_wells)):
+        picklist += '\n' + '\t'.join([str(sample), indices.iloc[i]['i5 plate'], i5_plate_type,
+                                      indices.iloc[i]['i5 well'], str(i5_vol), indices.iloc[i]['i5 name'],
+                                      indices.iloc[i]['i5 sequence'], str(indices.iloc[i]['index combo']),
+                                      dest_plate_name, well])
+    # i7 additions
+    for i, (sample, well) in enumerate(zip(sample_names, sample_wells)):
+        picklist += '\n' + '\t'.join([str(sample), indices.iloc[i]['i7 plate'], i7_plate_type,
+                                      indices.iloc[i]['i7 well'], str(i7_vol), indices.iloc[i]['i7 name'],
+                                      indices.iloc[i]['i7 sequence'], str(indices.iloc[i]['index combo']),
+                                      dest_plate_name, well]) 
+    
+    return(picklist)
+
+
 def compute_qpcr_concentration(cp_vals, m=-3.231, b=12.059, dil_factor=25000):
     """Computes molar concentration of libraries from qPCR Cp values.
 

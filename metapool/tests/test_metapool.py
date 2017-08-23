@@ -150,6 +150,55 @@ class Tests(TestCase):
 
         self.assertEqual(exp_picklist, obs_picklist)
 
+    def test_format_index_picklist(self):
+        exp_picklist = \
+            'Sample\tSource Plate Name\tSource Plate Type\tSource Well\tTransfer Volume\tIndex Name\t' + \
+            'Index Sequence\tIndex Combo\tDestination Plate Name\tDestination Well\n' + \
+            'sam1\tiTru5_plate\t384LDV_AQ_B2_HT\tA1\t250\tiTru5_01_A\tACCGACAA\t0\tIndexPCRPlate\tA1\n' + \
+            'sam2\tiTru5_plate\t384LDV_AQ_B2_HT\tB1\t250\tiTru5_01_B\tAGTGGCAA\t1\tIndexPCRPlate\tA2\n' + \
+            'blank1\tiTru5_plate\t384LDV_AQ_B2_HT\tC1\t250\tiTru5_01_C\tCACAGACT\t2\tIndexPCRPlate\tB1\n' + \
+            'sam3\tiTru5_plate\t384LDV_AQ_B2_HT\tD1\t250\tiTru5_01_D\tCGACACTT\t3\tIndexPCRPlate\tB2\n' + \
+            'sam1\tiTru7_plate\t384LDV_AQ_B2_HT\tA1\t250\tiTru7_101_01\tACGTTACC\t0\tIndexPCRPlate\tA1\n' + \
+            'sam2\tiTru7_plate\t384LDV_AQ_B2_HT\tA2\t250\tiTru7_101_02\tCTGTGTTG\t1\tIndexPCRPlate\tA2\n' + \
+            'blank1\tiTru7_plate\t384LDV_AQ_B2_HT\tA3\t250\tiTru7_101_03\tTGAGGTGT\t2\tIndexPCRPlate\tB1\n' + \
+            'sam3\tiTru7_plate\t384LDV_AQ_B2_HT\tA4\t250\tiTru7_101_04\tGATCCATG\t3\tIndexPCRPlate\tB2'
+
+        sample_wells = np.array(['A1', 'A2', 'B1', 'B2'])
+
+        sample_names =  np.array(['sam1', 'sam2', 'blank1', 'sam3'])
+
+        indices = pd.DataFrame({'i5 name': {0: 'iTru5_01_A',
+                               1: 'iTru5_01_B',
+                               2: 'iTru5_01_C',
+                               3: 'iTru5_01_D'},
+                 'i5 plate': {0: 'iTru5_plate',
+                              1: 'iTru5_plate',
+                              2: 'iTru5_plate',
+                              3: 'iTru5_plate'},
+                 'i5 sequence': {0: 'ACCGACAA', 1: 'AGTGGCAA',
+                                 2: 'CACAGACT', 3: 'CGACACTT'},
+                 'i5 well': {0: 'A1', 1: 'B1', 2: 'C1', 3: 'D1'},
+                 'i7 name': {0: 'iTru7_101_01',
+                             1: 'iTru7_101_02',
+                             2: 'iTru7_101_03',
+                             3: 'iTru7_101_04'},
+                 'i7 plate': {0: 'iTru7_plate',
+                              1: 'iTru7_plate',
+                              2: 'iTru7_plate',
+                              3: 'iTru7_plate'},
+                 'i7 sequence': {0: 'ACGTTACC', 1: 'CTGTGTTG',
+                                 2: 'TGAGGTGT', 3: 'GATCCATG'},
+                 'i7 well': {0: 'A1', 1: 'A2', 2: 'A3', 3: 'A4'},
+                 'index combo': {0: 0, 1: 1, 2: 2, 3: 3},
+                 'index combo seq': {0: 'ACCGACAAACGTTACC',
+                                     1: 'AGTGGCAACTGTGTTG',
+                                     2: 'CACAGACTTGAGGTGT',
+                                     3: 'CGACACTTGATCCATG'}})
+
+        obs_picklist = format_index_picklist(sample_names, sample_wells, indices)
+
+        self.assertEqual(exp_picklist, obs_picklist)
+
     def test_compute_qpcr_concentration(self):
         obs = compute_qpcr_concentration(self.cp_vals)
         exp = self.qpcr_conc
