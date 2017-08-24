@@ -322,10 +322,203 @@ class Tests(TestCase):
         pd.testing.assert_frame_equal(obs_df, exp_df, check_like=True)
 
     def test_compute_pico_concentration(self):
-            obs = compute_pico_concentration(self.dna_vals)
-            exp = self.pico_conc
+        obs = compute_pico_concentration(self.dna_vals)
+        exp = self.pico_conc
 
-            npt.assert_allclose(obs, exp)
+        npt.assert_allclose(obs, exp)
+
+    def test_format_sample_sheet(self):
+        exp_sample_sheet = (
+            '[Header]\n'
+            'IEMFileVersion\t4\n'
+            'Investigator Name\tKnight\n'
+            'Experiment Name\t\n'
+            'Date\t2017-08-13\n'
+            'Workflow\tGenerateFASTQ\n'
+            'Application\tFASTQ Only\n'
+            'Assay\tMetagenomics\n'
+            'Description\t\n'
+            'Chemistry\tDefault\n\n'
+            '[Reads]\n'
+            '150\n'
+            '150\n\n'
+            '[Settings]\n'
+            'ReverseComplement\t0\n\n'
+            '[Data]\n'
+            'Lane\tSample_ID\tSample_Name\tSample_Plate\tSample_Well'
+            '\tI7_Index_ID\tindex\tI5_Index_ID\tindex2\tSample_Project'
+            '\tDescription\n'
+            '1\tsam1\tsam1\texample\tA1\tiTru7_101_01\tACGTTACC\tiTru5_01_A'
+            '\tACCGACAA\texample_proj\t\n'
+            '1\tsam2\tsam2\texample\tA2\tiTru7_101_02\tCTGTGTTG\tiTru5_01_B'
+            '\tAGTGGCAA\texample_proj\t\n'
+            '1\tblank1\tblank1\texample\tB1\tiTru7_101_03\tTGAGGTGT\tiTru5_01_C'
+            '\tCACAGACT\texample_proj\t\n'
+            '1\tsam3\tsam3\texample\tB2\tiTru7_101_04\tGATCCATG\tiTru5_01_D'
+            '\tCGACACTT\texample_proj\t'
+            )
+
+
+        exp_sample_sheet_2 = (
+            '# PI\tKnight\trobknight@ucsd.edu\t\t\n'
+            '# Contact\tJeff Dereus\tGail Ackermann\tJon Sanders\tGreg Humphrey\n'
+            '# \tjdereus@ucsd.edu\tackermag@ucsd.edu\tjonsan@gmail.com\tghsmu414@gmail.com\n'
+            '[Header]\n'
+            'IEMFileVersion\t4\n'
+            'Investigator Name\tKnight\n'
+            'Experiment Name\t\n'
+            'Date\t2017-08-13\n'
+            'Workflow\tGenerateFASTQ\n'
+            'Application\tFASTQ Only\n'
+            'Assay\tMetagenomics\n'
+            'Description\t\n'
+            'Chemistry\tDefault\n\n'
+            '[Reads]\n'
+            '150\n'
+            '150\n\n'
+            '[Settings]\n'
+            'ReverseComplement\t0\n\n'
+            '[Data]\n'
+            'Lane\tSample_ID\tSample_Name\tSample_Plate\t'
+            'Sample_Well\tI7_Index_ID\tindex\tI5_Index_ID\t'
+            'index2\tSample_Project\tDescription\n'
+            '1\tsam1\tsam1\texample\tA1\tiTru7_101_01\tACGTTACC'
+            '\tiTru5_01_A\tACCGACAA\texample_proj\t\n'
+            '1\tsam2\tsam2\texample\tA2\tiTru7_101_02\tCTGTGTTG'
+            '\tiTru5_01_B\tAGTGGCAA\texample_proj\t\n'
+            '1\tblank1\tblank1\texample\tB1\tiTru7_101_03\tTGAGGTGT'
+            '\tiTru5_01_C\tCACAGACT\texample_proj\t\n'
+            '1\tsam3\tsam3\texample\tB2\tiTru7_101_04\tGATCCATG'
+            '\tiTru5_01_D\tCGACACTT\texample_proj\t'
+            )
+
+        comment = (
+            'PI\tKnight\trobknight@ucsd.edu\t\t\n'
+            'Contact\tJeff Dereus\tGail Ackermann\t'
+            'Jon Sanders\tGreg Humphrey\n'
+            '\tjdereus@ucsd.edu\tackermag@ucsd.edu\t'
+            'jonsan@gmail.com\tghsmu414@gmail.com\n'
+            )
+
+
+        data = (
+            'Lane\tSample_ID\tSample_Name\tSample_Plate\tSample_Well\t'
+            'I7_Index_ID\tindex\tI5_Index_ID\tindex2\tSample_Project\t'
+            'Description\n'
+            '1\tsam1\tsam1\texample\tA1\tiTru7_101_01\tACGTTACC\t'
+            'iTru5_01_A\tACCGACAA\texample_proj\t\n'
+            '1\tsam2\tsam2\texample\tA2\tiTru7_101_02\tCTGTGTTG\t'
+            'iTru5_01_B\tAGTGGCAA\texample_proj\t\n'
+            '1\tblank1\tblank1\texample\tB1\tiTru7_101_03\tTGAGGTGT\t'
+            'iTru5_01_C\tCACAGACT\texample_proj\t\n'
+            '1\tsam3\tsam3\texample\tB2\tiTru7_101_04\tGATCCATG\t'
+            'iTru5_01_D\tCGACACTT\texample_proj\t'
+            )
+
+        sample_sheet_dict = {'comments': '',
+                  'IEMFileVersion': '4',
+                  'Investigator Name': 'Knight',
+                  'Experiment Name': '',
+                  'Date': '2017-08-13',
+                  'Workflow': 'GenerateFASTQ',
+                  'Application': 'FASTQ Only',
+                  'Assay': 'Metagenomics',
+                  'Description': '',
+                  'Chemistry': 'Default',
+                  'read1': 150,
+                  'read2': 150,
+                  'ReverseComplement': '0',
+                  'data': data}
+
+        obs_sample_sheet = format_sample_sheet(sample_sheet_dict)
+
+        self.assertEqual(exp_sample_sheet, obs_sample_sheet)
+
+        sample_sheet_dict_2 = {'comments': comment,
+                  'IEMFileVersion': '4',
+                  'Investigator Name': 'Knight',
+                  'Experiment Name': '',
+                  'Date': '2017-08-13',
+                  'Workflow': 'GenerateFASTQ',
+                  'Application': 'FASTQ Only',
+                  'Assay': 'Metagenomics',
+                  'Description': '',
+                  'Chemistry': 'Default',
+                  'read1': 150,
+                  'read2': 150,
+                  'ReverseComplement': '0',
+                  'data': data}
+
+        obs_sample_sheet_2 = format_sample_sheet(sample_sheet_dict_2)
+
+        self.assertEqual(exp_sample_sheet_2, obs_sample_sheet_2)
+
+    def test_bcl_scrub_name(self):
+        self.assertEqual('test_1', bcl_scrub_name('test.1'))
+        self.assertEqual('test-1', bcl_scrub_name('test-1'))
+        self.assertEqual('test_1', bcl_scrub_name('test_1'))
+
+    def test_format_sample_data(self):
+        exp_data = (
+            'Lane\tSample_ID\tSample_Name\tSample_Plate'
+            '\tSample_Well\tI7_Index_ID\tindex\tI5_Index_ID'
+            '\tindex2\tSample_Project\tDescription\n'
+            '1\tsam1\tsam1\texample\tA1\tiTru7_101_01\tACGTTACC\t'
+            'iTru5_01_A\tACCGACAA\texample_proj\t\n'
+            '1\tsam2\tsam2\texample\tA2\tiTru7_101_02\tCTGTGTTG\t'
+            'iTru5_01_B\tAGTGGCAA\texample_proj\t\n'
+            '1\tblank1\tblank1\texample\tB1\tiTru7_101_03\tTGAGGTGT\t'
+            'iTru5_01_C\tCACAGACT\texample_proj\t\n'
+            '1\tsam3\tsam3\texample\tB2\tiTru7_101_04\tGATCCATG\t'
+            'iTru5_01_D\tCGACACTT\texample_proj\t'
+            )
+
+        wells = ['A1', 'A2', 'B1', 'B2']
+        sample_ids =  ['sam1', 'sam2', 'blank1', 'sam3']
+        i5_name = ['iTru5_01_A', 'iTru5_01_B', 'iTru5_01_C', 'iTru5_01_D']
+        i5_seq = ['ACCGACAA', 'AGTGGCAA', 'CACAGACT', 'CGACACTT']
+        i7_name = ['iTru7_101_01', 'iTru7_101_02',
+                   'iTru7_101_03', 'iTru7_101_04']
+        i7_seq =['ACGTTACC', 'CTGTGTTG', 'TGAGGTGT', 'GATCCATG']
+
+        obs_data = format_sample_data(sample_ids,i7_name, i7_seq,
+                                      i5_name, i5_seq, wells=wells,
+                                      sample_plate='example',
+                                      sample_proj='example_proj',
+                                      lanes=[1])
+
+        self.assertEqual(obs_data, exp_data)
+
+        exp_data_2 = (
+            'Lane\tSample_ID\tSample_Name\tSample_Plate\t'
+            'Sample_Well\tI7_Index_ID\tindex\tI5_Index_ID\t'
+            'index2\tSample_Project\tDescription\n'
+            '1\tsam1\tsam1\texample\tA1\tiTru7_101_01\tACGTTACC\t'
+            'iTru5_01_A\tACCGACAA\texample_proj\t\n'
+            '1\tsam2\tsam2\texample\tA2\tiTru7_101_02\tCTGTGTTG\t'
+            'iTru5_01_B\tAGTGGCAA\texample_proj\t\n'
+            '1\tblank1\tblank1\texample\tB1\tiTru7_101_03\tTGAGGTGT\t'
+            'iTru5_01_C\tCACAGACT\texample_proj\t\n'
+            '1\tsam3\tsam3\texample\tB2\tiTru7_101_04\tGATCCATG\t'
+            'iTru5_01_D\tCGACACTT\texample_proj\t\n'
+            '2\tsam1\tsam1\texample\tA1\tiTru7_101_01\tACGTTACC\t'
+            'iTru5_01_A\tACCGACAA\texample_proj\t\n'
+            '2\tsam2\tsam2\texample\tA2\tiTru7_101_02\tCTGTGTTG\t'
+            'iTru5_01_B\tAGTGGCAA\texample_proj\t\n'
+            '2\tblank1\tblank1\texample\tB1\tiTru7_101_03\tTGAGGTGT'
+            '\tiTru5_01_C\tCACAGACT\texample_proj\t\n'
+            '2\tsam3\tsam3\texample\tB2\tiTru7_101_04\tGATCCATG'
+            '\tiTru5_01_D\tCGACACTT\texample_proj\t'
+            )
+
+        obs_data_2 = format_sample_data(sample_ids,i7_name, i7_seq,
+                                        i5_name, i5_seq, wells=wells,
+                                        sample_plate='example',
+                                        sample_proj='example_proj',
+                                        lanes=[1,2])
+
+        self.assertEqual(obs_data_2, exp_data_2)
+
 
 
 if __name__ == "__main__":

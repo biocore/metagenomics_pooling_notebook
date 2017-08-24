@@ -1,4 +1,5 @@
 import os
+import re
 import numpy as np
 import pandas as pd
 import string
@@ -603,3 +604,102 @@ def compute_pico_concentration(dna_vals, size=400):
     lib_concentration = (dna_vals / (660 * float(size))) * 10**6
 
     return(lib_concentration)
+
+
+def ss_temp():
+    """Sample sheet template
+    """
+    s ='{comments}[Header]\nIEMFileVersion{sep}{IEMFileVersion}\nInvestigator ' + \
+       'Name{sep}{Investigator Name}\nExperiment Name{sep}{Experiment Name}\n' + \
+       'Date{sep}{Date}\nWorkflow{sep}{Workflow}\nApplication{sep}{Application}\n' + \
+       'Assay{sep}{Assay}\nDescription{sep}{Description}\n' + \
+       'Chemistry{sep}{Chemistry}\n\n[Reads]\n{read1}\n{read2}\n\n[Settings]\n' + \
+       'ReverseComplement{sep}{ReverseComplement}\n\n[Data]\n{data}'
+    
+    return(s)
+
+
+def format_sample_sheet(sample_sheet_dict, sep='\t', template=ss_temp()):
+    """Formats Illumina-compatible sample sheet.
+
+    Parameters
+    ----------
+    sample_sheet_dict : 2-level dict
+        dict with 1st level headers 'Comments', 'Header', 'Reads', 'Settings', and 'Data'. 
+
+    Returns
+    -------
+    sample_sheet : str
+        the sample sheet string
+    """
+    if sample_sheet_dict['comments']:
+        sample_sheet_dict['comments'] = re.sub('^', '# ', sample_sheet_dict['comments'].rstrip(), flags=re.MULTILINE) + '\n'
+    sample_sheet = template.format(**sample_sheet_dict, **{'sep': sep})
+    
+    return(sample_sheet)
+
+
+def bcl_scrub_name(name):
+    """Modifies a sample name to be BCL2fastq compatible
+
+    Parameters
+    ----------
+    name : str
+        the sample name
+
+    Returns
+    -------
+    str
+        the sample name, formatted for bcl2fastq
+    """
+    
+    return(re.sub('[^0-9a-zA-Z\-\_]+', '_', name))
+
+
+def format_sample_data(sample_ids, i7_name, i7_seq, i5_name, i5_seq,
+                       wells=None, sample_plate='', sample_proj='',
+                       description=None, lanes=[1], sep='\t'):
+    """
+    Creates the [Data] component of the Illumina sample sheet from plate information
+
+    Parameters
+    ----------
+    sample_sheet_dict : 2-level dict
+        dict with 1st level headers 'Comments', 'Header', 'Reads', 'Settings', and 'Data'. 
+
+    Returns
+    -------
+    data : str
+        the sample sheet string
+    """
+    data = ''
+    
+    if len(sample_ids) != len(i7_name) != len(i7_seq) != len(i5_name) != len(i5_seq):
+        raise ValueError('Sample information lengths are not all equal')
+    
+    if wells is None:
+        wells = [''] * len(sample_ids)
+    if description is None:
+        description = [''] * len(sample_ids)
+    
+    header = 'Lane\tSample_ID\tSample_Name\tSample_Plate\tSample_Well\tI7_Index_ID\t' + \
+             'index\tI5_Index_ID\tindex2\tSample_Project\tDescription'
+        
+    data += header
+
+    for lane in lanes:
+        for i, sample in enumerate(sample_ids):
+            line = sep.join([str(lane),
+                             sample,
+                             sample,
+                             sample_plate,
+                             wells[i],
+                             i7_name[i],
+                             i7_seq[i],
+                             i5_name[i],
+                             i5_seq[i],
+                             sample_proj,
+                             description[i]])
+            data += '\n' + line
+    
+    return(data)
