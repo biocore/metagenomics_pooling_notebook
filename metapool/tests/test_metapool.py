@@ -121,14 +121,14 @@ class Tests(TestCase):
         exp_picklist = \
         'Sample\tSource Plate Name\tSource Plate Type\tSource Well\t' + \
         'Concentration\tTransfer Volume\tDestination Plate Name\tDestination Well\n' + \
-        'sam1\tWater\t384PP_AQ_SP2_HT\tA1\t2.0\t1000.0\tNormalizedDNA\tA1\n' + \
-        'sam2\tWater\t384PP_AQ_SP2_HT\tA2\t7.89\t2867.5\tNormalizedDNA\tA2\n' + \
-        'blank1\tWater\t384PP_AQ_SP2_HT\tB1\tnan\t0.0\tNormalizedDNA\tB1\n' + \
-        'sam3\tWater\t384PP_AQ_SP2_HT\tB2\t0.0\t0.0\tNormalizedDNA\tB2\n' + \
-        'sam1\tSample\t384PP_AQ_SP2_HT\tA1\t2.0\t2500.0\tNormalizedDNA\tA1\n' + \
-        'sam2\tSample\t384PP_AQ_SP2_HT\tA2\t7.89\t632.5\tNormalizedDNA\tA2\n' + \
-        'blank1\tSample\t384PP_AQ_SP2_HT\tB1\tnan\t3500.0\tNormalizedDNA\tB1\n' + \
-        'sam3\tSample\t384PP_AQ_SP2_HT\tB2\t0.0\t3500.0\tNormalizedDNA\tB2'
+        'sam1\tWater\t384PP_AQ_BP2_HT\tA1\t2.0\t1000.0\tNormalizedDNA\tA1\n' + \
+        'sam2\tWater\t384PP_AQ_BP2_HT\tA2\t7.89\t2867.5\tNormalizedDNA\tA2\n' + \
+        'blank1\tWater\t384PP_AQ_BP2_HT\tB1\tnan\t0.0\tNormalizedDNA\tB1\n' + \
+        'sam3\tWater\t384PP_AQ_BP2_HT\tB2\t0.0\t0.0\tNormalizedDNA\tB2\n' + \
+        'sam1\tSample\t384PP_AQ_BP2_HT\tA1\t2.0\t2500.0\tNormalizedDNA\tA1\n' + \
+        'sam2\tSample\t384PP_AQ_BP2_HT\tA2\t7.89\t632.5\tNormalizedDNA\tA2\n' + \
+        'blank1\tSample\t384PP_AQ_BP2_HT\tB1\tnan\t3500.0\tNormalizedDNA\tB1\n' + \
+        'sam3\tSample\t384PP_AQ_BP2_HT\tB2\t0.0\t3500.0\tNormalizedDNA\tB2'
 
         dna_vols = np.array([[2500., 632.5],
                               [3500., 3500.]])

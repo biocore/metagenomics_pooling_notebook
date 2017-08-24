@@ -85,7 +85,7 @@ def calculate_norm_vol(dna_concs, ng=5, min_vol=2.5, max_vol=3500, resolution=2.
 
 def format_dna_norm_picklist(dna_vols, water_vols, wells, dna_concs=None, sample_names=None,
                              dna_plate_name='Sample', water_plate_name='Water',
-                             dna_plate_type='384PP_AQ_SP2_HT', water_plate_type='384PP_AQ_SP2_HT',
+                             dna_plate_type='384PP_AQ_BP2_HT', water_plate_type='384PP_AQ_BP2_HT',
                              dest_plate_name='NormalizedDNA'):
     """
     Writes Echo-format pick list to achieve a normalized input DNA pool
