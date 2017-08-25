@@ -46,12 +46,13 @@ def read_pico_csv(f, sep='\t'):
     pico_df: pandas DataFrame object
         DataFrame relating well location and DNA concentration
     """
-    
-    raw_df = pd.read_csv(f, sep = sep, skiprows=2, skipfooter=5)
-    
+
+    raw_df = pd.read_csv(f, sep = sep, skiprows=2,
+                         skipfooter=5, engine='python')
+
     pico_df = raw_df[['Well','[Concentration]']]
-    pico_df.rename(columns={'[Concentration]':'Sample DNA Concentration'}, inplace=True)
-    
+    pico_df = pico_df.rename(columns={'[Concentration]':'Sample DNA Concentration'})
+
     return(pico_df)
 
 
