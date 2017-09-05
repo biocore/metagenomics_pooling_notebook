@@ -81,7 +81,7 @@ class Tests(TestCase):
         pd.testing.assert_frame_equal(obs_plate_df, exp_plate_df, check_like=True)
 
     def test_read_pico_csv(self):
-
+        # Test a normal sheet
         pico_csv = '''Results
 
         Well ID\tWell\t[Blanked-RFU]\t[Concentration]
@@ -104,6 +104,32 @@ class Tests(TestCase):
         obs_pico_df = read_pico_csv(pico_csv_f)
 
         pd.testing.assert_frame_equal(obs_pico_df, exp_pico_df, check_like=True)
+
+        # Test a sheet that has some ???? zero values
+        pico_csv = '''Results
+
+        Well ID\tWell\t[Blanked-RFU]\t[Concentration]
+        SPL1\tA1\t5243.000\t3.432
+        SPL2\tA2\t4949.000\t3.239
+        SPL3\tB1\t15302.000\t10.016
+        SPL4\tB2\t\t?????
+
+        Curve2 Fitting Results
+
+        Curve Name\tCurve Formula\tA\tB\tR2\tFit F Prob
+        Curve2\tY=A*X+B\t1.53E+003\t0\t0.995\t?????
+        '''
+        exp_pico_df = pd.DataFrame({'Well': ['A1','A2','B1','B2'],
+                                    'Sample DNA Concentration': 
+                                     [3.432, 3.239, 10.016, np.nan]})
+
+        pico_csv_f = StringIO(pico_csv)
+
+        obs_pico_df = read_pico_csv(pico_csv_f)
+
+        pd.testing.assert_frame_equal(obs_pico_df, exp_pico_df, check_like=True)
+
+
 
     def test_calculate_norm_vol(self):
         dna_concs = np.array([[2, 7.89],

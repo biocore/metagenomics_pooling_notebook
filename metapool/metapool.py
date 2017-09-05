@@ -53,6 +53,10 @@ def read_pico_csv(f, sep='\t'):
     pico_df = raw_df[['Well','[Concentration]']]
     pico_df = pico_df.rename(columns={'[Concentration]':'Sample DNA Concentration'})
 
+    # coerce oddball concentrations to np.nan
+    pico_df['Sample DNA Concentration'] = \
+        pd.to_numeric(pico_df['Sample DNA Concentration'], errors = 'coerce')
+    
     return(pico_df)
 
 
