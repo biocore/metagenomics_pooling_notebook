@@ -234,6 +234,17 @@ class Tests(TestCase):
 
         npt.assert_allclose(exp_vols, obs_vols)
 
+    def test_compute_shotgun_pooling_values_qpcr_minvol(self):
+        sample_concs = np.array([[1, 12, 400],
+                                 [200, 40, 1]])
+
+        exp_vols = np.array([[100, 100, 4166.6666666666],
+                             [8333.33333333333, 41666.666666666, 100]])
+
+        obs_vols = compute_shotgun_pooling_values_qpcr_minvol(sample_concs)
+
+        npt.assert_allclose(exp_vols, obs_vols)
+
     def test_estimate_pool_conc_vol(self):
         obs_sample_vols = compute_shotgun_pooling_values_eqvol(
                                         self.qpcr_conc, total_vol=60.0)

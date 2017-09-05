@@ -331,6 +331,66 @@ def compute_shotgun_pooling_values_qpcr(sample_concs, sample_fracs=None,
     return(sample_vols)
 
 
+def compute_shotgun_pooling_values_qpcr_minvol(sample_concs, sample_fracs=None,
+                                          floor_vol=100, floor_conc=40,
+                                          total_nmol=.01):
+    """Computes pooling volumes for samples based on qPCR estimates of
+    nM concentrations (`sample_concs`), taking a minimum volume of samples
+    below a threshold.
+
+    Reads in qPCR values in nM from output of `compute_qpcr_concentration`.
+    Samples below a minimum concentration (`floor_conc`, default 40 nM) 
+    will be included, but at a decreased volume (`floor_vol`, default 100 nL)
+    to avoid overdiluting the pool.
+
+    Samples can be assigned a target molar fraction in the pool by passing a
+    np.array (`sample_fracs`, same shape as `sample_concs`) with fractional
+    values per sample. By default, will aim for equal molar pooling.
+
+    Finally, total pooling size is determined by a target nanomolar quantity
+    (`total_nmol`, default .01). For a perfect 384 sample library, in which you
+    had all samples at a concentration of exactly 400 nM and wanted a total
+    volume of 60 uL, this would be 0.024 nmol.
+    
+    For a Novaseq, we expect to need 150 uL at 4 nM, or about 0.0006 nmol.
+    Taking into account sample loss on the pippin prep (1/2) and molar loss
+    due to exclusion of primer dimers (1/2), figure we need 4 times that or
+    0.0024.
+
+    Parameters
+    ----------
+    sample_concs: 2D array of float
+        nM calculated by compute_qpcr_concentration
+    sample_fracs: 2D of float
+        fractional value for each sample (default 1/N)
+    floor_vol: float
+        volume (nL) at which samples below floor_conc will be pooled
+    floor_conc: float
+        minimum value (nM) for pooling at real estimated value (default 40)
+    total_nmol : float
+        total number of nM to have in pool
+
+    Returns
+    -------
+    sample_vols: np.array of floats
+        the volumes in nL per each sample pooled
+    """
+
+    if sample_fracs is None:
+        sample_fracs = np.ones(sample_concs.shape) / sample_concs.size
+
+    # calculate volumetric fractions including floor val
+    sample_vols = (total_nmol * sample_fracs) / sample_concs
+
+    # convert L to nL
+    sample_vols *= 10**9
+    
+    # drop volumes for samples below floor concentration to floor_vol
+    sample_vols[sample_concs < floor_conc] = floor_vol
+    
+    return(sample_vols)
+
+
 def estimate_pool_conc_vol(sample_vols, sample_concs):
     """Estimates the actual molarity and volume of a pool.
 
