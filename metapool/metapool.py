@@ -89,7 +89,8 @@ def calculate_norm_vol(dna_concs, ng=5, min_vol=2.5, max_vol=3500, resolution=2.
     return(sample_vols)
 
 
-def format_dna_norm_picklist(dna_vols, water_vols, wells, dna_concs=None, sample_names=None,
+def format_dna_norm_picklist(dna_vols, water_vols, wells, dest_wells=None,
+                             dna_concs=None, sample_names=None,
                              dna_plate_name='Sample', water_plate_name='Water',
                              dna_plate_type='384PP_AQ_BP2_HT', water_plate_type='384PP_AQ_BP2_HT',
                              dest_plate_name='NormalizedDNA'):
@@ -104,6 +105,9 @@ def format_dna_norm_picklist(dna_vols, water_vols, wells, dna_concs=None, sample
         The volumes of water to add
     wells: numpy array of str
         The well codes in the same orientation as the DNA concentrations
+    dest_wells: numpy array of str
+        The well codes, in the same orientation as `wells`,
+        in which to place each sample if reformatting
     dna_concs:  numpy array of float
         The concentrations calculated via PicoGreen (ng/uL)
     sample_names: numpy array of str
@@ -119,7 +123,11 @@ def format_dna_norm_picklist(dna_vols, water_vols, wells, dna_concs=None, sample
     if dna_vols.shape != wells.shape != water_vols.shape:
         raise ValueError('dna_vols %r has a size different from wells %r or water_vols' %
                          (dna_vols.shape, wells.shape, water_vols.shape))
-        
+    
+    # if destination wells not specified, use source wells
+    if dest_wells is None:
+        dest_wells = wells
+
     if sample_names is None:
         sample_names = np.empty(dna_vols.shape) * np.nan
     if dna_concs is None:
@@ -138,12 +146,12 @@ def format_dna_norm_picklist(dna_vols, water_vols, wells, dna_concs=None, sample
     for index, sample in np.ndenumerate(sample_names):
         picklist += '\n' + '\t'.join([str(sample), water_plate_name, water_plate_type,
                                str(wells[index]), str(dna_concs[index]), str(water_vols[index]),
-                               dest_plate_name, str(wells[index])]) 
+                               dest_plate_name, str(dest_wells[index])]) 
     # DNA additions
     for index, sample in np.ndenumerate(sample_names):
         picklist += '\n' + '\t'.join([str(sample), dna_plate_name, dna_plate_type,
                                str(wells[index]), str(dna_concs[index]), str(dna_vols[index]),
-                               dest_plate_name, str(wells[index])])    
+                               dest_plate_name, str(dest_wells[index])])    
     
     return(picklist)
 
@@ -768,3 +776,59 @@ def format_sample_data(sample_ids, i7_name, i7_seq, i5_name, i5_seq,
             data += '\n' + line
     
     return(data)
+
+
+def reformat_interleaved_to_columns(wells):
+    """
+    converts condensed 96-to-384 plates in this format:
+    
+    plate1 | plate2
+    ---------------
+    plate3 | plate4
+    
+    to this format:
+    
+    plate1 | plate2 | plate3 | plate4
+    
+    where samples for each of the constituent plates are packed into contiguous
+    columns of the 384 well plate. 
+    
+    This is useful when doing a 192 well plate in order to save Mosquito tips / time
+
+    Parameters
+    ----------
+    wells: array-like of str
+        the sample source wells
+
+    Returns
+    -------
+    new_wells: np array of str
+        then new well locations in matching array positions
+    """
+    
+    wells = np.array(wells)
+    new_wells = np.empty(np.shape(wells), dtype='object')
+    
+    for i, owell in np.ndenumerate(wells):
+        row = ord(str(owell[0]).upper()) - 65
+        col = int(owell[1:]) - 1
+        
+        # ROWS
+        # roffset = ROW % 2
+        # row = ROW - roffset + floor(COL / 12)
+        
+        roffset = row % 2
+        nrow = int(row - roffset + np.floor(col / 12))
+        
+        # COLS
+        # coffset = COL % 2 + (ROW % 2) * 2
+        # col = coffset * 6 + (col / 2) % 6
+        
+        coffset = col % 2 + (row % 2) * 2
+        ncol = int(coffset * 6 + (col / 2) % 6)
+
+        nwell = '%s%s' % (chr(nrow + 65), ncol + 1)
+    
+        new_wells[i] = nwell
+    
+    return(new_wells)

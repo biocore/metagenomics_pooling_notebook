@@ -176,6 +176,41 @@ class Tests(TestCase):
 
         self.assertEqual(exp_picklist, obs_picklist)
 
+        # test if switching dest wells
+        exp_picklist = \
+        'Sample\tSource Plate Name\tSource Plate Type\tSource Well\t' + \
+        'Concentration\tTransfer Volume\tDestination Plate Name\tDestination Well\n' + \
+        'sam1\tWater\t384PP_AQ_BP2_HT\tA1\t2.0\t1000.0\tNormalizedDNA\tD1\n' + \
+        'sam2\tWater\t384PP_AQ_BP2_HT\tA2\t7.89\t2867.5\tNormalizedDNA\tD2\n' + \
+        'blank1\tWater\t384PP_AQ_BP2_HT\tB1\tnan\t0.0\tNormalizedDNA\tE1\n' + \
+        'sam3\tWater\t384PP_AQ_BP2_HT\tB2\t0.0\t0.0\tNormalizedDNA\tE2\n' + \
+        'sam1\tSample\t384PP_AQ_BP2_HT\tA1\t2.0\t2500.0\tNormalizedDNA\tD1\n' + \
+        'sam2\tSample\t384PP_AQ_BP2_HT\tA2\t7.89\t632.5\tNormalizedDNA\tD2\n' + \
+        'blank1\tSample\t384PP_AQ_BP2_HT\tB1\tnan\t3500.0\tNormalizedDNA\tE1\n' + \
+        'sam3\tSample\t384PP_AQ_BP2_HT\tB2\t0.0\t3500.0\tNormalizedDNA\tE2'
+
+        dna_vols = np.array([[2500., 632.5],
+                              [3500., 3500.]])
+
+        water_vols = 3500 - dna_vols
+
+        wells = np.array([['A1', 'A2'],
+                          ['B1', 'B2']])
+        dest_wells = np.array([['D1', 'D2'],
+                               ['E1', 'E2']])
+        sample_names =  np.array([['sam1', 'sam2'],
+                          ['blank1', 'sam3']])
+
+        dna_concs = np.array([[2, 7.89],
+                              [np.nan, .0]])
+
+        obs_picklist = format_dna_norm_picklist(dna_vols, water_vols, wells,
+                                                dest_wells = dest_wells,
+                                                sample_names = sample_names,
+                                                dna_concs = dna_concs)
+
+        self.assertEqual(exp_picklist, obs_picklist)
+
     def test_format_index_picklist(self):
         exp_picklist = \
             'Sample\tSource Plate Name\tSource Plate Type\tSource Well\tTransfer Volume\tIndex Name\t' + \
@@ -556,6 +591,20 @@ class Tests(TestCase):
 
         self.assertEqual(obs_data_2, exp_data_2)
 
+    def test_reformat_interleaved_to_columns(self):
+        wells = ['A1','A23','C1','C23',
+                 'A2','A24','C2','C24',
+                 'B1','B23','D1','D23',
+                 'B2','B24','D2','D24']
+
+        exp = ['A1','B6','C1','D6',
+               'A7','B12','C7','D12',
+               'A13','B18','C13','D18',
+               'A19','B24','C19','D24']
+
+        obs = reformat_interleaved_to_columns(wells)
+            
+        np.testing.assert_array_equal(exp, obs)
 
 
 if __name__ == "__main__":
