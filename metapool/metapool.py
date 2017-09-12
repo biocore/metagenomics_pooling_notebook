@@ -692,7 +692,7 @@ def ss_temp():
     return(s)
 
 
-def format_sample_sheet(sample_sheet_dict, sep='\t', template=ss_temp()):
+def format_sample_sheet(sample_sheet_dict, sep=',', template=ss_temp()):
     """Formats Illumina-compatible sample sheet.
 
     Parameters
