@@ -692,6 +692,26 @@ def ss_temp():
     return(s)
 
 
+def format_sheet_comments(PI=None, contacts=None, other=None, sep=','):
+
+    comments = ''
+
+    if PI is not None:
+        comments += 'PI{0}{1}\n'.format(sep,
+                      sep.join('{0}{1}{2}'.format(x, sep, PI[x])
+                      for x in PI.keys()))
+
+    if contacts is not None:
+        comments += 'Contact{0}{1}\n{0}{2}\n'.format(sep,
+                      sep.join(x for x in sorted(contacts.keys())),
+                      sep.join(contacts[x] for x in sorted(contacts.keys())))
+
+    if other is not None:
+        comments += '%s\n' % other
+
+    return(comments)
+
+
 def format_sample_sheet(sample_sheet_dict, sep=',', template=ss_temp()):
     """Formats Illumina-compatible sample sheet.
 

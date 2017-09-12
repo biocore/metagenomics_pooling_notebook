@@ -399,7 +399,34 @@ class Tests(TestCase):
 
         npt.assert_allclose(obs, exp)
 
+    def test_format_sheet_comments(self):
+        contacts = {'Jeff Dereus': 'jdereus@ucsd.edu',
+                    'Gail Ackermann': 'ackermag@ucsd.edu',
+                    'Jon Sanders': 'jonsan@gmail.com',
+                    'Greg Humphrey': 'ghsmu414@gmail.com'}
+
+        PI = {'Knight': 'robknight@ucsd.edu'}
+
+        other = None
+
+        sep = '\t'
+
+        exp_comment = (
+            'PI\tKnight\trobknight@ucsd.edu\n'
+            'Contact\tGail Ackermann\tGreg Humphrey'
+            '\tJeff Dereus\tJon Sanders\n'
+            '\tackermag@ucsd.edu\tghsmu414@gmail.com'
+            '\tjdereus@ucsd.edu\tjonsan@gmail.com\n'
+            )
+
+        obs_comment = format_sheet_comments(PI, contacts, other, sep)
+
+        self.assertEqual(exp_comment, obs_comment)
+
     def test_format_sample_sheet(self):
+
+        self.maxDiff = None
+
         exp_sample_sheet = (
             '[Header]\n'
             'IEMFileVersion\t4\n'
@@ -502,7 +529,7 @@ class Tests(TestCase):
                   'ReverseComplement': '0',
                   'data': data}
 
-        obs_sample_sheet = format_sample_sheet(sample_sheet_dict)
+        obs_sample_sheet = format_sample_sheet(sample_sheet_dict, sep='\t')
 
         self.assertEqual(exp_sample_sheet, obs_sample_sheet)
 
@@ -521,7 +548,7 @@ class Tests(TestCase):
                   'ReverseComplement': '0',
                   'data': data}
 
-        obs_sample_sheet_2 = format_sample_sheet(sample_sheet_dict_2)
+        obs_sample_sheet_2 = format_sample_sheet(sample_sheet_dict_2, sep='\t')
 
         self.assertEqual(exp_sample_sheet_2, obs_sample_sheet_2)
 
