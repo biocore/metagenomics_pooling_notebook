@@ -129,8 +129,6 @@ class Tests(TestCase):
 
         pd.testing.assert_frame_equal(obs_pico_df, exp_pico_df, check_like=True)
 
-
-
     def test_calculate_norm_vol(self):
         dna_concs = np.array([[2, 7.89],
                               [np.nan, .0]])
@@ -557,7 +555,27 @@ class Tests(TestCase):
         self.assertEqual('test-1', bcl_scrub_name('test-1'))
         self.assertEqual('test_1', bcl_scrub_name('test_1'))
 
+    def test_rc(self):
+        self.assertEqual(rc('AGCCT'), 'AGGCT')
+
+    def test_sequencer_i5_index(self):
+        indices = ['AGCT','CGGA','TGCC']
+
+        exp_rc = ['AGCT','TCCG','GGCA']
+
+        obs_hiseq4k = sequencer_i5_index('HiSeq4000', indices)
+        obs_hiseq25k = sequencer_i5_index('HiSeq2500', indices)
+        obs_nextseq = sequencer_i5_index('NextSeq', indices)
+
+        self.assertListEqual(obs_hiseq4k, exp_rc)
+        self.assertListEqual(obs_hiseq25k, indices)
+        self.assertListEqual(obs_nextseq, exp_rc)
+
+        with self.assertRaises(ValueError):
+            sequencer_i5_index('foo', indices)
+
     def test_format_sample_data(self):
+        # test that single lane works
         exp_data = (
             'Lane\tSample_ID\tSample_Name\tSample_Plate'
             '\tSample_Well\tI7_Index_ID\tindex\tI5_Index_ID'
@@ -588,6 +606,7 @@ class Tests(TestCase):
 
         self.assertEqual(obs_data, exp_data)
 
+        # test that two lanes works
         exp_data_2 = (
             'Lane\tSample_ID\tSample_Name\tSample_Plate\t'
             'Sample_Well\tI7_Index_ID\tindex\tI5_Index_ID\t'
@@ -617,6 +636,31 @@ class Tests(TestCase):
                                         lanes=[1,2])
 
         self.assertEqual(obs_data_2, exp_data_2)
+
+        # test with r/c i5 barcodes
+        exp_data = (
+            'Lane\tSample_ID\tSample_Name\tSample_Plate'
+            '\tSample_Well\tI7_Index_ID\tindex\tI5_Index_ID'
+            '\tindex2\tSample_Project\tDescription\n'
+            '1\tsam1\tsam1\texample\tA1\tiTru7_101_01\tACGTTACC\t'
+            'iTru5_01_A\tACCGACAA\texample_proj\t\n'
+            '1\tsam2\tsam2\texample\tA2\tiTru7_101_02\tCTGTGTTG\t'
+            'iTru5_01_B\tAGTGGCAA\texample_proj\t\n'
+            '1\tblank1\tblank1\texample\tB1\tiTru7_101_03\tTGAGGTGT\t'
+            'iTru5_01_C\tCACAGACT\texample_proj\t\n'
+            '1\tsam3\tsam3\texample\tB2\tiTru7_101_04\tGATCCATG\t'
+            'iTru5_01_D\tCGACACTT\texample_proj\t'
+            )
+
+        i5_seq = ['ACCGACAA', 'AGTGGCAA', 'CACAGACT', 'CGACACTT']
+
+        obs_data = format_sample_data(sample_ids,i7_name, i7_seq,
+                                      i5_name, i5_seq, wells=wells,
+                                      sample_plate='example',
+                                      sample_proj='example_proj',
+                                      lanes=[1])
+
+        self.assertEqual(obs_data, exp_data)
 
     def test_reformat_interleaved_to_columns(self):
         wells = ['A1','A23','C1','C23',

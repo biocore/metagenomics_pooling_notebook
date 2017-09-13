@@ -749,6 +749,31 @@ def bcl_scrub_name(name):
     return(re.sub('[^0-9a-zA-Z\-\_]+', '_', name))
 
 
+def rc(seq):
+    """
+    from http://stackoverflow.com/a/25189185/7146785
+    """
+    complement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
+    
+    rev_seq = "".join(complement.get(base, base) for base in reversed(seq))
+    
+    return(rev_seq)
+
+
+def sequencer_i5_index(sequencer, indices):
+    revcomp_sequencers = ['HiSeq4000','MiniSeq','NextSeq','HiSeq3000']
+    other_sequencers = ['HiSeq2500','HiSeq1500','MiSeq','NovaSeq']
+
+    if sequencer in revcomp_sequencers:
+        return([rc(x) for x in indices])
+    elif sequencer in other_sequencers:
+        return(indices)
+    else:
+        raise ValueError('Your indicated sequencer [%s] is not recognized.\n'
+                         'Recognized sequencers are: \n'
+                         ' '.join(revcomp_sequencers + other_sequencers))
+
+
 def format_sample_data(sample_ids, i7_name, i7_seq, i5_name, i5_seq,
                        wells=None, sample_plate='', sample_proj='',
                        description=None, lanes=[1], sep='\t'):
