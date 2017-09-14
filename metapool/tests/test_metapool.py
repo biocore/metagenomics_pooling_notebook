@@ -577,17 +577,17 @@ class Tests(TestCase):
     def test_format_sample_data(self):
         # test that single lane works
         exp_data = (
-            'Lane\tSample_ID\tSample_Name\tSample_Plate'
-            '\tSample_Well\tI7_Index_ID\tindex\tI5_Index_ID'
-            '\tindex2\tSample_Project\tDescription\n'
-            '1\tsam1\tsam1\texample\tA1\tiTru7_101_01\tACGTTACC\t'
-            'iTru5_01_A\tACCGACAA\texample_proj\t\n'
-            '1\tsam2\tsam2\texample\tA2\tiTru7_101_02\tCTGTGTTG\t'
-            'iTru5_01_B\tAGTGGCAA\texample_proj\t\n'
-            '1\tblank1\tblank1\texample\tB1\tiTru7_101_03\tTGAGGTGT\t'
-            'iTru5_01_C\tCACAGACT\texample_proj\t\n'
-            '1\tsam3\tsam3\texample\tB2\tiTru7_101_04\tGATCCATG\t'
-            'iTru5_01_D\tCGACACTT\texample_proj\t'
+            'Lane,Sample_ID,Sample_Name,Sample_Plate'
+            ',Sample_Well,I7_Index_ID,index,I5_Index_ID'
+            ',index2,Sample_Project,Description\n'
+            '1,sam1,sam1,example,A1,iTru7_101_01,ACGTTACC,'
+            'iTru5_01_A,ACCGACAA,example_proj,\n'
+            '1,sam2,sam2,example,A2,iTru7_101_02,CTGTGTTG,'
+            'iTru5_01_B,AGTGGCAA,example_proj,\n'
+            '1,blank1,blank1,example,B1,iTru7_101_03,TGAGGTGT,'
+            'iTru5_01_C,CACAGACT,example_proj,\n'
+            '1,sam3,sam3,example,B2,iTru7_101_04,GATCCATG,'
+            'iTru5_01_D,CGACACTT,example_proj,'
             )
 
         wells = ['A1', 'A2', 'B1', 'B2']
@@ -608,25 +608,25 @@ class Tests(TestCase):
 
         # test that two lanes works
         exp_data_2 = (
-            'Lane\tSample_ID\tSample_Name\tSample_Plate\t'
-            'Sample_Well\tI7_Index_ID\tindex\tI5_Index_ID\t'
-            'index2\tSample_Project\tDescription\n'
-            '1\tsam1\tsam1\texample\tA1\tiTru7_101_01\tACGTTACC\t'
-            'iTru5_01_A\tACCGACAA\texample_proj\t\n'
-            '1\tsam2\tsam2\texample\tA2\tiTru7_101_02\tCTGTGTTG\t'
-            'iTru5_01_B\tAGTGGCAA\texample_proj\t\n'
-            '1\tblank1\tblank1\texample\tB1\tiTru7_101_03\tTGAGGTGT\t'
-            'iTru5_01_C\tCACAGACT\texample_proj\t\n'
-            '1\tsam3\tsam3\texample\tB2\tiTru7_101_04\tGATCCATG\t'
-            'iTru5_01_D\tCGACACTT\texample_proj\t\n'
-            '2\tsam1\tsam1\texample\tA1\tiTru7_101_01\tACGTTACC\t'
-            'iTru5_01_A\tACCGACAA\texample_proj\t\n'
-            '2\tsam2\tsam2\texample\tA2\tiTru7_101_02\tCTGTGTTG\t'
-            'iTru5_01_B\tAGTGGCAA\texample_proj\t\n'
-            '2\tblank1\tblank1\texample\tB1\tiTru7_101_03\tTGAGGTGT'
-            '\tiTru5_01_C\tCACAGACT\texample_proj\t\n'
-            '2\tsam3\tsam3\texample\tB2\tiTru7_101_04\tGATCCATG'
-            '\tiTru5_01_D\tCGACACTT\texample_proj\t'
+            'Lane,Sample_ID,Sample_Name,Sample_Plate,'
+            'Sample_Well,I7_Index_ID,index,I5_Index_ID,'
+            'index2,Sample_Project,Description\n'
+            '1,sam1,sam1,example,A1,iTru7_101_01,ACGTTACC,'
+            'iTru5_01_A,ACCGACAA,example_proj,\n'
+            '1,sam2,sam2,example,A2,iTru7_101_02,CTGTGTTG,'
+            'iTru5_01_B,AGTGGCAA,example_proj,\n'
+            '1,blank1,blank1,example,B1,iTru7_101_03,TGAGGTGT,'
+            'iTru5_01_C,CACAGACT,example_proj,\n'
+            '1,sam3,sam3,example,B2,iTru7_101_04,GATCCATG,'
+            'iTru5_01_D,CGACACTT,example_proj,\n'
+            '2,sam1,sam1,example,A1,iTru7_101_01,ACGTTACC,'
+            'iTru5_01_A,ACCGACAA,example_proj,\n'
+            '2,sam2,sam2,example,A2,iTru7_101_02,CTGTGTTG,'
+            'iTru5_01_B,AGTGGCAA,example_proj,\n'
+            '2,blank1,blank1,example,B1,iTru7_101_03,TGAGGTGT'
+            ',iTru5_01_C,CACAGACT,example_proj,\n'
+            '2,sam3,sam3,example,B2,iTru7_101_04,GATCCATG'
+            ',iTru5_01_D,CGACACTT,example_proj,'
             )
 
         obs_data_2 = format_sample_data(sample_ids,i7_name, i7_seq,
@@ -639,17 +639,17 @@ class Tests(TestCase):
 
         # test with r/c i5 barcodes
         exp_data = (
-            'Lane\tSample_ID\tSample_Name\tSample_Plate'
-            '\tSample_Well\tI7_Index_ID\tindex\tI5_Index_ID'
-            '\tindex2\tSample_Project\tDescription\n'
-            '1\tsam1\tsam1\texample\tA1\tiTru7_101_01\tACGTTACC\t'
-            'iTru5_01_A\tACCGACAA\texample_proj\t\n'
-            '1\tsam2\tsam2\texample\tA2\tiTru7_101_02\tCTGTGTTG\t'
-            'iTru5_01_B\tAGTGGCAA\texample_proj\t\n'
-            '1\tblank1\tblank1\texample\tB1\tiTru7_101_03\tTGAGGTGT\t'
-            'iTru5_01_C\tCACAGACT\texample_proj\t\n'
-            '1\tsam3\tsam3\texample\tB2\tiTru7_101_04\tGATCCATG\t'
-            'iTru5_01_D\tCGACACTT\texample_proj\t'
+            'Lane,Sample_ID,Sample_Name,Sample_Plate'
+            ',Sample_Well,I7_Index_ID,index,I5_Index_ID'
+            ',index2,Sample_Project,Description\n'
+            '1,sam1,sam1,example,A1,iTru7_101_01,ACGTTACC,'
+            'iTru5_01_A,ACCGACAA,example_proj,\n'
+            '1,sam2,sam2,example,A2,iTru7_101_02,CTGTGTTG,'
+            'iTru5_01_B,AGTGGCAA,example_proj,\n'
+            '1,blank1,blank1,example,B1,iTru7_101_03,TGAGGTGT,'
+            'iTru5_01_C,CACAGACT,example_proj,\n'
+            '1,sam3,sam3,example,B2,iTru7_101_04,GATCCATG,'
+            'iTru5_01_D,CGACACTT,example_proj,'
             )
 
         i5_seq = ['ACCGACAA', 'AGTGGCAA', 'CACAGACT', 'CGACACTT']

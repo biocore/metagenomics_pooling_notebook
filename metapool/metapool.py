@@ -776,7 +776,7 @@ def sequencer_i5_index(sequencer, indices):
 
 def format_sample_data(sample_ids, i7_name, i7_seq, i5_name, i5_seq,
                        wells=None, sample_plate='', sample_proj='',
-                       description=None, lanes=[1], sep='\t'):
+                       description=None, lanes=[1], sep=','):
     """
     Creates the [Data] component of the Illumina sample sheet from plate information
 
@@ -800,8 +800,9 @@ def format_sample_data(sample_ids, i7_name, i7_seq, i5_name, i5_seq,
     if description is None:
         description = [''] * len(sample_ids)
     
-    header = 'Lane\tSample_ID\tSample_Name\tSample_Plate\tSample_Well\tI7_Index_ID\t' + \
-             'index\tI5_Index_ID\tindex2\tSample_Project\tDescription'
+    header = ','.join(['Lane','Sample_ID','Sample_Name','Sample_Plate',
+                       'Sample_Well','I7_Index_ID','index','I5_Index_ID',
+                       'index2','Sample_Project','Description'])
         
     data += header
 
