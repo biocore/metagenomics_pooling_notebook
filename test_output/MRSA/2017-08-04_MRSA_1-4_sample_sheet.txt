@@ -20,7 +20,7 @@ Chemistry,Default
 ReverseComplement,0
 
 [Data]
-Lane	Sample_ID	Sample_Name	Sample_Plate	Sample_Well	I7_Index_ID	index	I5_Index_ID	index2	Sample_Project	Description
+Lane,Sample_ID,Sample_Name,Sample_Plate,Sample_Well,I7_Index_ID,index,I5_Index_ID,index2,Sample_Project,Description
 1,GLY_01_012,GLY_01_012,Example Plate 1,A1,iTru7_101_01,ACGTTACC,iTru5_01_A,TTGTCGGT,Example Project,GLY_01_012
 1,GLY_14_034,GLY_14_034,Example Plate 1,B1,iTru7_101_02,CTGTGTTG,iTru5_01_B,TTGCCACT,Example Project,GLY_14_034
 1,GLY_11_007,GLY_11_007,Example Plate 1,C1,iTru7_101_03,TGAGGTGT,iTru5_01_C,AGTCTGTG,Example Project,GLY_11_007
