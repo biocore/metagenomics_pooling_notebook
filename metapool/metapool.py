@@ -30,7 +30,7 @@ def read_plate_map_csv(f, sep = '\t'):
 
 
 # method to read minipico output
-def read_pico_csv(f, sep='\t'):
+def read_pico_csv(f, sep='\t', conc_col_name='Sample DNA Concentration'):
     """
     reads tab-delimited pico quant
 
@@ -40,6 +40,8 @@ def read_pico_csv(f, sep='\t'):
         pico quant file
     sep: str
         sep char used in quant file
+    conc_col_name: str
+        name to use for concentration column output
 
     Returns
     -------
@@ -51,11 +53,11 @@ def read_pico_csv(f, sep='\t'):
                          skipfooter=5, engine='python')
 
     pico_df = raw_df[['Well','[Concentration]']]
-    pico_df = pico_df.rename(columns={'[Concentration]':'Sample DNA Concentration'})
+    pico_df = pico_df.rename(columns={'[Concentration]':conc_col_name})
 
     # coerce oddball concentrations to np.nan
-    pico_df['Sample DNA Concentration'] = \
-        pd.to_numeric(pico_df['Sample DNA Concentration'], errors = 'coerce')
+    pico_df[conc_col_name] = \
+        pd.to_numeric(pico_df[conc_col_name], errors = 'coerce')
     
     return(pico_df)
 
