@@ -95,7 +95,7 @@ def format_dna_norm_picklist(dna_vols, water_vols, wells, dest_wells=None,
                              dna_concs=None, sample_names=None,
                              dna_plate_name='Sample', water_plate_name='Water',
                              dna_plate_type='384PP_AQ_BP2_HT', water_plate_type='384PP_AQ_BP2_HT',
-                             dest_plate_name='NormalizedDNA'):
+                             dest_plate_name='NormalizedDNA', dna_plate_names=None):
     """
     Writes Echo-format pick list to achieve a normalized input DNA pool
 
@@ -151,6 +151,8 @@ def format_dna_norm_picklist(dna_vols, water_vols, wells, dest_wells=None,
                                dest_plate_name, str(dest_wells[index])]) 
     # DNA additions
     for index, sample in np.ndenumerate(sample_names):
+        if dna_plate_names is not None:
+            dna_plate_name = dna_plate_names[index]
         picklist += '\n' + '\t'.join([str(sample), dna_plate_name, dna_plate_type,
                                str(wells[index]), str(dna_concs[index]), str(dna_vols[index]),
                                dest_plate_name, str(dest_wells[index])])    
