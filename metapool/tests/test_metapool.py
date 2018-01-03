@@ -317,6 +317,54 @@ class Tests(TestCase):
         npt.assert_almost_equal(obs_pool_conc, exp_pool_conc)
         npt.assert_almost_equal(obs_pool_vol, exp_pool_vol)
 
+
+    def test_format_pooling_echo_pick_list(self):
+        vol_sample = np.array([[10.00, 10.00, 5.00, 5.00, 10.00, 10.00]])
+
+        header = ['Source Plate Name,Source Plate Type,Source Well,'
+                'Concentration,Transfer Volume,Destination Plate Name,'
+                'Destination Well']
+
+        exp_values = ['1,384LDV_AQ_B2_HT,A1,,10.00,NormalizedDNA,A1',
+                      '1,384LDV_AQ_B2_HT,A2,,10.00,NormalizedDNA,A1',
+                      '1,384LDV_AQ_B2_HT,A3,,5.00,NormalizedDNA,A1',
+                      '1,384LDV_AQ_B2_HT,A4,,5.00,NormalizedDNA,A2',
+                      '1,384LDV_AQ_B2_HT,A5,,10.00,NormalizedDNA,A2',
+                      '1,384LDV_AQ_B2_HT,A6,,10.00,NormalizedDNA,A2']
+
+        exp_str = '\n'.join(header + exp_values)
+
+        obs_str = format_pooling_echo_pick_list(vol_sample,
+                                  max_vol_per_well=26,
+                                  dest_plate_shape=[16,24])
+        self.maxDiff = None
+        self.assertEqual(exp_str, obs_str)
+
+
+    def test_format_pooling_echo_pick_list(self):
+        vol_sample = np.array([[10.00, 10.00, np.nan, 5.00, 10.00, 10.00]])
+
+        header = ['Source Plate Name,Source Plate Type,Source Well,'
+                'Concentration,Transfer Volume,Destination Plate Name,'
+                'Destination Well']
+
+        exp_values = ['1,384LDV_AQ_B2_HT,A1,,10.00,NormalizedDNA,A1',
+                      '1,384LDV_AQ_B2_HT,A2,,10.00,NormalizedDNA,A1',
+                      '1,384LDV_AQ_B2_HT,A3,,0.00,NormalizedDNA,A1',
+                      '1,384LDV_AQ_B2_HT,A4,,5.00,NormalizedDNA,A1',
+                      '1,384LDV_AQ_B2_HT,A5,,10.00,NormalizedDNA,A2',
+                      '1,384LDV_AQ_B2_HT,A6,,10.00,NormalizedDNA,A2']
+
+        exp_str = '\n'.join(header + exp_values)
+
+        obs_str = format_pooling_echo_pick_list(vol_sample,
+                                  max_vol_per_well=26,
+                                  dest_plate_shape=[16,24])
+        self.maxDiff = None
+        self.assertEqual(exp_str, obs_str)
+      
+
+
     def test_make_2D_array(self):
         example_qpcr_df = pd.DataFrame({'Cp': [12, 0, 5, np.nan],
                                         'Pos': ['A1','A2','A3','A4']})

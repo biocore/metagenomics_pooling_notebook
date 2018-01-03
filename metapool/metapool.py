@@ -457,6 +457,9 @@ def format_pooling_echo_pick_list(vol_sample,
     # Write the sample transfer volumes
     rows, cols = vol_sample.shape
 
+    # replace NaN values with 0s to leave a trail of unpooled wells
+    pool_vols = np.nan_to_num(vol_sample)
+
     running_tot = 0
     d = 1
     for i in range(rows):
@@ -464,14 +467,14 @@ def format_pooling_echo_pick_list(vol_sample,
             well_name = "%s%d" % (chr(ord('A') + i), j+1)
             # Machine will round, so just give it enough info to do the
             # correct rounding.
-            val = "%.2f" % vol_sample[i][j]
+            val = "%.2f" % pool_vols[i][j]
 
             # test to see if we will exceed total vol per well
-            if running_tot + vol_sample[i][j] > max_vol_per_well:
+            if running_tot + pool_vols[i][j] > max_vol_per_well:
                 d += 1
-                running_tot = vol_sample[i][j]
+                running_tot = pool_vols[i][j]
             else:
-                running_tot += vol_sample[i][j]
+                running_tot += pool_vols[i][j]
 
             dest = "%s%d" % (chr(ord('A') +
                              int(np.floor(d/dest_plate_shape[0]))),
