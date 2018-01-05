@@ -772,8 +772,10 @@ def sequencer_i5_index(sequencer, indices):
     other_sequencers = ['HiSeq2500','HiSeq1500','MiSeq','NovaSeq']
 
     if sequencer in revcomp_sequencers:
+        print('%s: i5 barcodes are output as reverse compliments' % sequencer)
         return([rc(x) for x in indices])
     elif sequencer in other_sequencers:
+        print('%s: i5 barcodes are output in standard direction' % sequencer)
         return(indices)
     else:
         raise ValueError('Your indicated sequencer [%s] is not recognized.\n'
