@@ -22,12 +22,21 @@ Activate the Conda environment:
 source activate pooling_nb
 ```
 
-Finally, change directory to the downloaded repository folder and install:
+Change directory to the downloaded repository folder and install:
 
 ```bash
 cd metagenomics_pooling_notebook
 pip install -e .
 ```
+
+Finally, to enable the notebook Table of Contents, activate the
+required nbextensions:
+
+```bash
+jupyter contrib nbextension install --sys-prefix --skip-running-check
+jupyter nbextension enable toc2/main
+```
+
 
 ## Use
 
