@@ -94,9 +94,9 @@ def calculate_norm_vol(dna_concs, ng=5, min_vol=2.5, max_vol=3500, resolution=2.
 
 def format_dna_norm_picklist(dna_vols, water_vols, wells, dest_wells=None,
                              dna_concs=None, sample_names=None,
-                             dna_plate_name='Sample', water_plate_name='Water',
+                             sample_plates = None, water_plate_name='Water',
                              dna_plate_type='384PP_AQ_BP2_HT', water_plate_type='384PP_AQ_BP2_HT',
-                             dest_plate_name='NormalizedDNA', dna_plate_names=None):
+                             dest_plate_name='NormalizedDNA'):
     """
     Writes Echo-format pick list to achieve a normalized input DNA pool
 
@@ -115,6 +115,8 @@ def format_dna_norm_picklist(dna_vols, water_vols, wells, dest_wells=None,
         The concentrations calculated via PicoGreen (ng/uL)
     sample_names: numpy array of str
         The sample names in the same orientation as the DNA concentrations
+    sample_plates: numpy array of str
+        The sample plates in the same orientation as the DNA concentrations
  
     Returns
     -------
@@ -133,9 +135,17 @@ def format_dna_norm_picklist(dna_vols, water_vols, wells, dest_wells=None,
 
     if sample_names is None:
         sample_names = np.empty(dna_vols.shape) * np.nan
+    if sample_plates is None:
+        sample_plates = 'Sample'
+    if isinstance(sample_plates, str):
+        sample_plates = np.full_like(dna_vols, sample_plates, dtype=object)
+    if dna_plate_type is None:
+        dna_plate_type = '384PP_AQ_BP2_HT'
+    if isinstance(dna_plate_type, str):
+        dna_plate_type = np.full_like(dna_vols, dna_plate_type, dtype=object)
     if dna_concs is None:
         dna_concs = np.empty(dna_vols.shape) * np.nan
-    if dna_concs.shape != sample_names.shape != dna_vols.shape:
+    if dna_concs.shape != sample_names.shape != dna_vols.shape != sample_plates.shape != dna_plate_type.shape:
         raise ValueError('dna_vols %r has a size different from dna_concs %r or sample_names' %
                          (dna_vols.shape, dna_concs.shape, sample_names.shape))
         
@@ -152,9 +162,7 @@ def format_dna_norm_picklist(dna_vols, water_vols, wells, dest_wells=None,
                                dest_plate_name, str(dest_wells[index])]) 
     # DNA additions
     for index, sample in np.ndenumerate(sample_names):
-        if dna_plate_names is not None:
-            dna_plate_name = dna_plate_names[index]
-        picklist += '\n' + '\t'.join([str(sample), dna_plate_name, dna_plate_type,
+        picklist += '\n' + '\t'.join([str(sample), str(sample_plates[index]), str(dna_plate_type[index]),
                                str(wells[index]), str(dna_concs[index]), str(dna_vols[index]),
                                dest_plate_name, str(dest_wells[index])])    
     
