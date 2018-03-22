@@ -1,15 +1,28 @@
-from unittest import TestCase
+from unittest import TestCase, main
 
 import os
 import pandas as pd
 import numpy as np
 import numpy.testing as npt
+from io import StringIO
 
-from metapool.metapool import *
+from metapool.metapool import (read_plate_map_csv, read_pico_csv,
+            calculate_norm_vol,
+            format_dna_norm_picklist, assign_index, format_index_picklist,
+            compute_qpcr_concentration, compute_shotgun_pooling_values_eqvol,
+            compute_shotgun_pooling_values_qpcr,
+            compute_shotgun_pooling_values_qpcr_minvol, estimate_pool_conc_vol,
+            format_pooling_echo_pick_list, plot_plate_vals, make_2D_array,
+            combine_dfs, parse_dna_conc_csv, add_dna_conc,
+            compute_pico_concentration, ss_temp, format_sheet_comments,
+            format_sample_sheet, bcl_scrub_name, rc, sequencer_i5_index,
+            format_sample_data, reformat_interleaved_to_columns)
 
 
 class Tests(TestCase):
+
     def setUp(self):
+        self.maxDiff = None
         self.cp_vals = np.array([[10.14, 7.89, 7.9, 15.48],
                                  [7.86, 8.07, 8.16, 9.64],
                                  [12.29, 7.64, 7.32, 13.74]])

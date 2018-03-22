@@ -3,6 +3,7 @@ import re
 import numpy as np
 import pandas as pd
 import string
+import sys
 import seaborn as sns
 import matplotlib.pyplot as plt
 from io import StringIO
@@ -733,9 +734,13 @@ def format_sample_sheet(sample_sheet_dict, sep=',', template=ss_temp()):
         the sample sheet string
     """
     if sample_sheet_dict['comments']:
-        sample_sheet_dict['comments'] = re.sub('^', '# ', sample_sheet_dict['comments'].rstrip(), flags=re.MULTILINE) + '\n'
+        sample_sheet_dict['comments'] = re.sub('^',
+                                               '# ',
+                                               sample_sheet_dict['comments'].rstrip(),
+                                               flags=re.MULTILINE) + '\n'
+
     sample_sheet = template.format(**sample_sheet_dict, **{'sep': sep})
-    
+
     return(sample_sheet)
 
 
@@ -784,7 +789,7 @@ def sequencer_i5_index(sequencer, indices):
 
 
 def format_sample_data(sample_ids, i7_name, i7_seq, i5_name, i5_seq,
-                       wells=None, sample_plate='', sample_proj='',
+                        sample_plate, sample_proj, wells=None,
                        description=None, lanes=[1], sep=','):
     """
     Creates the [Data] component of the Illumina sample sheet from plate information
@@ -808,6 +813,10 @@ def format_sample_data(sample_ids, i7_name, i7_seq, i5_name, i5_seq,
         wells = [''] * len(sample_ids)
     if description is None:
         description = [''] * len(sample_ids)
+    if isinstance(sample_plate, str):
+        sample_plate = [sample_plate] * len(sample_ids)
+    if isinstance(sample_proj, str):
+        sample_proj = [sample_proj] * len(sample_ids)
     
     header = ','.join(['Lane','Sample_ID','Sample_Name','Sample_Plate',
                        'Sample_Well','I7_Index_ID','index','I5_Index_ID',
@@ -815,18 +824,27 @@ def format_sample_data(sample_ids, i7_name, i7_seq, i5_name, i5_seq,
         
     data += header
 
+    sample_plate = list(sample_plate)
+    wells = list(wells)
+    i7_name = list(i7_name)
+    i7_seq = list(i7_seq)
+    i5_name = list(i5_name)
+    i5_seq = list(i5_seq)
+    sample_proj = list(sample_proj)
+    description = list(description)
+
     for lane in lanes:
         for i, sample in enumerate(sample_ids):
             line = sep.join([str(lane),
                              sample,
                              sample,
-                             sample_plate,
+                             sample_plate[i],
                              wells[i],
                              i7_name[i],
                              i7_seq[i],
                              i5_name[i],
                              i5_seq[i],
-                             sample_proj,
+                             sample_proj[i],
                              description[i]])
             data += '\n' + line
     
