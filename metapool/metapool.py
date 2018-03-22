@@ -733,9 +733,13 @@ def format_sample_sheet(sample_sheet_dict, sep=',', template=ss_temp()):
         the sample sheet string
     """
     if sample_sheet_dict['comments']:
-        sample_sheet_dict['comments'] = re.sub('^', '# ', sample_sheet_dict['comments'].rstrip(), flags=re.MULTILINE) + '\n'
+        sample_sheet_dict['comments'] = re.sub('^',
+                                               '# ',
+                                               sample_sheet_dict['comments'].rstrip(),
+                                               flags=re.MULTILINE) + '\n'
+
     sample_sheet = template.format(**sample_sheet_dict, **{'sep': sep})
-    
+
     return(sample_sheet)
 
 
