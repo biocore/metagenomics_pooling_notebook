@@ -3,6 +3,7 @@ import re
 import numpy as np
 import pandas as pd
 import string
+import sys
 import seaborn as sns
 import matplotlib.pyplot as plt
 from io import StringIO
@@ -812,6 +813,10 @@ def format_sample_data(sample_ids, i7_name, i7_seq, i5_name, i5_seq,
         wells = [''] * len(sample_ids)
     if description is None:
         description = [''] * len(sample_ids)
+    if isinstance(sample_plate, str):
+        sample_plate = [sample_plate] * len(sample_ids)
+    if isinstance(sample_proj, str):
+        sample_proj = [sample_proj] * len(sample_ids)
     
     header = ','.join(['Lane','Sample_ID','Sample_Name','Sample_Plate',
                        'Sample_Well','I7_Index_ID','index','I5_Index_ID',
