@@ -222,6 +222,43 @@ class Tests(TestCase):
 
         self.assertEqual(exp_picklist, obs_picklist)
 
+        # test if switching source plates
+        exp_picklist = \
+        'Sample\tSource Plate Name\tSource Plate Type\tSource Well\t' + \
+        'Concentration\tTransfer Volume\tDestination Plate Name\tDestination Well\n' + \
+        'sam1\tWater\t384PP_AQ_BP2_HT\tA1\t2.0\t1000.0\tNormalizedDNA\tA1\n' + \
+        'sam2\tWater\t384PP_AQ_BP2_HT\tA2\t7.89\t2867.5\tNormalizedDNA\tA2\n' + \
+        'blank1\tWater\t384PP_AQ_BP2_HT\tB1\tnan\t0.0\tNormalizedDNA\tB1\n' + \
+        'sam3\tWater\t384PP_AQ_BP2_HT\tB2\t0.0\t0.0\tNormalizedDNA\tB2\n' + \
+        'sam1\tSample_Plate1\t384PP_AQ_BP2_HT\tA1\t2.0\t2500.0\tNormalizedDNA\tA1\n' + \
+        'sam2\tSample_Plate1\t384PP_AQ_BP2_HT\tA2\t7.89\t632.5\tNormalizedDNA\tA2\n' + \
+        'blank1\tSample_Plate2\t384PP_AQ_BP2_HT\tB1\tnan\t3500.0\tNormalizedDNA\tB1\n' + \
+        'sam3\tSample_Plate2\t384PP_AQ_BP2_HT\tB2\t0.0\t3500.0\tNormalizedDNA\tB2'
+
+        dna_vols = np.array([[2500., 632.5],
+                              [3500., 3500.]])
+
+        water_vols = 3500 - dna_vols
+
+        wells = np.array([['A1', 'A2'],
+                          ['B1', 'B2']])
+
+        sample_names =  np.array([['sam1', 'sam2'],
+                          ['blank1', 'sam3']])
+
+        sample_plates = np.array([['Sample_Plate1', 'Sample_Plate1'],
+                          ['Sample_Plate2', 'Sample_Plate2']])
+
+        dna_concs = np.array([[2, 7.89],
+                              [np.nan, .0]])
+
+        obs_picklist = format_dna_norm_picklist(dna_vols, water_vols, wells,
+                                                sample_names = sample_names,
+                                                sample_plates = sample_plates,
+                                                dna_concs = dna_concs)
+
+        self.assertEqual(exp_picklist, obs_picklist)
+
     def test_format_index_picklist(self):
         exp_picklist = \
             'Sample\tSource Plate Name\tSource Plate Type\tSource Well\tTransfer Volume\tIndex Name\t' + \
