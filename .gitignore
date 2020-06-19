@@ -99,3 +99,8 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+# vi swap and temp files
+*.swp
+*.swo
+*~

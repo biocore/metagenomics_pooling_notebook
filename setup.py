@@ -68,10 +68,11 @@ setup(name='metapool',
           'pyqt5',
           'jupyter_contrib_nbextensions',
           'seaborn >= 0.7.1',
+          'click',
           'sample_sheet'],
       extras_require={'test': ["nose", "pep8", "flake8"],
                       'coverage': ["coverage"]},
-      entry_points={
-          'console_scripts': [
-              'calour=calour.cli:cmd',
-          ]})
+      entry_points='''
+          [console_scripts]
+          seqpro=metapool.scripts.seqpro:cli
+      ''')
