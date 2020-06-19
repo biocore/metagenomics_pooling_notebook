@@ -74,5 +74,5 @@ setup(name='metapool',
                       'coverage': ["coverage"]},
       entry_points='''
           [console_scripts]
-          seqpro=metapool.scripts.seqpro:cli
+          seqpro=metapool.scripts.seqpro:format_preparation_files
       ''')

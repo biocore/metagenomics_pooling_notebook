@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from metapool.seqpro import preparations_for_run, sample_sheet_to_dataframe
+from metapool.prep import preparations_for_run, sample_sheet_to_dataframe
 from metapool.metapool import parse_sample_sheet
 
 __credits__ = ("https://github.com/tanaes/metagenomics_pooling_notebook/"
