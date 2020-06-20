@@ -30,7 +30,7 @@ def format_preparation_files(run_dir, sample_sheet, output_dir):
     for filename, df in preps.items():
         filename = os.path.join(output_dir, filename) + '.tsv'
 
-        df.to_tsv(filename, sep='\t', index=False)
+        df.to_csv(filename, sep='\t', index=False)
 
 
 if __name__ == '__main__':

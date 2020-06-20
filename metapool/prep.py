@@ -162,7 +162,7 @@ def preparations_for_run(run_path, sheet):
 
     output = {}
 
-    for project, project_sheet in sheet.groupby('Sample_project'):
+    for project, project_sheet in sheet.groupby('sample_project'):
 
         project_name = remove_qiita_id(project)
         qiita_id = project.replace(project_name + '_', '')
@@ -171,11 +171,11 @@ def preparations_for_run(run_path, sheet):
         if qiita_id == project:
             qiita_id = 'QIITA-ID'
 
-        for lane, lane_sheet in project_sheet.groupby('Lane'):
+        for lane, lane_sheet in project_sheet.groupby('lane'):
 
             # this is the portion of the loop that creates the prep
             data = []
-            for sample_name, sample in lane_sheet:
+            for sample_name, sample in lane_sheet.iterrows():
                 run_prefix = get_run_prefix(run_path, project, sample_name,
                                             lane)
 
@@ -208,7 +208,7 @@ def preparations_for_run(run_path, sheet):
                 row["lane"] = lane
                 row["sample_project"] = project
                 row["well_description"] = '%s.%s.%s' % (sample.sample_project,
-                                                        sample.sample_pate,
+                                                        sample.sample_plate,
                                                         sample.sample_well)
 
                 data.append(row)
