@@ -81,7 +81,8 @@ def remove_qiita_id(project_name):
     if matches is None:
         return project_name
     else:
-        return matches[0]
+        # group 1 is the project name
+        return matches[1]
 
 
 def get_run_prefix(run_path, project, sample, lane):
