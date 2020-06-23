@@ -1,6 +1,7 @@
 import re
 import os
 import gzip
+import warnings
 import pandas as pd
 
 from glob import glob
@@ -162,6 +163,18 @@ def preparations_for_run(run_path, sheet):
     run_date, instrument_model = parse_illumina_run_id(run_id)
 
     output = {}
+
+    required_columns = {'well_description', 'sample_plate',
+                        'sample_well', 'i7_index_id', 'index',
+                        'i5_index_id', 'index2'}
+
+    # TODO: How should we handle this stuff?
+    not_present = required_columns - set(sheet.columns)
+    if not_present:
+        warnings.warn('These required columns were not found %s'
+                      % ', '.join(not_present), UserWarning)
+        for col in not_present:
+            sheet[col] = 'MISSING_FROM_THE_SAMPLE_SHEET'
 
     for project, project_sheet in sheet.groupby('sample_project'):
 
