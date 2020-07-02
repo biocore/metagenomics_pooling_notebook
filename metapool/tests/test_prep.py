@@ -88,7 +88,34 @@ class Tests(TestCase):
         ss = parse_sample_sheet(self.ss)
         obs = sample_sheet_to_dataframe(ss)
 
-        exp = pd.DataFrame()
+        columns = ['lane', 'sample_name', 'sample_plate', 'sample_well',
+                   'i7_index_id', 'index', 'i5_index_id', 'index2',
+                   'sample_project', 'well_description']
+        index = ['sample1', 'sample2', 'sample1', 'sample2', 'sample31',
+                 'sample32', 'sample34', 'sample44']
+        data = [['1', 'sample1', 'FooBar_666_p1', 'A1', 'iTru7_107_07',
+                 'CCGACTAT', 'iTru5_01_A', 'ACCGACAA', 'FooBar_666',
+                 'important-sample1'],
+                ['1', 'sample2', 'FooBar_666_p1', 'A2', 'iTru7_107_08',
+                 'CCGACTAT', 'iTru5_01_A', 'CTTCGCAA', 'FooBar_666',
+                 'important-sample2'],
+                ['3', 'sample1', 'FooBar_666_p1', 'A3', 'iTru7_107_09',
+                 'GCCTTGTT', 'iTru5_01_A', 'AACACCAC', 'FooBar_666',
+                 'important-sample1'],
+                ['3', 'sample2', 'FooBar_666_p1', 'A4', 'iTru7_107_10',
+                 'AACTTGCC', 'iTru5_01_A', 'CGTATCTC', 'FooBar_666',
+                 'important-sample2'],
+                ['3', 'sample31', 'Baz_p3', 'A5', 'iTru7_107_11', 'CAATGTGG',
+                 'iTru5_01_A', 'GGTACGAA', 'Baz', 'important-sample31'],
+                ['3', 'sample32', 'Baz_p3', 'B6', 'iTru7_107_12', 'AAGGCTGA',
+                 'iTru5_01_A', 'CGATCGAT', 'Baz', 'important-sample32'],
+                ['3', 'sample34', 'Baz_p3', 'B8', 'iTru7_107_13', 'TTACCGAG',
+                 'iTru5_01_A', 'AAGACACC', 'Baz', 'important-sample34'],
+                ['3', 'sample44', 'Baz_p3', 'B99', 'iTru7_107_14', 'GTCCTAAG',
+                 'iTru5_01_A', 'CATCTGCT', 'Baz', 'important-sample44']]
+
+        exp = pd.DataFrame(index=index, data=data, columns=columns)
+        exp.index.name = 'sample_id'
         pd.testing.assert_frame_equal(obs, exp)
 
     def test_parse_illumina_run_id(self):
