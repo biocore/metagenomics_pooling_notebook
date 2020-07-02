@@ -61,7 +61,6 @@ def sample_sheet_to_dataframe(sheet):
 
     out = pd.DataFrame(data=data, columns=[c.lower() for c in columns])
 
-    # TODO: do we need to set an index?
     return out.set_index('sample_id')
 
 
