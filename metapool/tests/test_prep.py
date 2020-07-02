@@ -54,14 +54,14 @@ class Tests(TestCase):
         self.assertEqual('sample1_S11_L003', obs)
 
         obs = get_run_prefix(self.good_run, 'Baz', 'sample2', '1')
-        self.assertEqual('sample2_S10_L003', obs)
+        self.assertEqual('sample2_S10_L001', obs)
 
         obs = get_run_prefix(self.good_run, 'Baz', 'sample2', '3')
         self.assertIsNone(obs)
 
         # project 2
         obs = get_run_prefix(self.good_run, 'FooBar_666', 'sample31', '3')
-        self.assertEqual('sample31_S13_L001', obs)
+        self.assertEqual('sample31_S13_L003', obs)
 
         obs = get_run_prefix(self.good_run, 'FooBar_666', 'sample32', '3')
         self.assertEqual('sample32_S19_L003', obs)
