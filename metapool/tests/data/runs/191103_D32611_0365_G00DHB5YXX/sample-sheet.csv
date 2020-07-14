@@ -1,0 +1,31 @@
+# PI,Caballero,rcaballero@ucsd.edu,,,,,,,,
+# Contact,Testing Person,,,,,,,,,
+# ,testingp@ucsd.edu,,,,,,,,,
+[Header],,,,,,,,,,
+IEMFileVersion,4,,,,,,,,,
+Investigator Name,Caballero,,,,,,,,,
+Experiment Name,RKL0042,,,,,,,,,
+Date,2/26/20,,,,,,,,,
+Workflow,GenerateFASTQ,,,,,,,,,
+Application,FASTQ Only,,,,,,,,,
+Assay,Metagenomics,,,,,,,,,
+Description,,,,,,,,,,
+Chemistry,Default,,,,,,,,,
+,,,,,,,,,,
+[Reads],,,,,,,,,,
+150,,,,,,,,,,
+150,,,,,,,,,,
+,,,,,,,,,,
+[Settings],,,,,,,,,,
+ReverseComplement,0,,,,,,,,,
+,,,,,,,,,,
+[Data],,,,,,,,,,
+Lane,Sample_ID,Sample_Name,Sample_Plate,Sample_Well,I7_Index_ID,index,I5_Index_ID,index2,Sample_Project,Well_description
+1,sample1,sample1,FooBar_666_p1,A1,iTru7_107_07,CCGACTAT,iTru5_01_A,ACCGACAA,Baz,important-sample1
+1,sample2,sample2,FooBar_666_p1,A2,iTru7_107_08,CCGACTAT,iTru5_01_A,CTTCGCAA,Baz,important-sample2
+3,sample1,sample1,FooBar_666_p1,A3,iTru7_107_09,GCCTTGTT,iTru5_01_A,AACACCAC,Baz,important-sample1
+3,sample2,sample2,FooBar_666_p1,A4,iTru7_107_10,AACTTGCC,iTru5_01_A,CGTATCTC,Baz,important-sample2
+3,sample31,sample31,FooBar_666_p1,A5,iTru7_107_11,CAATGTGG,iTru5_01_A,GGTACGAA,FooBar_666,important-sample31
+3,sample32,sample32,FooBar_666_p1,B6,iTru7_107_12,AAGGCTGA,iTru5_01_A,CGATCGAT,FooBar_666,important-sample32
+3,sample34,sample34,FooBar_666_p1,B8,iTru7_107_13,TTACCGAG,iTru5_01_A,AAGACACC,FooBar_666,important-sample34
+3,sample44,sample44,Baz_p3,B99,iTru7_107_14,GTCCTAAG,iTru5_01_A,CATCTGCT,Baz,important-sample44

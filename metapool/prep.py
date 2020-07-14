@@ -26,12 +26,17 @@ def parse_illumina_run_id(run_id):
 
     # of the form
     # YYMMDD_machinename_XXXX_FC
-    run_id = run_id.split('_')
+    tokens = run_id.split('_', 1)
+
+    if len(tokens) != 2:
+        raise ValueError('Unrecognized run identifier format "%s". The '
+                         'expected format is YYMMDD_machinename_XXXX_FC.' %
+                         run_id)
 
     # convert illumina's format to qiita's format
-    run_date = datetime.strptime(run_id[0], '%y%m%d').strftime('%Y-%m-%d')
+    run_date = datetime.strptime(tokens[0], '%y%m%d').strftime('%Y-%m-%d')
 
-    return run_date, run_id[1]
+    return run_date, tokens[1]
 
 
 def sample_sheet_to_dataframe(sheet):
@@ -57,7 +62,6 @@ def sample_sheet_to_dataframe(sheet):
 
     out = pd.DataFrame(data=data, columns=[c.lower() for c in columns])
 
-    # TODO: do we need to set an index?
     return out.set_index('sample_id')
 
 
@@ -111,14 +115,16 @@ def get_run_prefix(run_path, project, sample, lane):
 
     # check for the existence of the qc or human filtering folders
     qc = os.path.join(base, 'atropos_qc')
-    if os.path.exists(qc):
+    if os.path.exists(qc) and len(os.listdir(qc)):
         path = qc
 
         human_filtering = os.path.join(base, 'filtered_sequences')
-        if os.path.exists(human_filtering):
+        if (os.path.exists(human_filtering) and
+           len(os.listdir(human_filtering))):
             path = human_filtering
 
-    results = glob('%s/%s_S*_L*%s_R*.fastq.gz' % (path, sample, lane))
+    results = glob(os.path.join(path, '%s_S*_L*%s_R*.fastq.gz' %
+                                (sample, lane)))
 
     # at this stage there should only be two files forward and reverse
     if len(results) == 2:
