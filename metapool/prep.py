@@ -227,6 +227,10 @@ def preparations_for_run(run_path, sheet):
 
                 data.append(row)
 
+            if not data:
+                warnings.warn('Project %s and Lane %s have no data' %
+                              (project, lane), UserWarning)
+
             # label the prep based on the run, project and lane
             name = run_id + '.' + project + '.' + lane
             output[name] = pd.DataFrame(columns=PREP_COLUMNS, data=data)
