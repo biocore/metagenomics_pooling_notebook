@@ -285,7 +285,7 @@ def preparations_for_run(run_path, sheet):
                 row["experiment_design_description"] = "EXPERIMENT_DESC"
                 row["library_construction_protocol"] = "LIBRARY_PROTOCOL"
                 row["platform"] = "Illumina"
-                row["run_center"] = "UCSDMI"
+                row["run_center"] = run_center
                 row["run_date"] = run_date
                 row["run_prefix"] = run_prefix
                 row["sequencing_meth"] = "sequencing by synthesis"
