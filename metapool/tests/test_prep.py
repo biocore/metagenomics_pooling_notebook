@@ -192,10 +192,46 @@ class Tests(TestCase):
         self.assertEqual(rid, 'K00180_0244_BH7VNKBBXX')
 
     def test_machine_code(self):
-        self.fail()
+        obs = get_machine_code('K00180')
+        self.assertEqual(obs, 'K')
+
+        obs = get_machine_code('D00611')
+        self.assertEqual(obs, 'D')
+
+        obs = get_machine_code('MN01225')
+        self.assertEqual(obs, 'MN')
+
+        with self.assertRaisesRegex(ValueError,
+                                    'Cannot find a machine code. This '
+                                    'instrument model is malformed 8675309. '
+                                    'The machine code is a one or two '
+                                    'character prefix.'):
+            get_machine_code('8675309')
 
     def test_get_model_and_center(self):
-        self.fail()
+        obs = get_model_and_center('D32611_0365_G00DHB5YXX')
+        self.assertEqual(obs, ('Illumina HiSeq 2500', 'UCSDMI'))
+
+        obs = get_model_and_center('A86753_0365_G00DHB5YXX')
+        self.assertEqual(obs, ('Illumina NovaSeq', 'UCSDMI'))
+
+        obs = get_model_and_center('A00953_0032_AHWMGJDDXX')
+        self.assertEqual(obs, ('Illumina NovaSeq', 'IGM'))
+
+        obs = get_model_and_center('A00169_8131_AHKXYNDHXX')
+        self.assertEqual(obs, ('Illumina NovaSeq', 'LJI'))
+
+        obs = get_model_and_center('M05314_0255_000000000-J46T9')
+        self.assertEqual(obs, ('Illumina MiSeq', 'KLM'))
+
+        obs = get_model_and_center('K00180_0957_AHCYKKBBXY')
+        self.assertEqual(obs, ('Illumina HiSeq 4000', 'IGM'))
+
+        obs = get_model_and_center('D00611_0712_BH37W2BCX3_RKL0040')
+        self.assertEqual(obs, ('Illumina HiSeq 2500', 'IGM'))
+
+        obs = get_model_and_center('MN01225_0002_A000H2W3FY')
+        self.assertEqual(obs, ('Illumina MiniSeq', 'CMI'))
 
 
 DF_DATA = [
