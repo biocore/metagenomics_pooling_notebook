@@ -115,12 +115,12 @@ def get_run_prefix(run_path, project, sample, lane):
 
     # check for the existence of the qc or human filtering folders
     qc = os.path.join(base, 'atropos_qc')
-    if os.path.exists(qc) and len(os.listdir(qc)):
+    if os.path.exists(qc) and len(_file_list(qc)):
         path = qc
 
         human_filtering = os.path.join(base, 'filtered_sequences')
         if (os.path.exists(human_filtering) and
-           len(os.listdir(human_filtering))):
+           len(_file_list(human_filtering))):
             path = human_filtering
 
     results = glob(os.path.join(path, '%s_S*_L*%s_R*.fastq.gz' %
@@ -138,6 +138,9 @@ def get_run_prefix(run_path, project, sample, lane):
     else:
         return None
 
+
+def _file_list(path):
+    return [f for f in os.listdir(path) if not os.path.isdir(os.path.join(path, f))]
 
 PREP_COLUMNS = ['sample_name', 'experiment_design_description',
                 'library_construction_protocol', 'platform', 'run_center',
