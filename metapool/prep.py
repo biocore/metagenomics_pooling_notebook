@@ -8,6 +8,30 @@ from glob import glob
 from datetime import datetime
 
 
+PREP_COLUMNS = ['sample_name', 'experiment_design_description',
+                'library_construction_protocol', 'platform', 'run_center',
+                'run_date', 'run_prefix', 'sequencing_meth', 'center_name',
+                'center_project_name', 'instrument_model', 'runid',
+                'sample_plate', 'sample_well', 'i7_index_id', 'index',
+                'i5_index_id', 'index2', 'lane', 'sample_project',
+                'well_description']
+
+# put together by Gail, based on the instruments we know of
+INSTRUMENT_LOOKUP = pd.DataFrame({
+    'A00953': {'machine prefix': 'A', 'Vocab': 'Illumina NovaSeq',
+               'Machine type': 'NovaSeq', 'run_center': 'IGM'},
+    'A00169': {'machine prefix': 'A', 'Vocab': 'Illumina NovaSeq',
+               'Machine type': 'NovaSeq', 'run_center': 'LJI'},
+    'M05314': {'machine prefix': 'M', 'Vocab': 'Illumina MiSeq',
+               'Machine type': 'MiSeq', 'run_center': 'KLM'},
+    'K00180': {'machine prefix': 'K', 'Vocab': 'Illumina HiSeq 4000',
+               'Machine type': 'HiSeq', 'run_center': 'IGM'},
+    'D00611': {'machine prefix': 'D', 'Vocab': 'Illumina HiSeq 2500',
+               'Machine type': 'HiSeq/RR', 'run_center': 'IGM'},
+    'MN01225': {'machine prefix': 'MN', 'Vocab': 'Illumina MiniSeq',
+                'Machine type': 'MiniSeq', 'run_center': 'CMI'}}).T
+
+
 def parse_illumina_run_id(run_id):
     """Parse a run identifier
 
@@ -21,7 +45,7 @@ def parse_illumina_run_id(run_id):
     str:
         When the run happened (YYYY-MM-DD)
     str:
-        Instrument model
+        Instrument code
     """
 
     # of the form
@@ -76,7 +100,6 @@ def is_nonempty_gz_file(name):
 
 
 def remove_qiita_id(project_name):
-
     # project identifiers are digit groups at the end of the project name
     # preceded by an underscore CaporasoIllumina_550
     qiita_id_re = re.compile(r'(.+)_(\d+)$')
@@ -142,13 +165,62 @@ def get_run_prefix(run_path, project, sample, lane):
 def _file_list(path):
     return [f for f in os.listdir(path) if not os.path.isdir(os.path.join(path, f))]
 
-PREP_COLUMNS = ['sample_name', 'experiment_design_description',
-                'library_construction_protocol', 'platform', 'run_center',
-                'run_date', 'run_prefix', 'sequencing_meth', 'center_name',
-                'center_project_name', 'instrument_model', 'runid',
-                'sample_plate', 'sample_well', 'i7_index_id', 'index',
-                'i5_index_id', 'index2', 'lane', 'sample_project',
-                'well_description']
+
+def get_machine_code(instrument_model):
+    """Get the machine code for an instrument's code
+
+    Parameters
+    ----------
+    instrument_model: str
+        An instrument's model of the form A999999 or AA999999
+
+    Returns
+    -------
+    """
+    # the machine code represents the first 1 to 2 letters of the
+    # instrument model
+    machine_code = re.compile(r'^([a-zA-Z]{1,2})')
+    matches = re.search(machine_code, instrument_model)
+    if matches is None:
+        raise ValueError('Cannot find a machine code. This instrument '
+                         'model is malformed %s. The machine code is a '
+                         'one or two character prefix.' % instrument_model)
+    else:
+        return matches[0]
+
+
+def get_model_and_center(instrument_code):
+    """Determine instrument model and center based on a lookup
+
+    Parameters
+    ----------
+    instrument_code: str
+        Instrument code from a run identifier.
+
+    Returns
+    -------
+    str
+        Instrument model.
+    str
+        Run center based on the machine's id.
+    """
+    run_center = "UCSDMI"
+    instrument_model = instrument_code.split('_')[0]
+
+    if instrument_model in INSTRUMENT_LOOKUP.index:
+        instrument_model = INSTRUMENT_LOOKUP.loc[instrument_model, 'Vocab']
+        run_center = INSTRUMENT_LOOKUP.loc[instrument_model, 'run_center']
+    else:
+        instrument_prefix = get_machine_code(instrument_model)
+
+        if instrument_prefix not in INSTRUMENT_LOOKUP['machine prefix']:
+            ValueError('Unrecognized machine prefix %s' % instrument_prefix)
+
+        instrument_model = INSTRUMENT_LOOKUP[
+            INSTRUMENT_LOOKUP['machine prefix'] == instrument_prefix
+        ]['Vocab'].unique()[0]
+
+    return instrument_model, run_center
 
 
 def preparations_for_run(run_path, sheet):
@@ -169,7 +241,8 @@ def preparations_for_run(run_path, sheet):
     """
 
     _, run_id = os.path.split(os.path.normpath(run_path))
-    run_date, instrument_model = parse_illumina_run_id(run_id)
+    run_date, instrument_code = parse_illumina_run_id(run_id)
+    instrument_model, run_center = get_model_and_center(instrument_code)
 
     output = {}
 
@@ -208,7 +281,7 @@ def preparations_for_run(run_path, sheet):
 
                 row = {c: '' for c in PREP_COLUMNS}
 
-                row["sample_name"] = qiita_id + '.' + sample.well_description
+                row["sample_name"] = sample.well_description
                 row["experiment_design_description"] = "EXPERIMENT_DESC"
                 row["library_construction_protocol"] = "LIBRARY_PROTOCOL"
                 row["platform"] = "Illumina"
@@ -219,7 +292,6 @@ def preparations_for_run(run_path, sheet):
                 row["center_name"] = "CENTER_NAME"
                 row["center_project_name"] = project_name
 
-                # TODO: this is not decoded yet
                 row["instrument_model"] = instrument_model
                 row["runid"] = run_id
                 row["sample_plate"] = sample.sample_plate
@@ -230,8 +302,8 @@ def preparations_for_run(run_path, sheet):
                 row["index2"] = sample['index2']
                 row["lane"] = lane
                 row["sample_project"] = project
-                row["well_description"] = '%s.%s.%s' % (sample.sample_project,
-                                                        sample.sample_plate,
+                row["well_description"] = '%s.%s.%s' % (sample.sample_plate,
+                                                        sample.sample_name,
                                                         sample.sample_well)
 
                 data.append(row)

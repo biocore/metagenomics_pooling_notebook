@@ -5,6 +5,7 @@ from unittest import TestCase, main
 from metapool.metapool import parse_sample_sheet
 from metapool.prep import (preparations_for_run, remove_qiita_id,
                            get_run_prefix, is_nonempty_gz_file,
+                           get_machine_code, get_model_and_center,
                            sample_sheet_to_dataframe, parse_illumina_run_id)
 
 
@@ -189,6 +190,12 @@ class Tests(TestCase):
         date, rid = parse_illumina_run_id('160909_K00180_0244_BH7VNKBBXX')
         self.assertEqual(date, '2016-09-09')
         self.assertEqual(rid, 'K00180_0244_BH7VNKBBXX')
+
+    def test_machine_code(self):
+        self.fail()
+
+    def test_get_model_and_center(self):
+        self.fail()
 
 
 DF_DATA = [
