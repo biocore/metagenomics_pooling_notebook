@@ -208,8 +208,8 @@ def get_model_and_center(instrument_code):
     instrument_model = instrument_code.split('_')[0]
 
     if instrument_model in INSTRUMENT_LOOKUP.index:
-        instrument_model = INSTRUMENT_LOOKUP.loc[instrument_model, 'Vocab']
         run_center = INSTRUMENT_LOOKUP.loc[instrument_model, 'run_center']
+        instrument_model = INSTRUMENT_LOOKUP.loc[instrument_model, 'Vocab']
     else:
         instrument_prefix = get_machine_code(instrument_model)
 
