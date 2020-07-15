@@ -163,7 +163,8 @@ def get_run_prefix(run_path, project, sample, lane):
 
 
 def _file_list(path):
-    return [f for f in os.listdir(path) if not os.path.isdir(os.path.join(path, f))]
+    return [f for f in os.listdir(path)
+            if not os.path.isdir(os.path.join(path, f))]
 
 
 def get_machine_code(instrument_model):
