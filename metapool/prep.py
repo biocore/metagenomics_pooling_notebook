@@ -6,8 +6,9 @@ import pandas as pd
 
 from glob import glob
 from datetime import datetime
+from string import ascii_letters, digits
 
-
+# TODO: Ideally these should be imported from Qiita
 PREP_COLUMNS = ['sample_name', 'experiment_design_description',
                 'library_construction_protocol', 'platform', 'run_center',
                 'run_date', 'run_prefix', 'sequencing_meth', 'center_name',
@@ -18,9 +19,9 @@ PREP_COLUMNS = ['sample_name', 'experiment_design_description',
 
 # put together by Gail, based on the instruments we know of
 INSTRUMENT_LOOKUP = pd.DataFrame({
-    'A00953': {'machine prefix': 'A', 'Vocab': 'Illumina NovaSeq',
+    'A00953': {'machine prefix': 'A', 'Vocab': 'Illumina NovaSeq 6000',
                'Machine type': 'NovaSeq', 'run_center': 'IGM'},
-    'A00169': {'machine prefix': 'A', 'Vocab': 'Illumina NovaSeq',
+    'A00169': {'machine prefix': 'A', 'Vocab': 'Illumina NovaSeq 6000',
                'Machine type': 'NovaSeq', 'run_center': 'LJI'},
     'M05314': {'machine prefix': 'M', 'Vocab': 'Illumina MiSeq',
                'Machine type': 'MiSeq', 'run_center': 'KLM'},
@@ -224,6 +225,42 @@ def get_model_and_center(instrument_code):
     return instrument_model, run_center
 
 
+def agp_transform(frame, study_id):
+    """If the prep belongs to the American Gut Project fill in some blanks
+
+    Parameters
+    ----------
+    frame: pd.DataFrame
+        The preparation file for a single project.
+    study_id: str
+        The Qiita study identifier for this preparations.
+
+    Returns
+    -------
+    pd.DataFrame:
+        If the study_id is "10317" then the `center_name`,
+        'library_construction_protocol', and `experiment_design_description`
+        columns are filled in with default values. Otherwise no changes are
+        made to `frame`.
+    """
+    if study_id == '10317':
+        frame['center_name'] = 'UCSDMI'
+        frame['library_construction_protocol'] = 'Knight Lab KHP'
+        frame['experiment_design_description'] = (
+            'samples of skin, saliva and feces and other samples from the AGP')
+    return frame
+
+
+def _invalid_names(sample_names):
+    # taken from qiita.qiita_db.metadata.util.get_invalid_sample_names
+    valid = set(ascii_letters + numbers + '.')
+
+    def _has_invalid_chars(name):
+        return bool(set(name) - valid)
+
+    return sample_names[sample_names.apply(_has_invalid_chars)]
+
+
 def preparations_for_run(run_path, sheet):
     """Given a run's path and sample sheet generates preparation files
 
@@ -251,13 +288,17 @@ def preparations_for_run(run_path, sheet):
                         'sample_well', 'i7_index_id', 'index',
                         'i5_index_id', 'index2'}
 
-    # TODO: How should we handle this stuff?
     not_present = required_columns - set(sheet.columns)
     if not_present:
         warnings.warn('These required columns were not found %s'
                       % ', '.join(not_present), UserWarning)
         for col in not_present:
-            sheet[col] = 'MISSING_FROM_THE_SAMPLE_SHEET'
+            if col == 'well_description':
+                warnings.warn("Using 'description' because the column "
+                              "'well_description' wasn't present")
+                sheet[col] = sheet['description'].copy()
+            else:
+                sheet[col] = 'MISSING_FROM_THE_SAMPLE_SHEET'
 
     for project, project_sheet in sheet.groupby('sample_project'):
 
@@ -313,8 +354,20 @@ def preparations_for_run(run_path, sheet):
                 warnings.warn('Project %s and Lane %s have no data' %
                               (project, lane), UserWarning)
 
+            # the American Gut Project is a special case. We'll likely continue
+            # to grow this study with more and more runs. So we fill some of
+            # the blanks if we can verify the study id corresponds to the AGP.
+            # This was a request by Daniel McDonald and Gail
+            prep = agp_transform(pd.DataFrame(columns=PREP_COLUMNS, data=data),
+                                 qiita_id)
+
+            invalid = _invalid_names(prep.sample_name)
+            if len(invalid):
+                warnings.warn('The following sample names have invalid '
+                              'characters: %s' % ', '.join(invalid.tolist()))
+
             # label the prep based on the run, project and lane
             name = run_id + '.' + project + '.' + lane
-            output[name] = pd.DataFrame(columns=PREP_COLUMNS, data=data)
+            output[name] = prep
 
     return output

@@ -6,7 +6,8 @@ from metapool.metapool import parse_sample_sheet
 from metapool.prep import (preparations_for_run, remove_qiita_id,
                            get_run_prefix, is_nonempty_gz_file,
                            get_machine_code, get_model_and_center,
-                           sample_sheet_to_dataframe, parse_illumina_run_id)
+                           sample_sheet_to_dataframe, parse_illumina_run_id,
+                           agp_transform)
 
 
 class Tests(TestCase):
@@ -115,6 +116,14 @@ class Tests(TestCase):
         exp = pd.DataFrame(columns=columns, data=data)
         obs_df = obs['191103_D32611_0365_G00DHB5YXX.FooBar_666.3']
         pd.testing.assert_frame_equal(obs_df, exp)
+
+    def test_preparations_for_run_missing_columns(self):
+        # Check that warnings are raised whenever we overwrite the
+        # "well_description" column with the "description" column
+        self.fail()
+
+    def test_invalid_sample_names_show_warning(self):
+        self.fail()
 
     def test_remove_qiita_id(self):
         obs = remove_qiita_id('project_1')
@@ -232,6 +241,12 @@ class Tests(TestCase):
 
         obs = get_model_and_center('MN01225_0002_A000H2W3FY')
         self.assertEqual(obs, ('Illumina MiniSeq', 'CMI'))
+
+    def test_agp_transform(self):
+        self.fail()
+
+    def test_agp_transform_no_changes(self):
+        self.fail()
 
 
 DF_DATA = [
