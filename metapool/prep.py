@@ -251,14 +251,19 @@ def agp_transform(frame, study_id):
     return frame
 
 
-def _invalid_names(sample_names):
+def _check_invalid_names(sample_names):
     # taken from qiita.qiita_db.metadata.util.get_invalid_sample_names
-    valid = set(ascii_letters + numbers + '.')
+    valid = set(ascii_letters + digits + '.')
 
     def _has_invalid_chars(name):
         return bool(set(name) - valid)
 
-    return sample_names[sample_names.apply(_has_invalid_chars)]
+    invalid = sample_names[sample_names.apply(_has_invalid_chars)]
+
+    if len(invalid):
+        warnings.warn('The following sample names have invalid '
+                      'characters: %s' %
+                      ', '.join(['"%s"' % i for i in invalid.values]))
 
 
 def preparations_for_run(run_path, sheet):
@@ -294,8 +299,9 @@ def preparations_for_run(run_path, sheet):
                       % ', '.join(not_present), UserWarning)
         for col in not_present:
             if col == 'well_description':
-                warnings.warn("Using 'description' because the column "
-                              "'well_description' wasn't present")
+                warnings.warn("Using 'description' instead of "
+                              "'well_description' because that column "
+                              "isn't present", UserWarning)
                 sheet[col] = sheet['description'].copy()
             else:
                 sheet[col] = 'MISSING_FROM_THE_SAMPLE_SHEET'
@@ -324,6 +330,7 @@ def preparations_for_run(run_path, sheet):
                 row = {c: '' for c in PREP_COLUMNS}
 
                 row["sample_name"] = sample.well_description
+
                 row["experiment_design_description"] = "EXPERIMENT_DESC"
                 row["library_construction_protocol"] = "LIBRARY_PROTOCOL"
                 row["platform"] = "Illumina"
@@ -361,10 +368,7 @@ def preparations_for_run(run_path, sheet):
             prep = agp_transform(pd.DataFrame(columns=PREP_COLUMNS, data=data),
                                  qiita_id)
 
-            invalid = _invalid_names(prep.sample_name)
-            if len(invalid):
-                warnings.warn('The following sample names have invalid '
-                              'characters: %s' % ', '.join(invalid.tolist()))
+            _check_invalid_names(prep.sample_name)
 
             # label the prep based on the run, project and lane
             name = run_id + '.' + project + '.' + lane

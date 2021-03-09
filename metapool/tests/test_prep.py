@@ -7,7 +7,7 @@ from metapool.prep import (preparations_for_run, remove_qiita_id,
                            get_run_prefix, is_nonempty_gz_file,
                            get_machine_code, get_model_and_center,
                            sample_sheet_to_dataframe, parse_illumina_run_id,
-                           agp_transform)
+                           _check_invalid_names, agp_transform)
 
 
 class Tests(TestCase):
@@ -18,16 +18,15 @@ class Tests(TestCase):
 
         self.ss = os.path.join(self.good_run, 'sample-sheet.csv')
 
-    def test_preparations_for_run(self):
-        ss = sample_sheet_to_dataframe(parse_sample_sheet(self.ss))
-        obs = preparations_for_run(self.good_run, ss)
+    def _check_run_191103_D32611_0365_G00DHB5YXX(self, obs):
+        "Convenience method to check the output of a whole run"
 
         exp = {'191103_D32611_0365_G00DHB5YXX.Baz.1',
                '191103_D32611_0365_G00DHB5YXX.Baz.3',
                '191103_D32611_0365_G00DHB5YXX.FooBar_666.3'}
         self.assertEqual(set(obs.keys()), exp)
 
-        data = [['important-sample44', 'EXPERIMENT_DESC',
+        data = [['importantsample44', 'EXPERIMENT_DESC',
                  'LIBRARY_PROTOCOL', 'Illumina', 'UCSDMI', '2019-11-03',
                  'sample44_S14_L003', 'sequencing by synthesis', 'CENTER_NAME',
                  'Baz', 'Illumina HiSeq 2500',
@@ -42,14 +41,14 @@ class Tests(TestCase):
                    'i5_index_id', 'index2', 'lane', 'sample_project',
                    'well_description']
 
-        data = [['important-sample1', 'EXPERIMENT_DESC',
+        data = [['importantsample1', 'EXPERIMENT_DESC',
                  'LIBRARY_PROTOCOL', 'Illumina', 'UCSDMI', '2019-11-03',
                  'sample1_S11_L003', 'sequencing by synthesis', 'CENTER_NAME',
                  'Baz', 'Illumina HiSeq 2500',
                  '191103_D32611_0365_G00DHB5YXX', 'FooBar_666_p1', 'A3',
                  'iTru7_107_09', 'GCCTTGTT', 'iTru5_01_A', 'AACACCAC', '3',
                  'Baz', 'FooBar_666_p1.sample1.A3'],
-                ['important-sample44', 'EXPERIMENT_DESC',
+                ['importantsample44', 'EXPERIMENT_DESC',
                  'LIBRARY_PROTOCOL', 'Illumina', 'UCSDMI', '2019-11-03',
                  'sample44_S14_L003', 'sequencing by synthesis', 'CENTER_NAME',
                  'Baz', 'Illumina HiSeq 2500',
@@ -60,28 +59,28 @@ class Tests(TestCase):
         obs_df = obs['191103_D32611_0365_G00DHB5YXX.Baz.3']
         pd.testing.assert_frame_equal(obs_df, exp)
 
-        data = [['important-sample1', 'EXPERIMENT_DESC',
+        data = [['importantsample1', 'EXPERIMENT_DESC',
                  'LIBRARY_PROTOCOL', 'Illumina', 'UCSDMI', '2019-11-03',
                  'sample1_S11_L001', 'sequencing by synthesis', 'CENTER_NAME',
                  'Baz', 'Illumina HiSeq 2500',
                  '191103_D32611_0365_G00DHB5YXX', 'FooBar_666_p1', 'A3',
                  'iTru7_107_09', 'GCCTTGTT', 'iTru5_01_A', 'AACACCAC', '3',
                  'Baz', 'Baz.FooBar_666_p1.A3'],
-                ['important-sample44', 'EXPERIMENT_DESC',
+                ['importantsample44', 'EXPERIMENT_DESC',
                  'LIBRARY_PROTOCOL', 'Illumina', 'UCSDMI', '2019-11-03',
                  'sample44_S14_L001', 'sequencing by synthesis', 'CENTER_NAME',
                  'Baz', 'Illumina HiSeq 2500',
                  '191103_D32611_0365_G00DHB5YXX', 'Baz_p3', 'B99',
                  'iTru7_107_14', 'GTCCTAAG', 'iTru5_01_A', 'CATCTGCT', '3',
                  'Baz', 'Baz.Baz_p3.B99']]
-        data = [['important-sample1', 'EXPERIMENT_DESC',
+        data = [['importantsample1', 'EXPERIMENT_DESC',
                  'LIBRARY_PROTOCOL', 'Illumina', 'UCSDMI', '2019-11-03',
                  'sample1_S11_L001', 'sequencing by synthesis', 'CENTER_NAME',
                  'Baz', 'Illumina HiSeq 2500',
                  '191103_D32611_0365_G00DHB5YXX', 'FooBar_666_p1', 'A1',
                  'iTru7_107_07', 'CCGACTAT', 'iTru5_01_A', 'ACCGACAA', '1',
                  'Baz', 'FooBar_666_p1.sample1.A1'],
-                ['important-sample2', 'EXPERIMENT_DESC',
+                ['importantsample2', 'EXPERIMENT_DESC',
                  'LIBRARY_PROTOCOL', 'Illumina', 'UCSDMI', '2019-11-03',
                  'sample2_S10_L001', 'sequencing by synthesis', 'CENTER_NAME',
                  'Baz', 'Illumina HiSeq 2500',
@@ -92,21 +91,21 @@ class Tests(TestCase):
         obs_df = obs['191103_D32611_0365_G00DHB5YXX.Baz.1']
         pd.testing.assert_frame_equal(obs_df, exp)
 
-        data = [['important-sample31', 'EXPERIMENT_DESC',
+        data = [['importantsample31', 'EXPERIMENT_DESC',
                  'LIBRARY_PROTOCOL', 'Illumina', 'UCSDMI', '2019-11-03',
                  'sample31_S13_L003', 'sequencing by synthesis',
                  'CENTER_NAME', 'FooBar', 'Illumina HiSeq 2500',
                  '191103_D32611_0365_G00DHB5YXX', 'FooBar_666_p1', 'A5',
                  'iTru7_107_11', 'CAATGTGG', 'iTru5_01_A', 'GGTACGAA', '3',
                  'FooBar_666', 'FooBar_666_p1.sample31.A5'],
-                ['important-sample32', 'EXPERIMENT_DESC',
+                ['importantsample32', 'EXPERIMENT_DESC',
                  'LIBRARY_PROTOCOL', 'Illumina', 'UCSDMI', '2019-11-03',
                  'sample32_S19_L003', 'sequencing by synthesis', 'CENTER_NAME',
                  'FooBar', 'Illumina HiSeq 2500',
                  '191103_D32611_0365_G00DHB5YXX', 'FooBar_666_p1', 'B6',
                  'iTru7_107_12', 'AAGGCTGA', 'iTru5_01_A', 'CGATCGAT', '3',
                  'FooBar_666', 'FooBar_666_p1.sample32.B6'],
-                ['important-sample34', 'EXPERIMENT_DESC',
+                ['importantsample34', 'EXPERIMENT_DESC',
                  'LIBRARY_PROTOCOL', 'Illumina', 'UCSDMI', '2019-11-03',
                  'sample34_S33_L003', 'sequencing by synthesis', 'CENTER_NAME',
                  'FooBar', 'Illumina HiSeq 2500',
@@ -117,13 +116,40 @@ class Tests(TestCase):
         obs_df = obs['191103_D32611_0365_G00DHB5YXX.FooBar_666.3']
         pd.testing.assert_frame_equal(obs_df, exp)
 
+    def test_preparations_for_run(self):
+        ss = sample_sheet_to_dataframe(parse_sample_sheet(self.ss))
+        obs = preparations_for_run(self.good_run, ss)
+        self._check_run_191103_D32611_0365_G00DHB5YXX(obs)
+
     def test_preparations_for_run_missing_columns(self):
         # Check that warnings are raised whenever we overwrite the
         # "well_description" column with the "description" column
-        self.fail()
+        ss = sample_sheet_to_dataframe(parse_sample_sheet(self.ss))
+        ss['description'] = ss['well_description'].copy()
+        ss.drop('well_description', axis=1, inplace=True)
+
+        with self.assertWarns(UserWarning) as cm:
+            obs = preparations_for_run(self.good_run, ss)
+
+            self.assertEqual(str(cm.warnings[0].message), 'These required '
+                             'columns were not found well_description')
+            self.assertEqual(str(cm.warnings[1].message), "Using 'description'"
+                             " instead of 'well_description' because that "
+                             "column isn't present")
+
+        self._check_run_191103_D32611_0365_G00DHB5YXX(obs)
 
     def test_invalid_sample_names_show_warning(self):
-        self.fail()
+        ss = sample_sheet_to_dataframe(parse_sample_sheet(self.ss))
+
+        ss['well_description'] = ss['well_description'].str.replace(
+            'importantsample44', 'important-sample44')
+
+        with self.assertWarns(UserWarning) as cm:
+            _check_invalid_names(ss['well_description'])
+            self.assertEqual(str(cm.warnings[0].message), 'The following '
+                             'sample names have invalid characters: '
+                             '"important-sample44"')
 
     def test_remove_qiita_id(self):
         obs = remove_qiita_id('project_1')
@@ -222,13 +248,13 @@ class Tests(TestCase):
         self.assertEqual(obs, ('Illumina HiSeq 2500', 'UCSDMI'))
 
         obs = get_model_and_center('A86753_0365_G00DHB5YXX')
-        self.assertEqual(obs, ('Illumina NovaSeq', 'UCSDMI'))
+        self.assertEqual(obs, ('Illumina NovaSeq 6000', 'UCSDMI'))
 
         obs = get_model_and_center('A00953_0032_AHWMGJDDXX')
-        self.assertEqual(obs, ('Illumina NovaSeq', 'IGM'))
+        self.assertEqual(obs, ('Illumina NovaSeq 6000', 'IGM'))
 
         obs = get_model_and_center('A00169_8131_AHKXYNDHXX')
-        self.assertEqual(obs, ('Illumina NovaSeq', 'LJI'))
+        self.assertEqual(obs, ('Illumina NovaSeq 6000', 'LJI'))
 
         obs = get_model_and_center('M05314_0255_000000000-J46T9')
         self.assertEqual(obs, ('Illumina MiSeq', 'KLM'))
@@ -251,21 +277,21 @@ class Tests(TestCase):
 
 DF_DATA = [
     ['1', 'sample1', 'FooBar_666_p1', 'A1', 'iTru7_107_07', 'CCGACTAT',
-     'iTru5_01_A', 'ACCGACAA', 'Baz', 'important-sample1'],
+     'iTru5_01_A', 'ACCGACAA', 'Baz', 'importantsample1'],
     ['1', 'sample2', 'FooBar_666_p1', 'A2', 'iTru7_107_08', 'CCGACTAT',
-     'iTru5_01_A', 'CTTCGCAA', 'Baz', 'important-sample2'],
+     'iTru5_01_A', 'CTTCGCAA', 'Baz', 'importantsample2'],
     ['3', 'sample1', 'FooBar_666_p1', 'A3', 'iTru7_107_09', 'GCCTTGTT',
-     'iTru5_01_A', 'AACACCAC', 'Baz', 'important-sample1'],
+     'iTru5_01_A', 'AACACCAC', 'Baz', 'importantsample1'],
     ['3', 'sample2', 'FooBar_666_p1', 'A4', 'iTru7_107_10', 'AACTTGCC',
-     'iTru5_01_A', 'CGTATCTC', 'Baz', 'important-sample2'],
+     'iTru5_01_A', 'CGTATCTC', 'Baz', 'importantsample2'],
     ['3', 'sample31', 'FooBar_666_p1', 'A5', 'iTru7_107_11', 'CAATGTGG',
-     'iTru5_01_A', 'GGTACGAA', 'FooBar_666', 'important-sample31'],
+     'iTru5_01_A', 'GGTACGAA', 'FooBar_666', 'importantsample31'],
     ['3', 'sample32', 'FooBar_666_p1', 'B6', 'iTru7_107_12', 'AAGGCTGA',
-     'iTru5_01_A', 'CGATCGAT', 'FooBar_666', 'important-sample32'],
+     'iTru5_01_A', 'CGATCGAT', 'FooBar_666', 'importantsample32'],
     ['3', 'sample34', 'FooBar_666_p1', 'B8', 'iTru7_107_13', 'TTACCGAG',
-     'iTru5_01_A', 'AAGACACC', 'FooBar_666', 'important-sample34'],
+     'iTru5_01_A', 'AAGACACC', 'FooBar_666', 'importantsample34'],
     ['3', 'sample44', 'Baz_p3', 'B99', 'iTru7_107_14', 'GTCCTAAG',
-     'iTru5_01_A', 'CATCTGCT', 'Baz', 'important-sample44']]
+     'iTru5_01_A', 'CATCTGCT', 'Baz', 'importantsample44']]
 
 
 if __name__ == "__main__":
