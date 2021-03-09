@@ -248,10 +248,65 @@ class Tests(TestCase):
         self.assertEqual(obs, ('Illumina MiniSeq', 'CMI'))
 
     def test_agp_transform(self):
-        self.fail()
+        columns = ['sample_name', 'experiment_design_description',
+                   'library_construction_protocol', 'platform', 'run_center',
+                   'run_date', 'run_prefix', 'sequencing_meth', 'center_name',
+                   'center_project_name', 'instrument_model', 'runid',
+                   'sample_plate', 'sample_well', 'i7_index_id', 'index',
+                   'i5_index_id', 'index2', 'lane', 'sample_project',
+                   'well_description']
 
-    def test_agp_transform_no_changes(self):
-        self.fail()
+        data = [['importantsample1', 'EXPERIMENT_DESC',
+                 'LIBRARY_PROTOCOL', 'Illumina', 'UCSDMI', '2019-11-03',
+                 'sample1_S11_L003', 'sequencing by synthesis', 'CENTER_NAME',
+                 'Baz', 'Illumina HiSeq 2500',
+                 '191103_D32611_0365_G00DHB5YXX', 'FooBar_666_p1', 'A3',
+                 'iTru7_107_09', 'GCCTTGTT', 'iTru5_01_A', 'AACACCAC', '3',
+                 'Baz', 'FooBar_666_p1.sample1.A3'],
+                ['importantsample44', 'EXPERIMENT_DESC',
+                 'LIBRARY_PROTOCOL', 'Illumina', 'UCSDMI', '2019-11-03',
+                 'sample44_S14_L003', 'sequencing by synthesis', 'CENTER_NAME',
+                 'Baz', 'Illumina HiSeq 2500',
+                 '191103_D32611_0365_G00DHB5YXX', 'Baz_p3', 'B99',
+                 'iTru7_107_14', 'GTCCTAAG', 'iTru5_01_A', 'CATCTGCT', '3',
+                 'Baz', 'Baz_p3.sample44.B99']]
+        obs = pd.DataFrame(data=data, columns=columns)
+        exp = obs.copy()
+        exp['center_name'] = 'UCSDMI'
+        exp['library_construction_protocol'] = 'Knight Lab KHP'
+        exp['experiment_design_description'] = (
+            'samples of skin, saliva and feces and other samples from the AGP')
+
+        pd.testing.assert_frame_equal(agp_transform(obs, '10317'), exp)
+
+    def test_agp_transform_no_agp(self):
+        columns = ['sample_name', 'experiment_design_description',
+                   'library_construction_protocol', 'platform', 'run_center',
+                   'run_date', 'run_prefix', 'sequencing_meth', 'center_name',
+                   'center_project_name', 'instrument_model', 'runid',
+                   'sample_plate', 'sample_well', 'i7_index_id', 'index',
+                   'i5_index_id', 'index2', 'lane', 'sample_project',
+                   'well_description']
+
+        data = [['importantsample1', 'EXPERIMENT_DESC',
+                 'LIBRARY_PROTOCOL', 'Illumina', 'UCSDMI', '2019-11-03',
+                 'sample1_S11_L003', 'sequencing by synthesis', 'CENTER_NAME',
+                 'Baz', 'Illumina HiSeq 2500',
+                 '191103_D32611_0365_G00DHB5YXX', 'FooBar_666_p1', 'A3',
+                 'iTru7_107_09', 'GCCTTGTT', 'iTru5_01_A', 'AACACCAC', '3',
+                 'Baz', 'FooBar_666_p1.sample1.A3'],
+                ['importantsample44', 'EXPERIMENT_DESC',
+                 'LIBRARY_PROTOCOL', 'Illumina', 'UCSDMI', '2019-11-03',
+                 'sample44_S14_L003', 'sequencing by synthesis', 'CENTER_NAME',
+                 'Baz', 'Illumina HiSeq 2500',
+                 '191103_D32611_0365_G00DHB5YXX', 'Baz_p3', 'B99',
+                 'iTru7_107_14', 'GTCCTAAG', 'iTru5_01_A', 'CATCTGCT', '3',
+                 'Baz', 'Baz_p3.sample44.B99']]
+        obs = pd.DataFrame(data=data, columns=columns)
+        exp = obs.copy()
+
+        # there shouldn't be any changes
+        pd.testing.assert_frame_equal(agp_transform(obs, '666'), exp)
 
 
 DF_DATA = [
