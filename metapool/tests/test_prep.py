@@ -26,13 +26,6 @@ class Tests(TestCase):
                '191103_D32611_0365_G00DHB5YXX.FooBar_666.3'}
         self.assertEqual(set(obs.keys()), exp)
 
-        data = [['importantsample44', 'EXPERIMENT_DESC',
-                 'LIBRARY_PROTOCOL', 'Illumina', 'UCSDMI', '2019-11-03',
-                 'sample44_S14_L003', 'sequencing by synthesis', 'CENTER_NAME',
-                 'Baz', 'Illumina HiSeq 2500',
-                 '191103_D32611_0365_G00DHB5YXX', 'Baz_p3', 'B99',
-                 'iTru7_107_14', 'GTCCTAAG', 'iTru5_01_A', 'CATCTGCT', '3',
-                 'Baz', 'Baz.Baz_p3.B99']]
         columns = ['sample_name', 'experiment_design_description',
                    'library_construction_protocol', 'platform', 'run_center',
                    'run_date', 'run_prefix', 'sequencing_meth', 'center_name',
@@ -59,20 +52,6 @@ class Tests(TestCase):
         obs_df = obs['191103_D32611_0365_G00DHB5YXX.Baz.3']
         pd.testing.assert_frame_equal(obs_df, exp)
 
-        data = [['importantsample1', 'EXPERIMENT_DESC',
-                 'LIBRARY_PROTOCOL', 'Illumina', 'UCSDMI', '2019-11-03',
-                 'sample1_S11_L001', 'sequencing by synthesis', 'CENTER_NAME',
-                 'Baz', 'Illumina HiSeq 2500',
-                 '191103_D32611_0365_G00DHB5YXX', 'FooBar_666_p1', 'A3',
-                 'iTru7_107_09', 'GCCTTGTT', 'iTru5_01_A', 'AACACCAC', '3',
-                 'Baz', 'Baz.FooBar_666_p1.A3'],
-                ['importantsample44', 'EXPERIMENT_DESC',
-                 'LIBRARY_PROTOCOL', 'Illumina', 'UCSDMI', '2019-11-03',
-                 'sample44_S14_L001', 'sequencing by synthesis', 'CENTER_NAME',
-                 'Baz', 'Illumina HiSeq 2500',
-                 '191103_D32611_0365_G00DHB5YXX', 'Baz_p3', 'B99',
-                 'iTru7_107_14', 'GTCCTAAG', 'iTru5_01_A', 'CATCTGCT', '3',
-                 'Baz', 'Baz.Baz_p3.B99']]
         data = [['importantsample1', 'EXPERIMENT_DESC',
                  'LIBRARY_PROTOCOL', 'Illumina', 'UCSDMI', '2019-11-03',
                  'sample1_S11_L001', 'sequencing by synthesis', 'CENTER_NAME',
