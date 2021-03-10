@@ -26,7 +26,7 @@ Change directory to the downloaded repository folder and install:
 
 ```bash
 cd metagenomics_pooling_notebook
-pip install -e .
+pip install -e .[all]
 ```
 
 Finally, to enable the notebook Table of Contents, activate the
