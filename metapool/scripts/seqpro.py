@@ -19,6 +19,14 @@ from metapool import (preparations_for_run, parse_sample_sheet,
 def format_preparation_files(run_dir, sample_sheet, output_dir, pipeline):
     """Generate the preparation files for the projects in a run
 
+    RUN_DIR: should be the directory where the results of running bcl2fastq are
+    saved.
+
+    SAMPLE_SHEET: should be a CSV file that includes information for the
+    samples and projects in RUN_DIR.
+
+    OUTPUT_DIR: directory where the outputted preparations should be saved to.
+
     Preparations are stratified by project and by lane. Only samples with
     non-empty files are included.
     """
