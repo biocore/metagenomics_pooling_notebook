@@ -13,7 +13,10 @@ from metapool import (preparations_for_run, parse_sample_sheet,
 @click.argument('sample_sheet', type=click.Path(exists=True, dir_okay=False,
                                                 file_okay=True))
 @click.argument('output_dir', type=click.Path(writable=True))
-def format_preparation_files(run_dir, sample_sheet, output_dir):
+@click.option('--pipeline', help='Which pipeline generated the data',
+              show_default=True, default='fastp-and-minimap2',
+              type=click.Choice(['atropos-and-bowtie2', 'fastp-and-minimap2']))
+def format_preparation_files(run_dir, sample_sheet, output_dir, pipeline):
     """Generate the preparation files for the projects in a run
 
     Preparations are stratified by project and by lane. Only samples with
@@ -23,7 +26,7 @@ def format_preparation_files(run_dir, sample_sheet, output_dir):
     sample_sheet = sample_sheet_to_dataframe(parse_sample_sheet(sample_sheet))
 
     # returns a map of project_name.lane -> preparation frame
-    preps = preparations_for_run(run_dir, sample_sheet)
+    preps = preparations_for_run(run_dir, sample_sheet, pipeline=pipeline)
 
     os.makedirs(output_dir, exist_ok=True)
 

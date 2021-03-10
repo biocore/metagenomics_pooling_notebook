@@ -15,6 +15,8 @@ class Tests(TestCase):
         data_dir = os.path.join(os.path.dirname(__file__), 'data')
         self.good_run = os.path.join(data_dir, 'runs',
                                      '191103_D32611_0365_G00DHB5YXX')
+        self.good_run_new_version = os.path.join(
+            data_dir, 'runs', '191104_D32611_0365_G00DHB5YXZ')
 
         self.ss = os.path.join(self.good_run, 'sample-sheet.csv')
 
@@ -97,7 +99,8 @@ class Tests(TestCase):
 
     def test_preparations_for_run(self):
         ss = sample_sheet_to_dataframe(parse_sample_sheet(self.ss))
-        obs = preparations_for_run(self.good_run, ss)
+        obs = preparations_for_run(self.good_run, ss,
+                                   pipeline='atropos-and-bowtie2')
         self._check_run_191103_D32611_0365_G00DHB5YXX(obs)
 
     def test_preparations_for_run_missing_columns(self):
@@ -108,7 +111,8 @@ class Tests(TestCase):
         ss.drop('well_description', axis=1, inplace=True)
 
         with self.assertWarns(UserWarning) as cm:
-            obs = preparations_for_run(self.good_run, ss)
+            obs = preparations_for_run(self.good_run, ss,
+                                       pipeline='atropos-and-bowtie2')
 
             self.assertEqual(str(cm.warnings[0].message), 'These required '
                              'columns were not found well_description')
@@ -145,27 +149,68 @@ class Tests(TestCase):
 
     def test_get_run_prefix(self):
         # project 1
-        obs = get_run_prefix(self.good_run, 'Baz', 'sample1', '1')
+        obs = get_run_prefix(self.good_run, 'Baz', 'sample1', '1',
+                             'atropos-and-bowtie2')
         self.assertEqual('sample1_S11_L001', obs)
 
-        obs = get_run_prefix(self.good_run, 'Baz', 'sample1', '3')
+        obs = get_run_prefix(self.good_run, 'Baz', 'sample1', '3',
+                             'atropos-and-bowtie2')
         self.assertEqual('sample1_S11_L003', obs)
 
-        obs = get_run_prefix(self.good_run, 'Baz', 'sample2', '1')
+        obs = get_run_prefix(self.good_run, 'Baz', 'sample2', '1',
+                             'atropos-and-bowtie2')
         self.assertEqual('sample2_S10_L001', obs)
 
-        obs = get_run_prefix(self.good_run, 'Baz', 'sample2', '3')
+        obs = get_run_prefix(self.good_run, 'Baz', 'sample2', '3',
+                             'atropos-and-bowtie2')
         self.assertIsNone(obs)
 
         # project 2
-        obs = get_run_prefix(self.good_run, 'FooBar_666', 'sample31', '3')
+        obs = get_run_prefix(self.good_run, 'FooBar_666', 'sample31', '3',
+                             'atropos-and-bowtie2')
         self.assertEqual('sample31_S13_L003', obs)
 
-        obs = get_run_prefix(self.good_run, 'FooBar_666', 'sample32', '3')
+        obs = get_run_prefix(self.good_run, 'FooBar_666', 'sample32', '3',
+                             'atropos-and-bowtie2')
         self.assertEqual('sample32_S19_L003', obs)
 
-        obs = get_run_prefix(self.good_run, 'FooBar_666', 'sample34', '3')
+        obs = get_run_prefix(self.good_run, 'FooBar_666', 'sample34', '3',
+                             'atropos-and-bowtie2')
         self.assertEqual('sample34_S33_L003', obs)
+
+    def test_get_run_prefix_fastp_minimap(self):
+        obs = get_run_prefix(self.good_run_new_version, 'Baz', 'sample1', '1',
+                             'fastp-and-minimap2')
+        self.assertEqual('sample1_S11_L001', obs)
+
+        obs = get_run_prefix(self.good_run_new_version, 'Baz', 'sample1', '3',
+                             'fastp-and-minimap2')
+        self.assertEqual('sample1_S11_L003', obs)
+
+        obs = get_run_prefix(self.good_run_new_version, 'Baz', 'sample2', '1',
+                             'fastp-and-minimap2')
+        self.assertEqual('sample2_S10_L001', obs)
+
+        obs = get_run_prefix(self.good_run_new_version, 'Baz', 'sample44', '3',
+                             'fastp-and-minimap2')
+        self.assertIsNone(obs)
+
+        obs = get_run_prefix(self.good_run_new_version, 'Baz', 'sample2', '3',
+                             'fastp-and-minimap2')
+        self.assertIsNone(obs)
+
+        # project 2
+        obs = get_run_prefix(self.good_run_new_version, 'FooBar_666',
+                             'sample31', '3', 'fastp-and-minimap2')
+        self.assertEqual('sample31_S13_L003', obs)
+
+        obs = get_run_prefix(self.good_run_new_version, 'FooBar_666',
+                             'sample32', '3', 'fastp-and-minimap2')
+        self.assertEqual('sample32_S19_L003', obs)
+
+        obs = get_run_prefix(self.good_run_new_version, 'FooBar_666',
+                             'sample34', '3', 'fastp-and-minimap2')
+        self.assertIsNone(obs)
 
     def test_is_non_empty_gz_file(self):
         non_empty = os.path.join(self.good_run, 'Baz', 'sample2_S10_L001_R1_00'
