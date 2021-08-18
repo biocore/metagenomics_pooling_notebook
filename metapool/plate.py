@@ -77,18 +77,20 @@ def validate_plate_metadata(metadata):
 
 def _validate_plate(plate_metadata, context):
     messages = []
-    columns = {'Plate Position' 'Primer Plate #', 'Plating',
-               'Extraction Kit Lot', 'Extraction Robot', 'TM1000 8 Tool',
-               'Primer Date', 'MasterMix Lot', 'Water Lot', 'Processing Robot',
-               'Sample Plate', 'Project_Name', 'Original Name'}
-    observed_columns = set(plate_metadata.keys())
+    expected = {'Plate Position', 'Primer Plate #', 'Plating',
+                'Extraction Kit Lot', 'Extraction Robot', 'TM1000 8 Tool',
+                'Primer Date', 'MasterMix Lot', 'Water Lot',
+                'Processing Robot', 'Sample Plate', 'Project_Name',
+                'Original Name'}
+    observed = set(plate_metadata.keys())
 
     # 1. All columns are exactly present, no more no less
-    extra = columns - observed_columns
+    extra = expected - observed
     if extra:
-        messages.append(ErrorMessage('The following columns are not needed %s'
-                                     % ', '.join(extra)))
-    missing = observed_columns - columns
+        messages.append(
+            ErrorMessage('The following columns are not needed %s'
+                         % ', '.join(extra)))
+    missing = observed - expected
     if missing:
         messages.append(ErrorMessage('The following are missing %s' %
                                      ', '.join(missing)))
