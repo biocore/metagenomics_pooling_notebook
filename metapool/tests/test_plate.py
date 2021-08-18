@@ -3,7 +3,7 @@ import pandas as pd
 from unittest import TestCase, main
 from metapool.plate import (_well_to_row_and_col, _decompress_well,
                             _plate_position, validate_plate_metadata,
-                            _validate_plate)
+                            _validate_plate, ErrorMessage, WarningMessage)
 
 
 class PlateHelperTests(TestCase):
@@ -103,6 +103,12 @@ class PlateValidationTests(TestCase):
             },
         ]
 
+        self.context = {
+            'primers': [],
+            'names': [],
+            'positions': []
+        }
+
     def test_validate_plate_metadata_full(self):
         expected = pd.DataFrame(self.metadata)
 
@@ -110,7 +116,18 @@ class PlateValidationTests(TestCase):
                                       expected)
 
     def test_validate_plate_extra_columns(self):
-        self.fail()
+        plate = self.metadata[0]
+        plate['New Value'] = 'a deer'
+        messages, context = _validate_plate(plate, self.context)
+
+        self.assertTrue(len(messages) == 1)
+        self.assertEqual(messages[0],
+                         ErrorMessage('The following columns are not needed: '
+                                      'New Value'))
+
+        expected = {'primers': ['1'], 'names': ['THDMI_UK_Plate_2'],
+                    'positions': ['1']}
+        self.assertEqual(context, expected)
 
     def test_validate_plate_missing_columns(self):
         self.fail()

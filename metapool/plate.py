@@ -85,21 +85,21 @@ def _validate_plate(plate_metadata, context):
     observed = set(plate_metadata.keys())
 
     # 1. All columns are exactly present, no more no less
-    extra = expected - observed
+    extra = observed - expected
     if extra:
         messages.append(
-            ErrorMessage('The following columns are not needed %s'
+            ErrorMessage('The following columns are not needed: %s'
                          % ', '.join(extra)))
-    missing = observed - expected
+    missing = expected - observed
     if missing:
-        messages.append(ErrorMessage('The following are missing %s' %
+        messages.append(ErrorMessage('The following columns are missing: %s' %
                                      ', '.join(missing)))
 
     # 2. Are primer plates repeated?
     if plate_metadata['Primer Plate #'] in context['primers']:
         messages.append(ErrorMessage('The plate name "%s" is repeated' %
                                      plate_metadata['Primer Plate #']))
-    context['primers'].append(plate_metadata['Sample Plate'])
+    context['primers'].append(plate_metadata['Primer Plate #'])
 
     # 3. Are plate names repeated?
     if plate_metadata['Sample Plate'] in context['names']:
@@ -107,14 +107,20 @@ def _validate_plate(plate_metadata, context):
                                      plate_metadata['Sample Plate']))
     context['names'].append(plate_metadata['Sample Plate'])
 
-    # 4. The first plate cannot be empty, but others can
+    # 4. Are positions repeated?
+    if plate_metadata['Plate Position'] in context['positions']:
+        messages.append(ErrorMessage('The plate position "%s" is repeated' %
+                                     plate_metadata['Plate Position']))
+    context['positions'].append(plate_metadata['Plate Position'])
+
+    # 5. The first plate cannot be empty, but others can
     if plate_metadata == {}:
         if len(context['names']) == 0:
             messages.append(ErrorMessage("Can't leave the first plate empty"))
         else:
             messages.append(WarningMessage("This plate has no metadata"))
 
-    # 5. Check the primer date is not in the future and that it can
+    # 6. Check the primer date is not in the future and that it can
     try:
         old = datetime.strptime(plate_metadata['Primer Date'],
                                 '%Y-%m-%d').date()
@@ -125,7 +131,7 @@ def _validate_plate(plate_metadata, context):
         if old > datetime.now().date():
             messages.append(WarningMessage("The Primer Date is in the future"))
 
-    # 6. Check there's only ASCII characters
+    # 7. Check there's only ASCII characters
     for key, value in plate_metadata.items():
         for c in value:
             if ord(c) > 127:
