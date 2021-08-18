@@ -162,22 +162,96 @@ class PlateValidationTests(TestCase):
         self.assertEqual(context, expected)
 
     def test_validate_plate_repeated_names(self):
-        self.fail()
+        plate = self.metadata[0]
+        context = {'primers': ['2'], 'names': ['THDMI_UK_Plate_2'],
+                   'positions': ['2']}
+
+        messages, context = _validate_plate(plate, context)
+
+        self.assertTrue(len(messages) == 1)
+        self.assertEqual(messages[0],
+                         ErrorMessage('The plate name "THDMI_UK_Plate_2" is '
+                                      'repeated'))
+
+        expected = {
+            'primers': ['2', '1'],
+            'names': ['THDMI_UK_Plate_2', 'THDMI_UK_Plate_2'],
+            'positions': ['2', '1']
+        }
+        self.assertEqual(context, expected)
+
+    def test_validate_plate_repeated_position(self):
+        plate = self.metadata[0]
+        context = {'primers': ['2'], 'names': ['THDMI_UK_Plate_3'],
+                   'positions': ['1']}
+
+        messages, context = _validate_plate(plate, context)
+
+        self.assertTrue(len(messages) == 1)
+        self.assertEqual(messages[0],
+                         ErrorMessage('The plate position "1" is repeated'))
+
+        expected = {
+            'primers': ['2', '1'],
+            'names': ['THDMI_UK_Plate_3', 'THDMI_UK_Plate_2'],
+            'positions': ['1', '1']
+        }
+        self.assertEqual(context, expected)
 
     def test_validate_no_empty_metadata(self):
-        self.fail()
+        messages, context = _validate_plate({}, self.context)
+
+        self.assertTrue(len(messages) == 1)
+        self.assertEqual(messages[0],
+                         ErrorMessage("Can't leave the first plate empty"))
+
+        expected = {'primers': [], 'names': [],
+                    'positions': []}
+        self.assertEqual(context, expected)
 
     def test_validate_trailing_empty(self):
         self.fail()
 
     def test_correct_date_format(self):
-        self.fail()
+        plate = self.metadata[0]
+        plate['Primer Date'] = '2000/01/01'
+        messages, context = _validate_plate(plate, self.context)
+
+        self.assertTrue(len(messages) == 1)
+        self.assertEqual(messages[0],
+                         ErrorMessage('Date format is invalid should be '
+                                      'YYYY-mm-dd'))
+
+        expected = {'primers': ['1'], 'names': ['THDMI_UK_Plate_2'],
+                    'positions': ['1']}
+        self.assertEqual(context, expected)
 
     def test_date_is_in_the_past(self):
-        self.fail()
+        plate = self.metadata[0]
+        plate['Primer Date'] = '2100-01-01'
+        messages, context = _validate_plate(plate, self.context)
+
+        self.assertTrue(len(messages) == 1)
+        self.assertEqual(messages[0],
+                         WarningMessage('The Primer Date is in the future'))
+
+        expected = {'primers': ['1'], 'names': ['THDMI_UK_Plate_2'],
+                    'positions': ['1']}
+        self.assertEqual(context, expected)
 
     def test_non_ascii(self):
-        self.fail()
+        plate = self.metadata[0]
+        plate['Plating'] = 'é'
+        messages, context = _validate_plate(plate, self.context)
+
+        self.assertTrue(len(messages) == 1)
+        self.assertEqual(messages[0],
+                         ErrorMessage("The value for 'Plating' has non-ASCII "
+                                      'characters'))
+
+        expected = {'primers': ['1'], 'names': ['THDMI_UK_Plate_2'],
+                    'positions': ['1']}
+        self.assertEqual(context, expected)
 
 
 if __name__ == '__main__':

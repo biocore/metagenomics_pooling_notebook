@@ -77,6 +77,16 @@ def validate_plate_metadata(metadata):
 
 def _validate_plate(plate_metadata, context):
     messages = []
+
+    # 1. The first plate cannot be empty, but others can
+    if plate_metadata == {}:
+        if len(context['names']) == 0:
+            # terminate the execution here, the rest of the code assumes
+            # there's metadata to validate
+            return [ErrorMessage("Can't leave the first plate empty")], context
+        else:
+            messages.append(WarningMessage("This plate has no metadata"))
+
     expected = {'Plate Position', 'Primer Plate #', 'Plating',
                 'Extraction Kit Lot', 'Extraction Robot', 'TM1000 8 Tool',
                 'Primer Date', 'MasterMix Lot', 'Water Lot',
@@ -84,7 +94,7 @@ def _validate_plate(plate_metadata, context):
                 'Original Name'}
     observed = set(plate_metadata.keys())
 
-    # 1. All columns are exactly present, no more no less
+    # 2. All columns are exactly present, no more no less
     extra = observed - expected
     if extra:
         messages.append(
@@ -95,30 +105,23 @@ def _validate_plate(plate_metadata, context):
         messages.append(ErrorMessage('The following columns are missing: %s' %
                                      ', '.join(missing)))
 
-    # 2. Are primer plates repeated?
+    # 3. Are primer plates repeated?
     if plate_metadata['Primer Plate #'] in context['primers']:
         messages.append(ErrorMessage('The primer plate "%s" is repeated' %
                                      plate_metadata['Primer Plate #']))
     context['primers'].append(plate_metadata['Primer Plate #'])
 
-    # 3. Are plate names repeated?
+    # 4. Are plate names repeated?
     if plate_metadata['Sample Plate'] in context['names']:
         messages.append(ErrorMessage('The plate name "%s" is repeated' %
                                      plate_metadata['Sample Plate']))
     context['names'].append(plate_metadata['Sample Plate'])
 
-    # 4. Are positions repeated?
+    # 5. Are positions repeated?
     if plate_metadata['Plate Position'] in context['positions']:
         messages.append(ErrorMessage('The plate position "%s" is repeated' %
                                      plate_metadata['Plate Position']))
     context['positions'].append(plate_metadata['Plate Position'])
-
-    # 5. The first plate cannot be empty, but others can
-    if plate_metadata == {}:
-        if len(context['names']) == 0:
-            messages.append(ErrorMessage("Can't leave the first plate empty"))
-        else:
-            messages.append(WarningMessage("This plate has no metadata"))
 
     # 6. Check the primer date is not in the future and that it can
     try:
@@ -135,8 +138,8 @@ def _validate_plate(plate_metadata, context):
     for key, value in plate_metadata.items():
         for c in value:
             if ord(c) > 127:
-                messages.append(ErrorMessage(("The value for %s has non-ACII "
-                                              "characters") % key))
+                messages.append(ErrorMessage(("The value for '%s' has "
+                                              "non-ASCII characters") % key))
                 break
 
     return messages, context
