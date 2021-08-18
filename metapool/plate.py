@@ -9,7 +9,6 @@ class Message(object):
     def __init__(self, message):
         self._color = None
         self.message = message
-        return self
 
     def __str__(self):
         return '%s: %s' % (self.__class__.__name__, self.message)

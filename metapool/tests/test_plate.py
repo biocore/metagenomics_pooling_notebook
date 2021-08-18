@@ -4,7 +4,8 @@ import pandas as pd
 from unittest import TestCase, main
 from metapool.plate import (_well_to_row_and_col, _decompress_well,
                             _plate_position, validate_plate_metadata,
-                            _validate_plate, ErrorMessage, WarningMessage)
+                            _validate_plate, Message, ErrorMessage,
+                            WarningMessage)
 
 
 class PlateHelperTests(TestCase):
@@ -37,6 +38,59 @@ class PlateHelperTests(TestCase):
         self.assertEqual('3', _plate_position('D1'))
         self.assertEqual('3', _plate_position('D3'))
         self.assertEqual('3', _plate_position('D5'))
+
+
+class MessageTests(TestCase):
+    def test_message_construction(self):
+        m = Message('In a world ...')
+
+        self.assertIsNone(m._color)
+        self.assertEqual(m.message, 'In a world ...')
+        self.assertTrue(isinstance(m, Message))
+
+    def test_error_construction(self):
+        e = ErrorMessage('In a world ...')
+
+        self.assertEqual(e._color, 'red')
+        self.assertEqual(e.message, 'In a world ...')
+        self.assertTrue(isinstance(e, ErrorMessage))
+
+    def test_warning_construction(self):
+        w = WarningMessage('In a world ...')
+
+        self.assertEqual(w._color, 'yellow')
+        self.assertEqual(w.message, 'In a world ...')
+        self.assertTrue(isinstance(w, WarningMessage))
+
+    def test_equal(self):
+        a = Message('na na na')
+        b = Message('na na na')
+        c = Message('Batman')
+
+        self.assertEqual(a, b)
+        self.assertNotEqual(a, c)
+        self.assertNotEqual(b, c)
+
+    def test_equal_warnings_and_errors(self):
+        e = ErrorMessage('D:')
+        w = WarningMessage(':D')
+        self.assertNotEqual(e, w)
+
+        self.assertEqual(e, ErrorMessage('D:'))
+        self.assertNotEqual(e, ErrorMessage(':0'))
+
+    def test_str(self):
+        self.assertEqual('Message: test', str(Message('test')))
+        self.assertEqual('ErrorMessage: test', str(ErrorMessage('test')))
+        self.assertEqual('WarningMessage: test', str(WarningMessage('test')))
+
+    def test_echo(self):
+        e = ErrorMessage('Catch me if: you can')
+        e.echo()
+
+        # testing stdout: https://stackoverflow.com/a/12683001
+        output = sys.stdout.getvalue().strip()
+        self.assertEqual(output, 'ErrorMessage: Catch me if: you can')
 
 
 class PlateValidationTests(TestCase):
