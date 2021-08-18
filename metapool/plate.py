@@ -38,6 +38,20 @@ class WarningMessage(Message):
 
 
 def validate_plate_metadata(metadata):
+    """Validates a list of plating metadata and outputs error/warning messages
+
+    Parameters
+    ----------
+    metadata: list of dict
+        A list of dictionaries where each dictionary represents plating
+        metadata.
+
+    Returns
+    -------
+    pd.DataFrame or None
+        None if there's errors in the metadata.
+        pd.DataFrame with the dictionaries as rows and the keys as columns.
+    """
     messages = []
 
     if len(metadata) > 4:
