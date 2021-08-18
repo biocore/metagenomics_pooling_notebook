@@ -2,77 +2,129 @@ import click
 import pandas as pd
 
 from math import ceil
+from datetime import datetime
 
 
 class Message(object):
     def __init__(self, message):
-        # TODO: Add a color to format output
         self.color = None
         self.message = message
         return self
 
     def __str__(self):
-        return self.message
+        return '%s: %s' % (self.__class__.__name__, self.message)
 
-    def print(self):
-        click.echo(click.style(str(self), fg=self.color))
+    def echo(self):
+        prefix, suffix = str(self).split(': ', maxsplit=1)
+        click.echo(click.style(prefix + ': ', fg=self.color) + suffix)
 
 
-class Error(Message):
+class ErrorMessage(Message):
     def __init__(self, message):
         super().__init__(message)
         self.color = 'red'
 
-    def __str__(self):
-        return 'Error: %s' % self.message
 
-
-class Warning(Message):
+class WarningMessage(Message):
     def __init__(self, message):
         super().__init__(message)
         self.color = 'yellow'
-
-    def __str__(self):
-        return 'Warning: %s' % self.message
 
 
 def validate_plate_metadata(metadata):
     messages = []
 
+    if len(metadata) > 4:
+        ErrorMessage("There are more than 4 plates, cannot continue "
+                     "validation").echo()
+        return
+
     # used to keep track of attributes to validate across plates
     context = {
-        'observed primer plates': [],
-        'observed plate names': []
+        'primers': [],
+        'names': [],
+        'positions': []
     }
 
-    for plate in metadata:
+    no_errors = True
+    for i, plate in enumerate(metadata):
         messages, context = _validate_plate(plate, context)
 
         if messages:
-            print('Plate 1')
+            print('Messages for Plate %s ' % plate['Plate Position'])
             for message in messages:
-                print(message)
+                message.echo()
 
-    metadata = pd.DataFrame(metadata)
+                # all it takes is one error message in one plate
+                if isinstance(message, ErrorMessage):
+                    no_errors = False
+
+    # prevent completion of other steps until these issues are fixed
+    if no_errors:
+        metadata = pd.DataFrame(metadata)
+    else:
+        metadata = None
+
     return metadata
 
 
 def _validate_plate(plate_metadata, context):
-    # things to validate:
-    #   Error: Are primer plates repeated? -> check with context
-    #   Error: Are sample plate names repeated? -> check with context
-    #   Error: Are dates in the past?
-    #   Error: Are dates formatted correctly?
-    #   Error: Are all the fields present?
-    #   Warn: If plates are left empty, check that all plates before are filled
-    #   Error: All columns are exactly present, no more no less
-    #
-    #   Error: When there's more than 4 plates total, let users know when you
-    #   are validating the fifth plate.
-    #   Error: check for only ascii characters
-    #   Check for an exact match of keys
+    messages = []
+    columns = {'Plate Position' 'Primer Plate #', 'Plating',
+               'Extraction Kit Lot', 'Extraction Robot', 'TM1000 8 Tool',
+               'Primer Date', 'MasterMix Lot', 'Water Lot', 'Processing Robot',
+               'Sample Plate', 'Project_Name', 'Original Name'}
+    observed_columns = set(plate_metadata.keys())
 
-    return [], context
+    # 1. All columns are exactly present, no more no less
+    extra = columns - observed_columns
+    if extra:
+        messages.append(ErrorMessage('The following columns are not needed %s'
+                                     % ', '.join(extra)))
+    missing = observed_columns - columns
+    if missing:
+        messages.append(ErrorMessage('The following are missing %s' %
+                                     ', '.join(missing)))
+
+    # 2. Are primer plates repeated?
+    if plate_metadata['Primer Plate #'] in context['primers']:
+        messages.append(ErrorMessage('The plate name "%s" is repeated' %
+                                     plate_metadata['Primer Plate #']))
+    context['primers'].append(plate_metadata['Sample Plate'])
+
+    # 3. Are plate names repeated?
+    if plate_metadata['Sample Plate'] in context['names']:
+        messages.append(ErrorMessage('The plate name "%s" is repeated' %
+                                     plate_metadata['Sample Plate']))
+    context['names'].append(plate_metadata['Sample Plate'])
+
+    # 4. The first plate cannot be empty, but others can
+    if plate_metadata == {}:
+        if len(context['names']) == 0:
+            messages.append(ErrorMessage("Can't leave the first plate empty"))
+        else:
+            messages.append(WarningMessage("This plate has no metadata"))
+
+    # 5. Check the primer date is not in the future and that it can
+    try:
+        old = datetime.strptime(plate_metadata['Primer Date'],
+                                '%Y-%m-%d').date()
+    except ValueError:
+        messages.append(ErrorMessage('Date format is invalid should be '
+                                     'YYYY-mm-dd'))
+    else:
+        if old > datetime.now().date():
+            messages.append(WarningMessage("The Primer Date is in the future"))
+
+    # 6. Check there's only ASCII characters
+    for key, value in plate_metadata.items():
+        for c in value:
+            if ord(c) > 127:
+                messages.append(ErrorMessage(("The value for %s has non-ACII "
+                                              "characters") % key))
+                break
+
+    return messages, context
 
 
 def _well_to_row_and_col(well):
