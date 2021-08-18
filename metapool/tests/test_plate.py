@@ -1,3 +1,4 @@
+import sys
 import pandas as pd
 
 from unittest import TestCase, main
@@ -115,6 +116,16 @@ class PlateValidationTests(TestCase):
         pd.testing.assert_frame_equal(validate_plate_metadata(self.metadata),
                                       expected)
 
+    def test_validate_plate_metadata_returns_None(self):
+        # add a repeated plate position
+        self.metadata[1]['Plate Position'] = '1'
+        self.assertIsNone(validate_plate_metadata(self.metadata))
+
+        # testing stdout: https://stackoverflow.com/a/12683001
+        output = sys.stdout.getvalue().strip()
+        self.assertEqual(output, 'Messages for Plate 1 \n'
+                         'ErrorMessage: The plate position "1" is repeated')
+
     def test_validate_plate_extra_columns(self):
         plate = self.metadata[0]
         plate['New Value'] = 'a deer'
@@ -229,7 +240,6 @@ class PlateValidationTests(TestCase):
         }
         self.assertEqual(context, expected)
 
-
     def test_correct_date_format(self):
         plate = self.metadata[0]
         plate['Primer Date'] = '2000/01/01'
@@ -273,4 +283,5 @@ class PlateValidationTests(TestCase):
 
 
 if __name__ == '__main__':
-    main()
+    assert not hasattr(sys.stdout, "getvalue")
+    main(module=__name__, buffer=True, exit=False)
