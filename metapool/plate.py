@@ -81,11 +81,13 @@ def _validate_plate(plate_metadata, context):
     # 1. The first plate cannot be empty, but others can
     if plate_metadata == {}:
         if len(context['names']) == 0:
-            # terminate the execution here, the rest of the code assumes
-            # there's metadata to validate
-            return [ErrorMessage("Can't leave the first plate empty")], context
+            messages.append(ErrorMessage("Can't leave the first plate empty"))
         else:
             messages.append(WarningMessage("This plate has no metadata"))
+
+        # terminate the execution here, the rest of the code assumes
+        # there's metadata to validate
+        return messages, context
 
     expected = {'Plate Position', 'Primer Plate #', 'Plating',
                 'Extraction Kit Lot', 'Extraction Robot', 'TM1000 8 Tool',

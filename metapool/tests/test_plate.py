@@ -210,7 +210,25 @@ class PlateValidationTests(TestCase):
         self.assertEqual(context, expected)
 
     def test_validate_trailing_empty(self):
-        self.fail()
+        context = {
+            'primers': ['3', '2'],
+            'names': ['THDMI_UK_Plate_3', 'THDMI_UK_Plate_2'],
+            'positions': ['3', '2']
+        }
+
+        messages, context = _validate_plate({}, context)
+
+        self.assertTrue(len(messages) == 1)
+        self.assertEqual(messages[0],
+                         WarningMessage("This plate has no metadata"))
+
+        expected = {
+            'primers': ['3', '2'],
+            'names': ['THDMI_UK_Plate_3', 'THDMI_UK_Plate_2'],
+            'positions': ['3', '2']
+        }
+        self.assertEqual(context, expected)
+
 
     def test_correct_date_format(self):
         plate = self.metadata[0]
