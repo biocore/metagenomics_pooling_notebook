@@ -25,7 +25,6 @@ def assign_emp_index(plate_df, metadata):
 
     # dataframe of wells organized by plate with a barcode per well
     emp_indices = _load_emp_indices()
-    emp_indices['__plate_well__'] = emp_indices['Plate'] + emp_indices['Well']
 
     # the Well column exists elsewhere already so we rename it to avoid
     # duplication in the merged table
@@ -41,16 +40,16 @@ def assign_emp_index(plate_df, metadata):
                               left_on='__plate_position__',
                               right_on='Plate Position')
 
-    # create a new column concatenating the primer plate and the
-    # 96-well-plate-ID. These are the two identifiers that we need to join the
-    # EMP indices with the plated samples
-    plate_df['__plate_well__'] = (plate_df['Primer Plate #'] +
-                                  plate_df['__decompressed_well__'])
-    plate_df = plate_df.merge(emp_indices, how='left', on='__plate_well__')
+    # merge tables based on the primer plate and the
+    # 96-well-plate-ID
+    plate_df = plate_df.merge(
+        emp_indices, how='left',
+        left_on=['Primer Plate #', '__decompressed_well__'],
+        right_on=['Plate', 'EMP Primer Plate Well'])
 
     # remove all the helper columns
-    plate_df.drop(['__plate_position__', '__plate_well__',
-                   '__decompressed_well__'], axis=1, inplace=True)
+    plate_df.drop(['__plate_position__', '__decompressed_well__'], axis=1,
+                  inplace=True)
 
     return plate_df
 
