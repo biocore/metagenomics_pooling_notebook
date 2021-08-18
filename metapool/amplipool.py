@@ -5,7 +5,21 @@ from metapool.plate import _decompress_well, _plate_position
 
 
 def assign_emp_index(plate_df, metadata):
-    """
+    """Assign an EMP index to wells based on their compressed position
+
+    Parameters
+    ----------
+    plate_df: pd.DataFrame
+        Object with a Well column, and other metadata variables (usually with
+        384 rows).
+    metadata: pd.DataFrame
+        Object with all the plate metadata (usually with 1-4 rows).
+
+    Returns
+    -------
+    pd.DataFrame
+        A table resulting from joining the compressed plate, the plate
+        metadata, and the EMP indices.
     """
     plate_df = plate_df.copy()
 
