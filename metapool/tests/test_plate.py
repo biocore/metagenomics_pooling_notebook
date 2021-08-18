@@ -144,7 +144,22 @@ class PlateValidationTests(TestCase):
         self.assertEqual(context, expected)
 
     def test_validate_plate_repeated_primers(self):
-        self.fail()
+        plate = self.metadata[0]
+        context = {'primers': ['1'], 'names': ['THDMI_UK_Plate_3'],
+                   'positions': ['2']}
+
+        messages, context = _validate_plate(plate, context)
+
+        self.assertTrue(len(messages) == 1)
+        self.assertEqual(messages[0],
+                         ErrorMessage('The primer plate "1" is repeated'))
+
+        expected = {
+            'primers': ['1', '1'],
+            'names': ['THDMI_UK_Plate_3', 'THDMI_UK_Plate_2'],
+            'positions': ['2', '1']
+        }
+        self.assertEqual(context, expected)
 
     def test_validate_plate_repeated_names(self):
         self.fail()

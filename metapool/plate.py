@@ -97,7 +97,7 @@ def _validate_plate(plate_metadata, context):
 
     # 2. Are primer plates repeated?
     if plate_metadata['Primer Plate #'] in context['primers']:
-        messages.append(ErrorMessage('The plate name "%s" is repeated' %
+        messages.append(ErrorMessage('The primer plate "%s" is repeated' %
                                      plate_metadata['Primer Plate #']))
     context['primers'].append(plate_metadata['Primer Plate #'])
 
