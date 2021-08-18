@@ -130,7 +130,18 @@ class PlateValidationTests(TestCase):
         self.assertEqual(context, expected)
 
     def test_validate_plate_missing_columns(self):
-        self.fail()
+        plate = self.metadata[0]
+        del plate['Plating']
+        messages, context = _validate_plate(plate, self.context)
+
+        self.assertTrue(len(messages) == 1)
+        self.assertEqual(messages[0],
+                         ErrorMessage('The following columns are missing: '
+                                      'Plating'))
+
+        expected = {'primers': ['1'], 'names': ['THDMI_UK_Plate_2'],
+                    'positions': ['1']}
+        self.assertEqual(context, expected)
 
     def test_validate_plate_repeated_primers(self):
         self.fail()
