@@ -7,28 +7,35 @@ from datetime import datetime
 
 class Message(object):
     def __init__(self, message):
-        self.color = None
+        self._color = None
         self.message = message
         return self
 
     def __str__(self):
         return '%s: %s' % (self.__class__.__name__, self.message)
 
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            if self.message == other.message:
+                return True
+        else:
+            return False
+
     def echo(self):
         prefix, suffix = str(self).split(': ', maxsplit=1)
-        click.echo(click.style(prefix + ': ', fg=self.color) + suffix)
+        click.echo(click.style(prefix + ': ', fg=self._color) + suffix)
 
 
 class ErrorMessage(Message):
     def __init__(self, message):
         super().__init__(message)
-        self.color = 'red'
+        self._color = 'red'
 
 
 class WarningMessage(Message):
     def __init__(self, message):
         super().__init__(message)
-        self.color = 'yellow'
+        self._color = 'yellow'
 
 
 def validate_plate_metadata(metadata):
