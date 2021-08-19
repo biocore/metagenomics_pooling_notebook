@@ -42,7 +42,7 @@ jobs:
       - name: Install metapool
         shell: bash -l {0}
         run: |
-          conda install --yes pandas numpy nose pep8 flake8 matplotlib jupyter notebook 'seaborn>=0.7.1'
+          conda install --yes pandas numpy nose pep8 flake8 matplotlib jupyter notebook 'seaborn>=0.7.1' pip
           pip install coveralls
           pip install -e ".[all]"
 
