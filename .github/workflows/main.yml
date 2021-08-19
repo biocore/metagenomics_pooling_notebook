@@ -49,7 +49,7 @@ jobs:
       - name: Run tests and measure coverage
         shell: bash -l {0}
         run: |
-          coverage run nosetests
+          nosetests --with-coverage --cover-inclusive --cover-package metapool
           coverage report
 
       # Disabled for now because the whole codebase is written without flake8
