@@ -42,14 +42,14 @@ jobs:
       - name: Install metapool
         shell: bash -l {0}
         run: |
-          conda install --yes --file ci/conda_requirements.txt
-          pip install -r ci/pip_requirements.txt
+          conda install --yes pandas numpy nose pep8 flake8 matplotlib jupyter notebook 'seaborn>=0.7.1' pip
+          pip install coveralls
           pip install -e ".[all]"
 
       - name: Run tests and measure coverage
         shell: bash -l {0}
         run: |
-          coverage run nosetests
+          nosetests --with-coverage --cover-inclusive --cover-package metapool
           coverage report
 
       # Disabled for now because the whole codebase is written without flake8
