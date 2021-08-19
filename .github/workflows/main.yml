@@ -42,8 +42,8 @@ jobs:
       - name: Install metapool
         shell: bash -l {0}
         run: |
-          conda install --yes --file ci/conda_requirements.txt
-          pip install -r ci/pip_requirements.txt
+          conda install --yes pandas numpy nose pep8 flake8 matplotlib jupyter notebook 'seaborn>=0.7.1'
+          pip install coveralls
           pip install -e ".[all]"
 
       - name: Run tests and measure coverage
