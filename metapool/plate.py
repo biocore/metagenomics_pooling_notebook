@@ -165,7 +165,7 @@ def _well_to_row_and_col(well):
 
 
 def _decompress_well(well):
-    """Returns a 96 well plate ID from a compressed 394 well plate ID"""
+    """Returns a 96 well plate ID from a compressed 384 well plate ID"""
 
     # convert the row name into a number starting at 1 for A, 2 for B, ...
     row, col = _well_to_row_and_col(well)
