@@ -17,6 +17,8 @@ class Tests(TestCase):
                                      '191103_D32611_0365_G00DHB5YXX')
         self.good_run_new_version = os.path.join(
             data_dir, 'runs', '191104_D32611_0365_G00DHB5YXZ')
+        self.OKish_run_new_version = os.path.join(
+            data_dir, 'runs', '191104_D32611_0365_OK15HB5YXZ')
 
         self.ss = os.path.join(self.good_run, 'sample-sheet.csv')
 
@@ -209,6 +211,32 @@ class Tests(TestCase):
         self.assertEqual('sample32_S19_L003', obs)
 
         obs = get_run_prefix(self.good_run_new_version, 'FooBar_666',
+                             'sample34', '3', 'fastp-and-minimap2')
+        self.assertIsNone(obs)
+
+    def test_get_run_prefix_more_than_forward_and_reverse(self):
+        message = (r'There are 3 matches for sample "sample31" in lane 3\. '
+                   'Only two matches are allowed \(forward and reverse\): '
+                   'metapool/tests/data/runs/191104_D32611_0365_OK15HB5YXZ/'
+                   'FooBar_666/filtered_sequences/sample31_S13_L003_R1\.'
+                   'filtered\.fastq\.gz, '
+                   'metapool/tests/data/runs/191104_D32611_0365_OK15HB5YXZ/'
+                   'FooBar_666/filtered_sequences/sample31_S13_L003_R2\.'
+                   'filtered\.fastq\.gz, '
+                   'metapool/tests/data/runs/191104_D32611_0365_OK15HB5YXZ/'
+                   'FooBar_666/filtered_sequences/sample31_S14_L003_R1\.'
+                   'filtered\.fastq\.gz')
+        # project 2
+        with self.assertWarnsRegex(Warning, message):
+            obs = get_run_prefix(self.OKish_run_new_version, 'FooBar_666',
+                                 'sample31', '3', 'fastp-and-minimap2')
+            self.assertIsNone(obs)
+
+        obs = get_run_prefix(self.OKish_run_new_version, 'FooBar_666',
+                             'sample32', '3', 'fastp-and-minimap2')
+        self.assertEqual('sample32_S19_L003', obs)
+
+        obs = get_run_prefix(self.OKish_run_new_version, 'FooBar_666',
                              'sample34', '3', 'fastp-and-minimap2')
         self.assertIsNone(obs)
 
