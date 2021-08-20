@@ -9,16 +9,16 @@ from datetime import datetime
 from string import ascii_letters, digits
 
 # TODO: Ideally these should be imported from Qiita
+
+REQUIRED_COLUMNS = {'well_description', 'sample_plate', 'sample_well',
+                    'i7_index_id', 'index', 'i5_index_id', 'index2'}
+
 PREP_COLUMNS = ['sample_name', 'experiment_design_description',
                 'library_construction_protocol', 'platform', 'run_center',
                 'run_date', 'run_prefix', 'sequencing_meth', 'center_name',
                 'center_project_name', 'instrument_model', 'runid',
-                'sample_plate', 'sample_well', 'i7_index_id', 'index',
-                'i5_index_id', 'index2', 'lane', 'sample_project',
-                'well_description']
+                'lane', 'sample_project'] + list(REQUIRED_COLUMNS)
 
-REQUIRED_COLUMNS = {'well_description', 'sample_plate', 'sample_well',
-                    'i7_index_id', 'index', 'i5_index_id', 'index2'}
 
 EXPERIMENT_PLACEHOLDER = "EXPERIMENT_DESC"
 LIBRARY_PLACEHOLDER = "LIBRARY_PROTOCOL"
