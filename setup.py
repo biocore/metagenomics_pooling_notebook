@@ -45,6 +45,13 @@ with open('README.md') as f:
 
 keywords = 'microbiome wetlab bioinformatics',
 
+base = ['numpy', 'pandas', 'matplotlib >= 2.0', 'seaborn >= 0.7.1', 'click',
+        'sample_sheet']
+test = ["nose", "pep8", "flake8"]
+coverage = ['coverage']
+notebook = ['jupyter', 'notebook', 'jupyter_contrib_nbextensions']
+all_deps = base + test + coverage + notebook
+
 setup(name='metapool',
       version=version,
       license='MIT',
@@ -59,18 +66,11 @@ setup(name='metapool',
       packages=find_packages(),
       package_data={
         'metapool': ['tests/data/*.csv']},
-      install_requires=[
-          'numpy',
-          'pandas',
-          'matplotlib >= 2.0',
-          'jupyter',
-          'notebook',
-          'jupyter_contrib_nbextensions',
-          'seaborn >= 0.7.1',
-          'sample_sheet'],
-      extras_require={'test': ["nose", "pep8", "flake8"],
-                      'coverage': ["coverage"]},
-      entry_points={
-          'console_scripts': [
-              'calour=calour.cli:cmd',
-          ]})
+      install_requires=base,
+      extras_require={'test': test,
+                      'coverage': coverage,
+                      'all': all_deps},
+      entry_points='''
+          [console_scripts]
+          seqpro=metapool.scripts.seqpro:format_preparation_files
+      ''')

@@ -815,6 +815,10 @@ def validate_sample_sheet(sheet):
                        'there are repeated identifiers. ' + message)
 
         raise ValueError(message)
+    lanes = collections.Counter([s.Lane for s in sheet.samples])
+    # warn users when there's missing lane values
+    if any([l.strip() == '' for l in lanes]):
+        warnings.warn('The following projects are missing a Lane value')
 
     projects = collections.Counter([s.Sample_project for s in sheet.samples])
 
