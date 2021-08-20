@@ -9,13 +9,19 @@ from datetime import datetime
 from string import ascii_letters, digits
 
 # TODO: Ideally these should be imported from Qiita
+
+REQUIRED_COLUMNS = {'well_description', 'sample_plate', 'sample_well',
+                    'i7_index_id', 'index', 'i5_index_id', 'index2'}
+
 PREP_COLUMNS = ['sample_name', 'experiment_design_description',
                 'library_construction_protocol', 'platform', 'run_center',
                 'run_date', 'run_prefix', 'sequencing_meth', 'center_name',
                 'center_project_name', 'instrument_model', 'runid',
-                'sample_plate', 'sample_well', 'i7_index_id', 'index',
-                'i5_index_id', 'index2', 'lane', 'sample_project',
-                'well_description']
+                'lane', 'sample_project'] + list(REQUIRED_COLUMNS)
+
+
+EXPERIMENT_PLACEHOLDER = "EXPERIMENT_DESC"
+LIBRARY_PLACEHOLDER = "LIBRARY_PROTOCOL"
 
 # put together by Gail, based on the instruments we know of
 INSTRUMENT_LOOKUP = pd.DataFrame({
@@ -49,19 +55,21 @@ def parse_illumina_run_id(run_id):
         Instrument code
     """
 
-    # of the form
-    # YYMMDD_machinename_XXXX_FC
-    tokens = run_id.split('_', 1)
+    # Format should be YYMMDD_machinename_XXXX_FC
+    # this regex has two groups, the first one is the date, and the second one
+    # is the machine name + suffix. This URL shows some examples
+    # tinyurl.com/rmy67kw
+    matches = re.search(r'^(\d{6})_(\w*)', run_id)
 
-    if len(tokens) != 2:
+    if matches is None or len(matches.groups()) != 2:
         raise ValueError('Unrecognized run identifier format "%s". The '
                          'expected format is YYMMDD_machinename_XXXX_FC.' %
                          run_id)
 
     # convert illumina's format to qiita's format
-    run_date = datetime.strptime(tokens[0], '%y%m%d').strftime('%Y-%m-%d')
+    run_date = datetime.strptime(matches[1], '%y%m%d').strftime('%Y-%m-%d')
 
-    return run_date, tokens[1]
+    return run_date, matches[2]
 
 
 def sample_sheet_to_dataframe(sheet):
@@ -78,7 +86,8 @@ def sample_sheet_to_dataframe(sheet):
         DataFrame object with the sample information.
     """
 
-    # used to get the right order every time
+    # Get the columns names for the first sample so we have them in a list and
+    # we can retrieve data in the same order on every iteration
     columns = list(sheet.samples[0].keys())
 
     data = []
@@ -193,9 +202,12 @@ def get_run_prefix(run_path, project, sample, lane, pipeline):
             return f[:i]
         else:
             return None
+    elif len(results) > 2:
+        warnings.warn(('There are %d matches for sample "%s" in lane %s. Only'
+                       ' two matches are allowed (forward and reverse): %s') %
+                      (len(results), sample, lane, ', '.join(sorted(results))))
 
-    else:
-        return None
+    return None
 
 
 def _file_list(path):
@@ -226,8 +238,7 @@ def get_machine_code(instrument_model):
         raise ValueError('Cannot find a machine code. This instrument '
                          'model is malformed %s. The machine code is a '
                          'one or two character prefix.' % instrument_model)
-    else:
-        return matches[0]
+    return matches[0]
 
 
 def get_model_and_center(instrument_code):
@@ -305,7 +316,7 @@ def _check_invalid_names(sample_names):
                       ', '.join(['"%s"' % i for i in invalid.values]))
 
 
-def preparations_for_run(run_path, sheet, pipeline=None):
+def preparations_for_run(run_path, sheet, pipeline='fastp-and-minimap2'):
     """Given a run's path and sample sheet generates preparation files
 
     Parameters
@@ -317,7 +328,7 @@ def preparations_for_run(run_path, sheet, pipeline=None):
     pipeline: str, optional
         Which pipeline generated the data. The important difference is that
         `atropos-and-bowtie2` saves intermediate files, whereas
-        `fastp-and-minimap2` doesn't. Defaults to `fastp-and-minimap2`, the
+        `fastp-and-minimap2` doesn't. Default is `fastp-and-minimap2`, the
         latest version of the sequence processing pipeline.
 
     Returns
@@ -326,21 +337,13 @@ def preparations_for_run(run_path, sheet, pipeline=None):
         Filename to preparation file dictionary. Preparation files are
         represented as DataFrames.
     """
-
-    if pipeline is None:
-        pipeline = 'fastp-and-minimap2'
-
     _, run_id = os.path.split(os.path.normpath(run_path))
     run_date, instrument_code = parse_illumina_run_id(run_id)
     instrument_model, run_center = get_model_and_center(instrument_code)
 
     output = {}
 
-    required_columns = {'well_description', 'sample_plate',
-                        'sample_well', 'i7_index_id', 'index',
-                        'i5_index_id', 'index2'}
-
-    not_present = required_columns - set(sheet.columns)
+    not_present = REQUIRED_COLUMNS - set(sheet.columns)
     if not_present:
         warnings.warn('These required columns were not found %s'
                       % ', '.join(not_present), UserWarning)
@@ -378,8 +381,8 @@ def preparations_for_run(run_path, sheet, pipeline=None):
 
                 row["sample_name"] = sample.well_description
 
-                row["experiment_design_description"] = "EXPERIMENT_DESC"
-                row["library_construction_protocol"] = "LIBRARY_PROTOCOL"
+                row["experiment_design_description"] = EXPERIMENT_PLACEHOLDER
+                row["library_construction_protocol"] = LIBRARY_PLACEHOLDER
                 row["platform"] = "Illumina"
                 row["run_center"] = run_center
                 row["run_date"] = run_date

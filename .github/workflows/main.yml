@@ -1,0 +1,74 @@
+name: Metapool CI
+
+# Controls when the action will run. 
+on:
+  # Triggers the workflow on pull request and push events, only on the master
+  # branch
+  pull_request:
+    branches: [ master ]
+  push:
+    branches: [ master ]
+
+jobs:
+  # name of job
+  build:
+    # The type of runner that the job will run on (available options are window/macOS/linux)
+    runs-on: ubuntu-latest
+    # we can add more versions of node.js in the future
+    strategy:
+      matrix:
+        python-version: ['3.6', '3.7', '3.8']
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # first grab branch from github
+      - uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Set up Node.js enviroment
+        uses: actions/setup-node@v1
+        with:
+          node-version: 14
+
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          activate-environment: tester
+          python-version: ${{ matrix.python-version }}
+          conda-channels: anaconda, conda-forge, bioconda
+          auto-update-conda: true
+
+      - name: Install metapool
+        shell: bash -l {0}
+        run: |
+          conda install --yes pandas numpy nose pep8 flake8 matplotlib jupyter notebook 'seaborn>=0.7.1' pip
+          pip install coveralls
+          pip install -e ".[all]"
+
+      - name: Run tests and measure coverage
+        shell: bash -l {0}
+        run: |
+          nosetests --with-coverage --cover-inclusive --cover-package metapool
+          coverage report
+
+      # Disabled for now because the whole codebase is written without flake8
+      # checking. Can add on a later PR.
+      # - name: Python linter
+      #   shell: bash -l {0}
+      #   run: flake8 metapool/*.py tests/*.py setup.py
+
+      - name: Coveralls
+        uses: AndreMiras/coveralls-python-action@develop
+        with:
+          parallel: true
+          flag-name: Unit Test
+
+  coveralls_finish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Coveralls Finished
+      uses: AndreMiras/coveralls-python-action@develop
+      with:
+        parallel-finished: true

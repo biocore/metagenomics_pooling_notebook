@@ -49,7 +49,7 @@ base = ['numpy', 'pandas', 'matplotlib >= 2.0', 'seaborn >= 0.7.1', 'click',
         'sample_sheet']
 test = ["nose", "pep8", "flake8"]
 coverage = ['coverage']
-notebook = ['pyqt5', 'jupyter', 'notebook', 'jupyter_contrib_nbextensions']
+notebook = ['jupyter', 'notebook', 'jupyter_contrib_nbextensions']
 all_deps = base + test + coverage + notebook
 
 setup(name='metapool',

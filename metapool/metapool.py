@@ -712,7 +712,7 @@ def ss_temp():
     return(s)
 
 
-def parse_sample_sheet(f):
+def parse_sample_sheet(file_like):
     """Parse a sample sheet with comments
 
     Comments are not defined as part of Illumina's sample sheet specification.
@@ -721,18 +721,19 @@ def parse_sample_sheet(f):
 
     Parameters
     ----------
-    f: fp or open filehandle
+    file_like: file path or open filehandle
         Object pointing to the sample sheet.
 
     Returns
     -------
     sample_sheet.SampleSheet
-        An object with the sample sheet contents.
+        An object with the sample sheet contents and comments added to a custom
+        attribute `.comments`.
     """
 
     # read comments first
     comments = []
-    with open(f) as f, tempfile.NamedTemporaryFile(mode='w+') as temp:
+    with open(file_like) as f, tempfile.NamedTemporaryFile(mode='w+') as temp:
         for line in f:
             if line.startswith('# '):
                 comments.append(line)
@@ -745,8 +746,8 @@ def parse_sample_sheet(f):
         # important to parse before leaving the context manager
         sheet = sample_sheet.SampleSheet(temp.name)
 
-    # save the comments as a custom attribute
-    sheet.comments = ''.join(comments)
+        # save the comments as a custom attribute
+        sheet.comments = ''.join(comments)
 
     return sheet
 
