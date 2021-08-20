@@ -54,6 +54,9 @@ class Tests(TestCase):
                  'Baz', 'Baz_p3.sample44.B99']]
         exp = pd.DataFrame(data=data, columns=columns)
         obs_df = obs['191103_D32611_0365_G00DHB5YXX.Baz.3']
+
+        # make sure the columns are in the same order before comparing
+        obs_df = obs_df[exp.columns].copy()
         pd.testing.assert_frame_equal(obs_df, exp)
 
         data = [['importantsample1', 'EXPERIMENT_DESC',
@@ -72,6 +75,9 @@ class Tests(TestCase):
                  'Baz', 'FooBar_666_p1.sample2.A2']]
         exp = pd.DataFrame(columns=columns, data=data)
         obs_df = obs['191103_D32611_0365_G00DHB5YXX.Baz.1']
+
+        # make sure the columns are in the same order before comparing
+        obs_df = obs_df[exp.columns].copy()
         pd.testing.assert_frame_equal(obs_df, exp)
 
         data = [['importantsample31', 'EXPERIMENT_DESC',
@@ -97,6 +103,9 @@ class Tests(TestCase):
                  'FooBar_666', 'FooBar_666_p1.sample34.B8']]
         exp = pd.DataFrame(columns=columns, data=data)
         obs_df = obs['191103_D32611_0365_G00DHB5YXX.FooBar_666.3']
+
+        # make sure the columns are in the same order before comparing
+        obs_df = obs_df[exp.columns].copy()
         pd.testing.assert_frame_equal(obs_df, exp)
 
     def test_preparations_for_run(self):
