@@ -13,7 +13,7 @@ git clone https://github.com/tanaes/metagenomics_pooling_notebook.git
 Create a Python3 Conda environment in which to run the notebook:
 
 ```bash
-conda create -n pooling_nb python=3
+conda create -n pooling_nb 'python>=3.6'
 ```
 
 Activate the Conda environment:
