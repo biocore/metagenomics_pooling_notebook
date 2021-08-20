@@ -6,6 +6,10 @@ import string
 import sys
 import seaborn as sns
 import matplotlib.pyplot as plt
+import sample_sheet
+import tempfile
+import collections
+import warnings
 from io import StringIO
 
 
@@ -706,6 +710,148 @@ def ss_temp():
        'ReverseComplement{sep}{ReverseComplement}\n\n[Data]\n{data}'
     
     return(s)
+
+
+def parse_sample_sheet(file_like):
+    """Parse a sample sheet with comments
+
+    Comments are not defined as part of Illumina's sample sheet specification.
+    Hence this function explicitly handles comments by stripping them and
+    parsing the rest of the contents using the `sample_sheet` package.
+
+    Parameters
+    ----------
+    file_like: file path or open filehandle
+        Object pointing to the sample sheet.
+
+    Returns
+    -------
+    sample_sheet.SampleSheet
+        An object with the sample sheet contents and comments added to a custom
+        attribute `.comments`.
+    """
+
+    # read comments first
+    comments = []
+    with open(file_like) as f, tempfile.NamedTemporaryFile(mode='w+') as temp:
+        for line in f:
+            if line.startswith('# '):
+                comments.append(line)
+            else:
+                temp.write(line)
+
+        # return to the beginning of the file so contents can be parsed
+        temp.seek(0)
+
+        # important to parse before leaving the context manager
+        sheet = sample_sheet.SampleSheet(temp.name)
+
+        # save the comments as a custom attribute
+        sheet.comments = ''.join(comments)
+
+    return sheet
+
+
+def validate_sample_sheet(sheet):
+    """Validate and correct some aspects of the sample sheet
+
+    Parameters
+    ----------
+    sheet: sample_sheet.SampleSheet
+        The sample sheet container as parsed from `parse_sample_sheet`.
+
+    Returns
+    -------
+    sample_sheet.SampleSheet
+        Corrected and validated sample sheet.
+
+    Raises
+    ------
+    ValueError
+        If the Sample_ID column or the Sample_project columns are missing.
+        If the sample sheet object has not comments attribute.
+        If duplicated elements are found in the Sample_ID column after name
+        scrubbing.
+    UserWarning
+        When sample identifiers are scrubbed for bcl2fastq compatibility.
+        If project names don't include a Qiita study identifier.
+    """
+
+    if not hasattr(sheet, 'comments') or sheet.comments == '':
+        raise ValueError('This sample sheet does not include comments, these '
+                         'are required to notify interested parties upon '
+                         'completed processing of the data')
+
+    if sheet.samples[0].Sample_project is None:
+        raise ValueError('The Sample_project column in the Data section is '
+                         'missing')
+
+    corrected_names = []
+    for sample in sheet.samples:
+        new = bcl_scrub_name(sample.Sample_ID)
+        if new != sample.Sample_ID:
+            corrected_names.append(sample.Sample_ID)
+            sample.Sample_ID = new
+
+    if corrected_names:
+        warnings.warn('The following sample names were scrubbed for bcl2fastq'
+                      ' compatibility:\n%s' % ', '.join(corrected_names))
+
+    # based on Illumina's recommendation Sample_ID is the required column to
+    # name samples
+    samples = collections.Counter([s.Sample_ID for s in sheet.samples])
+
+    # check all values are unique
+    duplicates = {k: v for k, v in samples.items() if v > 1}
+
+    if duplicates:
+        names = '\n'.join(['%s: %d' % (k, v) for k, v in duplicates.items()])
+        message = ('The following names in the Sample_ID column are listed '
+                   'multiple times:\n%s' % names)
+
+        # make it clear if the sample collisions are caused by the scrubbing
+        if corrected_names:
+            message = ('After scrubbing samples for bcl2fastq compatibility '
+                       'there are repeated identifiers. ' + message)
+
+        raise ValueError(message)
+
+    projects = collections.Counter([s.Sample_project for s in sheet.samples])
+
+    # project identifiers are digit groups at the end of the project name
+    # preceded by an underscore CaporasoIllumina_550
+    qiita_id_re = re.compile(r'(.+)_(\d+)$')
+    bad_projects = []
+    for project_name in projects:
+        if re.search(qiita_id_re, project_name) is None:
+            bad_projects.append(project_name)
+    if bad_projects:
+        warnings.warn('The following project names in the Sample_project '
+                      'column are missing a Qiita study '
+                      'identifier: %s' % ', '.join(sorted(bad_projects)))
+
+    return sheet
+
+
+def write_sample_sheet(sheet, path):
+    """Writes a sample sheet container object to a path
+
+    Parameters
+    ----------
+    sheet: sample_sheet.SampleSheet
+        The sheet to be saved.
+    path: str
+        Path where the sample sheet will be saved to
+    """
+    if not isinstance(sheet, sample_sheet.SampleSheet):
+        raise ValueError('The input sample sheet should be a SampleSheet '
+                         'instance')
+
+    with open(path, 'w') as f:
+        # the SampleSheet class does not support writing comments
+        f.write(sheet.comments)
+
+        sheet.write(f)
 
 
 def format_sheet_comments(PI=None, contacts=None, other=None, sep=','):
