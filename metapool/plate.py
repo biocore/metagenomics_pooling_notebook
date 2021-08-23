@@ -5,6 +5,13 @@ from math import ceil
 from datetime import datetime
 
 
+EXPECTED_COLUMNS = {
+    'Plate Position', 'Primer Plate #', 'Plating', 'Extraction Kit Lot',
+    'Extraction Robot', 'TM1000 8 Tool', 'Primer Date', 'MasterMix Lot',
+    'Water Lot', 'Processing Robot', 'Sample Plate', 'Project_Name',
+    'Original Name'}
+
+
 class Message(object):
     _color = None
 
@@ -99,43 +106,45 @@ def _validate_plate(plate_metadata, context):
         # there's metadata to validate
         return messages, context
 
-    expected = {'Plate Position', 'Primer Plate #', 'Plating',
-                'Extraction Kit Lot', 'Extraction Robot', 'TM1000 8 Tool',
-                'Primer Date', 'MasterMix Lot', 'Water Lot',
-                'Processing Robot', 'Sample Plate', 'Project_Name',
-                'Original Name'}
     observed = set(plate_metadata.keys())
 
     # 2. All columns are exactly present, no more no less
-    extra = observed - expected
+    extra = observed - EXPECTED_COLUMNS
     if extra:
         messages.append(
             ErrorMessage('The following columns are not needed: %s'
                          % ', '.join(extra)))
-    missing = expected - observed
+    missing = EXPECTED_COLUMNS - observed
     if missing:
         messages.append(ErrorMessage('The following columns are missing: %s' %
                                      ', '.join(missing)))
 
-    # 3. Are primer plates repeated?
+    # 3. Plate positions can only be from 1-4
+    if plate_metadata['Plate Position'] not in {'1', '2', '3', '4'}:
+        messages.append(
+            ErrorMessage("Only the values '1', '2', '3' and '4' are allowed in"
+                         " the 'Plate Position' field, you entered: "
+                         "%s" % plate_metadata['Plate Position']))
+
+    # 4. Are primer plates repeated?
     if plate_metadata['Primer Plate #'] in context['primers']:
         messages.append(ErrorMessage('The primer plate "%s" is repeated' %
                                      plate_metadata['Primer Plate #']))
     context['primers'].append(plate_metadata['Primer Plate #'])
 
-    # 4. Are plate names repeated?
+    # 5. Are plate names repeated?
     if plate_metadata['Sample Plate'] in context['names']:
         messages.append(ErrorMessage('The plate name "%s" is repeated' %
                                      plate_metadata['Sample Plate']))
     context['names'].append(plate_metadata['Sample Plate'])
 
-    # 5. Are positions repeated?
+    # 6. Are positions repeated?
     if plate_metadata['Plate Position'] in context['positions']:
         messages.append(ErrorMessage('The plate position "%s" is repeated' %
                                      plate_metadata['Plate Position']))
     context['positions'].append(plate_metadata['Plate Position'])
 
-    # 6. Check the primer date is not in the future and that it can
+    # 7. Check the primer date is not in the future and that it can
     try:
         old = datetime.strptime(plate_metadata['Primer Date'],
                                 '%Y-%m-%d').date()
@@ -146,7 +155,7 @@ def _validate_plate(plate_metadata, context):
         if old > datetime.now().date():
             messages.append(WarningMessage("The Primer Date is in the future"))
 
-    # 7. Check there's only ASCII characters
+    # 8. Check there's only ASCII characters
     for key, value in plate_metadata.items():
         for c in value:
             if ord(c) > 127:

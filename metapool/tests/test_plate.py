@@ -248,6 +248,27 @@ class PlateValidationTests(TestCase):
         }
         self.assertEqual(context, expected)
 
+    def test_validate_plate_bad_position(self):
+        plate = self.metadata[0]
+        plate['Plate Position'] = '100'
+        context = {'primers': ['2'], 'names': ['THDMI_UK_Plate_3'],
+                   'positions': ['1']}
+
+        messages, context = _validate_plate(plate, context)
+        self.assertTrue(len(messages) == 1)
+        self.assertEqual(messages[0], ErrorMessage("Only the values '1', '2', "
+                                                   "'3' and '4' are allowed in"
+                                                   " the 'Plate Position' "
+                                                   "field, you entered: "
+                                                   "100"))
+
+        expected = {
+            'primers': ['2', '1'],
+            'names': ['THDMI_UK_Plate_3', 'THDMI_UK_Plate_2'],
+            'positions': ['1', '100']
+        }
+        self.assertEqual(context, expected)
+
     def test_validate_plate_repeated_position(self):
         plate = self.metadata[0]
         context = {'primers': ['2'], 'names': ['THDMI_UK_Plate_3'],
