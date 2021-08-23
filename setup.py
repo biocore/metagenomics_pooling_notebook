@@ -65,7 +65,7 @@ setup(name='metapool',
       test_suite='nose.collector',
       packages=find_packages(),
       package_data={
-        'metapool': ['tests/data/*.csv']},
+        'metapool': ['data/*.tsv', 'tests/data/*.csv']},
       install_requires=base,
       extras_require={'test': test,
                       'coverage': coverage,
