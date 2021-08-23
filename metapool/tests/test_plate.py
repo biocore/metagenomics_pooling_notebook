@@ -71,6 +71,9 @@ class MessageTests(TestCase):
         self.assertNotEqual(a, c)
         self.assertNotEqual(b, c)
 
+        a._color = 'blue'
+        self.assertNotEqual(a, b)
+
     def test_equal_warnings_and_errors(self):
         e = ErrorMessage('D:')
         w = WarningMessage(':D')

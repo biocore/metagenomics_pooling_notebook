@@ -94,46 +94,50 @@ class AmplipoolTests(TestCase):
             ['X00180471', 'A', 1, False, 'THDMI_10317_PUK2', 'THDMI_10317',
              'THDMI_10317_UK2-US6', 'A1', '1', '1', 'SF', '166032128',
              'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
-             'Echo550', 'THDMI_UK_Plate_2', 'THDMI UK', '', '1', '515rcbc0',
-             'AATGATACGGCGACCACCGAGATCTACACGCT', 'AGCCTTCGTCGC', 'TATGGTAATT',
-             'GT', 'GTGYCAGCMGCCGCGGTAA',
+             'Echo550', 'THDMI_UK_Plate_2', 'THDMI UK', '', '1', 'A1',
+             '515rcbc0', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'AGCCTTCGTCGC',
+             'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
              'AATGATACGGCGACCACCGAGATCTACACGCTAGCCTTCGTCGCTATGGTAATTGTGTGYCAG'
-             'CMGCCGCGGTAA', 'A1'],
+             'CMGCCGCGGTAA'],
             ['X00180199', 'C', 1, False, 'THDMI_10317_PUK2', 'THDMI_10317',
              'THDMI_10317_UK2-US6', 'C1', '1', '1', 'SF', '166032128',
              'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
-             'Echo550', 'THDMI_UK_Plate_2', 'THDMI UK', '', '1', '515rcbc12',
-             'AATGATACGGCGACCACCGAGATCTACACGCT', 'CGTATAAATGCG', 'TATGGTAATT',
-             'GT', 'GTGYCAGCMGCCGCGGTAA', 'AATGATACGGCGACCACCGAGATCTACACGCTCGT'
-             'ATAAATGCGTATGGTAATTGTGTGYCAGCMGCCGCGGTAA', 'B1'],
+             'Echo550', 'THDMI_UK_Plate_2', 'THDMI UK', '', '1', 'B1',
+             '515rcbc12', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'CGTATAAATGCG',
+             'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
+             'AATGATACGGCGACCACCGAGATCTACACGCTCGTATAAATGCGTATGGTAATTGTGTGYCAG'
+             'CMGCCGCGGTAA'],
             ['X00179789', 'E', 1, False, 'THDMI_10317_PUK2', 'THDMI_10317',
              'THDMI_10317_UK2-US6', 'E1', '1', '1', 'SF', '166032128',
              'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
-             'Echo550', 'THDMI_UK_Plate_2', 'THDMI UK', '', '1', '515rcbc24',
-             'AATGATACGGCGACCACCGAGATCTACACGCT', 'TGACTAATGGCC', 'TATGGTAATT',
-             'GT', 'GTGYCAGCMGCCGCGGTAA', 'AATGATACGGCGACCACCGAGATCTACACGCTTGA'
-             'CTAATGGCCTATGGTAATTGTGTGYCAGCMGCCGCGGTAA', 'C1'],
+             'Echo550', 'THDMI_UK_Plate_2', 'THDMI UK', '', '1', 'C1',
+             '515rcbc24', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'TGACTAATGGCC',
+             'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
+             'AATGATACGGCGACCACCGAGATCTACACGCTTGACTAATGGCCTATGGTAATTGTGTGYCAG'
+             'CMGCCGCGGTAA'],
             ['X00180201', 'G', 1, False, 'THDMI_10317_PUK2', 'THDMI_10317',
              'THDMI_10317_UK2-US6', 'G1', '1', '1', 'SF', '166032128',
              'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
-             'Echo550', 'THDMI_UK_Plate_2', 'THDMI UK', '', '1', '515rcbc36',
-             'AATGATACGGCGACCACCGAGATCTACACGCT', 'GTGGAGTCTCAT', 'TATGGTAATT',
-             'GT', 'GTGYCAGCMGCCGCGGTAA', 'AATGATACGGCGACCACCGAGATCTACACGCTGTG'
-             'GAGTCTCATTATGGTAATTGTGTGYCAGCMGCCGCGGTAA', 'D1'],
+             'Echo550', 'THDMI_UK_Plate_2', 'THDMI UK', '', '1', 'D1',
+             '515rcbc36', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'GTGGAGTCTCAT',
+             'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
+             'AATGATACGGCGACCACCGAGATCTACACGCTGTGGAGTCTCATTATGGTAATTGTGTGYCAG'
+             'CMGCCGCGGTAA'],
             ['X00180464', 'I', 1, False, 'THDMI_10317_PUK2', 'THDMI_10317',
              'THDMI_10317_UK2-US6', 'I1', '1', '1', 'SF', '166032128',
              'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
-             'Echo550', 'THDMI_UK_Plate_2', 'THDMI UK', '', '1', '515rcbc48',
-             'AATGATACGGCGACCACCGAGATCTACACGCT', 'TGATGTGCTAAG', 'TATGGTAATT',
-             'GT', 'GTGYCAGCMGCCGCGGTAA', 'AATGATACGGCGACCACCGAGATCTACACGCTTGA'
-             'TGTGCTAAGTATGGTAATTGTGTGYCAGCMGCCGCGGTAA', 'E1'],
+             'Echo550', 'THDMI_UK_Plate_2', 'THDMI UK', '', '1', 'E1',
+             '515rcbc48', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'TGATGTGCTAAG',
+             'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
+             'AATGATACGGCGACCACCGAGATCTACACGCTTGATGTGCTAAGTATGGTAATTGTGTGYCAG'
+             'CMGCCGCGGTAA'],
             ['X00179796', 'K', 1, False, 'THDMI_10317_PUK2', 'THDMI_10317',
              'THDMI_10317_UK2-US6', 'K1', '1', '1', 'SF', '166032128',
              'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
-             'Echo550', 'THDMI_UK_Plate_2', 'THDMI UK', '', '1', '515rcbc60',
-             'AATGATACGGCGACCACCGAGATCTACACGCT', 'TGTGCACGCCAT', 'TATGGTAATT',
-             'GT', 'GTGYCAGCMGCCGCGGTAA', 'AATGATACGGCGACCACCGAGATCTACACGCTTGT'
-             'GCACGCCATTATGGTAATTGTGTGYCAGCMGCCGCGGTAA', 'F1']
+             'Echo550', 'THDMI_UK_Plate_2', 'THDMI UK', '', '1', 'F1',
+             '515rcbc60', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'TGTGCACGCCAT',
+             'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA', 'AATGATACGGCGACCACCGAG'
+             'ATCTACACGCTTGTGCACGCCATTATGGTAATTGTGTGYCAGCMGCCGCGGTAA']
         ]
 
         exp = pd.DataFrame(
@@ -143,10 +147,10 @@ class AmplipoolTests(TestCase):
                      'Extraction Kit Lot', 'Extraction Robot', 'TM1000 8 Tool',
                      'Primer Date', 'MasterMix Lot', 'Water Lot',
                      'Processing Robot', 'Sample Plate', 'Project_Name',
-                     'Original Name', 'Plate', 'Name', "Illumina 5' Adapter",
-                     'Golay Barcode', 'Forward Primer Pad',
-                     'Forward Primer Linker', '515FB Forward Primer (Parada)',
-                     'Primer For PCR', 'EMP Primer Plate Well'],
+                     'Original Name', 'Plate', 'EMP Primer Plate Well', 'Name',
+                     "Illumina 5' Adapter", 'Golay Barcode',
+                     'Forward Primer Pad', 'Forward Primer Linker',
+                     '515FB Forward Primer (Parada)', 'Primer For PCR'],
             data=data
         )
 
@@ -194,47 +198,47 @@ class AmplipoolTests(TestCase):
             ['X00180471', 'A', '1', False, 'THDMI_10317_PUK2', 'THDMI_10317',
              'THDMI_10317_UK2-US6', 'A1', '1', '5', 'SF', '166032128',
              'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
-             'Echo550', 'THDMI_UK_Plate_2', 'THDMI UK', '', '5',
+             'Echo550', 'THDMI_UK_Plate_2', 'THDMI UK', '', '5', 'A1',
              '515rcbc384', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'ATGTTAGGGAAT',
              'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
              'AATGATACGGCGACCACCGAGATCTACACGCTATGTTAGGGAATTATGGTAATTGTGTGYCAGC'
-             'MGCCGCGGTAA', 'A1'],
+             'MGCCGCGGTAA'],
             ['X00180199', 'A', '4', False, 'THDMI_10317_PUK2', 'THDMI_10317',
              'THDMI_10317_UK2-US6', 'A4', '2', '6', 'AS', '166032128',
              'Carmen_HOWE_KF4', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
-             'Echo550', 'THDMI_UK_Plate_3', 'THDMI UK', '', '6',
+             'Echo550', 'THDMI_UK_Plate_3', 'THDMI UK', '', '6', 'A2',
              '515rcbc481', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'CTACCGATTGCG',
              'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
              'AATGATACGGCGACCACCGAGATCTACACGCTCTACCGATTGCGTATGGTAATTGTGTGYCAGC'
-             'MGCCGCGGTAA', 'A2'],
+             'MGCCGCGGTAA'],
             ['X00179789', 'D', '7', False, 'THDMI_10317_PUK2', 'THDMI_10317',
              'THDMI_10317_UK2-US6', 'D7', '3', '9', 'MB_SF', '166032128',
              'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
-             'Echo550', 'THDMI_UK_Plate_4', 'THDMI UK', '', '9',
+             'Echo550', 'THDMI_UK_Plate_4', 'THDMI UK', '', '9', 'B4',
              '515rcbc783', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'GGTTACGGTTAC',
              'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA', 'AATGATACGGCGACCACCGAG'
-             'ATCTACACGCTGGTTACGGTTACTATGGTAATTGTGTGYCAGCMGCCGCGGTAA', 'B4'],
+             'ATCTACACGCTGGTTACGGTTACTATGGTAATTGTGTGYCAGCMGCCGCGGTAA'],
             ['X00180201', 'F', '9', False, 'THDMI_10317_PUK2', 'THDMI_10317',
              'THDMI_10317_UK2-US6', 'F9', '3', '9', 'MB_SF', '166032128',
              'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
-             'Echo550', 'THDMI_UK_Plate_4', 'THDMI UK', '', '9',
+             'Echo550', 'THDMI_UK_Plate_4', 'THDMI UK', '', '9', 'C5',
              '515rcbc796', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'GATCTGCGATCC',
              'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA', 'AATGATACGGCGACCACCGAG'
-             'ATCTACACGCTGATCTGCGATCCTATGGTAATTGTGTGYCAGCMGCCGCGGTAA', 'C5'],
+             'ATCTACACGCTGATCTGCGATCCTATGGTAATTGTGTGYCAGCMGCCGCGGTAA'],
             ['X00180464', 'B', '6', False, 'THDMI_10317_PUK2', 'THDMI_10317',
              'THDMI_10317_UK2-US6', 'B6', '4', '10', 'AS', '166032128',
              'Carmen_HOWE_KF4', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
-             'Echo550', 'THDMI_US_Plate_6', 'THDMI US', '', '10',
+             'Echo550', 'THDMI_US_Plate_6', 'THDMI US', '', '10', 'A3',
              '515rcbc866', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'TTGACGACATCG',
              'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA', 'AATGATACGGCGACCACCGAG'
-             'ATCTACACGCTTTGACGACATCGTATGGTAATTGTGTGYCAGCMGCCGCGGTAA', 'A3'],
+             'ATCTACACGCTTTGACGACATCGTATGGTAATTGTGTGYCAGCMGCCGCGGTAA'],
             ['X00179796', 'F', '10', False, 'THDMI_10317_PUK2', 'THDMI_10317',
              'THDMI_10317_UK2-US6', 'F10', '4', '10', 'AS', '166032128',
              'Carmen_HOWE_KF4', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
-             'Echo550', 'THDMI_US_Plate_6', 'THDMI US', '', '10',
+             'Echo550', 'THDMI_US_Plate_6', 'THDMI US', '', '10', 'C5',
              '515rcbc892', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'TAGAGGCGTAGG',
              'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA', 'AATGATACGGCGACCACCGAG'
-             'ATCTACACGCTTAGAGGCGTAGGTATGGTAATTGTGTGYCAGCMGCCGCGGTAA', 'C5']
+             'ATCTACACGCTTAGAGGCGTAGGTATGGTAATTGTGTGYCAGCMGCCGCGGTAA']
         ]
 
         exp = pd.DataFrame(
@@ -244,10 +248,10 @@ class AmplipoolTests(TestCase):
                      'Extraction Kit Lot', 'Extraction Robot', 'TM1000 8 Tool',
                      'Primer Date', 'MasterMix Lot', 'Water Lot',
                      'Processing Robot', 'Sample Plate', 'Project_Name',
-                     'Original Name', 'Plate', 'Name', "Illumina 5' Adapter",
-                     'Golay Barcode', 'Forward Primer Pad',
-                     'Forward Primer Linker', '515FB Forward Primer (Parada)',
-                     'Primer For PCR', 'EMP Primer Plate Well'],
+                     'Original Name', 'Plate', 'EMP Primer Plate Well', 'Name',
+                     "Illumina 5' Adapter", 'Golay Barcode',
+                     'Forward Primer Pad', 'Forward Primer Linker',
+                     '515FB Forward Primer (Parada)', 'Primer For PCR'],
             data=data
         )
 

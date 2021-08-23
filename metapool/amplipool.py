@@ -21,15 +21,12 @@ def assign_emp_index(plate_df, metadata):
         A table resulting from joining the compressed plate, the plate
         metadata, and the EMP indices.
     """
-    plate_df = plate_df.copy()
-
     # dataframe of wells organized by plate with a barcode per well
     emp_indices = _load_emp_indices()
 
     # the Well column exists elsewhere already so we rename it to avoid
     # duplication in the merged table
-    emp_indices['EMP Primer Plate Well'] = emp_indices['Well'].copy()
-    emp_indices.drop(['Well'], axis=1, inplace=True)
+    emp_indices.rename({'Well': 'EMP Primer Plate Well'}, axis=1, inplace=True)
 
     # helpful to perform joins
     plate_df['__decompressed_well__'] = plate_df.Well.apply(_decompress_well)

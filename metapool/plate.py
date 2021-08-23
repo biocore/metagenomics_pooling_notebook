@@ -6,8 +6,9 @@ from datetime import datetime
 
 
 class Message(object):
+    _color = None
+
     def __init__(self, message):
-        self._color = None
         self.message = message
 
     def __str__(self):
@@ -15,10 +16,10 @@ class Message(object):
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
-            if self.message == other.message:
+            if self.message == other.message and self._color == other._color:
                 return True
-        else:
-            return False
+
+        return False
 
     def echo(self):
         prefix, suffix = str(self).split(': ', maxsplit=1)
@@ -26,15 +27,11 @@ class Message(object):
 
 
 class ErrorMessage(Message):
-    def __init__(self, message):
-        super().__init__(message)
-        self._color = 'red'
+    _color = 'red'
 
 
 class WarningMessage(Message):
-    def __init__(self, message):
-        super().__init__(message)
-        self._color = 'yellow'
+    _color = 'yellow'
 
 
 def validate_plate_metadata(metadata):
