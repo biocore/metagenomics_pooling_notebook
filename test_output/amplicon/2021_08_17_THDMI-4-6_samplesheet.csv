@@ -1,6 +1,6 @@
 # PI,Knight,robknight@ucsd.edu
-# Contact,Gail Ackermann,Greg Humphrey,Jeff Dereus,Jon Sanders
-# ,ackermag@ucsd.edu,ghsmu414@gmail.com,jdereus@ucsd.edu,jonsan@gmail.com
+# Contact,Gail Ackermann,Jeff Dereus,MacKenzie Bryant
+# ,ackermag@ucsd.edu,jdereus@ucsd.edu,mmbryant@ucsd.edu
 [Header]
 IEMFileVersion,4
 Investigator Name,Knight
@@ -13,8 +13,8 @@ Description,
 Chemistry,Default
 
 [Reads]
-150
-150
+151
+151
 
 [Settings]
 ReverseComplement,0

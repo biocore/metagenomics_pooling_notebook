@@ -7,7 +7,7 @@ A Jupyter notebook to assist wet lab shotgun pipeline.
 To install this notebook, first clone the repository from GitHub:
 
 ```bash
-git clone https://github.com/tanaes/metagenomics_pooling_notebook.git
+git clone https://github.com/biocore/metagenomics_pooling_notebook.git
 ```
 
 Create a Python3 Conda environment in which to run the notebook:
