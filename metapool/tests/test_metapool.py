@@ -120,6 +120,34 @@ class Tests(TestCase):
         pd.testing.assert_frame_equal(
             obs_plate_df, exp_plate_df, check_like=True)
 
+    def test_read_plate_map_csv_remove_empty_wells(self):
+        plate_map_csv = (
+            'Sample\tRow\tCol\tBlank\n'
+            'sam1\tA\t1\tFalse\n'
+            'sam2\tA\t2\tFalse\n'
+            'blank1\tB\t1\tTrue\n'
+            '\tC\t1\tFalse\n'
+            '\tD\t1\tFalse\n'
+            '\tE\t1\tFalse\n'
+            'sam3\tB\t2\tFalse\n'
+            '\tD\t2\tFalse\n')
+
+        plate_map_f = StringIO(plate_map_csv)
+        exp = pd.DataFrame({'Sample': ['sam1', 'sam2', 'blank1',
+                                       'sam3'],
+                            'Row': ['A', 'A', 'B', 'B'],
+                            'Col': [1, 2, 1, 2],
+                            'Well': ['A1', 'A2', 'B1', 'B2'],
+                            'Blank': [False, False, True, False]})
+
+        with self.assertWarnsRegex(UserWarning,
+                                   'This plate map contains 4 empty wells, '
+                                   'these will be ignored'):
+            obs_plate_df = read_plate_map_csv(plate_map_f)
+
+        pd.testing.assert_frame_equal(
+            obs_plate_df, exp, check_like=True)
+
     def test_read_pico_csv(self):
         # Test a normal sheet
         pico_csv = '''Results

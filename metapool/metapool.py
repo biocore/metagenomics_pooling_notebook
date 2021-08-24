@@ -23,12 +23,27 @@ def read_plate_map_csv(f, sep='\t'):
     -------
     plate_df: pandas DataFrame object
         DataFrame relating sample name, well location, and blank status
+
+    Raises
+    ------
+    UserWarning
+        If there are wells with no sample names associated with them.
     """
 
     plate_df = pd.read_csv(f, sep=sep)
     plate_df['Well'] = plate_df['Row'] + plate_df['Col'].map(str)
 
-    return(plate_df)
+    null_samples = plate_df.Sample.isnull()
+    if null_samples.any():
+        warnings.warn(('This plate map contains %d empty wells, these will be '
+                      'ignored') % null_samples.sum())
+
+        # slice to the non-null samples and reset the index so samples are
+        # still indexed with a continuous list of integers
+        plate_df = plate_df[~null_samples]
+        plate_df.reset_index(inplace=True, drop=True)
+
+    return plate_df
 
 
 # method to read minipico output
