@@ -225,16 +225,16 @@ class Tests(TestCase):
 
     def test_get_run_prefix_more_than_forward_and_reverse(self):
         message = (r'There are 3 matches for sample "sample31" in lane 3\. '
-                   'Only two matches are allowed \(forward and reverse\): '
+                   r'Only two matches are allowed \(forward and reverse\): '
                    '(.*)metapool/tests/data/runs/191104_D32611_0365_OK15HB5YXZ'
-                   '/FooBar_666/filtered_sequences/sample31_S13_L003_R1\.'
-                   'filtered\.fastq\.gz, '
+                   r'/FooBar_666/filtered_sequences/sample31_S13_L003_R1\.'
+                   r'filtered\.fastq\.gz, '
                    '(.*)metapool/tests/data/runs/191104_D32611_0365_OK15HB5YXZ'
-                   '/FooBar_666/filtered_sequences/sample31_S13_L003_R2\.'
-                   'filtered\.fastq\.gz, '
+                   r'/FooBar_666/filtered_sequences/sample31_S13_L003_R2\.'
+                   r'filtered\.fastq\.gz, '
                    '(.*)metapool/tests/data/runs/191104_D32611_0365_OK15HB5YXZ'
-                   '/FooBar_666/filtered_sequences/sample31_S14_L003_R1\.'
-                   'filtered\.fastq\.gz')
+                   r'/FooBar_666/filtered_sequences/sample31_S14_L003_R1\.'
+                   r'filtered\.fastq\.gz')
         # project 2
         with self.assertWarnsRegex(Warning, message):
             obs = get_run_prefix(self.OKish_run_new_version, 'FooBar_666',

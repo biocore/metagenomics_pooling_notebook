@@ -52,11 +52,9 @@ jobs:
           nosetests --with-coverage --cover-inclusive --cover-package metapool
           coverage report
 
-      # Disabled for now because the whole codebase is written without flake8
-      # checking. Can add on a later PR.
-      # - name: Python linter
-      #   shell: bash -l {0}
-      #   run: flake8 metapool/*.py tests/*.py setup.py
+      - name: Python linter
+        shell: bash -l {0}
+        run: flake8 metapool setup.py
 
       - name: Coveralls
         uses: AndreMiras/coveralls-python-action@develop
