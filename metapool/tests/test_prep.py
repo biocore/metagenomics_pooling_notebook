@@ -361,6 +361,51 @@ class Tests(TestCase):
 
         pd.testing.assert_frame_equal(agp_transform(obs, '10317'), exp)
 
+    def test_agp_transform_zfill(self):
+        columns = ['sample_name', 'experiment_design_description',
+                   'library_construction_protocol', 'platform', 'run_center',
+                   'run_date', 'run_prefix', 'sequencing_meth', 'center_name',
+                   'center_project_name', 'instrument_model', 'runid',
+                   'sample_plate', 'sample_well', 'i7_index_id', 'index',
+                   'i5_index_id', 'index2', 'lane', 'sample_project',
+                   'well_description']
+
+        # the first sample name should be padded with 2 zeros
+        # the second number should be padded with 1 zero
+        # the third should be ignored
+        data = [['8675309', 'EXPERIMENT_DESC',
+                 'LIBRARY_PROTOCOL', 'Illumina', 'UCSDMI', '2019-11-03',
+                 'sample1_S11_L003', 'sequencing by synthesis', 'CENTER_NAME',
+                 'Baz', 'Illumina HiSeq 2500',
+                 '191103_D32611_0365_G00DHB5YXX', 'FooBar_666_p1', 'A3',
+                 'iTru7_107_09', 'GCCTTGTT', 'iTru5_01_A', 'AACACCAC', '3',
+                 'Baz', 'FooBar_666_p1.sample1.A3'],
+                ['867530.9', 'EXPERIMENT_DESC',
+                 'LIBRARY_PROTOCOL', 'Illumina', 'UCSDMI', '2019-11-03',
+                 'sample44_S14_L003', 'sequencing by synthesis', 'CENTER_NAME',
+                 'Baz', 'Illumina HiSeq 2500',
+                 '191103_D32611_0365_G00DHB5YXX', 'Baz_p3', 'B99',
+                 'iTru7_107_14', 'GTCCTAAG', 'iTru5_01_A', 'CATCTGCT', '3',
+                 'Baz', 'Baz_p3.sample44.B99'],
+                ['notanumber', 'EXPERIMENT_DESC',
+                 'LIBRARY_PROTOCOL', 'Illumina', 'UCSDMI', '2019-11-03',
+                 'sample44_S14_L003', 'sequencing by synthesis', 'CENTER_NAME',
+                 'Baz', 'Illumina HiSeq 2500',
+                 '191103_D32611_0365_G00DHB5YXX', 'Baz_p3', 'B99',
+                 'iTru7_107_14', 'GTCCTAAG', 'iTru5_01_A', 'CATCTGCT', '3',
+                 'Baz', 'Baz_p3.sample44.B99']
+                ]
+        obs = pd.DataFrame(data=data, columns=columns)
+        exp = obs.copy()
+        exp['center_name'] = 'UCSDMI'
+        exp['library_construction_protocol'] = 'Knight Lab KHP'
+        exp['experiment_design_description'] = (
+            'samples of skin, saliva and feces and other samples from the AGP')
+        exp.loc[0, 'sample_name'] = '008675309'
+        exp.loc[1, 'sample_name'] = '0867530.9'
+
+        pd.testing.assert_frame_equal(agp_transform(obs, '10317'), exp)
+
     def test_agp_transform_no_agp(self):
         columns = ['sample_name', 'experiment_design_description',
                    'library_construction_protocol', 'platform', 'run_center',
