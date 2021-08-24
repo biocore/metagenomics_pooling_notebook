@@ -130,7 +130,7 @@ def format_dna_norm_picklist(dna_vols, water_vols, wells, dest_wells=None,
     # check that arrays are the right size
     if dna_vols.shape != wells.shape != water_vols.shape:
         raise ValueError(('dna_vols %r has a size different from wells %r or '
-                          'water_vols') %
+                          'water_vols %r') %
                          (dna_vols.shape, wells.shape, water_vols.shape))
 
     # if destination wells not specified, use source wells
@@ -152,7 +152,7 @@ def format_dna_norm_picklist(dna_vols, water_vols, wells, dest_wells=None,
     if (dna_concs.shape != sample_names.shape != dna_vols.shape
        != sample_plates.shape != dna_plate_type.shape):
         raise ValueError(('dna_vols %r has a size different from dna_concs %r'
-                          ' or sample_names') %
+                          ' or sample_names %r') %
                          (dna_vols.shape, dna_concs.shape, sample_names.shape))
 
     picklist = ''
@@ -849,7 +849,7 @@ def validate_sample_sheet(sheet):
         raise ValueError(message)
     lanes = collections.Counter([s.Lane for s in sheet.samples])
     # warn users when there's missing lane values
-    if any([l.strip() == '' for l in lanes]):
+    if any([lane.strip() == '' for lane in lanes]):
         warnings.warn('The following projects are missing a Lane value')
 
     projects = collections.Counter([s.Sample_project for s in sheet.samples])
