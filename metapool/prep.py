@@ -288,12 +288,20 @@ def agp_transform(frame, study_id):
     Returns
     -------
     pd.DataFrame:
-        If the study_id is "10317" then the `center_name`,
-        'library_construction_protocol', and `experiment_design_description`
-        columns are filled in with default values. Otherwise no changes are
-        made to `frame`.
+        If the study_id is "10317" then:
+            - `center_name`, 'library_construction_protocol', and
+              `experiment_design_description` columns are filled in with
+              default values.
+            - `sample_name` will be zero-filled no 9 digits.
+        Otherwise no changes are made to `frame`.
     """
     if study_id == '10317':
+        def zero_fill(name):
+            if 'blank' not in name.lower() and name[0].isdigit():
+                return name.zfill(9)
+            return name
+
+        frame['sample_name'] = frame['sample_name'].apply(zero_fill)
         frame['center_name'] = 'UCSDMI'
         frame['library_construction_protocol'] = 'Knight Lab KHP'
         frame['experiment_design_description'] = (
