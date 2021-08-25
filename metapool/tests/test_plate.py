@@ -220,10 +220,50 @@ class PlateValidationTests(TestCase):
 
         self.assertTrue(len(messages) == 1)
         self.assertEqual(messages[0],
-                         ErrorMessage('The primer plate "1" is repeated'))
+                         ErrorMessage('The Primer Plate "1" is repeated'))
 
         expected = {
             'primers': ['1', '1'],
+            'names': ['THDMI_UK_Plate_3', 'THDMI_UK_Plate_2'],
+            'positions': ['2', '1']
+        }
+        self.assertEqual(context, expected)
+
+    def test_validate_plate_invalid_primer_plate(self):
+        plate = self.metadata[0]
+        plate['Primer Plate #'] = '11'
+        context = {'primers': ['1'], 'names': ['THDMI_UK_Plate_3'],
+                   'positions': ['2']}
+
+        messages, context = _validate_plate(plate, context)
+
+        self.assertTrue(len(messages) == 1)
+        self.assertEqual(messages[0],
+                         ErrorMessage('The Primer Plate # "11" is not between '
+                                      '1-10'))
+
+        expected = {
+            'primers': ['1', '11'],
+            'names': ['THDMI_UK_Plate_3', 'THDMI_UK_Plate_2'],
+            'positions': ['2', '1']
+        }
+        self.assertEqual(context, expected)
+
+    def test_validate_plate_rare_primer_plate(self):
+        plate = self.metadata[0]
+        plate['Primer Plate #'] = '9'
+        context = {'primers': ['1'], 'names': ['THDMI_UK_Plate_3'],
+                   'positions': ['2']}
+
+        messages, context = _validate_plate(plate, context)
+
+        self.assertTrue(len(messages) == 1)
+        self.assertEqual(messages[0],
+                         WarningMessage('Primer Plate # "9" is unusual, please'
+                                        ' verify this value is correct'))
+
+        expected = {
+            'primers': ['1', '9'],
             'names': ['THDMI_UK_Plate_3', 'THDMI_UK_Plate_2'],
             'positions': ['2', '1']
         }
@@ -356,6 +396,20 @@ class PlateValidationTests(TestCase):
                                       'characters'))
 
         expected = {'primers': ['1'], 'names': ['THDMI_UK_Plate_2'],
+                    'positions': ['1']}
+        self.assertEqual(context, expected)
+
+    def test_sample_plate_has_no_spaces(self):
+        plate = self.metadata[0]
+        plate['Sample Plate'] = plate['Sample Plate'].replace('_', ' ')
+        messages, context = _validate_plate(plate, self.context)
+
+        self.assertTrue(len(messages) == 1)
+        self.assertEqual(messages[0],
+                         WarningMessage("Spaces are not recommended in the "
+                                        "Sample Plate field"))
+
+        expected = {'primers': ['1'], 'names': ['THDMI UK Plate 2'],
                     'positions': ['1']}
         self.assertEqual(context, expected)
 
