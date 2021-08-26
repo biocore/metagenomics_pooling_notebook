@@ -17,16 +17,39 @@ _KL_SECTIONS = ['Header', 'Reads', 'Settings', 'Data', 'Bioinformatics',
 
 
 class KLSampleSheet(sample_sheet.SampleSheet):
-    """Knight Lab's SampleSheet subclass
+    def __init__(self, path=None):
+        """Knight Lab's SampleSheet subclass
 
-    Includes changes to the write method so the [Bioinformatics] and [Contact]
-    sections can be found at the end of the document and follow the same
-    standard as the [Data] section.
-    """
-    def __init__(self, path):
+        Includes a number of parsing and writing changes to allow for the
+        inclusion of the Bioinformatics and Contact sections.
+
+        The majority of the code in the _parse and write methods are copied
+        from release 0.11.0 https://github.com/clintval/sample-sheet/blob/\
+c3df258541a384a5058f8aa46b343ff032d8e247/sample_sheet/__init__.py
+
+        Parameters
+        ----------
+        path: str, optional
+            File path to the sample sheet to load.
+
+        Attributes
+        ----------
+        Header: sample_sheet.Section
+            Header section of the sample sheet.
+        Reads: sample_sheet.Section
+            Reads section of the sample sheet
+        Settings: sample_sheet.Section
+            Settings section of the sample sheet.
+        Bioinformatics: pd.DataFrame
+            Bioinformatics section of the sample sheet.
+        Contact: pd.DataFrame
+            Contact section of the sample sheet.
+        path: str
+            File path where the data was parsed from.
+        """
+        # don't pass the path argument to avoid the superclass from parsing
+        # the data
         super().__init__()
-
-        # print('something is happening')
 
         self.Bioinformatics = None
         self.Contact = None
@@ -35,10 +58,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         if self.path:
             self._parse(self.path)
 
-        # TODO: Maybe check that bioinformatics and contact aren't none
-
     def _parse(self, path):
-        # print('i am parsing')
         section_name = ''
         section_header = None
 
@@ -48,8 +68,6 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
         # print('almost')
         for i, line in enumerate(lines):
-            # print(i)
-            # print('this is self', self)
             # Skip to next line if this line is empty to support formats of
             # sample sheets with multiple newlines as section seperators.
             #
@@ -103,18 +121,13 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 continue
 
             elif section_name in {'Bioinformatics', 'Contact'}:
+                # CSV rows are padded to include commas for the longest line in
+                # the file, so we remove them to avoid creating empty columns
                 line = [value for value in line if value != '']
+
                 if getattr(self, section_name) is not None:
-                    # add row to the dataframe
                     df = getattr(self, section_name)
                     df.loc[len(df)] = line
-
-                    # we need a dropna or something like that
-                    # elif any(key == '' for key in line):
-                    #     raise ValueError(
-                    #         f'Header for [{section_name}] section allowed '
-                    #         f'to have empty fields: {line}'
-                    #     )
                 else:
                     setattr(self, section_name, pd.DataFrame(columns=line))
                 continue
@@ -126,15 +139,15 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 section[key] = value
                 continue
 
-    # copied from release 0.11.0
-    # https://github.com/clintval/sample-sheet/blob/
-    # c3df258541a384a5058f8aa46b343ff032d8e247/sample_sheet/__init__.py
     def write(self, handle, blank_lines=1) -> None:
         """Write to a file-like object.
 
         Parameters
         ----------
-
+        handle: file_like
+            Object with a write method.
+        blank_lines: int
+            Number of blank lines to write between sections
         """
         if not isinstance(blank_lines, int) or blank_lines <= 0:
             raise ValueError('Number of blank lines must be a positive int.')
@@ -173,13 +186,14 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                     writer.writerow(pad_iterable(line, csv_width))
 
             elif title == 'Bioinformatics' or title == 'Contact':
-                # these sections are represented as DataFrame objects
-                writer.writerow(pad_iterable(section.columns.tolist(),
-                                csv_width))
+                if section is not None:
+                    # these sections are represented as DataFrame objects
+                    writer.writerow(pad_iterable(section.columns.tolist(),
+                                    csv_width))
 
-                for _, row in section.iterrows():
-                    writer.writerow(pad_iterable(row.values.tolist(),
-                                                 csv_width))
+                    for _, row in section.iterrows():
+                        writer.writerow(pad_iterable(row.values.tolist(),
+                                                     csv_width))
 
             else:
                 for key, value in section.items():
