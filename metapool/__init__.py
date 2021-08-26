@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-from metapool.prep import preparations_for_run, sample_sheet_to_dataframe
-from metapool.metapool import parse_sample_sheet
+from metapool.prep import preparations_for_run
+from metapool.samplesheet import sample_sheet_to_dataframe, parse_sample_sheet
 from metapool.plate import validate_plate_metadata
 from metapool.amplipool import assign_emp_index
 
