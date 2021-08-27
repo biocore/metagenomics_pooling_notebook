@@ -7,6 +7,10 @@ import matplotlib.pyplot as plt
 import warnings
 
 
+REVCOMP_SEQUENCERS = ['HiSeq4000', 'MiniSeq', 'NextSeq', 'HiSeq3000']
+OTHER_SEQUENCERS = ['HiSeq2500', 'HiSeq1500', 'MiSeq', 'NovaSeq']
+
+
 def read_plate_map_csv(f, sep='\t'):
     """
     reads tab-delimited plate map into a Pandas dataframe
@@ -761,19 +765,17 @@ def rc(seq):
 
 
 def sequencer_i5_index(sequencer, indices):
-    revcomp_sequencers = ['HiSeq4000', 'MiniSeq', 'NextSeq', 'HiSeq3000']
-    other_sequencers = ['HiSeq2500', 'HiSeq1500', 'MiSeq', 'NovaSeq']
 
-    if sequencer in revcomp_sequencers:
+    if sequencer in REVCOMP_SEQUENCERS:
         print('%s: i5 barcodes are output as reverse compliments' % sequencer)
         return([rc(x) for x in indices])
-    elif sequencer in other_sequencers:
+    elif sequencer in OTHER_SEQUENCERS:
         print('%s: i5 barcodes are output in standard direction' % sequencer)
         return(indices)
     else:
         raise ValueError('Your indicated sequencer [%s] is not recognized.\n'
                          'Recognized sequencers are: \n'
-                         ' '.join(revcomp_sequencers + other_sequencers))
+                         ' '.join(REVCOMP_SEQUENCERS + OTHER_SEQUENCERS))
 
 
 def reformat_interleaved_to_columns(wells):

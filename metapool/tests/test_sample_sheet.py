@@ -7,7 +7,10 @@ import pandas as pd
 import sample_sheet
 
 from metapool.sample_sheet import (KLSampleSheet, validate_sample_sheet,
-                                   sample_sheet_to_dataframe)
+                                   sample_sheet_to_dataframe,
+                                   _add_metadata_to_sheet, _add_data_to_sheet,
+                                   _validate_sample_sheet_metadata,
+                                   make_sample_sheet)
 
 
 # The classes below share the same filepaths, so we use this dummy class
@@ -39,8 +42,6 @@ class BaseTests(unittest.TestCase):
 
 class KLSampleSheetTests(BaseTests):
     def test_sample_sheet_roundtripping(self):
-        self.maxDiff = None
-
         # testing with all the sheets we have access to
         sheets = [self.ss, self.good_ss,
                   self.no_project_ss, self.ok_ss,
@@ -126,7 +127,25 @@ class KLSampleSheetTests(BaseTests):
         pd.testing.assert_frame_equal(sheet.Contact, exp)
 
 
-class SampleSheetTests(BaseTests):
+class SampleSheetWorkflow(BaseTests):
+    def test_make_sample_sheet(self):
+        self.fail()
+        make_sample_sheet()
+
+    def test_add_data_to_sheet(self):
+        self.fail()
+        _add_data_to_sheet()
+
+    def test_add_metadata_to_sheet(self):
+        self.fail()
+        _add_metadata_to_sheet()
+
+    def test_validate_sample_sheet_metadata(self):
+        self.fail()
+        _validate_sample_sheet_metadata()
+
+
+class ValidateSampleSheetTests(BaseTests):
     def test_validate_sample_sheet(self):
         sheet = KLSampleSheet(self.good_ss)
 

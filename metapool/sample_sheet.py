@@ -9,7 +9,8 @@ from itertools import chain, repeat, islice
 import sample_sheet
 import pandas as pd
 
-from metapool.metapool import bcl_scrub_name
+from metapool.metapool import (bcl_scrub_name, sequencer_i5_index,
+                               REVCOMP_SEQUENCERS)
 
 _KL_SECTIONS = ['Header', 'Reads', 'Settings', 'Data', 'Bioinformatics',
                 'Contact']
@@ -227,13 +228,24 @@ c3df258541a384a5058f8aa46b343ff032d8e247/sample_sheet/__init__.py
                     writer.writerow(pad_iterable([key, value], csv_width))
             write_blank_lines(writer)
 
+    def merge(self, sheets):
+        for sheet in sheets:
+            for sample in sheet.samples:
+                self.add_sample(sample)
+
+            # these two sections are data frames
+            for section in ['Bioinformatics', 'Contact']:
+                if (getattr(self, section) is not None and
+                   getattr(sheet, section) is not None):
+                    section = getattr(self, section)
+
+                    for _, row in getattr(sheet, section).iterrows():
+                        section.loc[len(section)] = row
+
 
 def _validate_sample_sheet_metadata(metadata, table):
-    # check there's an exact match of keys
+    # check there's a subset of keys
     # check assay is provided
-    # check lanes are correct
-    # check the sequencer is known
-
     return metadata
 
 
@@ -261,27 +273,51 @@ def _add_metadata_to_sheet(metadata, sheet):
                 sheet.Header[key]: metadata.get(key, _HEADER[key])
 
         elif key in _BIOINFORMATICS_AND_CONTACT:
-            pass
+            setattr(sheet, key, pd.DataFrame(value))
 
     return sheet
 
 
-def make_sample_sheet(metadata, table):
+def _add_data_to_sheet(table, sheet, sequencer, lanes):
+    # make sure the table has the right columns
+    required = {'Sample_ID', 'Sample_Name', 'Sample_Plate', 'Sample_Well',
+                'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                'Sample_Project', 'Description'}
+    if not required.issubset(table.columns):
+        raise ValueError('There are required columns missing, you might need '
+                         'to rename existing columns')
+
+    # make a copy because we are going to modify the data
+    table = table.copy()
+
+    table['index'] = sequencer_i5_index(sequencer, table['index'])
+
+    # TODO: check the sequencer is known
+    sheet.Bioinformatics['BarcodesAreRC'] = sequencer in REVCOMP_SEQUENCERS
+
+    for lane in lanes:
+        for sample in table.to_dict(orient='records'):
+            sample['Lane'] = lane
+            sheet.add_sample(sheet.Sample(sample))
+
+    return sheet
+
+
+def make_sample_sheet(metadata, table, sequencer, lanes):
     """Write a valid sample sheet
 
     Parameters
     ----------
     metadata: dict
         Metadata describing the sample sheet with the following fileds.
-        When a field is omitted the values in square brackets are used
-        instead.
+        If a value is omitted from this dictionary the values in square
+        brackets are used as defaults.
 
-        - sequencer: ??
-        - lanes: ??
-
-        - e-mails: comma-separated list of e-mail addresses to notifyx
-          [jdereus@ucsd.edu, ackermag@ucsd.edu, mmbryant@ucsd.edu]
-        - PI: Principal investigator's email [robknight@ucsd.edu]
+        - Bioinformatics: List of dictionaries describing each project's
+          attributes: Sample_Project, QiitaID, BarcodesAreRC, ForwardAdapter,
+          ReverseAdapter, HumanFiltering
+        - Contact: List of dictionaries describing the e-mails to send to
+          external stakeholders: Sample_Project, Email
 
         - IEMFileVersion: Illumina's Experiment Manager version [4]
         - Investigator Name: [Knight]
@@ -294,8 +330,8 @@ def make_sample_sheet(metadata, table):
         - Chemistry: chemistry's description [Default]
         - read1: Length of forward read [151]
         - read2: Length of forward read [151]
-        - ReverseComplement: If the barcodes should be reverse complemented
-          by bcl2fastq [0]
+        - ReverseComplement: If the reads in the FASTQ files should be reverse
+          complemented by bcl2fastq [0]
     table: pd.DataFrame
         The Plate's data with one column per variable: sample name ('sample
         sheet Sample_ID'), forward and reverse barcodes ('i5 sequence', 'i7
@@ -320,7 +356,7 @@ def make_sample_sheet(metadata, table):
     sheet = _add_metadata_to_sheet(metadata, sheet)
 
     # make sure that we can use the lanes attribute as expected
-    # sheet = add_data_to_sheet(table, sheet)
+    sheet = _add_data_to_sheet(table, sheet, lanes, sequencer)
 
     return sheet
 
