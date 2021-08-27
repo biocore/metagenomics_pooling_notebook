@@ -279,18 +279,50 @@ def _add_metadata_to_sheet(metadata, sheet):
     return sheet
 
 
-def _add_data_to_sheet(table, sheet, sequencer, lanes):
+def _remap_table(table):
+    # TODO: do more error checking
     # make sure the table has the right columns
-    required = {'Sample_ID', 'Sample_Name', 'Sample_Plate', 'Sample_Well',
-                'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
-                'Sample_Project', 'Description'}
-    if not required.issubset(table.columns):
-        raise ValueError('There are required columns missing, you might need '
-                         'to rename existing columns')
+    # required = {'Sample_ID', 'Sample_Name', 'Sample_Plate', 'Sample_Well',
+    #             'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+    #             'Sample_Project', 'Description'}
+    # if not required.issubset(table.columns):
+    #     raise ValueError('There are required columns missing, you might need'
+    #                      ' to rename existing columns')
+
+    if ('Golay Barcode' in table.columns and
+       'EMP Primer Plate Well' in table.columns):
+        remapper = {
+            'sample sheet Sample_ID': 'Sample_ID',
+            'Golay Barcode': 'index',
+            'Sample': 'Sample_Name',
+            'Project Name': 'Sample_Project',
+            'Project Plate': 'Sample_Plate',
+            'Name': 'I5_Index_ID',
+            'Well': 'Sample_Well'
+        }
+
+    elif 'i5 sequence' in table.columns and 'i5 sequence' in table.columns:
+        remapper = {
+            'sample sheet Sample_ID': 'Sample_ID',
+        }
+    else:
+        raise ValueError('Cannot guess what preparation type this is')
 
     # make a copy because we are going to modify the data
-    table = table.copy()
+    table = table[remapper.keys()].copy()
 
+    # HACK: REMOVE THIS
+    table['I7_Index_ID'] = ''
+    table['index2'] = ''
+    table['Well_description'] = ''
+
+    table.rename(remapper, axis=1, inplace=True)
+
+    return table
+
+
+def _add_data_to_sheet(table, sheet, sequencer, lanes):
+    table = _remap_table(table)
     table['index'] = sequencer_i5_index(sequencer, table['index'])
 
     # TODO: check the sequencer is known
@@ -299,7 +331,7 @@ def _add_data_to_sheet(table, sheet, sequencer, lanes):
     for lane in lanes:
         for sample in table.to_dict(orient='records'):
             sample['Lane'] = lane
-            sheet.add_sample(sheet.Sample(sample))
+            sheet.add_sample(sample_sheet.Sample(sample))
 
     return sheet
 

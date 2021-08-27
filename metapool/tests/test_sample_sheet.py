@@ -134,8 +134,102 @@ class SampleSheetWorkflow(BaseTests):
         make_sample_sheet()
 
     def test_add_data_to_sheet(self):
-        self.fail()
-        _add_data_to_sheet()
+
+        # TODO: probably put this in a setUp method
+        sheet = KLSampleSheet()
+        sheet.Header['IEM4FileVersion'] = 4
+        sheet.Header['Investigator Name'] = 'Knight'
+        sheet.Header['Experiment Name'] = 'RKO_experiment'
+        sheet.Header['Date'] = '2021-08-17'
+        sheet.Header['Workflow'] = 'GenerateFASTQ'
+        sheet.Header['Application'] = 'FASTQ Only'
+        sheet.Header['Assay'] = 'Amplicon'
+        sheet.Header['Description'] = ''
+        sheet.Header['Chemistry'] = 'Default'
+        sheet.Reads = [151, 151]
+        sheet.Settings['ReverseComplement'] = 0
+
+        sheet.Bioinformatics = pd.DataFrame(
+            columns=['Sample_Project', 'QiitaID', 'BarcodesAreRC',
+                     'ForwardAdapter', 'ReverseAdapter', 'HumanFiltering'],
+            data=[
+                ['THDMI_10317', '10317', 'False', 'AACC', 'GGTT', 'False']
+            ]
+        )
+
+        # check for Contact
+        sheet.Contact = pd.DataFrame(
+            columns=['Email', 'Sample_Project'],
+            data=[
+                ['daniel@tmi.com', 'THDMI_10317'],
+            ]
+        )
+
+        data = [
+            ['X00180471',
+             'X00180471', 'A', 1, False, 'THDMI_10317_PUK2', 'THDMI_10317',
+             'THDMI_10317_UK2-US6', 'A1', '1', '1', 'SF', '166032128',
+             'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
+             'Echo550', 'THDMI_UK_Plate_2', 'THDMI UK', '', '1', 'A1',
+             '515rcbc0', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'AGCCTTCGTCGC',
+             'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
+             'AATGATACGGCGACCACCGAGATCTACACGCTAGCCTTCGTCGCTATGGTAATTGTGTGYCAG'
+             'CMGCCGCGGTAA'],
+            ['X00180199',
+             'X00180199', 'C', 1, False, 'THDMI_10317_PUK2', 'THDMI_10317',
+             'THDMI_10317_UK2-US6', 'C1', '1', '1', 'SF', '166032128',
+             'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
+             'Echo550', 'THDMI_UK_Plate_2', 'THDMI UK', '', '1', 'B1',
+             '515rcbc12', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'CGTATAAATGCG',
+             'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
+             'AATGATACGGCGACCACCGAGATCTACACGCTCGTATAAATGCGTATGGTAATTGTGTGYCAG'
+             'CMGCCGCGGTAA'],
+            ['X00179789',
+             'X00179789', 'E', 1, False, 'THDMI_10317_PUK2', 'THDMI_10317',
+             'THDMI_10317_UK2-US6', 'E1', '1', '1', 'SF', '166032128',
+             'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
+             'Echo550', 'THDMI_UK_Plate_2', 'THDMI UK', '', '1', 'C1',
+             '515rcbc24', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'TGACTAATGGCC',
+             'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
+             'AATGATACGGCGACCACCGAGATCTACACGCTTGACTAATGGCCTATGGTAATTGTGTGYCAG'
+             'CMGCCGCGGTAA'],
+        ]
+
+        table = pd.DataFrame(
+            columns=['sample sheet Sample_ID',
+                     'Sample', 'Row', 'Col', 'Blank', 'Project Plate',
+                     'Project Name', 'Compressed Plate Name', 'Well',
+                     'Plate Position', 'Primer Plate #', 'Plating',
+                     'Extraction Kit Lot', 'Extraction Robot', 'TM1000 8 Tool',
+                     'Primer Date', 'MasterMix Lot', 'Water Lot',
+                     'Processing Robot', 'Sample Plate', 'Project_Name',
+                     'Original Name', 'Plate', 'EMP Primer Plate Well', 'Name',
+                     "Illumina 5' Adapter", 'Golay Barcode',
+                     'Forward Primer Pad', 'Forward Primer Linker',
+                     '515FB Forward Primer (Parada)', 'Primer For PCR'],
+            data=data
+        )
+
+        obs = _add_data_to_sheet(table, sheet, 'HiSeq4000', [1])
+
+        self.assertEqual(len(obs), 3)
+
+        data = (
+            [1, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '',
+             'GCGACGAAGGCT', '515rcbc0', '', 'THDMI_10317', ''],
+            [1, 'X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1', '',
+             'CGCATTTATACG', '515rcbc12', '', 'THDMI_10317', ''],
+            [1, 'X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1', '',
+             'GGCCATTAGTCA', '515rcbc24', '', 'THDMI_10317', ''],
+        )
+        keys = ['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
+                'Sample_Well', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                'Sample_Project', 'Well_description']
+
+        for sample, row in zip(sheet.samples, data):
+            exp = sample_sheet.Sample(dict(zip(keys, row)))
+
+            self.assertEqual(dict(sample), dict(exp))
 
     def test_add_metadata_to_sheet_most_defaults(self):
         sheet = KLSampleSheet()
