@@ -4,6 +4,7 @@ import warnings
 import tempfile
 
 import pandas as pd
+import sample_sheet
 
 from metapool.sample_sheet import (KLSampleSheet, validate_sample_sheet,
                                    sample_sheet_to_dataframe)
@@ -17,12 +18,8 @@ class BaseTests(unittest.TestCase):
                                '191103_D32611_0365_G00DHB5YXX',
                                'sample-sheet.csv')
 
-        # TODO: This shouldn't fail, it's a good idea to keep around for
-        # comments checking
         self.good_ss = os.path.join(data_dir, 'good-sample-sheet.csv')
 
-        self.no_comments_ss = os.path.join(data_dir,
-                                           'no-comments-sample-sheet.csv')
         self.no_project_ss = os.path.join(data_dir,
                                           'no-project-name-sample-sheet.csv')
 
@@ -34,6 +31,10 @@ class BaseTests(unittest.TestCase):
 
         self.bad_project_name_ss = os.path.join(
             data_dir, 'bad-project-name-sample-sheet.csv')
+
+        # TODO: should we remove because we don't use comments anymore?
+        self.no_comments_ss = os.path.join(data_dir,
+                                           'no-comments-sample-sheet.csv')
 
 
 class KLSampleSheetTests(BaseTests):
@@ -49,6 +50,75 @@ class KLSampleSheetTests(BaseTests):
 
             # spot check the contents
             self.assertEqual(len(contents.split('\n')), 814)
+
+    def test_parse(self):
+        self.maxDiff = None
+        sheet = KLSampleSheet(self.ss)
+
+        exp = {
+            'IEMFileVersion': '4',
+            'Investigator Name': 'Caballero',
+            'Experiment Name': 'RKL0042',
+            'Date': '2/26/20',
+            'Workflow': 'GenerateFASTQ',
+            'Application': 'FASTQ Only',
+            'Assay': 'Metagenomics',
+            'Description': '',
+            'Chemistry': 'Default'
+        }
+
+        self.assertEqual(sheet.Header, exp)
+        self.assertEqual(sheet.Reads, [150, 150])
+        self.assertEqual(sheet.Settings, {'ReverseComplement': '0'})
+
+        data = (
+            '1,sample1,sample1,FooBar_666_p1,A1,iTru7_107_07,CCGACTAT,'
+            'iTru5_01_A,ACCGACAA,Baz,importantsample1\n'
+            '1,sample2,sample2,FooBar_666_p1,A2,iTru7_107_08,CCGACTAT,'
+            'iTru5_01_A,CTTCGCAA,Baz,importantsample2\n'
+            '3,sample1,sample1,FooBar_666_p1,A3,iTru7_107_09,GCCTTGTT,'
+            'iTru5_01_A,AACACCAC,Baz,importantsample1\n'
+            '3,sample2,sample2,FooBar_666_p1,A4,iTru7_107_10,AACTTGCC,'
+            'iTru5_01_A,CGTATCTC,Baz,importantsample2\n'
+            '3,sample31,sample31,FooBar_666_p1,A5,iTru7_107_11,CAATGTGG,'
+            'iTru5_01_A,GGTACGAA,FooBar_666,importantsample31\n'
+            '3,sample32,sample32,FooBar_666_p1,B6,iTru7_107_12,AAGGCTGA,'
+            'iTru5_01_A,CGATCGAT,FooBar_666,importantsample32\n'
+            '3,sample34,sample34,FooBar_666_p1,B8,iTru7_107_13,TTACCGAG,'
+            'iTru5_01_A,AAGACACC,FooBar_666,importantsample34\n'
+            '3,sample44,sample44,Baz_p3,B99,iTru7_107_14,GTCCTAAG,'
+            'iTru5_01_A,CATCTGCT,Baz,importantsample44\n'
+        )
+        keys = ['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
+                'Sample_Well', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                'Sample_Project', 'Well_description']
+
+        for sample, line in zip(sheet.samples, data.split()):
+            values = line.strip().split(',')
+            exp = sample_sheet.Sample(dict(zip(keys, values)))
+
+            self.assertEqual(sample, exp)
+
+        # check for Bioinformatics
+        exp = pd.DataFrame(
+            columns=['Sample_Project', 'QiitaID', 'BarcodesAreRC',
+                     'ForwardAdapter', 'ReverseAdapter', 'HumanFiltering'],
+            data=[
+                ['Baz', '100', 'False', 'AACC', 'GGTT', 'False'],
+                ['FooBar_666', '666', 'False', 'AACC', 'GGTT', 'False']
+            ]
+        )
+        pd.testing.assert_frame_equal(sheet.Bioinformatics, exp)
+
+        # check for Contact
+        exp = pd.DataFrame(
+            columns=['Email', 'Sample_Project'],
+            data=[
+                ['test@lol.com', 'Baz'],
+                ['tester@rofl.com', 'FooBar_666']
+            ]
+        )
+        pd.testing.assert_frame_equal(sheet.Contact, exp)
 
 
 class SampleSheetTests(BaseTests):
