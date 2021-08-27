@@ -1,6 +1,5 @@
 import re
 import csv
-import tempfile
 import collections
 import warnings
 
@@ -233,7 +232,6 @@ _BIOINFORMATICS_AND_CONTACT = {
 def _validate_sample_sheet_metadata(metadata, table):
     # check there's an exact match of keys
     # check assay is provided
-    # check sample projects match with the stuff present in the table
     # check lanes are correct
     # check the sequencer is known
 
@@ -321,68 +319,9 @@ def make_sample_sheet(metadata, table):
     sheet = KLSampleSheet()
 
     sheet = _add_metadata_to_sheet(metadata, sheet)
+
+    # make sure that we can use the lanes attribute as expected
     # sheet = add_data_to_sheet(table, sheet)
-
-    return sheet
-
-
-def write_sample_sheet(sheet, path):
-    """Writes a sample sheet container object to a path
-
-    Parameters
-    ----------
-    sheet: sample_sheet.SampleSheet
-        The sheet to be saved.
-    path: str
-        Path where the sample sheet will be saved to
-    """
-    if not isinstance(sheet, sample_sheet.SampleSheet):
-        raise ValueError('The input sample sheet should be a SampleSheet '
-                         'instance')
-
-    with open(path, 'w') as f:
-        # the SampleSheet class does not support writing comments
-        f.write(sheet.comments)
-
-        sheet.write(f)
-
-
-def parse_sample_sheet(file_like):
-    """Parse a sample sheet with comments
-
-    Comments are not defined as part of Illumina's sample sheet specification.
-    Hence this function explicitly handles comments by stripping them and
-    parsing the rest of the contents using the `sample_sheet` package.
-
-    Parameters
-    ----------
-    file_like: file path or open filehandle
-        Object pointing to the sample sheet.
-
-    Returns
-    -------
-    sample_sheet.SampleSheet
-        An object with the sample sheet contents and comments added to a custom
-        attribute `.comments`.
-    """
-
-    # read comments first
-    comments = []
-    with open(file_like) as f, tempfile.NamedTemporaryFile(mode='w+') as temp:
-        for line in f:
-            if line.startswith('# '):
-                comments.append(line)
-            else:
-                temp.write(line)
-
-        # return to the beginning of the file so contents can be parsed
-        temp.seek(0)
-
-        # important to parse before leaving the context manager
-        sheet = sample_sheet.SampleSheet(temp.name)
-
-        # save the comments as a custom attribute
-        sheet.comments = ''.join(comments)
 
     return sheet
 
@@ -404,18 +343,12 @@ def validate_sample_sheet(sheet):
     ------
     ValueError
         If the Sample_ID column or the Sample_project columns are missing.
-        If the sample sheet object has not comments attribute.
         If duplicated elements are found in the Sample_ID column after name
         scrubbing.
     UserWarning
         When sample identifiers are scrubbed for bcl2fastq compatibility.
         If project names don't include a Qiita study identifier.
     """
-
-    if not hasattr(sheet, 'comments') or sheet.comments == '':
-        raise ValueError('This sample sheet does not include comments, these '
-                         'are required to notify interested parties upon '
-                         'completed processing of the data')
 
     if sheet.samples[0].Sample_project is None:
         raise ValueError('The Sample_project column in the Data section is '
@@ -469,15 +402,17 @@ def validate_sample_sheet(sheet):
                       'column are missing a Qiita study '
                       'identifier: %s' % ', '.join(sorted(bad_projects)))
 
+    # check sample projects match with the stuff present in the table
+
     return sheet
 
 
 def sample_sheet_to_dataframe(sheet):
-    """Converts the sample section of a sample sheet into a DataFrame
+    """Converts the [Data] section of a sample sheet into a DataFrame
 
     Parameters
     ----------
-    sheet: sample_sheet.SampleSheet
+    sheet: sample_sheet.KLSampleSheet
         Object from where to extract the data.
 
     Returns
@@ -488,7 +423,7 @@ def sample_sheet_to_dataframe(sheet):
 
     # Get the columns names for the first sample so we have them in a list and
     # we can retrieve data in the same order on every iteration
-    columns = list(sheet.samples[0].keys())
+    columns = sheet.all_sample_keys
 
     data = []
     for sample in sheet.samples:
@@ -497,139 +432,3 @@ def sample_sheet_to_dataframe(sheet):
     out = pd.DataFrame(data=data, columns=[c.lower() for c in columns])
 
     return out.set_index('sample_id')
-
-
-# The old stuff
-def ss_temp():
-    """Sample sheet template
-    """
-    s = ('{comments}[Header]\n'
-         'IEMFileVersion{sep}{IEMFileVersion}\n'
-         'Investigator Name{sep}{Investigator Name}\n'
-         'Experiment Name{sep}{Experiment Name}\n'
-         'Date{sep}{Date}\n'
-         'Workflow{sep}{Workflow}\n'
-         'Application{sep}{Application}\n'
-         'Assay{sep}{Assay}\n'
-         'Description{sep}{Description}\n'
-         'Chemistry{sep}{Chemistry}\n\n'
-         '[Reads]\n'
-         '{read1}\n'
-         '{read2}\n\n'
-         '[Settings]\n'
-         'ReverseComplement{sep}{ReverseComplement}\n\n'
-         '[Data]\n'
-         '{data}')
-
-    return s
-
-
-def format_sheet_comments(PI=None, contacts=None, other=None, sep=','):
-
-    comments = ''
-
-    if PI is not None:
-        comments += 'PI{0}{1}\n'.format(
-            sep,
-            sep.join('{0}{1}{2}'.format(x, sep, PI[x]) for x in PI.keys()))
-
-    if contacts is not None:
-        comments += 'Contact{0}{1}\n{0}{2}\n'.format(
-            sep,
-            sep.join(x for x in sorted(contacts.keys())),
-            sep.join(contacts[x] for x in sorted(contacts.keys())))
-
-    if other is not None:
-        comments += '%s\n' % other
-
-    return(comments)
-
-
-def format_sample_sheet(sample_sheet_dict, sep=',', template=ss_temp()):
-    """Formats Illumina-compatible sample sheet.
-
-    Parameters
-    ----------
-    sample_sheet_dict : 2-level dict
-        dict with 1st level headers 'Comments', 'Header', 'Reads', 'Settings',
-        and 'Data'.
-
-    Returns
-    -------
-    sample_sheet : str
-        the sample sheet string
-    """
-    if sample_sheet_dict['comments']:
-        sample_sheet_dict['comments'] = re.sub(
-            '^', '# ', sample_sheet_dict['comments'].rstrip(),
-            flags=re.MULTILINE) + '\n'
-
-    sample_sheet = template.format(**sample_sheet_dict, **{'sep': sep})
-
-    return(sample_sheet)
-
-
-def format_sample_data(sample_ids, i7_name, i7_seq, i5_name, i5_seq,
-                       sample_plate, sample_proj, wells=None,
-                       description=None, lanes=[1], sep=','):
-    """
-    Creates the [Data] component of the Illumina sample sheet from plate
-    information
-
-    Parameters
-    ----------
-    sample_sheet_dict : 2-level dict
-        dict with 1st level headers 'Comments', 'Header', 'Reads', 'Settings',
-        and 'Data'.
-
-    Returns
-    -------
-    data : str
-        the sample sheet string
-    """
-    data = ''
-
-    if (len(sample_ids) != len(i7_name) != len(i7_seq) != len(i5_name) !=
-       len(i5_seq)):
-        raise ValueError('Sample information lengths are not all equal')
-
-    if wells is None:
-        wells = [''] * len(sample_ids)
-    if description is None:
-        description = [''] * len(sample_ids)
-    if isinstance(sample_plate, str):
-        sample_plate = [sample_plate] * len(sample_ids)
-    if isinstance(sample_proj, str):
-        sample_proj = [sample_proj] * len(sample_ids)
-
-    header = ','.join(['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
-                       'Sample_Well', 'I7_Index_ID', 'index', 'I5_Index_ID',
-                       'index2', 'Sample_Project', 'Description'])
-
-    data += header
-
-    sample_plate = list(sample_plate)
-    wells = list(wells)
-    i7_name = list(i7_name)
-    i7_seq = list(i7_seq)
-    i5_name = list(i5_name)
-    i5_seq = list(i5_seq)
-    sample_proj = list(sample_proj)
-    description = list(description)
-
-    for lane in lanes:
-        for i, sample in enumerate(sample_ids):
-            line = sep.join([str(lane),
-                             sample,
-                             sample,
-                             sample_plate[i],
-                             wells[i],
-                             i7_name[i],
-                             i7_seq[i],
-                             i5_name[i],
-                             i5_seq[i],
-                             sample_proj[i],
-                             description[i]])
-            data += '\n' + line
-
-    return(data)

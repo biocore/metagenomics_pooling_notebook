@@ -72,33 +72,6 @@ def parse_illumina_run_id(run_id):
     return run_date, matches[2]
 
 
-def sample_sheet_to_dataframe(sheet):
-    """Converts the sample section of a sample sheet into a DataFrame
-
-    Parameters
-    ----------
-    sheet: sample_sheet.SampleSheet
-        Object from where to extract the data.
-
-    Returns
-    -------
-    pd.DataFrame
-        DataFrame object with the sample information.
-    """
-
-    # Get the columns names for the first sample so we have them in a list and
-    # we can retrieve data in the same order on every iteration
-    columns = list(sheet.samples[0].keys())
-
-    data = []
-    for sample in sheet.samples:
-        data.append([sample[column] for column in columns])
-
-    out = pd.DataFrame(data=data, columns=[c.lower() for c in columns])
-
-    return out.set_index('sample_id')
-
-
 def is_nonempty_gz_file(name):
     """Taken from https://stackoverflow.com/a/37878550/379593"""
     with gzip.open(name, 'rb') as f:

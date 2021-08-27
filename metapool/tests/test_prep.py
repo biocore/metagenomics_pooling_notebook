@@ -2,15 +2,15 @@ import os
 import pandas as pd
 
 from unittest import TestCase, main
-from metapool.metapool import parse_sample_sheet
+from metapool.sample_sheet import KLSampleSheet, sample_sheet_to_dataframe
 from metapool.prep import (preparations_for_run, remove_qiita_id,
                            get_run_prefix, is_nonempty_gz_file,
                            get_machine_code, get_model_and_center,
-                           sample_sheet_to_dataframe, parse_illumina_run_id,
+                           parse_illumina_run_id,
                            _check_invalid_names, agp_transform)
 
 
-class Tests(TestCase):
+class TestPrep(TestCase):
     def setUp(self):
         data_dir = os.path.join(os.path.dirname(__file__), 'data')
         self.good_run = os.path.join(data_dir, 'runs',
@@ -109,7 +109,7 @@ class Tests(TestCase):
         pd.testing.assert_frame_equal(obs_df, exp)
 
     def test_preparations_for_run(self):
-        ss = sample_sheet_to_dataframe(parse_sample_sheet(self.ss))
+        ss = sample_sheet_to_dataframe(KLSampleSheet(self.ss))
         obs = preparations_for_run(self.good_run, ss,
                                    pipeline='atropos-and-bowtie2')
         self._check_run_191103_D32611_0365_G00DHB5YXX(obs)
@@ -117,7 +117,7 @@ class Tests(TestCase):
     def test_preparations_for_run_missing_columns(self):
         # Check that warnings are raised whenever we overwrite the
         # "well_description" column with the "description" column
-        ss = sample_sheet_to_dataframe(parse_sample_sheet(self.ss))
+        ss = sample_sheet_to_dataframe(KLSampleSheet(self.ss))
         ss['description'] = ss['well_description'].copy()
         ss.drop('well_description', axis=1, inplace=True)
 
@@ -134,7 +134,7 @@ class Tests(TestCase):
         self._check_run_191103_D32611_0365_G00DHB5YXX(obs)
 
     def test_invalid_sample_names_show_warning(self):
-        ss = sample_sheet_to_dataframe(parse_sample_sheet(self.ss))
+        ss = sample_sheet_to_dataframe(KLSampleSheet(self.ss))
 
         ss['well_description'] = ss['well_description'].str.replace(
             'importantsample44', 'important-sample44')
@@ -264,20 +264,6 @@ class Tests(TestCase):
                              '2_001.fastq.gz')
         self.assertFalse(is_nonempty_gz_file(empty))
 
-    def test_sample_sheet_to_dataframe(self):
-        ss = parse_sample_sheet(self.ss)
-        obs = sample_sheet_to_dataframe(ss)
-
-        columns = ['lane', 'sample_name', 'sample_plate', 'sample_well',
-                   'i7_index_id', 'index', 'i5_index_id', 'index2',
-                   'sample_project', 'well_description']
-        index = ['sample1', 'sample2', 'sample1', 'sample2', 'sample31',
-                 'sample32', 'sample34', 'sample44']
-
-        exp = pd.DataFrame(index=index, data=DF_DATA, columns=columns)
-        exp.index.name = 'sample_id'
-        pd.testing.assert_frame_equal(obs, exp)
-
     def test_parse_illumina_run_id(self):
         date, rid = parse_illumina_run_id('161004_D00611_0365_AH2HJ5BCXY')
         self.assertEqual(date, '2016-10-04')
@@ -389,25 +375,6 @@ class Tests(TestCase):
 
         # there shouldn't be any changes
         pd.testing.assert_frame_equal(agp_transform(obs, '666'), exp)
-
-
-DF_DATA = [
-    ['1', 'sample1', 'FooBar_666_p1', 'A1', 'iTru7_107_07', 'CCGACTAT',
-     'iTru5_01_A', 'ACCGACAA', 'Baz', 'importantsample1'],
-    ['1', 'sample2', 'FooBar_666_p1', 'A2', 'iTru7_107_08', 'CCGACTAT',
-     'iTru5_01_A', 'CTTCGCAA', 'Baz', 'importantsample2'],
-    ['3', 'sample1', 'FooBar_666_p1', 'A3', 'iTru7_107_09', 'GCCTTGTT',
-     'iTru5_01_A', 'AACACCAC', 'Baz', 'importantsample1'],
-    ['3', 'sample2', 'FooBar_666_p1', 'A4', 'iTru7_107_10', 'AACTTGCC',
-     'iTru5_01_A', 'CGTATCTC', 'Baz', 'importantsample2'],
-    ['3', 'sample31', 'FooBar_666_p1', 'A5', 'iTru7_107_11', 'CAATGTGG',
-     'iTru5_01_A', 'GGTACGAA', 'FooBar_666', 'importantsample31'],
-    ['3', 'sample32', 'FooBar_666_p1', 'B6', 'iTru7_107_12', 'AAGGCTGA',
-     'iTru5_01_A', 'CGATCGAT', 'FooBar_666', 'importantsample32'],
-    ['3', 'sample34', 'FooBar_666_p1', 'B8', 'iTru7_107_13', 'TTACCGAG',
-     'iTru5_01_A', 'AAGACACC', 'FooBar_666', 'importantsample34'],
-    ['3', 'sample44', 'Baz_p3', 'B99', 'iTru7_107_14', 'GTCCTAAG',
-     'iTru5_01_A', 'CATCTGCT', 'Baz', 'importantsample44']]
 
 
 if __name__ == "__main__":
