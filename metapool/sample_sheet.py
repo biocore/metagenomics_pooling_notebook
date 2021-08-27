@@ -14,6 +14,34 @@ from metapool.metapool import bcl_scrub_name
 _KL_SECTIONS = ['Header', 'Reads', 'Settings', 'Data', 'Bioinformatics',
                 'Contact']
 
+_READS = {
+    'Read1': 151,
+    'Read2': 151
+}
+
+_SETTINGS = {
+    'ReverseComplement': 0
+}
+
+_HEADER = {
+    'IEMFileVersion': 4,
+    'Investigator Name': 'Knight',
+    'Experiment Name': 'RKL_experiment',
+    'Date': None,
+    'Workflow': 'GenerateFASTQ',
+    'Application': 'FASTQ Only',
+    'Assay': None,
+    'Description': '',
+    'Chemistry': 'Default',
+}
+
+_BIOINFORMATICS_AND_CONTACT = {
+    # Information for the Bioinformatics and Contact section goes here
+    'sequencer': None,
+    'lanes': None,
+    'Sample_Projects': None
+}
+
 
 class KLSampleSheet(sample_sheet.SampleSheet):
     def __init__(self, path=None):
@@ -198,35 +226,6 @@ c3df258541a384a5058f8aa46b343ff032d8e247/sample_sheet/__init__.py
                 for key, value in section.items():
                     writer.writerow(pad_iterable([key, value], csv_width))
             write_blank_lines(writer)
-
-
-_READS = {
-    'Read1': 151,
-    'Read2': 151
-}
-
-_SETTINGS = {
-    'ReverseComplement': 0
-}
-
-_HEADER = {
-    'IEMFileVersion': 4,
-    'Investigator Name': 'Knight',
-    'Experiment Name': 'RKL_experiment',
-    'Date': None,
-    'Workflow': 'GenerateFASTQ',
-    'Application': 'FASTQ Only',
-    'Assay': None,
-    'Description': '',
-    'Chemistry': 'Default',
-}
-
-_BIOINFORMATICS_AND_CONTACT = {
-    # Information for the Bioinformatics and Contact section goes here
-    'sequencer': None,
-    'lanes': None,
-    'Sample_Projects': None
-}
 
 
 def _validate_sample_sheet_metadata(metadata, table):

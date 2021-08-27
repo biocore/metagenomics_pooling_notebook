@@ -23,6 +23,25 @@ PREP_COLUMNS = ['sample_name', 'experiment_design_description',
 EXPERIMENT_PLACEHOLDER = "EXPERIMENT_DESC"
 LIBRARY_PLACEHOLDER = "LIBRARY_PROTOCOL"
 
+AMPLICON_PREP_COLUMN_RENAMER = {
+    'Sample': 'sample_name',
+    'Golay Barcode': 'barcode',
+    '515FB Forward Primer (Parada)': 'primer',
+    'Project Plate': 'project_plate',
+    'Project Name': 'project_name',
+    'Well': 'well',
+    'Primer Plate #': 'primer_plate_number',
+    'Plating': 'plating',
+    'Extraction Kit Lot': 'extractionkit_lot',
+    'Extraction Robot': 'extraction_robot',
+    'TM1000 8 Tool': 'tm1000_8_tool',
+    'Primer Date': 'primer_date',
+    'MasterMix Lot': 'mastermix_lot',
+    'Water Lot': 'water_lot',
+    'Processing Robot': 'processing_robot',
+    'sample sheet Sample_ID': 'well_description'
+}
+
 # put together by Gail, based on the instruments we know of
 INSTRUMENT_LOOKUP = pd.DataFrame({
     'A00953': {'machine prefix': 'A', 'Vocab': 'Illumina NovaSeq 6000',
