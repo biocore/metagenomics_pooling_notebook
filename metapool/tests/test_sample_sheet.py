@@ -2,6 +2,7 @@ import unittest
 import os
 import warnings
 import tempfile
+from datetime import datetime
 
 import pandas as pd
 import sample_sheet
@@ -136,9 +137,69 @@ class SampleSheetWorkflow(BaseTests):
         self.fail()
         _add_data_to_sheet()
 
-    def test_add_metadata_to_sheet(self):
-        self.fail()
-        _add_metadata_to_sheet()
+    def test_add_metadata_to_sheet_most_defaults(self):
+        sheet = KLSampleSheet()
+
+        bfx = [
+            {
+             'Sample_Project': 'Koening_ITS_101',
+             'QiitaID': '101',
+             'BarcodesAreRC': 'False',
+             'ForwardAdapter': 'GATACA',
+             'ReverseAdapter': 'CATCAT',
+             'HumanFiltering': 'False'
+            },
+            {
+             'Sample_Project': 'Yanomani_2008_10052',
+             'QiitaID': '10052',
+             'BarcodesAreRC': 'False',
+             'ForwardAdapter': 'GATACA',
+             'ReverseAdapter': 'CATCAT',
+             'HumanFiltering': 'False'
+            }
+        ]
+        exp_bfx = pd.DataFrame(bfx)
+
+        contact = [
+            {
+             'Sample_Project': 'Koening_ITS_101',
+             'Email': 'yoshiki@compy.com,ilike@turtles.com'
+            },
+            {
+             'Sample_Project': 'Yanomani_2008_10052',
+             'Email': 'mgdb@gmail.com'
+            }
+        ]
+        exp_contact = pd.DataFrame(contact)
+
+        metadata = {
+            'Bioinformatics': bfx,
+            'Contact': contact,
+            'Assay': 'Metagenomics'
+        }
+        obs = _add_metadata_to_sheet(metadata, sheet)
+
+        self.assertEqual(obs.Reads, [151, 151])
+        self.assertEqual(obs.Settings, {'ReverseComplement': 0})
+
+        pd.testing.assert_frame_equal(obs.Bioinformatics, exp_bfx)
+        pd.testing.assert_frame_equal(obs.Contact, exp_contact)
+
+        header = {
+            'IEMFileVersion': 4,
+            'Investigator Name': 'Knight',
+            'Experiment Name': 'RKL_experiment',
+            'Date': datetime.today().strftime('%Y-%m-%d'),
+            'Workflow': 'GenerateFASTQ',
+            'Application': 'FASTQ Only',
+            'Assay': 'Metagenomics',
+            'Description': '',
+            'Chemistry': 'Default',
+        }
+
+        self.assertEqual(obs.Header, header)
+
+        self.assertEqual(len(obs.samples), 0)
 
     def test_validate_sample_sheet_metadata(self):
         self.fail()

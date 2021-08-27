@@ -37,10 +37,8 @@ _HEADER = {
 }
 
 _BIOINFORMATICS_AND_CONTACT = {
-    # Information for the Bioinformatics and Contact section goes here
-    'sequencer': None,
-    'lanes': None,
-    'Sample_Projects': None
+    'Bioinformatics': None,
+    'Contact': None
 }
 
 
@@ -90,11 +88,9 @@ c3df258541a384a5058f8aa46b343ff032d8e247/sample_sheet/__init__.py
         section_name = ''
         section_header = None
 
-        # print('who')
         with open(path, encoding=self._encoding) as handle:
             lines = list(csv.reader(handle, skipinitialspace=True))
 
-        # print('almost')
         for i, line in enumerate(lines):
             # Skip to next line if this line is empty to support formats of
             # sample sheets with multiple newlines as section seperators.
@@ -245,35 +241,40 @@ c3df258541a384a5058f8aa46b343ff032d8e247/sample_sheet/__init__.py
 
 def _validate_sample_sheet_metadata(metadata, table):
     # check there's a subset of keys
-    # check assay is provided
+    # check assay is not None in the metadata
     return metadata
 
 
 def _add_metadata_to_sheet(metadata, sheet):
+    # set the default to avoid index errors if only one of the two is provided
+    sheet.Reads = [_READS['Read1'], _READS['Read2']]
 
-    # combined dictionaries are useful for setting defaults and updating
-    # whenever needed
-    for key, value in _HEADER.update(_READS).update(_SETTINGS).items():
+    # combine all the dictionaries with the default values
+    combined = {**_HEADER, **_SETTINGS, **_READS,
+                **_BIOINFORMATICS_AND_CONTACT}
 
+    for key in combined:
         if key in _READS:
-            if sheet.Reads is None:
-                sheet.Reads = [_READS['Read1'], _READS['Read2']]
-
-                sheet.Reads[0] = metadata.get('Read1', sheet.Reads[0])
-                sheet.Reads[1] = metadata.get('Read2', sheet.Reads[1])
+            if key == 'Read1':
+                sheet.Reads[0] = metadata.get(key, sheet.Reads[0])
+            else:
+                sheet.Reads[1] = metadata.get(key, sheet.Reads[1])
 
         elif key in _SETTINGS:
-            sheet.Settings[key]: metadata.get(key, _SETTINGS[key])
+            sheet.Settings[key] = metadata.get(key, _SETTINGS[key])
 
         elif key in _HEADER:
             if key == 'Date':
+                # we set the default value here and not in the global _HEADER
+                # dictionary to make sure the date is when the metadata is
+                # written not when the module is imported
                 sheet.Header[key] = metadata.get(
                     key, datetime.today().strftime('%Y-%m-%d'))
             else:
-                sheet.Header[key]: metadata.get(key, _HEADER[key])
+                sheet.Header[key] = metadata.get(key, _HEADER[key])
 
         elif key in _BIOINFORMATICS_AND_CONTACT:
-            setattr(sheet, key, pd.DataFrame(value))
+            setattr(sheet, key, pd.DataFrame(metadata[key]))
 
     return sheet
 
