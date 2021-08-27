@@ -38,21 +38,26 @@ class BaseTests(unittest.TestCase):
 
 
 class KLSampleSheetTests(BaseTests):
-    def test_write_sample_sheet(self):
-        sheet = KLSampleSheet(self.good_ss)
+    def test_sample_sheet_roundtripping(self):
+        self.maxDiff = None
 
-        with tempfile.NamedTemporaryFile('w+') as f:
-            sheet.write(f)
+        # testing with all the sheets we have access to
+        sheets = [self.ss, self.good_ss,
+                  self.no_project_ss, self.ok_ss,
+                  self.scrubbable_ss, self.bad_project_name_ss]
+        sheets = {sheet: KLSampleSheet(sheet) for sheet in sheets}
 
-            f.seek(0)
+        for filename, sheet in sheets.items():
+            with tempfile.NamedTemporaryFile('w+') as tmp:
+                sheet.write(tmp)
+                tmp.seek(0)
+                observed = tmp.read()
 
-            contents = f.read()
-
-            # spot check the contents
-            self.assertEqual(len(contents.split('\n')), 814)
+                with open(filename) as expected:
+                    self.assertEqual(observed.split(), expected.read().split(),
+                                     f'Problem found with {filename}')
 
     def test_parse(self):
-        self.maxDiff = None
         sheet = KLSampleSheet(self.ss)
 
         exp = {
