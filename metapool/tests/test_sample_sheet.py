@@ -201,6 +201,80 @@ class SampleSheetWorkflow(BaseTests):
 
         self.assertEqual(len(obs.samples), 0)
 
+    def test_add_metadata_to_sheet_some_defaults(self):
+        sheet = KLSampleSheet()
+
+        # add a sample to make sure we can keep data around
+        sheet.add_sample(sample_sheet.Sample({
+            'Sample_ID': 'thy_sample',
+            'Sample_Name': 'the_name_is_sample',
+            'index': 'CCGACTAT',
+            'index2': 'ACCGACCA',
+        }))
+
+        bfx = [
+            {
+             'Sample_Project': 'Koening_ITS_101',
+             'QiitaID': '101',
+             'BarcodesAreRC': 'False',
+             'ForwardAdapter': 'GATACA',
+             'ReverseAdapter': 'CATCAT',
+             'HumanFiltering': 'False'
+            },
+            {
+             'Sample_Project': 'Yanomani_2008_10052',
+             'QiitaID': '10052',
+             'BarcodesAreRC': 'False',
+             'ForwardAdapter': 'GATACA',
+             'ReverseAdapter': 'CATCAT',
+             'HumanFiltering': 'False'
+            }
+        ]
+        exp_bfx = pd.DataFrame(bfx)
+
+        contact = [
+            {
+             'Sample_Project': 'Koening_ITS_101',
+             'Email': 'yoshiki@compy.com,ilike@turtles.com'
+            },
+            {
+             'Sample_Project': 'Yanomani_2008_10052',
+             'Email': 'mgdb@gmail.com'
+            }
+        ]
+        exp_contact = pd.DataFrame(contact)
+
+        metadata = {
+            'Bioinformatics': bfx,
+            'Contact': contact,
+            'Assay': 'Amplicon',
+            'Investigator Name': 'Caballero',
+            'Date': '1970-01-01'
+        }
+        obs = _add_metadata_to_sheet(metadata, sheet)
+
+        self.assertEqual(obs.Reads, [151, 151])
+        self.assertEqual(obs.Settings, {'ReverseComplement': 0})
+
+        pd.testing.assert_frame_equal(obs.Bioinformatics, exp_bfx)
+        pd.testing.assert_frame_equal(obs.Contact, exp_contact)
+
+        header = {
+            'IEMFileVersion': 4,
+            'Investigator Name': 'Caballero',
+            'Experiment Name': 'RKL_experiment',
+            'Date': '1970-01-01',
+            'Workflow': 'GenerateFASTQ',
+            'Application': 'FASTQ Only',
+            'Assay': 'Amplicon',
+            'Description': '',
+            'Chemistry': 'Default',
+        }
+
+        self.assertEqual(obs.Header, header)
+
+        self.assertEqual(len(obs.samples), 1)
+
     def test_validate_sample_sheet_metadata(self):
         self.fail()
         _validate_sample_sheet_metadata()
