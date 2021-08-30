@@ -773,9 +773,10 @@ def sequencer_i5_index(sequencer, indices):
         print('%s: i5 barcodes are output in standard direction' % sequencer)
         return(indices)
     else:
-        raise ValueError('Your indicated sequencer [%s] is not recognized.\n'
-                         'Recognized sequencers are: \n'
-                         ' '.join(REVCOMP_SEQUENCERS + OTHER_SEQUENCERS))
+        raise ValueError(('Your indicated sequencer [%s] is not recognized.\n'
+                          'Recognized sequencers are: \n %s') %
+                         (sequencer,
+                          ', '.join(REVCOMP_SEQUENCERS + OTHER_SEQUENCERS)))
 
 
 def reformat_interleaved_to_columns(wells):
