@@ -7,7 +7,7 @@ from metapool.prep import (preparations_for_run, remove_qiita_id,
                            get_run_prefix, is_nonempty_gz_file,
                            get_machine_code, get_model_and_center,
                            parse_illumina_run_id,
-                           _check_invalid_names, agp_transform)
+                           _check_invalid_names, agp_transform, parse_prep)
 
 
 class TestPrep(TestCase):
@@ -21,6 +21,7 @@ class TestPrep(TestCase):
             data_dir, 'runs', '191104_D32611_0365_OK15HB5YXZ')
 
         self.ss = os.path.join(self.good_run, 'sample-sheet.csv')
+        self.prep = os.path.join(data_dir, 'prep.tsv')
 
     def _check_run_191103_D32611_0365_G00DHB5YXX(self, obs):
         "Convenience method to check the output of a whole run"
@@ -420,6 +421,42 @@ class TestPrep(TestCase):
 
         # there shouldn't be any changes
         pd.testing.assert_frame_equal(agp_transform(obs, '666'), exp)
+
+    def test_parse_prep(self):
+        columns = [
+            'barcode', 'primer', 'project_name', 'well_id',
+            'primer_plate', 'plating', 'extractionkit_lot',
+            'extraction_robot', 'tm1000_8_tool', 'primer_date',
+            'mastermix_lot', 'water_lot', 'processing_robot',
+            'sample_plate', 'linker', 'orig_name', 'well_description',
+            'pcr_primers', 'center_name', 'run_center', 'platform',
+            'target_subfragment', 'target_gene', 'sequencing_meth',
+            'library_construction_protocol']
+
+        data = [
+            ['AGCCTTCGTCGC', 'GTGYCAGCMGCCGCGGTAA', 'THDMI_10317', 'A1', '1',
+             'SF', '166032128', 'Carmen_HOWE_KF3', '109379Z', '2021-08-17',
+             '978215', 'RNBJ0628', 'Echo550', 'THDMI_UK_Plate_2', 'GT',
+             'X00180471', 'THDMI_UK_Plate_2.X00180471.A1',
+             'FWD:GTGYCAGCMGCCGCGGTAA; REV:GGACTACNVGGGTWTCTAAT', 'UCSDMI',
+             'UCSDMI', 'Illumina', 'V4', '16S rRNA', 'Sequencing by synthesis',
+             'Illumina EMP protocol 515fbc, 806r amplification of 16S rRNA V4'
+             ],
+            ['CGTATAAATGCG', 'GTGYCAGCMGCCGCGGTAA', 'THDMI_10317', 'C1', '1',
+             'SF', '166032128', 'Carmen_HOWE_KF3', '109379Z', '2021-08-17',
+             '978215', 'RNBJ0628', 'Echo550', 'THDMI_UK_Plate_2', 'GT',
+             'X00180199', 'THDMI_UK_Plate_2.X00180199.C1',
+             'FWD:GTGYCAGCMGCCGCGGTAA; REV:GGACTACNVGGGTWTCTAAT', 'UCSDMI',
+             'UCSDMI', 'Illumina', 'V4', '16S rRNA',
+             'Sequencing by synthesis',
+             'Illumina EMP protocol 515fbc, 806r amplification of 16S rRNA V4']
+        ]
+        index = pd.Index(['X00180471', 'X00180199'], name='sample_name')
+        exp = pd.DataFrame(data=data, columns=columns, index=index)
+
+        obs = parse_prep(self.prep)
+
+        pd.testing.assert_frame_equal(obs, exp)
 
 
 if __name__ == "__main__":

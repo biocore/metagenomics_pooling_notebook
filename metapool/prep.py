@@ -425,3 +425,22 @@ def preparations_for_run(run_path, sheet, pipeline='fastp-and-minimap2'):
             output[name] = prep
 
     return output
+
+
+def parse_prep(prep_path):
+    """Parses a prep file into a DataFrame
+
+    Parameters
+    ----------
+    prep_path: str or file-like
+        Filepath to the preparation file
+
+    Returns
+    -------
+    pd.DataFrame
+        Parsed prep file with the sample_name column set as the index.
+    """
+    prep = pd.read_csv(prep_path, sep='\t', dtype=str, keep_default_na=False,
+                       na_values=[])
+    prep.set_index('sample_name', verify_integrity=True, inplace=True)
+    return prep
