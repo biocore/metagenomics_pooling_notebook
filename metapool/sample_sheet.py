@@ -356,7 +356,8 @@ def _add_data_to_sheet(table, sheet, sequencer, lanes, assay):
     if assay == _METAGENOMICS:
         table['index2'] = sequencer_i5_index(sequencer, table['index2'])
 
-    sheet.Bioinformatics['BarcodesAreRC'] = sequencer in REVCOMP_SEQUENCERS
+        sheet.Bioinformatics['BarcodesAreRC'] = str(
+            sequencer in REVCOMP_SEQUENCERS)
 
     for lane in lanes:
         for sample in table.to_dict(orient='records'):

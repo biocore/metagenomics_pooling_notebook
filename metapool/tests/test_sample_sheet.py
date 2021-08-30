@@ -212,8 +212,92 @@ class SampleSheetWorkflow(BaseTests):
         _validate_sample_sheet_metadata()
 
     def test_make_sample_sheet(self):
-        self.fail()
-        make_sample_sheet()
+        bfx = [
+            {
+             'Sample_Project': 'Koening_ITS_101',
+             'QiitaID': '101',
+             'BarcodesAreRC': 'False',
+             'ForwardAdapter': 'GATACA',
+             'ReverseAdapter': 'CATCAT',
+             'HumanFiltering': 'False'
+            },
+            {
+             'Sample_Project': 'Yanomani_2008_10052',
+             'QiitaID': '10052',
+             'BarcodesAreRC': 'False',
+             'ForwardAdapter': 'GATACA',
+             'ReverseAdapter': 'CATCAT',
+             'HumanFiltering': 'False'
+            }
+        ]
+        exp_bfx = pd.DataFrame(bfx)
+
+        contact = [
+            {
+             'Sample_Project': 'Koening_ITS_101',
+             'Email': 'yoshiki@compy.com,ilike@turtles.com'
+            },
+            {
+             'Sample_Project': 'Yanomani_2008_10052',
+             'Email': 'mgdb@gmail.com'
+            }
+        ]
+        exp_contact = pd.DataFrame(contact)
+
+        metadata = {
+            'Bioinformatics': bfx,
+            'Contact': contact,
+            'Assay': 'Amplicon'
+        }
+
+        # for amplicon we expect the following three columns to not be there
+        message = (r'The column (I5_Index_ID|index2|Well_description) '
+                   r'in the sample sheet is empty')
+        with self.assertWarnsRegex(UserWarning, message):
+            obs = make_sample_sheet(metadata, self.table, 'HiSeq4000', [5, 7])
+
+        self.assertEqual(obs.Reads, [151, 151])
+        self.assertEqual(obs.Settings, {'ReverseComplement': 0})
+
+        pd.testing.assert_frame_equal(obs.Bioinformatics, exp_bfx)
+        pd.testing.assert_frame_equal(obs.Contact, exp_contact)
+
+        header = {
+            'IEMFileVersion': 4,
+            'Date': datetime.today().strftime('%Y-%m-%d'),
+            'Workflow': 'GenerateFASTQ',
+            'Application': 'FASTQ Only',
+            'Assay': 'Amplicon',
+            'Description': '',
+            'Chemistry': 'Default',
+        }
+
+        self.assertEqual(obs.Header, header)
+
+        self.assertEqual(len(obs.samples), 6)
+
+        data = (
+            [5, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
+             'AGCCTTCGTCGC', '', '', 'THDMI_10317', ''],
+            [5, 'X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1',
+             '515rcbc12', 'CGTATAAATGCG', '', '', 'THDMI_10317', ''],
+            [5, 'X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1',
+             '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317', ''],
+            [7, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
+             'AGCCTTCGTCGC', '', '', 'THDMI_10317', ''],
+            [7, 'X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1',
+             '515rcbc12', 'CGTATAAATGCG', '', '', 'THDMI_10317', ''],
+            [7, 'X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1',
+             '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317', ''],
+        )
+        keys = ['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
+                'Sample_Well', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                'Sample_Project', 'Well_description']
+
+        for sample, row in zip(obs.samples, data):
+            exp = sample_sheet.Sample(dict(zip(keys, row)))
+
+            self.assertEqual(dict(sample), dict(exp))
 
     def test_remap_table_amplicon(self):
         columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'Sample_Well',
@@ -276,7 +360,6 @@ class SampleSheetWorkflow(BaseTests):
 
         exp = pd.DataFrame(columns=columns, data=data)
 
-        # for amplicon we expect the following three columns to not be there
         message = (r'The column (Well_description)'
                    r' in the sample sheet is empty')
         with self.assertWarnsRegex(UserWarning, message):
@@ -286,8 +369,13 @@ class SampleSheetWorkflow(BaseTests):
             pd.testing.assert_frame_equal(obs, exp, check_like=True)
 
     def test_add_data_to_sheet(self):
-        obs = _add_data_to_sheet(self.table, self.sheet, 'HiSeq4000', [1],
-                                 'Amplicon')
+
+        # for amplicon we expect the following three columns to not be there
+        message = (r'The column (I5_Index_ID|index2|Well_description) '
+                   r'in the sample sheet is empty')
+        with self.assertWarnsRegex(UserWarning, message):
+            obs = _add_data_to_sheet(self.table, self.sheet, 'HiSeq4000', [1],
+                                     'Amplicon')
 
         self.assertEqual(len(obs), 3)
 
