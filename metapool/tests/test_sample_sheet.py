@@ -130,27 +130,23 @@ class KLSampleSheetTests(BaseTests):
 
 
 class SampleSheetWorkflow(BaseTests):
-    def test_make_sample_sheet(self):
-        self.fail()
-        make_sample_sheet()
+    def setUp(self):
+        super().setUp()
 
-    def test_add_data_to_sheet(self):
+        self.sheet = KLSampleSheet()
+        self.sheet.Header['IEM4FileVersion'] = 4
+        self.sheet.Header['Investigator Name'] = 'Knight'
+        self.sheet.Header['Experiment Name'] = 'RKO_experiment'
+        self.sheet.Header['Date'] = '2021-08-17'
+        self.sheet.Header['Workflow'] = 'GenerateFASTQ'
+        self.sheet.Header['Application'] = 'FASTQ Only'
+        self.sheet.Header['Assay'] = 'Amplicon'
+        self.sheet.Header['Description'] = ''
+        self.sheet.Header['Chemistry'] = 'Default'
+        self.sheet.Reads = [151, 151]
+        self.sheet.Settings['ReverseComplement'] = 0
 
-        # TODO: probably put this in a setUp method
-        sheet = KLSampleSheet()
-        sheet.Header['IEM4FileVersion'] = 4
-        sheet.Header['Investigator Name'] = 'Knight'
-        sheet.Header['Experiment Name'] = 'RKO_experiment'
-        sheet.Header['Date'] = '2021-08-17'
-        sheet.Header['Workflow'] = 'GenerateFASTQ'
-        sheet.Header['Application'] = 'FASTQ Only'
-        sheet.Header['Assay'] = 'Amplicon'
-        sheet.Header['Description'] = ''
-        sheet.Header['Chemistry'] = 'Default'
-        sheet.Reads = [151, 151]
-        sheet.Settings['ReverseComplement'] = 0
-
-        sheet.Bioinformatics = pd.DataFrame(
+        self.sheet.Bioinformatics = pd.DataFrame(
             columns=['Sample_Project', 'QiitaID', 'BarcodesAreRC',
                      'ForwardAdapter', 'ReverseAdapter', 'HumanFiltering'],
             data=[
@@ -159,7 +155,7 @@ class SampleSheetWorkflow(BaseTests):
         )
 
         # check for Contact
-        sheet.Contact = pd.DataFrame(
+        self.sheet.Contact = pd.DataFrame(
             columns=['Email', 'Sample_Project'],
             data=[
                 ['daniel@tmi.com', 'THDMI_10317'],
@@ -196,7 +192,7 @@ class SampleSheetWorkflow(BaseTests):
              'CMGCCGCGGTAA'],
         ]
 
-        table = pd.DataFrame(
+        self.table = pd.DataFrame(
             columns=['sample sheet Sample_ID',
                      'Sample', 'Row', 'Col', 'Blank', 'Project Plate',
                      'Project Name', 'Compressed Plate Name', 'Well',
@@ -211,7 +207,45 @@ class SampleSheetWorkflow(BaseTests):
             data=data
         )
 
-        obs = _add_data_to_sheet(table, sheet, 'HiSeq4000', [1], 'Amplicon')
+    def test_validate_sample_sheet_metadata(self):
+        self.fail()
+        _validate_sample_sheet_metadata()
+
+    def test_make_sample_sheet(self):
+        self.fail()
+        make_sample_sheet()
+
+    def test_remap_table_amplicon(self):
+        columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'Sample_Well',
+                   'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                   'Sample_Project', 'Well_description']
+        data = [
+            ['X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
+             'AGCCTTCGTCGC', '', '', 'THDMI_10317', ''],
+            ['X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1', '515rcbc12',
+             'CGTATAAATGCG', '', '', 'THDMI_10317', ''],
+            ['X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1', '515rcbc24',
+             'TGACTAATGGCC', '', '', 'THDMI_10317', ''],
+        ]
+
+        exp = pd.DataFrame(columns=columns, data=data)
+
+        # for amplicon we expect the following three columns to not be there
+        message = (r'The column (I5_Index_ID|index2|Well_description) '
+                   r'in the sample sheet is empty')
+        with self.assertWarnsRegex(UserWarning, message):
+            obs = _remap_table(self.table, 'Amplicon')
+
+            self.assertEqual(len(obs), 3)
+            pd.testing.assert_frame_equal(obs, exp, check_like=True)
+
+    def test_remap_table_metagenomics(self):
+        self.fail()
+        # obs = _remap_table(table, 'Metagenomics')
+
+    def test_add_data_to_sheet(self):
+        obs = _add_data_to_sheet(self.table, self.sheet, 'HiSeq4000', [1],
+                                 'Amplicon')
 
         self.assertEqual(len(obs), 3)
 
@@ -227,7 +261,7 @@ class SampleSheetWorkflow(BaseTests):
                 'Sample_Well', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
                 'Sample_Project', 'Well_description']
 
-        for sample, row in zip(sheet.samples, data):
+        for sample, row in zip(obs.samples, data):
             exp = sample_sheet.Sample(dict(zip(keys, row)))
 
             self.assertEqual(dict(sample), dict(exp))
@@ -366,10 +400,6 @@ class SampleSheetWorkflow(BaseTests):
         self.assertEqual(obs.Header, header)
 
         self.assertEqual(len(obs.samples), 1)
-
-    def test_validate_sample_sheet_metadata(self):
-        self.fail()
-        _validate_sample_sheet_metadata()
 
 
 class ValidateSampleSheetTests(BaseTests):
