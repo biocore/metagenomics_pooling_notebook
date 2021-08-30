@@ -240,8 +240,50 @@ class SampleSheetWorkflow(BaseTests):
             pd.testing.assert_frame_equal(obs, exp, check_like=True)
 
     def test_remap_table_metagenomics(self):
-        self.fail()
-        # obs = _remap_table(table, 'Metagenomics')
+        data = [
+            ['33-A1', 'A', 1, True, 'A1', 0, 0, 'AACGCACACTCGTCTT',
+             'iTru5_19_A', 'AACGCACA', 'A1', 'iTru5_plate', 'iTru7_109_01',
+             'CTCGTCTT', 'A22', 'iTru7_plate', '33-A1'],
+            ['820072905-2', 'C', 1, False, 'C1', 1, 1, 'ATGCCTAGCGAACTGT',
+             'iTru5_19_B', 'ATGCCTAG', 'B1', 'iTru5_plate', 'iTru7_109_02',
+             'CGAACTGT', 'B22', 'iTru7_plate', '820072905-2'],
+            ['820029517-3', 'E', 1, False, 'E1', 2, 2, 'CATACGGACATTCGGT',
+             'iTru5_19_C', 'CATACGGA', 'C1', 'iTru5_plate', 'iTru7_109_03',
+             'CATTCGGT', 'C22', 'iTru7_plate', '820029517-3']
+        ]
+        columns = ['Sample', 'Row', 'Col', 'Blank', 'Well', 'index',
+                   'index combo', 'index combo seq', 'i5 name', 'i5 sequence',
+                   'i5 well', 'i5 plate', 'i7 name', 'i7 sequence', 'i7 well',
+                   'i7 plate', 'sample sheet Sample_ID']
+        self.table = pd.DataFrame(data=data, columns=columns)
+        self.table['Project Name'] = 'Tst_project_1234'
+        self.table['Project Plate'] = 'The_plate'
+
+        columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'Sample_Well',
+                   'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                   'Sample_Project', 'Well_description']
+        data = [
+            ['33-A1', '33-A1', 'The_plate', 'A1', 'iTru7_109_01',
+             'CTCGTCTT', 'iTru5_19_A', 'AACGCACA', 'Tst_project_1234',
+             ''],
+            ['820072905-2', '820072905-2', 'The_plate', 'C1', 'iTru7_109_02',
+             'CGAACTGT', 'iTru5_19_B', 'ATGCCTAG', 'Tst_project_1234',
+             ''],
+            ['820029517-3', '820029517-3', 'The_plate', 'E1', 'iTru7_109_03',
+             'CATTCGGT', 'iTru5_19_C', 'CATACGGA', 'Tst_project_1234',
+             ''],
+        ]
+
+        exp = pd.DataFrame(columns=columns, data=data)
+
+        # for amplicon we expect the following three columns to not be there
+        message = (r'The column (Well_description)'
+                   r' in the sample sheet is empty')
+        with self.assertWarnsRegex(UserWarning, message):
+            obs = _remap_table(self.table, 'Metagenomics')
+
+            self.assertEqual(len(obs), 3)
+            pd.testing.assert_frame_equal(obs, exp, check_like=True)
 
     def test_add_data_to_sheet(self):
         obs = _add_data_to_sheet(self.table, self.sheet, 'HiSeq4000', [1],
