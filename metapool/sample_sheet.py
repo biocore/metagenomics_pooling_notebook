@@ -11,6 +11,7 @@ import pandas as pd
 
 from metapool.metapool import (bcl_scrub_name, sequencer_i5_index,
                                REVCOMP_SEQUENCERS)
+from metapool.plate import ErrorMessage
 
 _KL_SAMPLE_SHEET_SECTIONS = [
     'Header', 'Reads', 'Settings', 'Data', 'Bioinformatics', 'Contact'
@@ -43,7 +44,7 @@ _KL_METAGENOMICS_REMAPPER = {
     'Project Name': 'Sample_Project',
 }
 
-_AMPLICON = 'Amplicon'
+_AMPLICON = 'TruSeq HT'
 _METAGENOMICS = 'Metagenomics'
 _ASSAYS = {_AMPLICON, _METAGENOMICS}
 
@@ -72,6 +73,9 @@ _BIOINFORMATICS_AND_CONTACT = {
     'Bioinformatics': None,
     'Contact': None
 }
+
+_ALL_METADATA = {**_HEADER, **_SETTINGS, **_READS,
+                 **_BIOINFORMATICS_AND_CONTACT}
 
 
 class KLSampleSheet(sample_sheet.SampleSheet):
@@ -283,21 +287,31 @@ c3df258541a384a5058f8aa46b343ff032d8e247/sample_sheet/__init__.py
                         section.loc[len(section)] = row
 
 
-def _validate_sample_sheet_metadata(metadata, table):
-    # check there's a subset of keys
-    # check assay is not None in the metadata
-    return metadata
+def _validate_sample_sheet_metadata(metadata):
+    msgs = []
+
+    for req in ['Assay', 'Bioinformatics', 'Contact']:
+        if req not in metadata:
+            msgs.append(ErrorMessage('%s is a required attribute' % req))
+
+    if metadata.get('Assay') is not None and metadata['Assay'] not in _ASSAYS:
+        msgs.append(ErrorMessage('%s is not a supported Assay' %
+                                 metadata['Assay']))
+
+    keys = set(metadata.keys())
+    if not keys.issubset(_ALL_METADATA):
+        extra = sorted(keys - set(_ALL_METADATA))
+        msgs.append(ErrorMessage('These metadata keys are not supported: %s'
+                                 % ', '.join(extra)))
+
+    return msgs
 
 
 def _add_metadata_to_sheet(metadata, sheet):
     # set the default to avoid index errors if only one of the two is provided
     sheet.Reads = [_READS['Read1'], _READS['Read2']]
 
-    # combine all the dictionaries with the default values
-    combined = {**_HEADER, **_SETTINGS, **_READS,
-                **_BIOINFORMATICS_AND_CONTACT}
-
-    for key in combined:
+    for key in _ALL_METADATA:
         if key in _READS:
             if key == 'Read1':
                 sheet.Reads[0] = metadata.get(key, sheet.Reads[0])
@@ -414,13 +428,17 @@ def make_sample_sheet(metadata, table, sequencer, lanes):
     SampleSheetError
         If one of the required columns is missing.
     """
-    metadata = _validate_sample_sheet_metadata(metadata, table)
+    messages = _validate_sample_sheet_metadata(metadata)
 
-    sheet = KLSampleSheet()
-    sheet = _add_metadata_to_sheet(metadata, sheet)
-    sheet = _add_data_to_sheet(table, sheet, sequencer, lanes,
-                               metadata['Assay'])
-    return sheet
+    if len(messages) == 0:
+        sheet = KLSampleSheet()
+        sheet = _add_metadata_to_sheet(metadata, sheet)
+        sheet = _add_data_to_sheet(table, sheet, sequencer, lanes,
+                                   metadata['Assay'])
+        return sheet
+    else:
+        for message in messages:
+            message.echo()
 
 
 def validate_sample_sheet(sheet):

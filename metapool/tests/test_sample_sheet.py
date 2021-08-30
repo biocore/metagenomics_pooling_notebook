@@ -13,6 +13,7 @@ from metapool.sample_sheet import (KLSampleSheet, validate_sample_sheet,
                                    _validate_sample_sheet_metadata,
                                    _remap_table,
                                    make_sample_sheet)
+from metapool.plate import ErrorMessage
 
 
 # The classes below share the same filepaths, so we use this dummy class
@@ -140,7 +141,7 @@ class SampleSheetWorkflow(BaseTests):
         self.sheet.Header['Date'] = '2021-08-17'
         self.sheet.Header['Workflow'] = 'GenerateFASTQ'
         self.sheet.Header['Application'] = 'FASTQ Only'
-        self.sheet.Header['Assay'] = 'Amplicon'
+        self.sheet.Header['Assay'] = 'TruSeq HT'
         self.sheet.Header['Description'] = ''
         self.sheet.Header['Chemistry'] = 'Default'
         self.sheet.Reads = [151, 151]
@@ -207,11 +208,6 @@ class SampleSheetWorkflow(BaseTests):
             data=data
         )
 
-    def test_validate_sample_sheet_metadata(self):
-        self.fail()
-        _validate_sample_sheet_metadata()
-
-    def test_make_sample_sheet(self):
         bfx = [
             {
              'Sample_Project': 'Koening_ITS_101',
@@ -230,7 +226,6 @@ class SampleSheetWorkflow(BaseTests):
              'HumanFiltering': 'False'
             }
         ]
-        exp_bfx = pd.DataFrame(bfx)
 
         contact = [
             {
@@ -242,19 +237,49 @@ class SampleSheetWorkflow(BaseTests):
              'Email': 'mgdb@gmail.com'
             }
         ]
-        exp_contact = pd.DataFrame(contact)
 
-        metadata = {
+        self.metadata = {
             'Bioinformatics': bfx,
             'Contact': contact,
-            'Assay': 'Amplicon'
+            'Assay': 'TruSeq HT',
         }
+
+    def test_validate_sample_sheet_metadata_empty(self):
+        messages = _validate_sample_sheet_metadata({})
+
+        exp = [
+            ErrorMessage('Assay is a required attribute'),
+            ErrorMessage('Bioinformatics is a required attribute'),
+            ErrorMessage('Contact is a required attribute'),
+        ]
+
+        self.assertEqual(messages, exp)
+
+    def test_validate_sample_sheet_metadata_not_supported(self):
+        self.metadata['Rush'] = 'XYZ'
+        messages = _validate_sample_sheet_metadata(self.metadata)
+
+        exp = [
+                ErrorMessage('These metadata keys are not supported: Rush'),
+        ]
+
+        self.assertEqual(messages, exp)
+
+    def test_validate_sample_sheet_metadata_good(self):
+
+        messages = _validate_sample_sheet_metadata(self.metadata)
+        self.assertEqual(messages, [])
+
+    def test_make_sample_sheet(self):
+        exp_bfx = pd.DataFrame(self.metadata['Bioinformatics'])
+        exp_contact = pd.DataFrame(self.metadata['Contact'])
 
         # for amplicon we expect the following three columns to not be there
         message = (r'The column (I5_Index_ID|index2|Well_description) '
                    r'in the sample sheet is empty')
         with self.assertWarnsRegex(UserWarning, message):
-            obs = make_sample_sheet(metadata, self.table, 'HiSeq4000', [5, 7])
+            obs = make_sample_sheet(self.metadata, self.table, 'HiSeq4000',
+                                    [5, 7])
 
         self.assertEqual(obs.Reads, [151, 151])
         self.assertEqual(obs.Settings, {'ReverseComplement': 0})
@@ -267,7 +292,7 @@ class SampleSheetWorkflow(BaseTests):
             'Date': datetime.today().strftime('%Y-%m-%d'),
             'Workflow': 'GenerateFASTQ',
             'Application': 'FASTQ Only',
-            'Assay': 'Amplicon',
+            'Assay': 'TruSeq HT',
             'Description': '',
             'Chemistry': 'Default',
         }
@@ -318,7 +343,7 @@ class SampleSheetWorkflow(BaseTests):
         message = (r'The column (I5_Index_ID|index2|Well_description) '
                    r'in the sample sheet is empty')
         with self.assertWarnsRegex(UserWarning, message):
-            obs = _remap_table(self.table, 'Amplicon')
+            obs = _remap_table(self.table, 'TruSeq HT')
 
             self.assertEqual(len(obs), 3)
             pd.testing.assert_frame_equal(obs, exp, check_like=True)
@@ -375,7 +400,7 @@ class SampleSheetWorkflow(BaseTests):
                    r'in the sample sheet is empty')
         with self.assertWarnsRegex(UserWarning, message):
             obs = _add_data_to_sheet(self.table, self.sheet, 'HiSeq4000', [1],
-                                     'Amplicon')
+                                     'TruSeq HT')
 
         self.assertEqual(len(obs), 3)
 
@@ -399,44 +424,11 @@ class SampleSheetWorkflow(BaseTests):
     def test_add_metadata_to_sheet_most_defaults(self):
         sheet = KLSampleSheet()
 
-        bfx = [
-            {
-             'Sample_Project': 'Koening_ITS_101',
-             'QiitaID': '101',
-             'BarcodesAreRC': 'False',
-             'ForwardAdapter': 'GATACA',
-             'ReverseAdapter': 'CATCAT',
-             'HumanFiltering': 'False'
-            },
-            {
-             'Sample_Project': 'Yanomani_2008_10052',
-             'QiitaID': '10052',
-             'BarcodesAreRC': 'False',
-             'ForwardAdapter': 'GATACA',
-             'ReverseAdapter': 'CATCAT',
-             'HumanFiltering': 'False'
-            }
-        ]
-        exp_bfx = pd.DataFrame(bfx)
+        self.metadata['Assay'] = 'Metagenomics'
+        exp_bfx = pd.DataFrame(self.metadata['Bioinformatics'])
+        exp_contact = pd.DataFrame(self.metadata['Contact'])
 
-        contact = [
-            {
-             'Sample_Project': 'Koening_ITS_101',
-             'Email': 'yoshiki@compy.com,ilike@turtles.com'
-            },
-            {
-             'Sample_Project': 'Yanomani_2008_10052',
-             'Email': 'mgdb@gmail.com'
-            }
-        ]
-        exp_contact = pd.DataFrame(contact)
-
-        metadata = {
-            'Bioinformatics': bfx,
-            'Contact': contact,
-            'Assay': 'Metagenomics'
-        }
-        obs = _add_metadata_to_sheet(metadata, sheet)
+        obs = _add_metadata_to_sheet(self.metadata, sheet)
 
         self.assertEqual(obs.Reads, [151, 151])
         self.assertEqual(obs.Settings, {'ReverseComplement': 0})
@@ -471,45 +463,11 @@ class SampleSheetWorkflow(BaseTests):
             'index2': 'ACCGACCA',
         }))
 
-        bfx = [
-            {
-             'Sample_Project': 'Koening_ITS_101',
-             'QiitaID': '101',
-             'BarcodesAreRC': 'False',
-             'ForwardAdapter': 'GATACA',
-             'ReverseAdapter': 'CATCAT',
-             'HumanFiltering': 'False'
-            },
-            {
-             'Sample_Project': 'Yanomani_2008_10052',
-             'QiitaID': '10052',
-             'BarcodesAreRC': 'False',
-             'ForwardAdapter': 'GATACA',
-             'ReverseAdapter': 'CATCAT',
-             'HumanFiltering': 'False'
-            }
-        ]
-        exp_bfx = pd.DataFrame(bfx)
+        exp_bfx = pd.DataFrame(self.metadata['Bioinformatics'])
+        exp_contact = pd.DataFrame(self.metadata['Contact'])
+        self.metadata['Date'] = '1970-01-01'
 
-        contact = [
-            {
-             'Sample_Project': 'Koening_ITS_101',
-             'Email': 'yoshiki@compy.com,ilike@turtles.com'
-            },
-            {
-             'Sample_Project': 'Yanomani_2008_10052',
-             'Email': 'mgdb@gmail.com'
-            }
-        ]
-        exp_contact = pd.DataFrame(contact)
-
-        metadata = {
-            'Bioinformatics': bfx,
-            'Contact': contact,
-            'Assay': 'Amplicon',
-            'Date': '1970-01-01'
-        }
-        obs = _add_metadata_to_sheet(metadata, sheet)
+        obs = _add_metadata_to_sheet(self.metadata, sheet)
 
         self.assertEqual(obs.Reads, [151, 151])
         self.assertEqual(obs.Settings, {'ReverseComplement': 0})
@@ -522,7 +480,7 @@ class SampleSheetWorkflow(BaseTests):
             'Date': '1970-01-01',
             'Workflow': 'GenerateFASTQ',
             'Application': 'FASTQ Only',
-            'Assay': 'Amplicon',
+            'Assay': 'TruSeq HT',
             'Description': '',
             'Chemistry': 'Default',
         }
