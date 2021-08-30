@@ -417,13 +417,9 @@ def make_sample_sheet(metadata, table, sequencer, lanes):
     metadata = _validate_sample_sheet_metadata(metadata, table)
 
     sheet = KLSampleSheet()
-
     sheet = _add_metadata_to_sheet(metadata, sheet)
-
-    # make sure that we can use the lanes attribute as expected
     sheet = _add_data_to_sheet(table, sheet, sequencer, lanes,
                                metadata['Assay'])
-
     return sheet
 
 
