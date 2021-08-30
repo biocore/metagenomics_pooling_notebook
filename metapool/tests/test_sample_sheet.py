@@ -11,6 +11,7 @@ from metapool.sample_sheet import (KLSampleSheet, validate_sample_sheet,
                                    sample_sheet_to_dataframe,
                                    _add_metadata_to_sheet, _add_data_to_sheet,
                                    _validate_sample_sheet_metadata,
+                                   _remap_table,
                                    make_sample_sheet)
 
 
@@ -210,17 +211,17 @@ class SampleSheetWorkflow(BaseTests):
             data=data
         )
 
-        obs = _add_data_to_sheet(table, sheet, 'HiSeq4000', [1])
+        obs = _add_data_to_sheet(table, sheet, 'HiSeq4000', [1], 'Amplicon')
 
         self.assertEqual(len(obs), 3)
 
         data = (
-            [1, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '',
-             'GCGACGAAGGCT', '515rcbc0', '', 'THDMI_10317', ''],
-            [1, 'X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1', '',
-             'CGCATTTATACG', '515rcbc12', '', 'THDMI_10317', ''],
-            [1, 'X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1', '',
-             'GGCCATTAGTCA', '515rcbc24', '', 'THDMI_10317', ''],
+            [1, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
+             'AGCCTTCGTCGC', '', '', 'THDMI_10317', ''],
+            [1, 'X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1',
+             '515rcbc12', 'CGTATAAATGCG', '', '', 'THDMI_10317', ''],
+            [1, 'X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1',
+             '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317', ''],
         )
         keys = ['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
                 'Sample_Well', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
@@ -342,7 +343,6 @@ class SampleSheetWorkflow(BaseTests):
             'Bioinformatics': bfx,
             'Contact': contact,
             'Assay': 'Amplicon',
-            'Investigator Name': 'Caballero',
             'Date': '1970-01-01'
         }
         obs = _add_metadata_to_sheet(metadata, sheet)
@@ -355,8 +355,6 @@ class SampleSheetWorkflow(BaseTests):
 
         header = {
             'IEMFileVersion': 4,
-            'Investigator Name': 'Caballero',
-            'Experiment Name': 'RKL_experiment',
             'Date': '1970-01-01',
             'Workflow': 'GenerateFASTQ',
             'Application': 'FASTQ Only',

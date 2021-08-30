@@ -338,19 +338,23 @@ def _remap_table(table, assay):
     # make a copy because we are going to modify the data
     table = table[remapper.keys()].copy()
 
+    table.rename(remapper, axis=1, inplace=True)
+
     for column in _KL_SAMPLE_SHEET_DATA_COLUMNS:
         if column not in table.columns:
-            warnings.warn('The column %s in the sample sheet is empty')
+            warnings.warn('The column %s in the sample sheet is empty' %
+                          column)
             table[column] = ''
-
-    table.rename(remapper, axis=1, inplace=True)
 
     return table
 
 
 def _add_data_to_sheet(table, sheet, sequencer, lanes, assay):
     table = _remap_table(table, assay)
-    table['index'] = sequencer_i5_index(sequencer, table['index'])
+
+    # for amplicon we don't have reverse barcodes
+    if assay == _METAGENOMICS:
+        table['index2'] = sequencer_i5_index(sequencer, table['index2'])
 
     sheet.Bioinformatics['BarcodesAreRC'] = sequencer in REVCOMP_SEQUENCERS
 
