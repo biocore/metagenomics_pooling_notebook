@@ -12,8 +12,40 @@ import pandas as pd
 from metapool.metapool import (bcl_scrub_name, sequencer_i5_index,
                                REVCOMP_SEQUENCERS)
 
-_KL_SECTIONS = ['Header', 'Reads', 'Settings', 'Data', 'Bioinformatics',
-                'Contact']
+_KL_SAMPLE_SHEET_SECTIONS = [
+    'Header', 'Reads', 'Settings', 'Data', 'Bioinformatics', 'Contact'
+]
+
+_KL_SAMPLE_SHEET_DATA_COLUMNS = [
+    'Sample_ID', 'Sample_Name', 'Sample_Plate', 'Sample_Well', 'I7_Index_ID',
+    'index', 'I5_Index_ID', 'index2', 'Sample_Project', 'Well_description'
+]
+
+_KL_AMPLICON_REMAPPER = {
+    'sample sheet Sample_ID': 'Sample_ID',
+    'Sample': 'Sample_Name',
+    'Project Plate': 'Sample_Plate',
+    'Well': 'Sample_Well',
+    'Name': 'I7_Index_ID',
+    'Golay Barcode': 'index',
+    'Project Name': 'Sample_Project',
+}
+
+_KL_METAGENOMICS_REMAPPER = {
+    'sample sheet Sample_ID': 'Sample_ID',
+    'Sample': 'Sample_Name',
+    'Project Plate': 'Sample_Plate',
+    'Well': 'Sample_Well',
+    'i7 name': 'I7_Index_ID',
+    'i7 sequence': 'index',
+    'i5 name': 'I5_Index_ID',
+    'i5 sequence': 'index2',
+    'Project Name': 'Sample_Project',
+}
+
+_AMPLICON = 'Amplicon'
+_METAGENOMICS = 'Metagenomics'
+_ASSAYS = {_AMPLICON, _METAGENOMICS}
 
 _READS = {
     'Read1': 151,
@@ -117,7 +149,7 @@ c3df258541a384a5058f8aa46b343ff032d8e247/sample_sheet/__init__.py
                 section_name, *_ = header_match.groups()
                 if (
                     section_name not in self._sections
-                    and section_name not in _KL_SECTIONS
+                    and section_name not in _KL_SAMPLE_SHEET_SECTIONS
                 ):
                     self.add_section(section_name)
 
@@ -225,6 +257,18 @@ c3df258541a384a5058f8aa46b343ff032d8e247/sample_sheet/__init__.py
             write_blank_lines(writer)
 
     def merge(self, sheets):
+        """Merge the Data section of multiple sample sheets
+
+        Parameters
+        ----------
+        sheets: list of KLSampleSheet
+            The sample sheets to merge into `self`.
+
+        Returns
+        -------
+        KLSampleSheet
+            The combined sample sheet.
+        """
         for sheet in sheets:
             for sample in sheet.samples:
                 self.add_sample(sample)
@@ -276,56 +320,38 @@ def _add_metadata_to_sheet(metadata, sheet):
         elif key in _BIOINFORMATICS_AND_CONTACT:
             setattr(sheet, key, pd.DataFrame(metadata[key]))
 
+    # Per MacKenzie's request for 16S don't include Investigator Name and
+    # Experiment Name
+    if metadata['Assay'] == _AMPLICON:
+        del sheet.Header['Investigator Name']
+        del sheet.Header['Experiment Name']
+
     return sheet
 
 
-def _remap_table(table):
-    # TODO: do more error checking
-    # make sure the table has the right columns
-    # required = {'Sample_ID', 'Sample_Name', 'Sample_Plate', 'Sample_Well',
-    #             'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
-    #             'Sample_Project', 'Description'}
-    # if not required.issubset(table.columns):
-    #     raise ValueError('There are required columns missing, you might need'
-    #                      ' to rename existing columns')
-
-    if ('Golay Barcode' in table.columns and
-       'EMP Primer Plate Well' in table.columns):
-        remapper = {
-            'sample sheet Sample_ID': 'Sample_ID',
-            'Golay Barcode': 'index',
-            'Sample': 'Sample_Name',
-            'Project Name': 'Sample_Project',
-            'Project Plate': 'Sample_Plate',
-            'Name': 'I5_Index_ID',
-            'Well': 'Sample_Well'
-        }
-
-    elif 'i5 sequence' in table.columns and 'i5 sequence' in table.columns:
-        remapper = {
-            'sample sheet Sample_ID': 'Sample_ID',
-        }
-    else:
-        raise ValueError('Cannot guess what preparation type this is')
+def _remap_table(table, assay):
+    if assay == _AMPLICON:
+        remapper = _KL_AMPLICON_REMAPPER
+    elif assay == _METAGENOMICS:
+        remapper = _KL_METAGENOMICS_REMAPPER
 
     # make a copy because we are going to modify the data
     table = table[remapper.keys()].copy()
 
-    # HACK: REMOVE THIS
-    table['I7_Index_ID'] = ''
-    table['index2'] = ''
-    table['Well_description'] = ''
+    for column in _KL_SAMPLE_SHEET_DATA_COLUMNS:
+        if column not in table.columns:
+            warnings.warn('The column %s in the sample sheet is empty')
+            table[column] = ''
 
     table.rename(remapper, axis=1, inplace=True)
 
     return table
 
 
-def _add_data_to_sheet(table, sheet, sequencer, lanes):
-    table = _remap_table(table)
+def _add_data_to_sheet(table, sheet, sequencer, lanes, assay):
+    table = _remap_table(table, assay)
     table['index'] = sequencer_i5_index(sequencer, table['index'])
 
-    # TODO: check the sequencer is known
     sheet.Bioinformatics['BarcodesAreRC'] = sequencer in REVCOMP_SEQUENCERS
 
     for lane in lanes:
@@ -358,7 +384,8 @@ def make_sample_sheet(metadata, table, sequencer, lanes):
         - Date: Date when the sheet is prepared [Today's date]
         - Workflow: how the sample sheet should be used [GenerateFASTQ]
         - Application: sample sheet's application [FASTQ Only]
-        - Assay: assay type for the sequencing run [Metagenomics]
+        - Assay: assay type for the sequencing run. No default value will be
+          set, this is required.
         - Description: additional information []
         - Chemistry: chemistry's description [Default]
         - read1: Length of forward read [151]
@@ -389,7 +416,8 @@ def make_sample_sheet(metadata, table, sequencer, lanes):
     sheet = _add_metadata_to_sheet(metadata, sheet)
 
     # make sure that we can use the lanes attribute as expected
-    sheet = _add_data_to_sheet(table, sheet, sequencer, lanes)
+    sheet = _add_data_to_sheet(table, sheet, sequencer, lanes,
+                               metadata['Assay'])
 
     return sheet
 
