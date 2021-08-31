@@ -213,8 +213,8 @@ class KLSampleSheetTests(BaseTests):
             'Sample_Name': 'a.sample'
         }))
 
-        with self.assertRaisesRegex(ValueError, 'The Settings section is different '
-                               'for sample sheet 1'):
+        with self.assertRaisesRegex(ValueError, 'The Settings section is '
+                                    'different for sample sheet 1'):
             base.merge([hugo])
 
 
