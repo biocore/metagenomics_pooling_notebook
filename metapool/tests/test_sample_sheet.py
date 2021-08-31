@@ -278,6 +278,15 @@ class KLSampleSheetTests(BaseTests):
         exp = [ErrorMessage('Bioinformatics is a required attribute')]
         self.assertEqual(obs, exp)
 
+    def test_validate_missing_column_in_bioinformatics(self):
+        del self.metadata['Bioinformatics'][0]['Sample_Project']
+        exp = [ErrorMessage('Project #1 does not have exactly these keys '
+                            'BarcodesAreRC, ForwardAdapter, HumanFiltering, '
+                            'QiitaID, ReverseAdapter, Sample_Project in the '
+                            'Bioinformatics section')]
+        obs = _validate_sample_sheet_metadata(self.metadata)
+        self.assertEqual(str(obs[0]), str(exp[0]))
+
 
 class SampleSheetWorkflow(BaseTests):
     def setUp(self):

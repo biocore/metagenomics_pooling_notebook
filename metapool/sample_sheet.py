@@ -69,6 +69,15 @@ _HEADER = {
     'Chemistry': 'Default',
 }
 
+_BIOINFORMATICS_COLUMNS = {
+    'Sample_Project', 'QiitaID', 'BarcodesAreRC', 'ForwardAdapter',
+    'ReverseAdapter', 'HumanFiltering'
+}
+
+_CONTACT_COLUMNS = {
+    'Sample_Project', 'Email'
+}
+
 _BIOINFORMATICS_AND_CONTACT = {
     'Bioinformatics': None,
     'Contact': None
@@ -303,6 +312,22 @@ def _validate_sample_sheet_metadata(metadata):
     for req in ['Assay', 'Bioinformatics', 'Contact']:
         if req not in metadata:
             msgs.append(ErrorMessage('%s is a required attribute' % req))
+
+    # if both sections are found, then check that all the columns are present,
+    # checks for the contents are done in the sample sheet validation routine
+    if 'Bioinformatics' in metadata and 'Contact' in metadata:
+        for section in ['Bioinformatics', 'Contact']:
+            if section == 'Bioinformatics':
+                columns = _BIOINFORMATICS_COLUMNS
+            else:
+                columns = _CONTACT_COLUMNS
+
+            for i, project in enumerate(metadata[section]):
+                if set(project.keys()) != columns:
+                    message = ('Project #%d does not have exactly these keys '
+                               '%s in the %s section' %
+                               (i+1, ', '.join(sorted(columns)), section))
+                    msgs.append(ErrorMessage(message))
 
     if metadata.get('Assay') is not None and metadata['Assay'] not in _ASSAYS:
         msgs.append(ErrorMessage('%s is not a supported Assay' %
