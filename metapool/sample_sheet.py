@@ -11,7 +11,7 @@ import pandas as pd
 
 from metapool.metapool import (bcl_scrub_name, sequencer_i5_index,
                                REVCOMP_SEQUENCERS)
-from metapool.plate import ErrorMessage
+from metapool.plate import ErrorMessage, WarningMessage
 
 _KL_SAMPLE_SHEET_SECTIONS = [
     'Header', 'Reads', 'Settings', 'Data', 'Bioinformatics', 'Contact'
@@ -462,22 +462,22 @@ def validate_sample_sheet(sheet):
     Returns
     -------
     sample_sheet.SampleSheet
-        Corrected and validated sample sheet.
-
-    Raises
-    ------
-    ValueError
-        If the Sample_ID column or the Sample_project columns are missing.
-        If duplicated elements are found in the Sample_ID column after name
-        scrubbing.
-    UserWarning
-        When sample identifiers are scrubbed for bcl2fastq compatibility.
-        If project names don't include a Qiita study identifier.
+        Corrected and validated sample sheet if no errors are found.
     """
 
-    if sheet.samples[0].Sample_project is None:
-        raise ValueError('The Sample_project column in the Data section is '
-                         'missing')
+    # we print an error return None and exit when this happens otherwise we
+    # won't be able to run some of the other checks
+    for column in _KL_SAMPLE_SHEET_DATA_COLUMNS:
+        if column not in sheet.all_sample_keys:
+            ErrorMessage('The %s column in the Data section is missing' %
+                         column).echo()
+            return
+    for section in ['Bioinformatics', 'Contact']:
+        if getattr(sheet, section) is None:
+            ErrorMessage('The %s section cannot be empty' % section).echo()
+            return
+
+    msgs = []
 
     corrected_names = []
     for sample in sheet.samples:
@@ -487,33 +487,21 @@ def validate_sample_sheet(sheet):
             sample.Sample_ID = new
 
     if corrected_names:
-        warnings.warn('The following sample names were scrubbed for bcl2fastq'
-                      ' compatibility:\n%s' % ', '.join(corrected_names))
+        msgs.append(
+            WarningMessage('The following sample names were scrubbed for'
+                           ' bcl2fastq compatibility:\n%s' %
+                           ', '.join(corrected_names)))
 
-    # based on Illumina's recommendation Sample_ID is the required column to
-    # name samples
-    samples = collections.Counter([s.Sample_ID for s in sheet.samples])
-
-    # check all values are unique
-    duplicates = {k: v for k, v in samples.items() if v > 1}
-
-    if duplicates:
-        names = '\n'.join(['%s: %d' % (k, v) for k, v in duplicates.items()])
-        message = ('The following names in the Sample_ID column are listed '
-                   'multiple times:\n%s' % names)
-
-        # make it clear if the sample collisions are caused by the scrubbing
-        if corrected_names:
-            message = ('After scrubbing samples for bcl2fastq compatibility '
-                       'there are repeated identifiers. ' + message)
-
-        raise ValueError(message)
-    lanes = collections.Counter([s.Lane for s in sheet.samples])
+    pairs = collections.Counter([(s.Lane, s.Sample_Project)
+                                 for s in sheet.samples])
     # warn users when there's missing lane values
-    if any([lane.strip() == '' for lane in lanes]):
-        warnings.warn('The following projects are missing a Lane value')
+    empty_projects = [project for lane, project in pairs if lane.strip() == '']
+    if empty_projects:
+        msgs.append(
+            ErrorMessage('The following projects are missing a Lane value: '
+                         '%s' % ', '.join(sorted(empty_projects))))
 
-    projects = collections.Counter([s.Sample_project for s in sheet.samples])
+    projects = {s.Sample_Project for s in sheet.samples}
 
     # project identifiers are digit groups at the end of the project name
     # preceded by an underscore CaporasoIllumina_550
@@ -523,13 +511,33 @@ def validate_sample_sheet(sheet):
         if re.search(qiita_id_re, project_name) is None:
             bad_projects.append(project_name)
     if bad_projects:
-        warnings.warn('The following project names in the Sample_project '
-                      'column are missing a Qiita study '
-                      'identifier: %s' % ', '.join(sorted(bad_projects)))
+        msgs.append(
+            ErrorMessage('The following project names in the Sample_Project '
+                         'column are missing a Qiita study '
+                         'identifier: %s' % ', '.join(sorted(bad_projects))))
 
-    # check sample projects match with the stuff present in the table
+    # check Sample_project values match across sections
+    bfx = set(sheet.Bioinformatics['Sample_Project'])
+    contact = set(sheet.Contact['Sample_Project'])
+    not_shared = projects ^ bfx
+    if not_shared:
+        msgs.append(
+            ErrorMessage('The following projects need to be in the Data and '
+                         'Bioinformatics sections %s' %
+                         ', '.join(sorted(not_shared))))
+    elif not contact.issubset(projects):
+        msgs.append(
+            ErrorMessage(('The following projects were only found in the '
+                          'Contact section: %s projects need to be listed in '
+                          'the Data and Bioinformatics section in order to '
+                          'be included in the Contact section.') %
+                         ', '.join(sorted(contact - projects))))
 
-    return sheet
+    [m.echo() for m in msgs]
+
+    # if there are no error messages then return the sheet
+    if not any([isinstance(m, ErrorMessage) for m in msgs]):
+        return sheet
 
 
 def sample_sheet_to_dataframe(sheet):

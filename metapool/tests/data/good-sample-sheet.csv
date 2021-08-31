@@ -806,6 +806,7 @@ Lane,Sample_ID,Sample_Name,Sample_Plate,Sample_Well,I7_Index_ID,index,I5_Index_I
 Sample_Project,QiitaID,BarcodesAreRC,ForwardAdapter,ReverseAdapter,HumanFiltering,,,,,
 NYU_BMS_Melanoma_13059,13059,False,AACC,GGTT,False,,,,,
 Feist_11661,11661,False,AACC,GGTT,False,,,,,
+Gerwick_6123,6123,False,AACC,GGTT,False,,,,,
 ,,,,,,,,,,
 [Contact],,,,,,,,,,
 Email,Sample_Project,,,,,,,,,

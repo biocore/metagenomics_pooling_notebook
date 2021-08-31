@@ -1,3 +1,4 @@
+import sys
 import unittest
 import os
 import warnings
@@ -579,39 +580,49 @@ class SampleSheetWorkflow(BaseTests):
 
 
 class ValidateSampleSheetTests(BaseTests):
+    def assertStdOutEqual(self, expected):
+        # testing stdout: https://stackoverflow.com/a/12683001
+        observed = sys.stdout.getvalue().strip()
+        self.assertEqual(observed, expected)
+
     def test_validate_sample_sheet(self):
         sheet = KLSampleSheet(self.good_ss)
-
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-
-            _ = validate_sample_sheet(sheet)
-
-            # check no warnings are raised
-            self.assertTrue(len(w) == 0)
+        sheet = validate_sample_sheet(sheet)
+        # no errors
+        self.assertStdOutEqual('')
+        self.assertTrue(isinstance(sheet, KLSampleSheet))
 
     def test_validate_sample_sheet_no_sample_project(self):
         sheet = KLSampleSheet(self.no_project_ss)
+        sheet = validate_sample_sheet(sheet)
 
-        with self.assertRaisesRegex(ValueError, 'The Sample_project column '):
-            validate_sample_sheet(sheet)
+        self.assertStdOutEqual('ErrorMessage: The Sample_Project column in the'
+                               ' Data section is missing')
+        self.assertIsNone(sheet)
 
-    def test_validate_sample_sheet_repeated_sample_ids(self):
-        sheet = KLSampleSheet(self.ok_ss)
+    def test_validate_sample_sheet_missing_bioinformatics(self):
+        sheet = KLSampleSheet(self.good_ss)
+        sheet.Bioinformatics = None
+        sheet = validate_sample_sheet(sheet)
 
-        # the sample identifiers are only repeated after scrubbing
-        with self.assertRaisesRegex(ValueError, 'After scrubbing samples for '
-                                    'bcl2fastq compatibility there are '
-                                    'repeated identifiers. The following names'
-                                    ' in the Sample_ID column are listed '
-                                    'multiple times:\nCDPH-SAL_Salmonella_'
-                                    'Typhi_MDL_144: 2'):
-            validate_sample_sheet(sheet)
+        self.assertStdOutEqual('ErrorMessage: The Bioinformatics section '
+                               'cannot be empty')
+        self.assertIsNone(sheet)
+
+    def test_validate_sample_sheet_missing_contact(self):
+        sheet = KLSampleSheet(self.good_ss)
+        sheet.Contact = None
+        sheet = validate_sample_sheet(sheet)
+
+        self.assertStdOutEqual('ErrorMessage: The Contact section '
+                               'cannot be empty')
+        self.assertIsNone(sheet)
 
     def test_validate_sample_sheet_scrubbed_names(self):
         sheet = KLSampleSheet(self.scrubbable_ss)
 
-        message = ('The following sample names were scrubbed for bcl2fastq '
+        message = ('WarningMessage: '
+                   'The following sample names were scrubbed for bcl2fastq '
                    'compatibility:\nCDPH-SAL_Salmonella_Typhi_MDL.143, '
                    'CDPH-SAL_Salmonella_Typhi_MDL.144, CDPH-SAL_Salmonella_'
                    'Typhi_MDL.145, CDPH-SAL_Salmonella_Typhi_MDL.146, CDPH-'
@@ -637,17 +648,35 @@ class ValidateSampleSheetTests(BaseTests):
                    '361, P21_E.coli ELI362, P21_E.coli ELI363, P21_E.coli '
                    'ELI364, P21_E.coli ELI365, P21_E.coli ELI366, P21_E.coli '
                    'ELI367, P21_E.coli ELI368, P21_E.coli ELI369')
+        sheet = validate_sample_sheet(sheet)
 
-        with self.assertWarnsRegex(UserWarning, message):
-            validate_sample_sheet(sheet)
+        self.assertStdOutEqual(message)
+        self.assertTrue(isinstance(sheet, KLSampleSheet))
 
     def test_validate_sample_sheet_bad_project_names(self):
         sheet = KLSampleSheet(self.bad_project_name_ss)
 
-        with self.assertWarnsRegex(UserWarning, 'The following project names '
-                                   'in the Sample_project column are missing a'
-                                   ' Qiita study identifier: Feist, Gerwick'):
-            validate_sample_sheet(sheet)
+        message = ('ErrorMessage: The following project names in the '
+                   'Sample_Project column are missing a Qiita study '
+                   'identifier: Feist, Gerwick')
+
+        sheet = validate_sample_sheet(sheet)
+        self.assertStdOutEqual(message)
+        self.assertIsNone(sheet)
+
+    def test_validate_sample_sheet_project_missing_lane(self):
+        sheet = KLSampleSheet(self.good_ss)
+
+        # set the lane value as empty for one of the two projects
+        for sample in sheet.samples:
+            if sample.Sample_Project == 'Feist_11661':
+                sample.Lane = ' '
+
+        sheet = validate_sample_sheet(sheet)
+        message = ('ErrorMessage: The following projects are missing a Lane '
+                   'value: Feist_11661')
+        self.assertStdOutEqual(message)
+        self.assertIsNone(sheet)
 
     def test_sample_sheet_to_dataframe(self):
         ss = KLSampleSheet(self.ss)
@@ -684,4 +713,5 @@ DF_DATA = [
 
 
 if __name__ == '__main__':
-    unittest.main()
+    assert not hasattr(sys.stdout, "getvalue")
+    unittest.main(module=__name__, buffer=True, exit=False)
