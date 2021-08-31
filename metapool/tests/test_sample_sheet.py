@@ -38,10 +38,6 @@ class BaseTests(unittest.TestCase):
         self.bad_project_name_ss = os.path.join(
             data_dir, 'bad-project-name-sample-sheet.csv')
 
-        # TODO: should we remove because we don't use comments anymore?
-        self.no_comments_ss = os.path.join(data_dir,
-                                           'no-comments-sample-sheet.csv')
-
         bfx = [
             {
              'Sample_Project': 'Koening_ITS_101',
