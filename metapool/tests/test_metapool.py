@@ -1,6 +1,5 @@
 from unittest import TestCase, main
 
-import os
 import pandas as pd
 import numpy as np
 import numpy.testing as npt
