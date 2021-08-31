@@ -1,7 +1,6 @@
 import sys
 import unittest
 import os
-import warnings
 import tempfile
 from datetime import datetime
 
@@ -42,6 +41,42 @@ class BaseTests(unittest.TestCase):
         # TODO: should we remove because we don't use comments anymore?
         self.no_comments_ss = os.path.join(data_dir,
                                            'no-comments-sample-sheet.csv')
+
+        bfx = [
+            {
+             'Sample_Project': 'Koening_ITS_101',
+             'QiitaID': '101',
+             'BarcodesAreRC': 'False',
+             'ForwardAdapter': 'GATACA',
+             'ReverseAdapter': 'CATCAT',
+             'HumanFiltering': 'False'
+            },
+            {
+             'Sample_Project': 'Yanomani_2008_10052',
+             'QiitaID': '10052',
+             'BarcodesAreRC': 'False',
+             'ForwardAdapter': 'GATACA',
+             'ReverseAdapter': 'CATCAT',
+             'HumanFiltering': 'False'
+            }
+        ]
+
+        contact = [
+            {
+             'Sample_Project': 'Koening_ITS_101',
+             'Email': 'yoshiki@compy.com,ilike@turtles.com'
+            },
+            {
+             'Sample_Project': 'Yanomani_2008_10052',
+             'Email': 'mgdb@gmail.com'
+            }
+        ]
+
+        self.metadata = {
+            'Bioinformatics': bfx,
+            'Contact': contact,
+            'Assay': 'TruSeq HT',
+        }
 
 
 class KLSampleSheetTests(BaseTests):
@@ -218,6 +253,31 @@ class KLSampleSheetTests(BaseTests):
                                     'different for sample sheet 1'):
             base.merge([hugo])
 
+    def test_validate(self):
+        obs = _validate_sample_sheet_metadata(self.metadata)
+        self.assertEqual(obs, [])
+
+    def test_more_attributes(self):
+        self.metadata['Ride'] = 'the lightning'
+
+        obs = _validate_sample_sheet_metadata(self.metadata)
+        exp = [ErrorMessage('These metadata keys are not supported: Ride')]
+        self.assertEqual(obs, exp)
+
+    def test_validate_missing_assay(self):
+        self.metadata['Assay'] = 'Metatranscriptomics'
+
+        obs = _validate_sample_sheet_metadata(self.metadata)
+        exp = [ErrorMessage('Metatranscriptomics is not a supported Assay')]
+        self.assertEqual(obs, exp)
+
+    def test_validate_missing_bioinformatics_data(self):
+        del self.metadata['Bioinformatics']
+
+        obs = _validate_sample_sheet_metadata(self.metadata)
+        exp = [ErrorMessage('Bioinformatics is a required attribute')]
+        self.assertEqual(obs, exp)
+
 
 class SampleSheetWorkflow(BaseTests):
     def setUp(self):
@@ -296,42 +356,6 @@ class SampleSheetWorkflow(BaseTests):
                      '515FB Forward Primer (Parada)', 'Primer For PCR'],
             data=data
         )
-
-        bfx = [
-            {
-             'Sample_Project': 'Koening_ITS_101',
-             'QiitaID': '101',
-             'BarcodesAreRC': 'False',
-             'ForwardAdapter': 'GATACA',
-             'ReverseAdapter': 'CATCAT',
-             'HumanFiltering': 'False'
-            },
-            {
-             'Sample_Project': 'Yanomani_2008_10052',
-             'QiitaID': '10052',
-             'BarcodesAreRC': 'False',
-             'ForwardAdapter': 'GATACA',
-             'ReverseAdapter': 'CATCAT',
-             'HumanFiltering': 'False'
-            }
-        ]
-
-        contact = [
-            {
-             'Sample_Project': 'Koening_ITS_101',
-             'Email': 'yoshiki@compy.com,ilike@turtles.com'
-            },
-            {
-             'Sample_Project': 'Yanomani_2008_10052',
-             'Email': 'mgdb@gmail.com'
-            }
-        ]
-
-        self.metadata = {
-            'Bioinformatics': bfx,
-            'Contact': contact,
-            'Assay': 'TruSeq HT',
-        }
 
     def test_validate_sample_sheet_metadata_empty(self):
         messages = _validate_sample_sheet_metadata({})
