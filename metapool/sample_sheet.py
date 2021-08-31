@@ -520,7 +520,8 @@ def validate_sample_sheet(sheet):
     pairs = collections.Counter([(s.Lane, s.Sample_Project)
                                  for s in sheet.samples])
     # warn users when there's missing lane values
-    empty_projects = [project for lane, project in pairs if lane.strip() == '']
+    empty_projects = [project for lane, project in pairs
+                      if str(lane).strip() == '']
     if empty_projects:
         msgs.append(
             ErrorMessage('The following projects are missing a Lane value: '
