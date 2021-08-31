@@ -272,8 +272,18 @@ c3df258541a384a5058f8aa46b343ff032d8e247/sample_sheet/__init__.py
         -------
         KLSampleSheet
             The combined sample sheet.
+
+        Raises
+        ------
+        ValueError
+            If the header section is different between merged sheets.
         """
-        for sheet in sheets:
+        for number, sheet in enumerate(sheets):
+            for section in ['Header', 'Settings', 'Reads']:
+                if getattr(self, section) != getattr(sheet, section):
+                    raise ValueError(('The %s section is different for sample '
+                                     'sheet %d ') % (section, 1 + number))
+
             for sample in sheet.samples:
                 self.add_sample(sample)
 

@@ -129,6 +129,94 @@ class KLSampleSheetTests(BaseTests):
         )
         pd.testing.assert_frame_equal(sheet.Contact, exp)
 
+    def test_merge(self):
+        base = KLSampleSheet()
+        base.Reads = [151, 151]
+        base.add_sample(sample_sheet.Sample({
+            'Sample_ID': 'y',
+            'index': 'GGTACA',
+            'index2': 'GGCGCC',
+            'Sample_Name': 'y.sample'
+        }))
+
+        hugo = KLSampleSheet()
+        hugo.Reads = [151, 151]
+        hugo.add_sample(sample_sheet.Sample({
+            'Sample_ID': 'a',
+            'index': 'GATACA',
+            'index2': 'GCCGCC',
+            'Sample_Name': 'a.sample'
+        }))
+
+        paco = KLSampleSheet()
+        paco.Reads = [151, 151]
+        paco.add_sample(sample_sheet.Sample({
+            'Sample_ID': 'b',
+            'index': 'GATAAA',
+            'index2': 'GCCACC',
+            'Sample_Name': 'b.sample'
+        }))
+
+        luis = KLSampleSheet()
+        luis.Reads = [151, 151]
+        luis.add_sample(sample_sheet.Sample({
+                'Sample_ID': 'c',
+                'index': 'GATATA',
+                'index2': 'GCCTCC',
+                'Sample_Name': 'c.sample'}))
+
+        base.merge([hugo, paco, luis])
+
+        self.assertEqual(base.Reads, [151, 151])
+
+        exp_samples = [
+            sample_sheet.Sample({
+                'Sample_ID': 'y',
+                'index': 'GGTACA',
+                'index2': 'GGCGCC',
+                'Sample_Name': 'y.sample'}
+            ),
+            sample_sheet.Sample({
+                'Sample_ID': 'a',
+                'index': 'GATACA',
+                'index2': 'GCCGCC',
+                'Sample_Name': 'a.sample'}
+            ),
+            sample_sheet.Sample({
+                'Sample_ID': 'b',
+                'index': 'GATAAA',
+                'index2': 'GCCACC',
+                'Sample_Name': 'b.sample'}
+            ),
+            sample_sheet.Sample({
+                'Sample_ID': 'c',
+                'index': 'GATATA',
+                'index2': 'GCCTCC',
+                'Sample_Name': 'c.sample'}
+            ),
+        ]
+
+        for obs, exp in zip(base.samples, exp_samples):
+            self.assertEqual(obs, exp)
+
+    def test_merge_error(self):
+        base = KLSampleSheet()
+        base.Reads = [151, 151]
+        base.Settings = {'ReverseComplement': 0,
+                         'SomethingElse': '100'}
+
+        hugo = KLSampleSheet()
+        hugo.add_sample(sample_sheet.Sample({
+            'Sample_ID': 'a',
+            'index': 'GATACA',
+            'index2': 'GCCGCC',
+            'Sample_Name': 'a.sample'
+        }))
+
+        with self.assertRaisesRegex(ValueError, 'The Settings section is different '
+                               'for sample sheet 1'):
+            base.merge([hugo])
+
 
 class SampleSheetWorkflow(BaseTests):
     def setUp(self):
