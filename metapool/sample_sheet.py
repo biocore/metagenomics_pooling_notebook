@@ -324,9 +324,9 @@ def _validate_sample_sheet_metadata(metadata):
 
             for i, project in enumerate(metadata[section]):
                 if set(project.keys()) != columns:
-                    message = ('Project #%d does not have exactly these keys '
-                               '%s in the %s section' %
-                               (i+1, ', '.join(sorted(columns)), section))
+                    message = (('In the %s section Project #%d does not have '
+                               'exactly these keys %s') %
+                               (section, i+1, ', '.join(sorted(columns))))
                     msgs.append(ErrorMessage(message))
 
     if metadata.get('Assay') is not None and metadata['Assay'] not in _ASSAYS:

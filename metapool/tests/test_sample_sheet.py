@@ -280,10 +280,10 @@ class KLSampleSheetTests(BaseTests):
 
     def test_validate_missing_column_in_bioinformatics(self):
         del self.metadata['Bioinformatics'][0]['Sample_Project']
-        exp = [ErrorMessage('Project #1 does not have exactly these keys '
-                            'BarcodesAreRC, ForwardAdapter, HumanFiltering, '
-                            'QiitaID, ReverseAdapter, Sample_Project in the '
-                            'Bioinformatics section')]
+        exp = [ErrorMessage('In the Bioinformatics section Project #1 does not'
+                            ' have exactly these keys BarcodesAreRC, '
+                            'ForwardAdapter, HumanFiltering, QiitaID, '
+                            'ReverseAdapter, Sample_Project')]
         obs = _validate_sample_sheet_metadata(self.metadata)
         self.assertEqual(str(obs[0]), str(exp[0]))
 
