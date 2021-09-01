@@ -454,13 +454,13 @@ class SampleSheetWorkflow(BaseTests):
                                     [5, 7])
 
         self.assertEqual(obs.Reads, [151, 151])
-        self.assertEqual(obs.Settings, {'ReverseComplement': 0})
+        self.assertEqual(obs.Settings, {'ReverseComplement': '0'})
 
         pd.testing.assert_frame_equal(obs.Bioinformatics, exp_bfx)
         pd.testing.assert_frame_equal(obs.Contact, exp_contact)
 
         header = {
-            'IEMFileVersion': 4,
+            'IEMFileVersion': '4',
             'Date': datetime.today().strftime('%Y-%m-%d'),
             'Workflow': 'GenerateFASTQ',
             'Application': 'FASTQ Only',
@@ -603,13 +603,13 @@ class SampleSheetWorkflow(BaseTests):
         obs = _add_metadata_to_sheet(self.metadata, sheet)
 
         self.assertEqual(obs.Reads, [151, 151])
-        self.assertEqual(obs.Settings, {'ReverseComplement': 0})
+        self.assertEqual(obs.Settings, {'ReverseComplement': '0'})
 
         pd.testing.assert_frame_equal(obs.Bioinformatics, exp_bfx)
         pd.testing.assert_frame_equal(obs.Contact, exp_contact)
 
         header = {
-            'IEMFileVersion': 4,
+            'IEMFileVersion': '4',
             'Investigator Name': 'Knight',
             'Experiment Name': 'RKL_experiment',
             'Date': datetime.today().strftime('%Y-%m-%d'),
@@ -642,13 +642,13 @@ class SampleSheetWorkflow(BaseTests):
         obs = _add_metadata_to_sheet(self.metadata, sheet)
 
         self.assertEqual(obs.Reads, [151, 151])
-        self.assertEqual(obs.Settings, {'ReverseComplement': 0})
+        self.assertEqual(obs.Settings, {'ReverseComplement': '0'})
 
         pd.testing.assert_frame_equal(obs.Bioinformatics, exp_bfx)
         pd.testing.assert_frame_equal(obs.Contact, exp_contact)
 
         header = {
-            'IEMFileVersion': 4,
+            'IEMFileVersion': '4',
             'Date': '1970-01-01',
             'Workflow': 'GenerateFASTQ',
             'Application': 'FASTQ Only',

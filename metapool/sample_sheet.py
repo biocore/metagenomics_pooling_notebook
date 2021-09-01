@@ -54,11 +54,11 @@ _READS = {
 }
 
 _SETTINGS = {
-    'ReverseComplement': 0
+    'ReverseComplement': '0'
 }
 
 _HEADER = {
-    'IEMFileVersion': 4,
+    'IEMFileVersion': '4',
     'Investigator Name': 'Knight',
     'Experiment Name': 'RKL_experiment',
     'Date': None,
@@ -190,14 +190,17 @@ c3df258541a384a5058f8aa46b343ff032d8e247/sample_sheet/__init__.py
                 continue
 
             elif section_name in {'Bioinformatics', 'Contact'}:
-                # CSV rows are padded to include commas for the longest line in
-                # the file, so we remove them to avoid creating empty columns
-                line = [value for value in line if value != '']
-
                 if getattr(self, section_name) is not None:
+                    # vals beyond the header are empty values so don't add them
+                    line = line[:len(getattr(self, section_name).columns)]
                     df = getattr(self, section_name)
                     df.loc[len(df)] = line
                 else:
+                    # CSV rows are padded to include commas for the longest
+                    # line in the file, so we remove them to avoid creating
+                    # empty columns
+                    line = [value for value in line if value != '']
+
                     setattr(self, section_name, pd.DataFrame(columns=line))
                 continue
 
@@ -305,7 +308,7 @@ c3df258541a384a5058f8aa46b343ff032d8e247/sample_sheet/__init__.py
                    getattr(sheet, section) is not None):
                     section = getattr(self, section)
 
-                    for _, row in getattr(sheet, section).iterrows():
+                    for _, row in section.iterrows():
                         section.loc[len(section)] = row
 
 
