@@ -95,8 +95,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         inclusion of the Bioinformatics and Contact sections.
 
         The majority of the code in the _parse and write methods are copied
-        from release 0.11.0 https://github.com/clintval/sample-sheet/blob/\
-c3df258541a384a5058f8aa46b343ff032d8e247/sample_sheet/__init__.py
+        from release 0.11.0 https://tinyurl.com/clintval-sample-sheet
 
         Parameters
         ----------
@@ -136,80 +135,83 @@ c3df258541a384a5058f8aa46b343ff032d8e247/sample_sheet/__init__.py
         with open(path, encoding=self._encoding) as handle:
             lines = list(csv.reader(handle, skipinitialspace=True))
 
-        for i, line in enumerate(lines):
-            # Skip to next line if this line is empty to support formats of
-            # sample sheets with multiple newlines as section seperators.
-            #
-            #   https://github.com/clintval/sample-sheet/issues/46
-            #
-            if not ''.join(line).strip():
-                continue
+            for i, line in enumerate(lines):
+                # Skip to next line if this line is empty to support formats of
+                # sample sheets with multiple newlines as section seperators.
+                #
+                #   https://github.com/clintval/sample-sheet/issues/46
+                #
+                if not ''.join(line).strip():
+                    continue
 
-            # Raise exception if we encounter invalid characters.
-            if any(
-                character not in sample_sheet.VALID_ASCII
-                for character in set(''.join(line))
-            ):
-                raise ValueError(
-                    f'Sample sheet contains invalid characters on line '
-                    f'{i + 1}: {"".join(line)}'
-                )
-
-            header_match = self._section_header_re.match(line[0])
-
-            # If we enter a section save it's name and continue to next line.
-            if header_match:
-                section_name, *_ = header_match.groups()
-                if (
-                    section_name not in self._sections
-                    and section_name not in _KL_SAMPLE_SHEET_SECTIONS
+                # Raise exception if we encounter invalid characters.
+                if any(
+                    character not in sample_sheet.VALID_ASCII
+                    for character in set(''.join(line))
                 ):
-                    self.add_section(section_name)
-
-                if section_header is not None:
-                    section_header = None
-                continue
-
-            # [Reads] - vertical list of integers.
-            if section_name == 'Reads':
-                self.Reads.append(int(line[0]))
-                continue
-
-            # [Data] - delimited data with the first line a header.
-            elif section_name == 'Data':
-                if section_header is not None:
-                    self.add_sample(
-                        sample_sheet.Sample(dict(zip(section_header, line))))
-                elif any(key == '' for key in line):
                     raise ValueError(
-                        f'Header for [Data] section is not allowed to '
-                        f'have empty fields: {line}'
+                        f'Sample sheet contains invalid characters on line '
+                        f'{i + 1}: {"".join(line)}'
                     )
+
+                header_match = self._section_header_re.match(line[0])
+
+                # If we enter a section save it's name and continue to next
+                # line.
+                if header_match:
+                    section_name, *_ = header_match.groups()
+                    if (
+                        section_name not in self._sections
+                        and section_name not in _KL_SAMPLE_SHEET_SECTIONS
+                    ):
+                        self.add_section(section_name)
+
+                    if section_header is not None:
+                        section_header = None
+                    continue
+
+                # [Reads] - vertical list of integers.
+                if section_name == 'Reads':
+                    self.Reads.append(int(line[0]))
+                    continue
+
+                # [Data] - delimited data with the first line a header.
+                elif section_name == 'Data':
+                    if section_header is not None:
+                        self.add_sample(
+                            sample_sheet.Sample(dict(zip(section_header,
+                                                         line))))
+                    elif any(key == '' for key in line):
+                        raise ValueError(
+                            f'Header for [Data] section is not allowed to '
+                            f'have empty fields: {line}'
+                        )
+                    else:
+                        section_header = line
+                    continue
+
+                elif section_name in {'Bioinformatics', 'Contact'}:
+                    if getattr(self, section_name) is not None:
+                        # vals beyond the header are empty values so don't add
+                        # them
+                        line = line[:len(getattr(self, section_name).columns)]
+                        df = getattr(self, section_name)
+                        df.loc[len(df)] = line
+                    else:
+                        # CSV rows are padded to include commas for the longest
+                        # line in the file, so we remove them to avoid creating
+                        # empty columns
+                        line = [value for value in line if value != '']
+
+                        setattr(self, section_name, pd.DataFrame(columns=line))
+                    continue
+
+                # [<Other>]
                 else:
-                    section_header = line
-                continue
-
-            elif section_name in {'Bioinformatics', 'Contact'}:
-                if getattr(self, section_name) is not None:
-                    # vals beyond the header are empty values so don't add them
-                    line = line[:len(getattr(self, section_name).columns)]
-                    df = getattr(self, section_name)
-                    df.loc[len(df)] = line
-                else:
-                    # CSV rows are padded to include commas for the longest
-                    # line in the file, so we remove them to avoid creating
-                    # empty columns
-                    line = [value for value in line if value != '']
-
-                    setattr(self, section_name, pd.DataFrame(columns=line))
-                continue
-
-            # [<Other>]
-            else:
-                key, value, *_ = line
-                section = getattr(self, section_name)
-                section[key] = value
-                continue
+                    key, value, *_ = line
+                    section = getattr(self, section_name)
+                    section[key] = value
+                    continue
 
     def write(self, handle, blank_lines=1) -> None:
         """Write to a file-like object.
@@ -432,7 +434,7 @@ def make_sample_sheet(metadata, table, sequencer, lanes):
     Parameters
     ----------
     metadata: dict
-        Metadata describing the sample sheet with the following fileds.
+        Metadata describing the sample sheet with the following fields.
         If a value is omitted from this dictionary the values in square
         brackets are used as defaults.
 
