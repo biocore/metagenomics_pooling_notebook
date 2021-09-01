@@ -224,8 +224,9 @@ c3df258541a384a5058f8aa46b343ff032d8e247/sample_sheet/__init__.py
         writer = csv.writer(handle)
         csv_width = max([
             len(self.all_sample_keys),
-            len(self.Bioinformatics.columns) if self.Bioinformatics else 0,
-            len(self.Contact.columns) if self.Contact else 0,
+            len(self.Bioinformatics.columns)
+            if self.Bioinformatics is not None else 0,
+            len(self.Contact.columns) if self.Contact is not None else 0,
             2])
 
         # custom Illumina sections will go between header reads
