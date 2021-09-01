@@ -222,9 +222,11 @@ c3df258541a384a5058f8aa46b343ff032d8e247/sample_sheet/__init__.py
             raise ValueError('Number of blank lines must be a positive int.')
 
         writer = csv.writer(handle)
-        csv_width = max([len(self.all_sample_keys),
-                         len(self.Bioinformatics.columns),
-                         len(self.Contact.columns), 2])
+        csv_width = max([
+            len(self.all_sample_keys),
+            len(self.Bioinformatics.columns) if self.Bioinformatics else 0,
+            len(self.Contact.columns) if self.Contact else 0,
+            2])
 
         # custom Illumina sections will go between header reads
         section_order = (['Header', 'Reads', 'Settings', 'Data',

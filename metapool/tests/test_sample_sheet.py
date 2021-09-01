@@ -93,6 +93,60 @@ class KLSampleSheetTests(BaseTests):
                     self.assertEqual(observed.split(), expected.read().split(),
                                      f'Problem found with {filename}')
 
+    def test_empty_write(self):
+        exp = [
+            '[Header],',
+            ',',
+            '[Reads],',
+            ',',
+            '[Settings],',
+            ',',
+            '[Data],',
+            ',',
+            ',',
+            '[Bioinformatics],',
+            ',',
+            '[Contact],',
+            ',',
+            '']
+
+        empty = KLSampleSheet()
+        with tempfile.NamedTemporaryFile('w+') as tmp:
+            empty.write(tmp)
+            tmp.seek(0)
+            observed = tmp.read()
+
+            self.assertEqual(observed.split('\n'), exp)
+
+    def test_empty_read(self):
+        empty = [
+            '[Header],',
+            ',',
+            '[Reads],',
+            ',',
+            '[Settings],',
+            ',',
+            '[Data],',
+            ',',
+            ',',
+            '[Bioinformatics],',
+            ',',
+            '[Contact],',
+            ',']
+
+        with tempfile.NamedTemporaryFile('w+') as tmp:
+            for line in empty:
+                tmp.write(line + '\n')
+
+            sheet = KLSampleSheet(tmp.name)
+
+            self.assertEqual(sheet.samples, [])
+            self.assertEqual(sheet.Settings, {})
+            self.assertEqual(sheet.Header, {})
+            self.assertEqual(sheet.Reads, [])
+            self.assertIsNone(sheet.Bioinformatics)
+            self.assertIsNone(sheet.Contact)
+
     def test_parse(self):
         sheet = KLSampleSheet(self.ss)
 
