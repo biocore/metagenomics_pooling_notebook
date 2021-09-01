@@ -311,6 +311,10 @@ c3df258541a384a5058f8aa46b343ff032d8e247/sample_sheet/__init__.py
                     for _, row in section.iterrows():
                         section.loc[len(section)] = row
 
+                    # avoid repeating project information
+                    section.drop_duplicates(keep='first', ignore_index=True,
+                                            inplace=True)
+
 
 def _validate_sample_sheet_metadata(metadata):
     msgs = []
