@@ -1,6 +1,3 @@
-# PI,Knight,robknight@ucsd.edu,,,,,,,,
-# Contact,Gail Ackermann,Greg Humphrey,Jeff Dereus,Jon Sanders,,,,,,
-# ,ackermag@ucsd.edu,ghsmu414@gmail.com,jdereus@ucsd.edu,jonsan@gmail.com,,,,,,
 [Header],,,,,,,,,,
 IEMFileVersion,4,,,,,,,,,
 Investigator Name,Knight,,,,,,,,,
@@ -804,3 +801,15 @@ Lane,Sample_ID,Sample_Name,Sample_Plate,Sample_Well,I7_Index_ID,index,I5_Index_I
 1,SP415023A02,SP415023A02,NYU_BMS_Melanoma_13059_P4,L24,iTru7_107_06,TGAACCTG,iTru5_122_H,GAACGGTT,NYU_BMS_Melanoma_13059,SP415023A02
 1,EP400448B04,EP400448B04,NYU_BMS_Melanoma_13059_P4,N24,iTru7_107_07,CCGACTAT,iTru5_123_H,CTCTTGTC,NYU_BMS_Melanoma_13059,EP400448B04
 1,EP479894B04,EP479894B04,NYU_BMS_Melanoma_13059_P4,P24,iTru7_107_08,AGCTAACC,iTru5_124_H,AACGCCTT,NYU_BMS_Melanoma_13059,EP479894B04
+,,,,,,,,,,
+[Bioinformatics],,,,,,,,,,
+Sample_Project,QiitaID,BarcodesAreRC,ForwardAdapter,ReverseAdapter,HumanFiltering,,,,,
+NYU_BMS_Melanoma_13059,13059,False,AACC,GGTT,False,,,,,
+Feist_11661,11661,False,AACC,GGTT,False,,,,,
+Feist,11661,False,AACC,GGTT,False,,,,,
+Gerwick,101,False,AACC,GGTT,False,,,,,
+,,,,,,,,,,
+[Contact],,,,,,,,,,
+Email,Sample_Project,,,,,,,,,
+test@lol.com,Feist_11661,,,,,,,,,
+,,,,,,,,,,

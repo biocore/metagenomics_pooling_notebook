@@ -23,6 +23,25 @@ PREP_COLUMNS = ['sample_name', 'experiment_design_description',
 EXPERIMENT_PLACEHOLDER = "EXPERIMENT_DESC"
 LIBRARY_PLACEHOLDER = "LIBRARY_PROTOCOL"
 
+AMPLICON_PREP_COLUMN_RENAMER = {
+    'Sample': 'sample_name',
+    'Golay Barcode': 'barcode',
+    '515FB Forward Primer (Parada)': 'primer',
+    'Project Plate': 'project_plate',
+    'Project Name': 'project_name',
+    'Well': 'well',
+    'Primer Plate #': 'primer_plate_number',
+    'Plating': 'plating',
+    'Extraction Kit Lot': 'extractionkit_lot',
+    'Extraction Robot': 'extraction_robot',
+    'TM1000 8 Tool': 'tm1000_8_tool',
+    'Primer Date': 'primer_date',
+    'MasterMix Lot': 'mastermix_lot',
+    'Water Lot': 'water_lot',
+    'Processing Robot': 'processing_robot',
+    'sample sheet Sample_ID': 'well_description'
+}
+
 # put together by Gail, based on the instruments we know of
 INSTRUMENT_LOOKUP = pd.DataFrame({
     'A00953': {'machine prefix': 'A', 'Vocab': 'Illumina NovaSeq 6000',
@@ -70,33 +89,6 @@ def parse_illumina_run_id(run_id):
     run_date = datetime.strptime(matches[1], '%y%m%d').strftime('%Y-%m-%d')
 
     return run_date, matches[2]
-
-
-def sample_sheet_to_dataframe(sheet):
-    """Converts the sample section of a sample sheet into a DataFrame
-
-    Parameters
-    ----------
-    sheet: sample_sheet.SampleSheet
-        Object from where to extract the data.
-
-    Returns
-    -------
-    pd.DataFrame
-        DataFrame object with the sample information.
-    """
-
-    # Get the columns names for the first sample so we have them in a list and
-    # we can retrieve data in the same order on every iteration
-    columns = list(sheet.samples[0].keys())
-
-    data = []
-    for sample in sheet.samples:
-        data.append([sample[column] for column in columns])
-
-    out = pd.DataFrame(data=data, columns=[c.lower() for c in columns])
-
-    return out.set_index('sample_id')
 
 
 def is_nonempty_gz_file(name):
@@ -433,3 +425,22 @@ def preparations_for_run(run_path, sheet, pipeline='fastp-and-minimap2'):
             output[name] = prep
 
     return output
+
+
+def parse_prep(prep_path):
+    """Parses a prep file into a DataFrame
+
+    Parameters
+    ----------
+    prep_path: str or file-like
+        Filepath to the preparation file
+
+    Returns
+    -------
+    pd.DataFrame
+        Parsed prep file with the sample_name column set as the index.
+    """
+    prep = pd.read_csv(prep_path, sep='\t', dtype=str, keep_default_na=False,
+                       na_values=[])
+    prep.set_index('sample_name', verify_integrity=True, inplace=True)
+    return prep

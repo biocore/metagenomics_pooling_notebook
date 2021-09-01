@@ -4,10 +4,11 @@ import pandas as pd
 import string
 import seaborn as sns
 import matplotlib.pyplot as plt
-import sample_sheet
-import tempfile
-import collections
 import warnings
+
+
+REVCOMP_SEQUENCERS = ['HiSeq4000', 'MiniSeq', 'NextSeq', 'HiSeq3000']
+OTHER_SEQUENCERS = ['HiSeq2500', 'HiSeq1500', 'MiSeq', 'NovaSeq']
 
 
 def read_plate_map_csv(f, sep='\t'):
@@ -23,12 +24,27 @@ def read_plate_map_csv(f, sep='\t'):
     -------
     plate_df: pandas DataFrame object
         DataFrame relating sample name, well location, and blank status
+
+    Raises
+    ------
+    UserWarning
+        If there are wells with no sample names associated with them.
     """
 
     plate_df = pd.read_csv(f, sep=sep)
     plate_df['Well'] = plate_df['Row'] + plate_df['Col'].map(str)
 
-    return(plate_df)
+    null_samples = plate_df.Sample.isnull()
+    if null_samples.any():
+        warnings.warn(('This plate map contains %d empty wells, these will be '
+                      'ignored') % null_samples.sum())
+
+        # slice to the non-null samples and reset the index so samples are
+        # still indexed with a continuous list of integers
+        plate_df = plate_df[~null_samples]
+        plate_df.reset_index(inplace=True, drop=True)
+
+    return plate_df
 
 
 # method to read minipico output
@@ -720,221 +736,6 @@ def compute_pico_concentration(dna_vals, size=400):
     return(lib_concentration)
 
 
-def ss_temp():
-    """Sample sheet template
-    """
-    s = ('{comments}[Header]\n'
-         'IEMFileVersion{sep}{IEMFileVersion}\n'
-         'Investigator Name{sep}{Investigator Name}\n'
-         'Experiment Name{sep}{Experiment Name}\n'
-         'Date{sep}{Date}\n'
-         'Workflow{sep}{Workflow}\n'
-         'Application{sep}{Application}\n'
-         'Assay{sep}{Assay}\n'
-         'Description{sep}{Description}\n'
-         'Chemistry{sep}{Chemistry}\n\n'
-         '[Reads]\n'
-         '{read1}\n'
-         '{read2}\n\n'
-         '[Settings]\n'
-         'ReverseComplement{sep}{ReverseComplement}\n\n'
-         '[Data]\n'
-         '{data}')
-
-    return s
-
-
-def parse_sample_sheet(file_like):
-    """Parse a sample sheet with comments
-
-    Comments are not defined as part of Illumina's sample sheet specification.
-    Hence this function explicitly handles comments by stripping them and
-    parsing the rest of the contents using the `sample_sheet` package.
-
-    Parameters
-    ----------
-    file_like: file path or open filehandle
-        Object pointing to the sample sheet.
-
-    Returns
-    -------
-    sample_sheet.SampleSheet
-        An object with the sample sheet contents and comments added to a custom
-        attribute `.comments`.
-    """
-
-    # read comments first
-    comments = []
-    with open(file_like) as f, tempfile.NamedTemporaryFile(mode='w+') as temp:
-        for line in f:
-            if line.startswith('# '):
-                comments.append(line)
-            else:
-                temp.write(line)
-
-        # return to the beginning of the file so contents can be parsed
-        temp.seek(0)
-
-        # important to parse before leaving the context manager
-        sheet = sample_sheet.SampleSheet(temp.name)
-
-        # save the comments as a custom attribute
-        sheet.comments = ''.join(comments)
-
-    return sheet
-
-
-def validate_sample_sheet(sheet):
-    """Validate and correct some aspects of the sample sheet
-
-    Parameters
-    ----------
-    sheet: sample_sheet.SampleSheet
-        The sample sheet container as parsed from `parse_sample_sheet`.
-
-    Returns
-    -------
-    sample_sheet.SampleSheet
-        Corrected and validated sample sheet.
-
-    Raises
-    ------
-    ValueError
-        If the Sample_ID column or the Sample_project columns are missing.
-        If the sample sheet object has not comments attribute.
-        If duplicated elements are found in the Sample_ID column after name
-        scrubbing.
-    UserWarning
-        When sample identifiers are scrubbed for bcl2fastq compatibility.
-        If project names don't include a Qiita study identifier.
-    """
-
-    if not hasattr(sheet, 'comments') or sheet.comments == '':
-        raise ValueError('This sample sheet does not include comments, these '
-                         'are required to notify interested parties upon '
-                         'completed processing of the data')
-
-    if sheet.samples[0].Sample_project is None:
-        raise ValueError('The Sample_project column in the Data section is '
-                         'missing')
-
-    corrected_names = []
-    for sample in sheet.samples:
-        new = bcl_scrub_name(sample.Sample_ID)
-        if new != sample.Sample_ID:
-            corrected_names.append(sample.Sample_ID)
-            sample.Sample_ID = new
-
-    if corrected_names:
-        warnings.warn('The following sample names were scrubbed for bcl2fastq'
-                      ' compatibility:\n%s' % ', '.join(corrected_names))
-
-    # based on Illumina's recommendation Sample_ID is the required column to
-    # name samples
-    samples = collections.Counter([s.Sample_ID for s in sheet.samples])
-
-    # check all values are unique
-    duplicates = {k: v for k, v in samples.items() if v > 1}
-
-    if duplicates:
-        names = '\n'.join(['%s: %d' % (k, v) for k, v in duplicates.items()])
-        message = ('The following names in the Sample_ID column are listed '
-                   'multiple times:\n%s' % names)
-
-        # make it clear if the sample collisions are caused by the scrubbing
-        if corrected_names:
-            message = ('After scrubbing samples for bcl2fastq compatibility '
-                       'there are repeated identifiers. ' + message)
-
-        raise ValueError(message)
-    lanes = collections.Counter([s.Lane for s in sheet.samples])
-    # warn users when there's missing lane values
-    if any([lane.strip() == '' for lane in lanes]):
-        warnings.warn('The following projects are missing a Lane value')
-
-    projects = collections.Counter([s.Sample_project for s in sheet.samples])
-
-    # project identifiers are digit groups at the end of the project name
-    # preceded by an underscore CaporasoIllumina_550
-    qiita_id_re = re.compile(r'(.+)_(\d+)$')
-    bad_projects = []
-    for project_name in projects:
-        if re.search(qiita_id_re, project_name) is None:
-            bad_projects.append(project_name)
-    if bad_projects:
-        warnings.warn('The following project names in the Sample_project '
-                      'column are missing a Qiita study '
-                      'identifier: %s' % ', '.join(sorted(bad_projects)))
-
-    return sheet
-
-
-def write_sample_sheet(sheet, path):
-    """Writes a sample sheet container object to a path
-
-    Parameters
-    ----------
-    sheet: sample_sheet.SampleSheet
-        The sheet to be saved.
-    path: str
-        Path where the sample sheet will be saved to
-    """
-    if not isinstance(sheet, sample_sheet.SampleSheet):
-        raise ValueError('The input sample sheet should be a SampleSheet '
-                         'instance')
-
-    with open(path, 'w') as f:
-        # the SampleSheet class does not support writing comments
-        f.write(sheet.comments)
-
-        sheet.write(f)
-
-
-def format_sheet_comments(PI=None, contacts=None, other=None, sep=','):
-
-    comments = ''
-
-    if PI is not None:
-        comments += 'PI{0}{1}\n'.format(
-            sep,
-            sep.join('{0}{1}{2}'.format(x, sep, PI[x]) for x in PI.keys()))
-
-    if contacts is not None:
-        comments += 'Contact{0}{1}\n{0}{2}\n'.format(
-            sep,
-            sep.join(x for x in sorted(contacts.keys())),
-            sep.join(contacts[x] for x in sorted(contacts.keys())))
-
-    if other is not None:
-        comments += '%s\n' % other
-
-    return(comments)
-
-
-def format_sample_sheet(sample_sheet_dict, sep=',', template=ss_temp()):
-    """Formats Illumina-compatible sample sheet.
-
-    Parameters
-    ----------
-    sample_sheet_dict : 2-level dict
-        dict with 1st level headers 'Comments', 'Header', 'Reads', 'Settings',
-        and 'Data'.
-
-    Returns
-    -------
-    sample_sheet : str
-        the sample sheet string
-    """
-    if sample_sheet_dict['comments']:
-        sample_sheet_dict['comments'] = re.sub(
-            '^', '# ', sample_sheet_dict['comments'].rstrip(),
-            flags=re.MULTILINE) + '\n'
-
-    sample_sheet = template.format(**sample_sheet_dict, **{'sep': sep})
-
-    return(sample_sheet)
-
-
 def bcl_scrub_name(name):
     """Modifies a sample name to be BCL2fastq compatible
 
@@ -964,85 +765,18 @@ def rc(seq):
 
 
 def sequencer_i5_index(sequencer, indices):
-    revcomp_sequencers = ['HiSeq4000', 'MiniSeq', 'NextSeq', 'HiSeq3000']
-    other_sequencers = ['HiSeq2500', 'HiSeq1500', 'MiSeq', 'NovaSeq']
 
-    if sequencer in revcomp_sequencers:
+    if sequencer in REVCOMP_SEQUENCERS:
         print('%s: i5 barcodes are output as reverse compliments' % sequencer)
         return([rc(x) for x in indices])
-    elif sequencer in other_sequencers:
+    elif sequencer in OTHER_SEQUENCERS:
         print('%s: i5 barcodes are output in standard direction' % sequencer)
         return(indices)
     else:
-        raise ValueError('Your indicated sequencer [%s] is not recognized.\n'
-                         'Recognized sequencers are: \n'
-                         ' '.join(revcomp_sequencers + other_sequencers))
-
-
-def format_sample_data(sample_ids, i7_name, i7_seq, i5_name, i5_seq,
-                       sample_plate, sample_proj, wells=None,
-                       description=None, lanes=[1], sep=','):
-    """
-    Creates the [Data] component of the Illumina sample sheet from plate
-    information
-
-    Parameters
-    ----------
-    sample_sheet_dict : 2-level dict
-        dict with 1st level headers 'Comments', 'Header', 'Reads', 'Settings',
-        and 'Data'.
-
-    Returns
-    -------
-    data : str
-        the sample sheet string
-    """
-    data = ''
-
-    if (len(sample_ids) != len(i7_name) != len(i7_seq) != len(i5_name) !=
-       len(i5_seq)):
-        raise ValueError('Sample information lengths are not all equal')
-
-    if wells is None:
-        wells = [''] * len(sample_ids)
-    if description is None:
-        description = [''] * len(sample_ids)
-    if isinstance(sample_plate, str):
-        sample_plate = [sample_plate] * len(sample_ids)
-    if isinstance(sample_proj, str):
-        sample_proj = [sample_proj] * len(sample_ids)
-
-    header = ','.join(['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
-                       'Sample_Well', 'I7_Index_ID', 'index', 'I5_Index_ID',
-                       'index2', 'Sample_Project', 'Description'])
-
-    data += header
-
-    sample_plate = list(sample_plate)
-    wells = list(wells)
-    i7_name = list(i7_name)
-    i7_seq = list(i7_seq)
-    i5_name = list(i5_name)
-    i5_seq = list(i5_seq)
-    sample_proj = list(sample_proj)
-    description = list(description)
-
-    for lane in lanes:
-        for i, sample in enumerate(sample_ids):
-            line = sep.join([str(lane),
-                             sample,
-                             sample,
-                             sample_plate[i],
-                             wells[i],
-                             i7_name[i],
-                             i7_seq[i],
-                             i5_name[i],
-                             i5_seq[i],
-                             sample_proj[i],
-                             description[i]])
-            data += '\n' + line
-
-    return(data)
+        raise ValueError(('Your indicated sequencer [%s] is not recognized.\n'
+                          'Recognized sequencers are: \n %s') %
+                         (sequencer,
+                          ', '.join(REVCOMP_SEQUENCERS + OTHER_SEQUENCERS)))
 
 
 def reformat_interleaved_to_columns(wells):

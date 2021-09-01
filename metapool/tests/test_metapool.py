@@ -1,8 +1,5 @@
 from unittest import TestCase, main
 
-import os
-import tempfile
-import warnings
 import pandas as pd
 import numpy as np
 import numpy.testing as npt
@@ -19,12 +16,8 @@ from metapool.metapool import (read_plate_map_csv, read_pico_csv,
                                format_pooling_echo_pick_list,
                                make_2D_array, combine_dfs,
                                add_dna_conc, compute_pico_concentration,
-                               format_sheet_comments,
-                               format_sample_sheet, bcl_scrub_name, rc,
-                               sequencer_i5_index, format_sample_data,
-                               reformat_interleaved_to_columns,
-                               validate_sample_sheet, parse_sample_sheet,
-                               write_sample_sheet)
+                               bcl_scrub_name, rc, sequencer_i5_index,
+                               reformat_interleaved_to_columns)
 
 
 class Tests(TestCase):
@@ -48,23 +41,6 @@ class Tests(TestCase):
             np.array([[38.4090909, 29.8863636, 29.9242424, 58.6363636],
                       [29.7727273, 30.5681818, 30.9090909, 36.5151515],
                       [46.5530303, 28.9393939, 27.7272727, 52.0454545]])
-
-        data_dir = os.path.join(os.path.dirname(__file__), 'data')
-
-        self.good_ss = os.path.join(data_dir, 'good-sample-sheet.csv')
-        self.no_comments_ss = os.path.join(data_dir, 'no-comments-'
-                                           'sample-sheet.csv')
-        self.no_project_ss = os.path.join(data_dir,
-                                          'no-project-name-sample-sheet.csv')
-
-        # "valid" upfront but will have repeated values after scrubbing
-        self.ok_ss = os.path.join(data_dir, 'ok-sample-sheet.csv')
-
-        self.scrubbable_ss = os.path.join(data_dir,
-                                          'scrubbable-sample-sheet.csv')
-
-        self.bad_project_name_ss = os.path.join(data_dir, 'bad-project'
-                                                '-name-sample-sheet.csv')
 
     # def test_compute_shotgun_normalization_values(self):
     #     input_vol = 3.5
@@ -119,6 +95,34 @@ class Tests(TestCase):
 
         pd.testing.assert_frame_equal(
             obs_plate_df, exp_plate_df, check_like=True)
+
+    def test_read_plate_map_csv_remove_empty_wells(self):
+        plate_map_csv = (
+            'Sample\tRow\tCol\tBlank\n'
+            'sam1\tA\t1\tFalse\n'
+            'sam2\tA\t2\tFalse\n'
+            'blank1\tB\t1\tTrue\n'
+            '\tC\t1\tFalse\n'
+            '\tD\t1\tFalse\n'
+            '\tE\t1\tFalse\n'
+            'sam3\tB\t2\tFalse\n'
+            '\tD\t2\tFalse\n')
+
+        plate_map_f = StringIO(plate_map_csv)
+        exp = pd.DataFrame({'Sample': ['sam1', 'sam2', 'blank1',
+                                       'sam3'],
+                            'Row': ['A', 'A', 'B', 'B'],
+                            'Col': [1, 2, 1, 2],
+                            'Well': ['A1', 'A2', 'B1', 'B2'],
+                            'Blank': [False, False, True, False]})
+
+        with self.assertWarnsRegex(UserWarning,
+                                   'This plate map contains 4 empty wells, '
+                                   'these will be ignored'):
+            obs_plate_df = read_plate_map_csv(plate_map_f)
+
+        pd.testing.assert_frame_equal(
+            obs_plate_df, exp, check_like=True)
 
     def test_read_pico_csv(self):
         # Test a normal sheet
@@ -587,159 +591,6 @@ class Tests(TestCase):
 
         npt.assert_allclose(obs, exp)
 
-    def test_format_sheet_comments(self):
-        contacts = {'Jeff Dereus': 'jdereus@ucsd.edu',
-                    'Gail Ackermann': 'ackermag@ucsd.edu',
-                    'Jon Sanders': 'jonsan@gmail.com',
-                    'Greg Humphrey': 'ghsmu414@gmail.com'}
-
-        PI = {'Knight': 'robknight@ucsd.edu'}
-
-        other = None
-
-        sep = '\t'
-
-        exp_comment = (
-            'PI\tKnight\trobknight@ucsd.edu\n'
-            'Contact\tGail Ackermann\tGreg Humphrey'
-            '\tJeff Dereus\tJon Sanders\n'
-            '\tackermag@ucsd.edu\tghsmu414@gmail.com'
-            '\tjdereus@ucsd.edu\tjonsan@gmail.com\n'
-        )
-
-        obs_comment = format_sheet_comments(PI, contacts, other, sep)
-
-        self.assertEqual(exp_comment, obs_comment)
-
-    def test_format_sample_sheet(self):
-
-        self.maxDiff = None
-
-        exp_sample_sheet = (
-            '[Header]\n'
-            'IEMFileVersion\t4\n'
-            'Investigator Name\tKnight\n'
-            'Experiment Name\t\n'
-            'Date\t2017-08-13\n'
-            'Workflow\tGenerateFASTQ\n'
-            'Application\tFASTQ Only\n'
-            'Assay\tMetagenomics\n'
-            'Description\t\n'
-            'Chemistry\tDefault\n\n'
-            '[Reads]\n'
-            '150\n'
-            '150\n\n'
-            '[Settings]\n'
-            'ReverseComplement\t0\n\n'
-            '[Data]\n'
-            'Lane\tSample_ID\tSample_Name\tSample_Plate\tSample_Well'
-            '\tI7_Index_ID\tindex\tI5_Index_ID\tindex2\tSample_Project'
-            '\tDescription\n'
-            '1\tsam1\tsam1\texample\tA1\tiTru7_101_01\tACGTTACC\tiTru5_01_A'
-            '\tACCGACAA\texample_proj\t\n'
-            '1\tsam2\tsam2\texample\tA2\tiTru7_101_02\tCTGTGTTG\tiTru5_01_B'
-            '\tAGTGGCAA\texample_proj\t\n'
-            '1\tblank1\tblank1\texample\tB1\tiTru7_101_03\tTGAGGTGT\t'
-            'iTru5_01_C\tCACAGACT\texample_proj\t\n'
-            '1\tsam3\tsam3\texample\tB2\tiTru7_101_04\tGATCCATG\tiTru5_01_D'
-            '\tCGACACTT\texample_proj\t'
-        )
-
-        exp_sample_sheet_2 = (
-            '# PI\tKnight\trobknight@ucsd.edu\t\t\n'
-            '# Contact\tJeff Dereus\tGail Ackermann\tJon Sanders\t'
-            'Greg Humphrey\n'
-            '# \tjdereus@ucsd.edu\tackermag@ucsd.edu\tjonsan@gmail.com\t'
-            'ghsmu414@gmail.com\n'
-            '[Header]\n'
-            'IEMFileVersion\t4\n'
-            'Investigator Name\tKnight\n'
-            'Experiment Name\t\n'
-            'Date\t2017-08-13\n'
-            'Workflow\tGenerateFASTQ\n'
-            'Application\tFASTQ Only\n'
-            'Assay\tMetagenomics\n'
-            'Description\t\n'
-            'Chemistry\tDefault\n\n'
-            '[Reads]\n'
-            '150\n'
-            '150\n\n'
-            '[Settings]\n'
-            'ReverseComplement\t0\n\n'
-            '[Data]\n'
-            'Lane\tSample_ID\tSample_Name\tSample_Plate\t'
-            'Sample_Well\tI7_Index_ID\tindex\tI5_Index_ID\t'
-            'index2\tSample_Project\tDescription\n'
-            '1\tsam1\tsam1\texample\tA1\tiTru7_101_01\tACGTTACC'
-            '\tiTru5_01_A\tACCGACAA\texample_proj\t\n'
-            '1\tsam2\tsam2\texample\tA2\tiTru7_101_02\tCTGTGTTG'
-            '\tiTru5_01_B\tAGTGGCAA\texample_proj\t\n'
-            '1\tblank1\tblank1\texample\tB1\tiTru7_101_03\tTGAGGTGT'
-            '\tiTru5_01_C\tCACAGACT\texample_proj\t\n'
-            '1\tsam3\tsam3\texample\tB2\tiTru7_101_04\tGATCCATG'
-            '\tiTru5_01_D\tCGACACTT\texample_proj\t'
-        )
-
-        comment = (
-            'PI\tKnight\trobknight@ucsd.edu\t\t\n'
-            'Contact\tJeff Dereus\tGail Ackermann\t'
-            'Jon Sanders\tGreg Humphrey\n'
-            '\tjdereus@ucsd.edu\tackermag@ucsd.edu\t'
-            'jonsan@gmail.com\tghsmu414@gmail.com\n'
-        )
-
-        data = (
-            'Lane\tSample_ID\tSample_Name\tSample_Plate\tSample_Well\t'
-            'I7_Index_ID\tindex\tI5_Index_ID\tindex2\tSample_Project\t'
-            'Description\n'
-            '1\tsam1\tsam1\texample\tA1\tiTru7_101_01\tACGTTACC\t'
-            'iTru5_01_A\tACCGACAA\texample_proj\t\n'
-            '1\tsam2\tsam2\texample\tA2\tiTru7_101_02\tCTGTGTTG\t'
-            'iTru5_01_B\tAGTGGCAA\texample_proj\t\n'
-            '1\tblank1\tblank1\texample\tB1\tiTru7_101_03\tTGAGGTGT\t'
-            'iTru5_01_C\tCACAGACT\texample_proj\t\n'
-            '1\tsam3\tsam3\texample\tB2\tiTru7_101_04\tGATCCATG\t'
-            'iTru5_01_D\tCGACACTT\texample_proj\t'
-        )
-
-        sample_sheet_dict = {'comments': '',
-                             'IEMFileVersion': '4',
-                             'Investigator Name': 'Knight',
-                             'Experiment Name': '',
-                             'Date': '2017-08-13',
-                             'Workflow': 'GenerateFASTQ',
-                             'Application': 'FASTQ Only',
-                             'Assay': 'Metagenomics',
-                             'Description': '',
-                             'Chemistry': 'Default',
-                             'read1': 150,
-                             'read2': 150,
-                             'ReverseComplement': '0',
-                             'data': data}
-
-        obs_sample_sheet = format_sample_sheet(sample_sheet_dict, sep='\t')
-
-        self.assertEqual(exp_sample_sheet, obs_sample_sheet)
-
-        sample_sheet_dict_2 = {'comments': comment,
-                               'IEMFileVersion': '4',
-                               'Investigator Name': 'Knight',
-                               'Experiment Name': '',
-                               'Date': '2017-08-13',
-                               'Workflow': 'GenerateFASTQ',
-                               'Application': 'FASTQ Only',
-                               'Assay': 'Metagenomics',
-                               'Description': '',
-                               'Chemistry': 'Default',
-                               'read1': 150,
-                               'read2': 150,
-                               'ReverseComplement': '0',
-                               'data': data}
-
-        obs_sample_sheet_2 = format_sample_sheet(sample_sheet_dict_2, sep='\t')
-
-        self.assertEqual(exp_sample_sheet_2, obs_sample_sheet_2)
-
     def test_bcl_scrub_name(self):
         self.assertEqual('test_1', bcl_scrub_name('test.1'))
         self.assertEqual('test-1', bcl_scrub_name('test-1'))
@@ -764,94 +615,6 @@ class Tests(TestCase):
         with self.assertRaises(ValueError):
             sequencer_i5_index('foo', indices)
 
-    def test_format_sample_data(self):
-        # test that single lane works
-        exp_data = (
-            'Lane,Sample_ID,Sample_Name,Sample_Plate'
-            ',Sample_Well,I7_Index_ID,index,I5_Index_ID'
-            ',index2,Sample_Project,Description\n'
-            '1,sam1,sam1,example,A1,iTru7_101_01,ACGTTACC,'
-            'iTru5_01_A,ACCGACAA,example_proj,\n'
-            '1,sam2,sam2,example,A2,iTru7_101_02,CTGTGTTG,'
-            'iTru5_01_B,AGTGGCAA,example_proj,\n'
-            '1,blank1,blank1,example,B1,iTru7_101_03,TGAGGTGT,'
-            'iTru5_01_C,CACAGACT,example_proj,\n'
-            '1,sam3,sam3,example,B2,iTru7_101_04,GATCCATG,'
-            'iTru5_01_D,CGACACTT,example_proj,'
-        )
-
-        wells = ['A1', 'A2', 'B1', 'B2']
-        sample_ids = ['sam1', 'sam2', 'blank1', 'sam3']
-        i5_name = ['iTru5_01_A', 'iTru5_01_B', 'iTru5_01_C', 'iTru5_01_D']
-        i5_seq = ['ACCGACAA', 'AGTGGCAA', 'CACAGACT', 'CGACACTT']
-        i7_name = ['iTru7_101_01', 'iTru7_101_02',
-                   'iTru7_101_03', 'iTru7_101_04']
-        i7_seq = ['ACGTTACC', 'CTGTGTTG', 'TGAGGTGT', 'GATCCATG']
-
-        obs_data = format_sample_data(sample_ids, i7_name, i7_seq,
-                                      i5_name, i5_seq, wells=wells,
-                                      sample_plate='example',
-                                      sample_proj='example_proj',
-                                      lanes=[1])
-
-        self.assertEqual(obs_data, exp_data)
-
-        # test that two lanes works
-        exp_data_2 = (
-            'Lane,Sample_ID,Sample_Name,Sample_Plate,'
-            'Sample_Well,I7_Index_ID,index,I5_Index_ID,'
-            'index2,Sample_Project,Description\n'
-            '1,sam1,sam1,example,A1,iTru7_101_01,ACGTTACC,'
-            'iTru5_01_A,ACCGACAA,example_proj,\n'
-            '1,sam2,sam2,example,A2,iTru7_101_02,CTGTGTTG,'
-            'iTru5_01_B,AGTGGCAA,example_proj,\n'
-            '1,blank1,blank1,example,B1,iTru7_101_03,TGAGGTGT,'
-            'iTru5_01_C,CACAGACT,example_proj,\n'
-            '1,sam3,sam3,example,B2,iTru7_101_04,GATCCATG,'
-            'iTru5_01_D,CGACACTT,example_proj,\n'
-            '2,sam1,sam1,example,A1,iTru7_101_01,ACGTTACC,'
-            'iTru5_01_A,ACCGACAA,example_proj,\n'
-            '2,sam2,sam2,example,A2,iTru7_101_02,CTGTGTTG,'
-            'iTru5_01_B,AGTGGCAA,example_proj,\n'
-            '2,blank1,blank1,example,B1,iTru7_101_03,TGAGGTGT'
-            ',iTru5_01_C,CACAGACT,example_proj,\n'
-            '2,sam3,sam3,example,B2,iTru7_101_04,GATCCATG'
-            ',iTru5_01_D,CGACACTT,example_proj,'
-        )
-
-        obs_data_2 = format_sample_data(sample_ids, i7_name, i7_seq,
-                                        i5_name, i5_seq, wells=wells,
-                                        sample_plate='example',
-                                        sample_proj='example_proj',
-                                        lanes=[1, 2])
-
-        self.assertEqual(obs_data_2, exp_data_2)
-
-        # test with r/c i5 barcodes
-        exp_data = (
-            'Lane,Sample_ID,Sample_Name,Sample_Plate'
-            ',Sample_Well,I7_Index_ID,index,I5_Index_ID'
-            ',index2,Sample_Project,Description\n'
-            '1,sam1,sam1,example,A1,iTru7_101_01,ACGTTACC,'
-            'iTru5_01_A,ACCGACAA,example_proj,\n'
-            '1,sam2,sam2,example,A2,iTru7_101_02,CTGTGTTG,'
-            'iTru5_01_B,AGTGGCAA,example_proj,\n'
-            '1,blank1,blank1,example,B1,iTru7_101_03,TGAGGTGT,'
-            'iTru5_01_C,CACAGACT,example_proj,\n'
-            '1,sam3,sam3,example,B2,iTru7_101_04,GATCCATG,'
-            'iTru5_01_D,CGACACTT,example_proj,'
-        )
-
-        i5_seq = ['ACCGACAA', 'AGTGGCAA', 'CACAGACT', 'CGACACTT']
-
-        obs_data = format_sample_data(sample_ids, i7_name, i7_seq,
-                                      i5_name, i5_seq, wells=wells,
-                                      sample_plate='example',
-                                      sample_proj='example_proj',
-                                      lanes=[1])
-
-        self.assertEqual(obs_data, exp_data)
-
     def test_reformat_interleaved_to_columns(self):
         wells = ['A1', 'A23', 'C1', 'C23',
                  'A2', 'A24', 'C2', 'C24',
@@ -866,152 +629,6 @@ class Tests(TestCase):
         obs = reformat_interleaved_to_columns(wells)
 
         np.testing.assert_array_equal(exp, obs)
-
-    def test_parse_sample_sheet(self):
-        sheet = parse_sample_sheet(self.good_ss)
-
-        exp = ('# PI,Knight,robknight@ucsd.edu,,,,,,,,\n'
-               '# Contact,Gail Ackermann,Greg Humphrey,Jeff Dereus,'
-               'Jon Sanders,,,,,,\n'
-               '# ,ackermag@ucsd.edu,ghsmu414@gmail.com,jdereus@ucsd.edu'
-               ',jonsan@gmail.com,,,,,,\n')
-        self.assertEqual(sheet.comments, exp)
-
-        exp = {'IEMFileVersion': '4',
-               'Investigator Name': 'Knight',
-               'Experiment Name': 'RKL0042',
-               'Date': '2020-02-26',
-               'Workflow': 'GenerateFASTQ',
-               'Application': 'FASTQ Only',
-               'Assay': 'Metagenomics',
-               'Description': '',
-               'Chemistry': 'Default'}
-        self.assertEqual(sheet.Header, exp)
-        self.assertEqual(sheet.Reads, [150, 150])
-        self.assertEqual(sheet.Settings, {'ReverseComplement': '0'})
-
-        # check that we are parsing the right number of samples
-        self.assertEqual(len(sheet.samples), 783)
-
-    def test_parse_sample_sheet_no_comments(self):
-        sheet = parse_sample_sheet(self.no_comments_ss)
-
-        self.assertEqual(sheet.comments, '')
-
-        exp = {'IEMFileVersion': '4',
-               'Investigator Name': 'Knight',
-               'Experiment Name': 'RKL0042',
-               'Date': '2020-02-26',
-               'Workflow': 'GenerateFASTQ',
-               'Application': 'FASTQ Only',
-               'Assay': 'Metagenomics',
-               'Description': '',
-               'Chemistry': 'Default'}
-        self.assertEqual(sheet.Header, exp)
-        self.assertEqual(sheet.Reads, [150, 150])
-        self.assertEqual(sheet.Settings, {'ReverseComplement': '0'})
-
-        # check that we are parsing the right number of samples
-        self.assertEqual(len(sheet.samples), 783)
-
-    def test_validate_sample_sheet(self):
-        sheet = parse_sample_sheet(self.good_ss)
-
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-
-            _ = validate_sample_sheet(sheet)
-
-            # check no warnings are raised
-            self.assertTrue(len(w) == 0)
-
-    def test_validate_sample_sheet_no_comments(self):
-        sheet = parse_sample_sheet(self.no_comments_ss)
-
-        with self.assertRaisesRegex(ValueError, 'This sample sheet does not'):
-            validate_sample_sheet(sheet)
-
-    def test_validate_sample_sheet_no_sample_project(self):
-        sheet = parse_sample_sheet(self.no_project_ss)
-
-        with self.assertRaisesRegex(ValueError, 'The Sample_project column '):
-            validate_sample_sheet(sheet)
-
-    def test_validate_sample_sheet_repeated_sample_ids(self):
-        sheet = parse_sample_sheet(self.ok_ss)
-
-        # the sample identifiers are only repeated after scrubbing
-        with self.assertRaisesRegex(ValueError, 'After scrubbing samples for '
-                                    'bcl2fastq compatibility there are '
-                                    'repeated identifiers. The following names'
-                                    ' in the Sample_ID column are listed '
-                                    'multiple times:\nCDPH-SAL_Salmonella_'
-                                    'Typhi_MDL_144: 2'):
-            validate_sample_sheet(sheet)
-
-    def test_validate_sample_sheet_scrubbed_names(self):
-        sheet = parse_sample_sheet(self.scrubbable_ss)
-
-        message = ('The following sample names were scrubbed for bcl2fastq '
-                   'compatibility:\nCDPH-SAL_Salmonella_Typhi_MDL.143, '
-                   'CDPH-SAL_Salmonella_Typhi_MDL.144, CDPH-SAL_Salmonella_'
-                   'Typhi_MDL.145, CDPH-SAL_Salmonella_Typhi_MDL.146, CDPH-'
-                   'SAL_Salmonella_Typhi_MDL.147, CDPH-SAL_Salmonella_Typhi'
-                   '_MDL.148, CDPH-SAL_Salmonella_Typhi_MDL.149, CDPH-SAL_S'
-                   'almonella_Typhi_MDL.150, CDPH-SAL_Salmonella_Typhi_MDL.'
-                   '151, CDPH-SAL_Salmonella_Typhi_MDL.152, CDPH-SAL_Salmon'
-                   'ella_Typhi_MDL.153, CDPH-SAL_Salmonella_Typhi_MDL.154, '
-                   'CDPH-SAL_Salmonella_Typhi_MDL.155, CDPH-SAL_Salmonella_'
-                   'Typhi_MDL.156, CDPH-SAL_Salmonella_Typhi_MDL.157, CDPH-'
-                   'SAL_Salmonella_Typhi_MDL.158, CDPH-SAL_Salmonella_Typhi'
-                   '_MDL.159, CDPH-SAL_Salmonella_Typhi_MDL.160, CDPH-SAL_S'
-                   'almonella_Typhi_MDL.161, CDPH-SAL_Salmonella_Typhi_MDL.'
-                   '162, CDPH-SAL_Salmonella_Typhi_MDL.163, CDPH-SAL_Salmon'
-                   'ella_Typhi_MDL.164, CDPH-SAL_Salmonella_Typhi_MDL.165, '
-                   'CDPH-SAL_Salmonella_Typhi_MDL.166, CDPH-SAL_Salmonella_'
-                   'Typhi_MDL.167, CDPH-SAL_Salmonella_Typhi_MDL.168, P21_E'
-                   '.coli ELI344, P21_E.coli ELI345, P21_E.coli ELI347, P21'
-                   '_E.coli ELI348, P21_E.coli ELI349, P21_E.coli ELI350, P'
-                   '21_E.coli ELI351, P21_E.coli ELI352, P21_E.coli ELI353,'
-                   ' P21_E.coli ELI354, P21_E.coli ELI355, P21_E.coli ELI35'
-                   '7, P21_E.coli ELI358, P21_E.coli ELI359, P21_E.coli ELI'
-                   '361, P21_E.coli ELI362, P21_E.coli ELI363, P21_E.coli '
-                   'ELI364, P21_E.coli ELI365, P21_E.coli ELI366, P21_E.coli '
-                   'ELI367, P21_E.coli ELI368, P21_E.coli ELI369')
-
-        with self.assertWarnsRegex(UserWarning, message):
-            validate_sample_sheet(sheet)
-
-    def test_validate_sample_sheet_bad_project_names(self):
-        sheet = parse_sample_sheet(self.bad_project_name_ss)
-
-        with self.assertWarnsRegex(UserWarning, 'The following project names '
-                                   'in the Sample_project column are missing a'
-                                   ' Qiita study identifier: Feist, Gerwick'):
-            validate_sample_sheet(sheet)
-
-    def test_write_sample_sheet(self):
-        sheet = parse_sample_sheet(self.good_ss)
-
-        with tempfile.NamedTemporaryFile('w+') as f:
-            write_sample_sheet(sheet, f.name)
-
-            f.seek(0)
-
-            contents = f.read()
-
-            # spot check the contents
-            self.assertEqual(len(contents.split('\n')), 807)
-            print(contents.split('\n')[0])
-            print(contents.split('\n')[-1])
-
-            self.assertTrue('# PI,Knight,robknight@ucsd.edu' in contents)
-            self.assertTrue('P21_E_coli_ELI352' in contents)
-
-    def test_write_sample_sheet_bad_input(self):
-        with self.assertRaisesRegex(ValueError, 'The input sample sheet should'
-                                    ' be a SampleSheet instance'):
-            write_sample_sheet({}, 'file.txt')
 
 
 if __name__ == "__main__":

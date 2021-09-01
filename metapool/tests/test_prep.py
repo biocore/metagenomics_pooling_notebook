@@ -2,15 +2,15 @@ import os
 import pandas as pd
 
 from unittest import TestCase, main
-from metapool.metapool import parse_sample_sheet
+from metapool.sample_sheet import KLSampleSheet, sample_sheet_to_dataframe
 from metapool.prep import (preparations_for_run, remove_qiita_id,
                            get_run_prefix, is_nonempty_gz_file,
                            get_machine_code, get_model_and_center,
-                           sample_sheet_to_dataframe, parse_illumina_run_id,
-                           _check_invalid_names, agp_transform)
+                           parse_illumina_run_id,
+                           _check_invalid_names, agp_transform, parse_prep)
 
 
-class Tests(TestCase):
+class TestPrep(TestCase):
     def setUp(self):
         data_dir = os.path.join(os.path.dirname(__file__), 'data')
         self.good_run = os.path.join(data_dir, 'runs',
@@ -21,6 +21,7 @@ class Tests(TestCase):
             data_dir, 'runs', '191104_D32611_0365_OK15HB5YXZ')
 
         self.ss = os.path.join(self.good_run, 'sample-sheet.csv')
+        self.prep = os.path.join(data_dir, 'prep.tsv')
 
     def _check_run_191103_D32611_0365_G00DHB5YXX(self, obs):
         "Convenience method to check the output of a whole run"
@@ -109,7 +110,7 @@ class Tests(TestCase):
         pd.testing.assert_frame_equal(obs_df, exp)
 
     def test_preparations_for_run(self):
-        ss = sample_sheet_to_dataframe(parse_sample_sheet(self.ss))
+        ss = sample_sheet_to_dataframe(KLSampleSheet(self.ss))
         obs = preparations_for_run(self.good_run, ss,
                                    pipeline='atropos-and-bowtie2')
         self._check_run_191103_D32611_0365_G00DHB5YXX(obs)
@@ -117,7 +118,7 @@ class Tests(TestCase):
     def test_preparations_for_run_missing_columns(self):
         # Check that warnings are raised whenever we overwrite the
         # "well_description" column with the "description" column
-        ss = sample_sheet_to_dataframe(parse_sample_sheet(self.ss))
+        ss = sample_sheet_to_dataframe(KLSampleSheet(self.ss))
         ss['description'] = ss['well_description'].copy()
         ss.drop('well_description', axis=1, inplace=True)
 
@@ -134,7 +135,7 @@ class Tests(TestCase):
         self._check_run_191103_D32611_0365_G00DHB5YXX(obs)
 
     def test_invalid_sample_names_show_warning(self):
-        ss = sample_sheet_to_dataframe(parse_sample_sheet(self.ss))
+        ss = sample_sheet_to_dataframe(KLSampleSheet(self.ss))
 
         ss['well_description'] = ss['well_description'].str.replace(
             'importantsample44', 'important-sample44')
@@ -263,20 +264,6 @@ class Tests(TestCase):
         empty = os.path.join(self.good_run, 'Baz/atropos_qc/sample2_S10_L003_R'
                              '2_001.fastq.gz')
         self.assertFalse(is_nonempty_gz_file(empty))
-
-    def test_sample_sheet_to_dataframe(self):
-        ss = parse_sample_sheet(self.ss)
-        obs = sample_sheet_to_dataframe(ss)
-
-        columns = ['lane', 'sample_name', 'sample_plate', 'sample_well',
-                   'i7_index_id', 'index', 'i5_index_id', 'index2',
-                   'sample_project', 'well_description']
-        index = ['sample1', 'sample2', 'sample1', 'sample2', 'sample31',
-                 'sample32', 'sample34', 'sample44']
-
-        exp = pd.DataFrame(index=index, data=DF_DATA, columns=columns)
-        exp.index.name = 'sample_id'
-        pd.testing.assert_frame_equal(obs, exp)
 
     def test_parse_illumina_run_id(self):
         date, rid = parse_illumina_run_id('161004_D00611_0365_AH2HJ5BCXY')
@@ -435,24 +422,41 @@ class Tests(TestCase):
         # there shouldn't be any changes
         pd.testing.assert_frame_equal(agp_transform(obs, '666'), exp)
 
+    def test_parse_prep(self):
+        columns = [
+            'barcode', 'primer', 'project_name', 'well_id',
+            'primer_plate', 'plating', 'extractionkit_lot',
+            'extraction_robot', 'tm1000_8_tool', 'primer_date',
+            'mastermix_lot', 'water_lot', 'processing_robot',
+            'sample_plate', 'linker', 'orig_name', 'well_description',
+            'pcr_primers', 'center_name', 'run_center', 'platform',
+            'target_subfragment', 'target_gene', 'sequencing_meth',
+            'library_construction_protocol']
 
-DF_DATA = [
-    ['1', 'sample1', 'FooBar_666_p1', 'A1', 'iTru7_107_07', 'CCGACTAT',
-     'iTru5_01_A', 'ACCGACAA', 'Baz', 'importantsample1'],
-    ['1', 'sample2', 'FooBar_666_p1', 'A2', 'iTru7_107_08', 'CCGACTAT',
-     'iTru5_01_A', 'CTTCGCAA', 'Baz', 'importantsample2'],
-    ['3', 'sample1', 'FooBar_666_p1', 'A3', 'iTru7_107_09', 'GCCTTGTT',
-     'iTru5_01_A', 'AACACCAC', 'Baz', 'importantsample1'],
-    ['3', 'sample2', 'FooBar_666_p1', 'A4', 'iTru7_107_10', 'AACTTGCC',
-     'iTru5_01_A', 'CGTATCTC', 'Baz', 'importantsample2'],
-    ['3', 'sample31', 'FooBar_666_p1', 'A5', 'iTru7_107_11', 'CAATGTGG',
-     'iTru5_01_A', 'GGTACGAA', 'FooBar_666', 'importantsample31'],
-    ['3', 'sample32', 'FooBar_666_p1', 'B6', 'iTru7_107_12', 'AAGGCTGA',
-     'iTru5_01_A', 'CGATCGAT', 'FooBar_666', 'importantsample32'],
-    ['3', 'sample34', 'FooBar_666_p1', 'B8', 'iTru7_107_13', 'TTACCGAG',
-     'iTru5_01_A', 'AAGACACC', 'FooBar_666', 'importantsample34'],
-    ['3', 'sample44', 'Baz_p3', 'B99', 'iTru7_107_14', 'GTCCTAAG',
-     'iTru5_01_A', 'CATCTGCT', 'Baz', 'importantsample44']]
+        data = [
+            ['AGCCTTCGTCGC', 'GTGYCAGCMGCCGCGGTAA', 'THDMI_10317', 'A1', '1',
+             'SF', '166032128', 'Carmen_HOWE_KF3', '109379Z', '2021-08-17',
+             '978215', 'RNBJ0628', 'Echo550', 'THDMI_UK_Plate_2', 'GT',
+             'X00180471', 'THDMI_UK_Plate_2.X00180471.A1',
+             'FWD:GTGYCAGCMGCCGCGGTAA; REV:GGACTACNVGGGTWTCTAAT', 'UCSDMI',
+             'UCSDMI', 'Illumina', 'V4', '16S rRNA', 'Sequencing by synthesis',
+             'Illumina EMP protocol 515fbc, 806r amplification of 16S rRNA V4'
+             ],
+            ['CGTATAAATGCG', 'GTGYCAGCMGCCGCGGTAA', 'THDMI_10317', 'C1', '1',
+             'SF', '166032128', 'Carmen_HOWE_KF3', '109379Z', '2021-08-17',
+             '978215', 'RNBJ0628', 'Echo550', 'THDMI_UK_Plate_2', 'GT',
+             'X00180199', 'THDMI_UK_Plate_2.X00180199.C1',
+             'FWD:GTGYCAGCMGCCGCGGTAA; REV:GGACTACNVGGGTWTCTAAT', 'UCSDMI',
+             'UCSDMI', 'Illumina', 'V4', '16S rRNA',
+             'Sequencing by synthesis',
+             'Illumina EMP protocol 515fbc, 806r amplification of 16S rRNA V4']
+        ]
+        index = pd.Index(['X00180471', 'X00180199'], name='sample_name')
+        exp = pd.DataFrame(data=data, columns=columns, index=index)
+
+        obs = parse_prep(self.prep)
+
+        pd.testing.assert_frame_equal(obs, exp)
 
 
 if __name__ == "__main__":
