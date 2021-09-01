@@ -224,6 +224,7 @@ class KLSampleSheetTests(BaseTests):
             'index2': 'GGCGCC',
             'Sample_Name': 'y.sample'
         }))
+        base.Contact = pd.DataFrame(self.metadata['Contact'])
 
         hugo = KLSampleSheet()
         hugo.Reads = [151, 151]
@@ -233,6 +234,7 @@ class KLSampleSheetTests(BaseTests):
             'index2': 'GCCGCC',
             'Sample_Name': 'a.sample'
         }))
+        hugo.Contact = pd.DataFrame(self.metadata['Contact'])
 
         paco = KLSampleSheet()
         paco.Reads = [151, 151]
@@ -284,6 +286,10 @@ class KLSampleSheetTests(BaseTests):
 
         for obs, exp in zip(base.samples, exp_samples):
             self.assertEqual(obs, exp)
+
+        # checks the items haven't been repeated
+        pd.testing.assert_frame_equal(base.Contact,
+                                      pd.DataFrame(self.metadata['Contact']))
 
     def test_merge_error(self):
         base = KLSampleSheet()
