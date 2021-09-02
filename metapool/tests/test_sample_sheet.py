@@ -291,6 +291,88 @@ class KLSampleSheetTests(BaseTests):
         pd.testing.assert_frame_equal(base.Contact,
                                       pd.DataFrame(self.metadata['Contact']))
 
+    def test_merge_bioinformatics(self):
+        base = KLSampleSheet()
+        base.Reads = [151, 151]
+        base.add_sample(sample_sheet.Sample({
+            'Sample_ID': 'y',
+            'index': 'GGTACA',
+            'index2': 'GGCGCC',
+            'Sample_Name': 'y.sample'
+        }))
+        base.Bioinformatics = pd.DataFrame(self.metadata['Bioinformatics'])
+
+        hugo = KLSampleSheet()
+        hugo.Reads = [151, 151]
+        hugo.add_sample(sample_sheet.Sample({
+            'Sample_ID': 'a',
+            'index': 'GATACA',
+            'index2': 'GCCGCC',
+            'Sample_Name': 'a.sample'
+        }))
+        hugo.Bioinformatics = pd.DataFrame(self.metadata['Bioinformatics'])
+
+        paco = KLSampleSheet()
+        paco.Reads = [151, 151]
+        paco.add_sample(sample_sheet.Sample({
+            'Sample_ID': 'b',
+            'index': 'GATAAA',
+            'index2': 'GCCACC',
+            'Sample_Name': 'b.sample'
+        }))
+        paco.Bioinformatics = pd.DataFrame(self.metadata['Bioinformatics'])
+        paco.Bioinformatics['Sample_Project'] = (
+                'paco_' + paco.Bioinformatics['Sample_Project'])
+
+        base.merge([hugo, paco])
+
+        self.assertEqual(base.Reads, [151, 151])
+
+        exp_samples = [
+            sample_sheet.Sample({
+                'Sample_ID': 'y',
+                'index': 'GGTACA',
+                'index2': 'GGCGCC',
+                'Sample_Name': 'y.sample'}
+            ),
+            sample_sheet.Sample({
+                'Sample_ID': 'a',
+                'index': 'GATACA',
+                'index2': 'GCCGCC',
+                'Sample_Name': 'a.sample'}
+            ),
+            sample_sheet.Sample({
+                'Sample_ID': 'b',
+                'index': 'GATAAA',
+                'index2': 'GCCACC',
+                'Sample_Name': 'b.sample'}
+            ),
+        ]
+
+        for obs, exp in zip(base.samples, exp_samples):
+            self.assertEqual(obs, exp)
+
+        self.assertIsNone(base.Contact)
+
+        # check for Bioinformatics
+        exp = pd.DataFrame(
+            columns=['Sample_Project', 'QiitaID', 'BarcodesAreRC',
+                     'ForwardAdapter', 'ReverseAdapter', 'HumanFiltering'],
+            data=[
+                ['Koening_ITS_101', '101', 'False', 'GATACA', 'CATCAT',
+                 'False'],
+                ['Yanomani_2008_10052', '10052', 'False', 'GATACA', 'CATCAT',
+                 'False'],
+                ['paco_Koening_ITS_101', '101', 'False', 'GATACA', 'CATCAT',
+                 'False'],
+                ['paco_Yanomani_2008_10052', '10052', 'False', 'GATACA',
+                 'CATCAT', 'False']
+            ]
+        )
+
+        # checks the items haven't been repeated
+        pd.testing.assert_frame_equal(base.Bioinformatics, exp)
+
     def test_merge_error(self):
         base = KLSampleSheet()
         base.Reads = [151, 151]

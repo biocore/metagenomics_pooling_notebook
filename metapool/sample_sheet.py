@@ -316,16 +316,26 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
             # these two sections are data frames
             for section in ['Bioinformatics', 'Contact']:
-                if (getattr(self, section) is not None and
-                   getattr(sheet, section) is not None):
-                    section = getattr(self, section)
+                this, that = getattr(self, section), getattr(sheet, section)
 
-                    for _, row in section.iterrows():
-                        section.loc[len(section)] = row
+                # if both frames are not None then we concatenate the rows.
+                if this is not None and that is not None:
+                    for _, row in that.iterrows():
+                        this.loc[len(this)] = row.copy()
 
-                    # avoid repeating project information
-                    section.drop_duplicates(keep='first', ignore_index=True,
-                                            inplace=True)
+                    this.drop_duplicates(keep='first', ignore_index=True,
+                                         inplace=True)
+
+                # if self's frame is None then assign a copy
+                elif this is None and that is not None:
+                    setattr(self, section, that.copy())
+                # means that either self's is the only frame that's not None,
+                # so we don't need to merge anything OR that both frames are
+                # None so we have nothing to merge.
+                else:
+                    pass
+
+
 
 
 def _validate_sample_sheet_metadata(metadata):
