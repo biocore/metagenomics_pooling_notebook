@@ -336,8 +336,6 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                     pass
 
 
-
-
 def _validate_sample_sheet_metadata(metadata):
     msgs = []
 
