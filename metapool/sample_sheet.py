@@ -280,24 +280,34 @@ class KLSampleSheet(sample_sheet.SampleSheet):
     def merge(self, sheets):
         """Merge the Data section of multiple sample sheets
 
+        For the Date field in the Header section, we only keep the date of the
+        current sheet.
+
         Parameters
         ----------
         sheets: list of KLSampleSheet
             The sample sheets to merge into `self`.
 
-        Returns
-        -------
-        KLSampleSheet
-            The combined sample sheet.
-
         Raises
         ------
         ValueError
-            If the header section is different between merged sheets.
+            If the Header, Settings or Reads section is different between
+            merged sheets.
         """
         for number, sheet in enumerate(sheets):
             for section in ['Header', 'Settings', 'Reads']:
-                if getattr(self, section) != getattr(sheet, section):
+
+                # For the Header section we'll ignore the Date field since that
+                # is likely to be different but shouldn't be a condition to
+                # merge two sheets.
+                this, that = getattr(self, section), getattr(sheet, section)
+                if section == 'Header':
+                    if this is not None:
+                        this = {k: v for k, v in this.items() if k != 'Date'}
+                    if that is not None:
+                        that = {k: v for k, v in that.items() if k != 'Date'}
+
+                if this != that:
                     raise ValueError(('The %s section is different for sample '
                                      'sheet %d ') % (section, 1 + number))
 

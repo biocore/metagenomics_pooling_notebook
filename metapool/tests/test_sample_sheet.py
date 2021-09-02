@@ -309,6 +309,35 @@ class KLSampleSheetTests(BaseTests):
                                     'different for sample sheet 1'):
             base.merge([hugo])
 
+    def test_merge_different_dates(self):
+        base = KLSampleSheet()
+        base.Header['Date'] = '08-01-1989'
+        base.Settings = {'ReverseComplement': 0}
+
+        hugo = KLSampleSheet()
+        hugo.Header['Date'] = '04-26-2021'
+        hugo.Settings = {'ReverseComplement': 0}
+
+        hugo.add_sample(sample_sheet.Sample({
+            'Sample_ID': 'a',
+            'index': 'GATACA',
+            'index2': 'GCCGCC',
+            'Sample_Name': 'a.sample'
+        }))
+
+        base.merge([hugo])
+
+        # keeps base's date
+        self.assertEqual(dict(base.Header), {'Date': '08-01-1989'})
+
+        # there should only be one sample
+        self.assertEqual(len(base.samples), 1)
+        self.assertEqual(base.samples[0],
+                         sample_sheet.Sample({'Sample_ID': 'a',
+                                              'index': 'GATACA',
+                                              'index2': 'GCCGCC',
+                                              'Sample_Name': 'a.sample'}))
+
     def test_validate(self):
         obs = _validate_sample_sheet_metadata(self.metadata)
         self.assertEqual(obs, [])
