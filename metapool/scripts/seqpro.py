@@ -3,7 +3,7 @@
 import click
 import os
 
-from metapool import (preparations_for_run, parse_sample_sheet,
+from metapool import (preparations_for_run, KLSampleSheet,
                       sample_sheet_to_dataframe)
 
 
@@ -31,7 +31,7 @@ def format_preparation_files(run_dir, sample_sheet, output_dir, pipeline):
     non-empty files are included.
     """
 
-    sample_sheet = sample_sheet_to_dataframe(parse_sample_sheet(sample_sheet))
+    sample_sheet = sample_sheet_to_dataframe(KLSampleSheet(sample_sheet))
 
     # returns a map of project_name.lane -> preparation frame
     preps = preparations_for_run(run_dir, sample_sheet, pipeline=pipeline)

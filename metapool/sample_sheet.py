@@ -280,24 +280,34 @@ class KLSampleSheet(sample_sheet.SampleSheet):
     def merge(self, sheets):
         """Merge the Data section of multiple sample sheets
 
+        For the Date field in the Header section, we only keep the date of the
+        current sheet.
+
         Parameters
         ----------
         sheets: list of KLSampleSheet
             The sample sheets to merge into `self`.
 
-        Returns
-        -------
-        KLSampleSheet
-            The combined sample sheet.
-
         Raises
         ------
         ValueError
-            If the header section is different between merged sheets.
+            If the Header, Settings or Reads section is different between
+            merged sheets.
         """
         for number, sheet in enumerate(sheets):
             for section in ['Header', 'Settings', 'Reads']:
-                if getattr(self, section) != getattr(sheet, section):
+                this, that = getattr(self, section), getattr(sheet, section)
+
+                # For the Header section we'll ignore the Date field since that
+                # is likely to be different but shouldn't be a condition to
+                # prevent merging two sheets.
+                if section == 'Header':
+                    if this is not None:
+                        this = {k: v for k, v in this.items() if k != 'Date'}
+                    if that is not None:
+                        that = {k: v for k, v in that.items() if k != 'Date'}
+
+                if this != that:
                     raise ValueError(('The %s section is different for sample '
                                      'sheet %d ') % (section, 1 + number))
 
@@ -306,16 +316,24 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
             # these two sections are data frames
             for section in ['Bioinformatics', 'Contact']:
-                if (getattr(self, section) is not None and
-                   getattr(sheet, section) is not None):
-                    section = getattr(self, section)
+                this, that = getattr(self, section), getattr(sheet, section)
 
-                    for _, row in section.iterrows():
-                        section.loc[len(section)] = row
+                # if both frames are not None then we concatenate the rows.
+                if this is not None and that is not None:
+                    for _, row in that.iterrows():
+                        this.loc[len(this)] = row.copy()
 
-                    # avoid repeating project information
-                    section.drop_duplicates(keep='first', ignore_index=True,
-                                            inplace=True)
+                    this.drop_duplicates(keep='first', ignore_index=True,
+                                         inplace=True)
+
+                # if self's frame is None then assign a copy
+                elif this is None and that is not None:
+                    setattr(self, section, that.copy())
+                # means that either self's is the only frame that's not None,
+                # so we don't need to merge anything OR that both frames are
+                # None so we have nothing to merge.
+                else:
+                    pass
 
 
 def _validate_sample_sheet_metadata(metadata):
