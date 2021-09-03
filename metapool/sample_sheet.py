@@ -296,11 +296,11 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         """
         for number, sheet in enumerate(sheets):
             for section in ['Header', 'Settings', 'Reads']:
+                this, that = getattr(self, section), getattr(sheet, section)
 
                 # For the Header section we'll ignore the Date field since that
                 # is likely to be different but shouldn't be a condition to
-                # merge two sheets.
-                this, that = getattr(self, section), getattr(sheet, section)
+                # prevent merging two sheets.
                 if section == 'Header':
                     if this is not None:
                         this = {k: v for k, v in this.items() if k != 'Date'}
