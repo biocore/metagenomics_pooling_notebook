@@ -113,7 +113,7 @@ class IGMManifest(object):
     @pools.setter
     def pools(self, value):
         """List of pools to write in the manifest"""
-        if value is None:
+        if self._pools is not None:
             for i, pool in enumerate(self._pools):
                 row = str(_IGM_ROW_OFFSET + i)
 
@@ -121,7 +121,8 @@ class IGMManifest(object):
                 del self._sheet['B' + row]
                 del self._sheet['C' + row]
                 del self._sheet['D' + row]
-        else:
+
+        if value is not None:
             for i, pool in enumerate(value):
                 row = str(_IGM_ROW_OFFSET + i)
 
