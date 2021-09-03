@@ -96,16 +96,19 @@ class IGMManifest(object):
                 raise ValueError('%s cannot be empty, you need to set a value'
                                  % prop)
 
-        if path is None:
-            path = (datetime.strftime(datetime.today(), '%Y_%m_%d_') +
-                    # should be the last name
-                    self.pi_name.split(' ')[-1] + '_' +
-                    # all the pools with spaces replaced for underscores
-                    '_'.join([p.replace(' ', '_') for p in self._pools]) +
-                    '_Manifest_2021.xlsx')
+        path = self._default_path() if path is None else path
         print('Saving manifest to %s' % path)
 
         self._workbook.save(path)
+
+    def _default_path(self):
+        path = (datetime.strftime(datetime.today(), '%Y_%m_%d_') +
+                # should be the last name
+                self.pi_name.split(' ')[-1] + '_' +
+                # all the pools with spaces replaced for underscores
+                '_'.join([p.replace(' ', '_') for p in self._pools]) +
+                '_Manifest_2021.xlsx')
+        return path
 
 
 def _load_igm_template():
