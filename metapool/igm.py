@@ -13,7 +13,6 @@ def _property_maker(obj, name, cell, default):
         return getattr(self, '_' + name)
 
     def fset(self, value):
-        # print('what')
         if value is not None:
             self._sheet[cell] = value
         setattr(self, '_' + name, value)
@@ -22,10 +21,6 @@ def _property_maker(obj, name, cell, default):
     setattr(obj, '_' + name, default)
     if default is not None:
         getattr(obj, '_sheet')[cell] = default
-
-    # print('i did something')
-    # setattr(obj, name, default)
-    # get class of self and assign property
 
     setattr(type(obj), name, property(fget, fset))
 
@@ -115,5 +110,4 @@ def _load_igm_template():
     """Helper function to load IGM's manifest template"""
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data',
                         'template.xlsx')
-    # print(path)
     return load_workbook(path)
