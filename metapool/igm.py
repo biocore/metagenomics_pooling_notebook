@@ -7,8 +7,29 @@ from openpyxl.styles import PatternFill
 
 _IGM_ROW_OFFSET = 25
 
+_CONTACT = 'MacKenzie Bryant'
+_EMAIL = 'mackenzie.m.bryant@gmail.com'
+_INSTITUTE = 'Knight Lab'
+_PI_NAME = 'Dr. Knight'
+_PLATFORM = 'NovaSeq S4'
+_RUN_TYPE = 'PE150'
+_CUSTOM_PRIMER = 'No-Standard Illumina Primers are fine'
+
 
 def _property_maker(obj, name, cell, default):
+    """Create a setter/getter for an attribute and associate it with a cell
+
+    Parameters
+    ----------
+    obj: IGMManifest
+        The instance that needs the property.
+    name: str
+        The name of the property for the instance.
+    cell: str
+        The sheet's cell where the property should be written to.
+    default: str, int, float or None
+        Default value for the property.
+    """
     def fget(self):
         return getattr(self, '_' + name)
 
@@ -17,10 +38,8 @@ def _property_maker(obj, name, cell, default):
             self._sheet[cell] = value
         setattr(self, '_' + name, value)
 
-    # set the default values
-    setattr(obj, '_' + name, default)
-    if default is not None:
-        getattr(obj, '_sheet')[cell] = default
+    # set the default value
+    fset(obj, default)
 
     setattr(type(obj), name, property(fget, fset))
 
@@ -30,51 +49,52 @@ class IGMManifest(object):
 
     Attributes
     ----------
-    submission_date: default today's date
-        When the sample sheet is submitted.
-    institute: default Knight Lab
-        Institution or laboratory.
-    pi_name: default Dr. Knight
-        Name of the PI.
-    pi_email: default mackkenzie.m.bryant@gmail.com
-        Email for the PI
-    contact_name: default MacKenzie Bryant
-        Contact's name.
-    project_number:
+    submission_date: str
+        When the sample sheet is submitted. Defaults to today's date.
+    institute: str
+        Institution or laboratory.  Defaults to "Knight Lab".
+    pi_name: str
+        Name of the PI. Defaults to "Dr. Knight".
+    pi_email: str
+        Email for the PI. Defaults to mackenzie.m.bryant@gmail.com
+    contact_name: str
+        Contact's name. Defaults to MacKenzie Bryant.
+    project_number: int
         Project's number.
-    task_number:
-        Tasks' number
-    platform: default NovaSeq S4:
-        Sequencing platform.
-    run_type: default PE150
-        Sequencing run type.
-    custom_primer:
-        Notes about the primers in the run.
-    number_of_samples:
+    task_number: int
+        Tasks' number.
+    platform: str
+        Sequencing platform. Defaults to "NovaSeq S4".
+    run_type: str
+        Sequencing run type. Defaults to "PE150".
+    custom_primer: str
+        Notes about the primers in the run. Defaults to "No-Standard Illumina
+        Primers are fine".
+    number_of_samples: int
         Samples in the run.
-    number_of_lanes:
+    number_of_lanes: int
         Samples in the lane.
+    pools: list of str
+        List of pool names to include in the sheet.
     """
     def __init__(self):
-        self._workbook = _load_igm_template()
+        self._workbook = self._load_igm_template()
         self._sheet = self._workbook['Sample Information']
 
         _property_maker(self, 'submission_date', 'B2',
                         datetime.strftime(datetime.today(), '%m/%d/%y'))
-        _property_maker(self, 'institute', 'B3', 'Knight Lab')
-        _property_maker(self, 'pi_name', 'B4', 'Dr. Knight')
-        _property_maker(self, 'pi_email', 'B5', 'mackenzie.m.bryant@gmail.com')
-        _property_maker(self, 'contact_name', 'B6', 'MacKenzie Bryant')
-        _property_maker(self, 'contact_email', 'B7',
-                        'mackenzie.m.bryant@gmail.com')
+        _property_maker(self, 'institute', 'B3', _INSTITUTE)
+        _property_maker(self, 'pi_name', 'B4', _PI_NAME)
+        _property_maker(self, 'pi_email', 'B5', _EMAIL)
+        _property_maker(self, 'contact_name', 'B6', _CONTACT)
+        _property_maker(self, 'contact_email', 'B7', _EMAIL)
 
         _property_maker(self, 'project_number', 'B12', None)
         _property_maker(self, 'task_number', 'B13', None)
 
-        _property_maker(self, 'platform', 'B18', 'NovaSeq S4')
-        _property_maker(self, 'run_type', 'B19', 'PE150')
-        _property_maker(self, 'custom_primer', 'B20',
-                        'No-Standard Illumina Primers are fine')
+        _property_maker(self, 'platform', 'B18', _PLATFORM)
+        _property_maker(self, 'run_type', 'B19', _RUN_TYPE)
+        _property_maker(self, 'custom_primer', 'B20', _CUSTOM_PRIMER)
 
         _property_maker(self, 'number_of_samples', 'B22', None)
         _property_maker(self, 'number_of_lanes', 'B23', '1')
@@ -147,9 +167,8 @@ class IGMManifest(object):
                 '_Manifest_2021.xlsx')
         return path
 
-
-def _load_igm_template():
-    """Helper function to load IGM's manifest template"""
-    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data',
-                        'template.xlsx')
-    return load_workbook(path)
+    def _load_igm_template(self):
+        """Helper function to load IGM's manifest template"""
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data',
+                            'template.xlsx')
+        return load_workbook(path)
