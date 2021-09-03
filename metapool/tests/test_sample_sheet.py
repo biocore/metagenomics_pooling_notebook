@@ -25,6 +25,8 @@ class BaseTests(unittest.TestCase):
                                'sample-sheet.csv')
 
         self.good_ss = os.path.join(data_dir, 'good-sample-sheet.csv')
+        self.with_comments = os.path.join(data_dir, 'good-sample-sheet-but-'
+                                          'with-comments.csv')
 
         self.no_project_ss = os.path.join(data_dir,
                                           'no-project-name-sample-sheet.csv')
@@ -80,7 +82,8 @@ class KLSampleSheetTests(BaseTests):
         # testing with all the sheets we have access to
         sheets = [self.ss, self.good_ss,
                   self.no_project_ss, self.ok_ss,
-                  self.scrubbable_ss, self.bad_project_name_ss]
+                  self.scrubbable_ss, self.bad_project_name_ss,
+                  self.with_comments]
         sheets = {sheet: KLSampleSheet(sheet) for sheet in sheets}
 
         for filename, sheet in sheets.items():
@@ -88,6 +91,14 @@ class KLSampleSheetTests(BaseTests):
                 sheet.write(tmp)
                 tmp.seek(0)
                 observed = tmp.read()
+
+                # The sample sheet with comments is identical to
+                # good-sample-sheet.csv except for the comments at the
+                # beginning of the file. After parsing, the contents of the
+                # written file are the same because the comments are ignored in
+                # the current API.
+                if filename == self.with_comments:
+                    filename = self.good_ss
 
                 with open(filename) as expected:
                     self.assertEqual(observed.split(), expected.read().split(),
@@ -214,6 +225,25 @@ class KLSampleSheetTests(BaseTests):
             ]
         )
         pd.testing.assert_frame_equal(sheet.Contact, exp)
+
+    def test_parse_with_comments(self):
+        # the two sample sheets are identical except for the comments
+        exp = KLSampleSheet(self.good_ss)
+        with self.assertWarnsRegex(UserWarning, 'Comments at the beginning '):
+            obs = KLSampleSheet(self.with_comments)
+
+            self.assertEqual(obs.Header, exp.Header)
+            self.assertEqual(obs.Settings, exp.Settings)
+            self.assertEqual(obs.Reads, exp.Reads)
+
+            for o_sample, e_sample in zip(obs.samples, exp.samples):
+                self.assertEqual(o_sample, e_sample)
+
+            pd.testing.assert_frame_equal(obs.Contact, exp.Contact)
+            pd.testing.assert_frame_equal(obs.Bioinformatics,
+                                          exp.Bioinformatics)
+
+            self.assertEqual(len(obs), 783)
 
     def test_merge(self):
         base = KLSampleSheet()
