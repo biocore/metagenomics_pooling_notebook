@@ -26,6 +26,35 @@ def _property_maker(obj, name, cell, default):
 
 
 class IGMManifest(object):
+    """Interface to write an IGM manifest file
+
+    Attributes
+    ----------
+    submission_date: default today's date
+        When the sample sheet is submitted.
+    institute: default Knight Lab
+        Institution or laboratory.
+    pi_name: default Dr. Knight
+        Name of the PI.
+    pi_email: default mackkenzie.m.bryant@gmail.com
+        Email for the PI
+    contact_name: default MacKenzie Bryant
+        Contact's name.
+    project_number:
+        Project's number.
+    task_number:
+        Tasks' number
+    platform: default NovaSeq S4:
+        Sequencing platform.
+    run_type: default PE150
+        Sequencing run type.
+    custom_primer:
+        Notes about the primers in the run.
+    number_of_samples:
+        Samples in the run.
+    number_of_lanes:
+        Samples in the lane.
+    """
     def __init__(self):
         self._workbook = _load_igm_template()
         self._sheet = self._workbook['Sample Information']
@@ -84,6 +113,19 @@ class IGMManifest(object):
         self._pools = value
 
     def write(self, path=None):
+        """Write the manifest to disk
+
+        Parameters
+        ----------
+        path: str, optional
+            Path where to write the manifest. If `None`, IGM's default format
+            is used (YYYY_MM_DD_PI_Sequencing_Runs_Manifest_2021.xlsx).
+
+        Raises
+        ------
+        ValueError
+            If a required attribute is missing.
+        """
         required = ['project_number', 'task_number', 'platform',
                     'number_of_samples', 'number_of_lanes', 'pools']
         for prop in required:
