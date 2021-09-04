@@ -853,6 +853,49 @@ class ValidateSampleSheetTests(BaseTests):
         self.assertStdOutEqual(message)
         self.assertTrue(isinstance(sheet, KLSampleSheet))
 
+    def test_validate_sample_sheet_scrubbed_project_names(self):
+        sheet = KLSampleSheet(self.good_ss)
+
+        remapper = {
+            'NYU_BMS_Melanoma_13059': "NYU's Tisch Art Microbiome 13059",
+            'Feist_11661': "The x.x microbiome project 1337"
+        }
+
+        for sample in sheet:
+            sample['Sample_Project'] = remapper.get(sample['Sample_Project'],
+                                                    sample['Sample_Project'])
+
+        sheet.Contact.Sample_Project.replace(remapper, inplace=True)
+        sheet.Bioinformatics.Sample_Project.replace(remapper, inplace=True)
+
+        obs = validate_sample_sheet(sheet)
+
+        message = (
+            'WarningMessage: The following project names were scrubbed for '
+            'bcl2fastq compatibility. If the same invalid characters are also '
+            'found in the Bioinformatics and Contacts sections those will be '
+            'automatically scrubbed too:\n'
+            "NYU's Tisch Art Microbiome 13059, The x.x microbiome project 1337"
+        )
+        self.assertStdOutEqual(message)
+        self.assertIsNotNone(obs)
+
+        scrubbed = {
+            'NYU_s_Tisch_Art_Microbiome_13059',
+            'The_x_x_microbiome_project_1337',
+            'Gerwick_6123'
+        }
+
+        for sample in obs:
+            self.assertTrue(sample['Sample_Project'] in scrubbed,
+                            sample['Sample_Project'])
+
+        for project in obs.Bioinformatics.Sample_Project:
+            self.assertTrue(project in scrubbed)
+
+        for project in obs.Contact.Sample_Project:
+            self.assertTrue(project in scrubbed)
+
     def test_validate_sample_sheet_bad_project_names(self):
         sheet = KLSampleSheet(self.bad_project_name_ss)
 

@@ -534,18 +534,39 @@ def validate_sample_sheet(sheet):
 
     msgs = []
 
-    corrected_names = []
+    # we track the updated projects as a dictionary so we can propagate these
+    # changes to the Bioinformatics and Contact sections
+    updated_samples, updated_projects = [], {}
     for sample in sheet.samples:
-        new = bcl_scrub_name(sample.Sample_ID)
-        if new != sample.Sample_ID:
-            corrected_names.append(sample.Sample_ID)
-            sample.Sample_ID = new
+        new_sample = bcl_scrub_name(sample.Sample_ID)
+        new_project = bcl_scrub_name(sample.Sample_Project)
 
-    if corrected_names:
+        if new_sample != sample.Sample_ID:
+            updated_samples.append(sample.Sample_ID)
+            sample.Sample_ID = new_sample
+        if new_project != sample.Sample_Project:
+            updated_projects[sample.Sample_Project] = new_project
+            sample['Sample_Project'] = new_project
+
+    if updated_samples:
         msgs.append(
             WarningMessage('The following sample names were scrubbed for'
                            ' bcl2fastq compatibility:\n%s' %
-                           ', '.join(corrected_names)))
+                           ', '.join(updated_samples)))
+    if updated_projects:
+        msgs.append(
+            WarningMessage('The following project names were scrubbed for'
+                           ' bcl2fastq compatibility. If the same invalid '
+                           'characters are also found in the Bioinformatics '
+                           'and Contacts sections those will be automatically '
+                           'scrubbed too:\n%s' %
+                           ', '.join(sorted(updated_projects))))
+
+        # make the changes to prevent useless errors where the scurbbed names
+        # fail to match between sections.
+        sheet.Contact.Sample_Project.replace(updated_projects, inplace=True)
+        sheet.Bioinformatics.Sample_Project.replace(updated_projects,
+                                                    inplace=True)
 
     pairs = collections.Counter([(s.Lane, s.Sample_Project)
                                  for s in sheet.samples])
