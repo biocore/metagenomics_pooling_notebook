@@ -135,6 +135,21 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         with open(path, encoding=self._encoding) as handle:
             lines = list(csv.reader(handle, skipinitialspace=True))
 
+            # Comments at the top of the file are no longer supported. Only
+            # handle comments if they are contiguous and in the first block of
+            # lines. Otherwise if comments are found halfway through the file
+            # that will result in an error.
+            show_warning = False
+            while len(lines) and lines[0][0].startswith('# '):
+                lines.pop(0)
+                show_warning = True
+            if show_warning:
+                message = ('Comments at the beginning of the sample sheet '
+                           'are no longer supported. This information will '
+                           'be ignored. Please use the Contact section '
+                           'instead')
+                warnings.warn(message)
+
             for i, line in enumerate(lines):
                 # Skip to next line if this line is empty to support formats of
                 # sample sheets with multiple newlines as section seperators.
