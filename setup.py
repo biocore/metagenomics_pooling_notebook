@@ -1,25 +1,16 @@
 #!/usr/bin/env python
 
 # ----------------------------------------------------------------------------
-# Copyright (c) 2015--, calour development team.
+# Copyright (c) 2015--, metapool development team.
 #
 # Distributed under the terms of the Modified BSD License.
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 # ----------------------------------------------------------------------------
 
-import re
-import ast
 from setuptools import find_packages, setup
 
-
-# version parsing from __init__ pulled from Flask's setup.py
-# https://github.com/mitsuhiko/flask/blob/master/setup.py
-_version_re = re.compile(r'__version__\s+=\s+(.*)')
-
-with open('metapool/__init__.py', 'rb') as f:
-    hit = _version_re.search(f.read().decode('utf-8')).group(1)
-    version = str(ast.literal_eval(hit))
+import versioneer
 
 classifiers = [
     'Development Status :: 2 - Pre-Alpha',
@@ -53,7 +44,8 @@ notebook = ['jupyter', 'notebook', 'jupyter_contrib_nbextensions']
 all_deps = base + test + coverage + notebook
 
 setup(name='metapool',
-      version=version,
+      version=versioneer.get_version(),
+      cmdclass=versioneer.get_cmdclass(),
       license='MIT',
       description=description,
       long_description=long_description,

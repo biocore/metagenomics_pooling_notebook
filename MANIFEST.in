@@ -1,0 +1,2 @@
+include versioneer.py
+include metapool/_version.py
