@@ -49,30 +49,33 @@ class IGMManifest(object):
 
     Attributes
     ----------
-    submission_date: default today's date
-        When the sample sheet is submitted.
-    institute: default Knight Lab
-        Institution or laboratory.
-    pi_name: default Dr. Knight
-        Name of the PI.
-    pi_email: default mackkenzie.m.bryant@gmail.com
-        Email for the PI
-    contact_name: default MacKenzie Bryant
-        Contact's name.
-    project_number:
-        Project's number.
-    task_number:
-        Tasks' number
-    platform: default NovaSeq S4:
-        Sequencing platform.
-    run_type: default PE150
-        Sequencing run type.
-    custom_primer:
-        Notes about the primers in the run.
-    number_of_samples:
+    submission_date: str
+        When the sample sheet is submitted. Defaults to today's date.
+    institute: str
+        Institution or laboratory.  Defaults to "Knight Lab".
+    pi_name: str
+        Name of the PI. Defaults to "Dr. Knight".
+    pi_email: str
+        Email for the PI. Defaults to mackenzie.m.bryant@gmail.com
+    contact_name: str
+        Contact's name. Defaults to MacKenzie Bryant.
+    project_number: int
+        Project number. Defaults to 2004033.
+    task_number: int
+        Tasks number. Defaults to 1.
+    platform: str
+        Sequencing platform. Defaults to "NovaSeq S4".
+    run_type: str
+        Sequencing run type. Defaults to "PE150".
+    custom_primer: str
+        Notes about the primers in the run. Defaults to "No-Standard Illumina
+        Primers are fine".
+    number_of_samples: int
         Samples in the run.
-    number_of_lanes:
+    number_of_lanes: int
         Samples in the lane.
+    pools: list of str
+        List of pool names to include in the sheet.
     """
     def __init__(self):
         self._workbook = self._load_igm_template()
@@ -86,8 +89,8 @@ class IGMManifest(object):
         _property_maker(self, 'contact_name', 'B6', _CONTACT)
         _property_maker(self, 'contact_email', 'B7', _EMAIL)
 
-        _property_maker(self, 'project_number', 'B12', None)
-        _property_maker(self, 'task_number', 'B13', None)
+        _property_maker(self, 'project_number', 'B12', 2004033)
+        _property_maker(self, 'task_number', 'B13', 1)
 
         _property_maker(self, 'platform', 'B18', _PLATFORM)
         _property_maker(self, 'run_type', 'B19', _RUN_TYPE)

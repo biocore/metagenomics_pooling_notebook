@@ -11,7 +11,7 @@ from openpyxl.styles import PatternFill
 class IGMManifestTests(unittest.TestCase):
     def test_raises_error_with_missing_properties(self):
         m = IGMManifest()
-        with self.assertRaisesRegex(ValueError, 'project_number cannot be '
+        with self.assertRaisesRegex(ValueError, 'number_of_samples cannot be '
                                     'empty, you need to set a value'):
             m.write()
 
@@ -36,8 +36,8 @@ class IGMManifestTests(unittest.TestCase):
         self.assertEqual(m.contact_name, 'MacKenzie Bryant')
         self.assertEqual(m.contact_email, 'mackenzie.m.bryant@gmail.com')
 
-        self.assertIsNone(m.project_number)
-        self.assertIsNone(m.task_number)
+        self.assertEqual(m.project_number, 2004033)
+        self.assertEqual(m.task_number, 1)
         self.assertEqual(m.platform, 'NovaSeq S4')
         self.assertEqual(m.run_type, 'PE150')
         self.assertEqual(m.custom_primer,
