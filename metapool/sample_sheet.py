@@ -521,13 +521,16 @@ def make_sample_sheet(metadata, table, sequencer, lanes):
             message.echo()
 
 
-def validate_sample_sheet(sheet):
-    """Validate and correct some aspects of the sample sheet
+def validate_and_scrub_sample_sheet(sheet):
+    """Validate the sample sheet and scrub invalid characters
+
+    The character scrubbing is only applied to the Sample_Project and the
+    Sample_ID columns.
 
     Parameters
     ----------
-    sheet: sample_sheet.SampleSheet
-        The sample sheet container as parsed from `parse_sample_sheet`.
+    sheet: sample_sheet.KLSampleSheet
+        The sample sheet object to validate and scrub.
 
     Returns
     -------

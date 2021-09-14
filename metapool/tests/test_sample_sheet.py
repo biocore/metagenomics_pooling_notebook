@@ -7,7 +7,8 @@ from datetime import datetime
 import pandas as pd
 import sample_sheet
 
-from metapool.sample_sheet import (KLSampleSheet, validate_sample_sheet,
+from metapool.sample_sheet import (KLSampleSheet,
+                                   validate_and_scrub_sample_sheet,
                                    sample_sheet_to_dataframe,
                                    _add_metadata_to_sheet, _add_data_to_sheet,
                                    _validate_sample_sheet_metadata,
@@ -815,40 +816,40 @@ class ValidateSampleSheetTests(BaseTests):
         observed = sys.stdout.getvalue().strip()
         self.assertEqual(observed, expected)
 
-    def test_validate_sample_sheet(self):
+    def test_validate_and_scrub_sample_sheet(self):
         sheet = KLSampleSheet(self.good_ss)
-        sheet = validate_sample_sheet(sheet)
+        sheet = validate_and_scrub_sample_sheet(sheet)
         # no errors
         self.assertStdOutEqual('')
         self.assertTrue(isinstance(sheet, KLSampleSheet))
 
-    def test_validate_sample_sheet_no_sample_project(self):
+    def test_validate_and_scrub_sample_sheet_no_sample_project(self):
         sheet = KLSampleSheet(self.no_project_ss)
-        sheet = validate_sample_sheet(sheet)
+        sheet = validate_and_scrub_sample_sheet(sheet)
 
         self.assertStdOutEqual('ErrorMessage: The Sample_Project column in the'
                                ' Data section is missing')
         self.assertIsNone(sheet)
 
-    def test_validate_sample_sheet_missing_bioinformatics(self):
+    def test_validate_and_scrub_sample_sheet_missing_bioinformatics(self):
         sheet = KLSampleSheet(self.good_ss)
         sheet.Bioinformatics = None
-        sheet = validate_sample_sheet(sheet)
+        sheet = validate_and_scrub_sample_sheet(sheet)
 
         self.assertStdOutEqual('ErrorMessage: The Bioinformatics section '
                                'cannot be empty')
         self.assertIsNone(sheet)
 
-    def test_validate_sample_sheet_missing_contact(self):
+    def test_validate_and_scrub_sample_sheet_missing_contact(self):
         sheet = KLSampleSheet(self.good_ss)
         sheet.Contact = None
-        sheet = validate_sample_sheet(sheet)
+        sheet = validate_and_scrub_sample_sheet(sheet)
 
         self.assertStdOutEqual('ErrorMessage: The Contact section '
                                'cannot be empty')
         self.assertIsNone(sheet)
 
-    def test_validate_sample_sheet_scrubbed_names(self):
+    def test_validate_and_scrub_sample_sheet_scrubbed_names(self):
         sheet = KLSampleSheet(self.scrubbable_ss)
 
         message = ('WarningMessage: '
@@ -878,12 +879,12 @@ class ValidateSampleSheetTests(BaseTests):
                    '361, P21_E.coli ELI362, P21_E.coli ELI363, P21_E.coli '
                    'ELI364, P21_E.coli ELI365, P21_E.coli ELI366, P21_E.coli '
                    'ELI367, P21_E.coli ELI368, P21_E.coli ELI369')
-        sheet = validate_sample_sheet(sheet)
+        sheet = validate_and_scrub_sample_sheet(sheet)
 
         self.assertStdOutEqual(message)
         self.assertTrue(isinstance(sheet, KLSampleSheet))
 
-    def test_validate_sample_sheet_scrubbed_project_names(self):
+    def test_validate_and_scrub_sample_sheet_scrubbed_project_names(self):
         sheet = KLSampleSheet(self.good_ss)
 
         remapper = {
@@ -898,7 +899,7 @@ class ValidateSampleSheetTests(BaseTests):
         sheet.Contact.Sample_Project.replace(remapper, inplace=True)
         sheet.Bioinformatics.Sample_Project.replace(remapper, inplace=True)
 
-        obs = validate_sample_sheet(sheet)
+        obs = validate_and_scrub_sample_sheet(sheet)
 
         message = (
             'WarningMessage: The following project names were scrubbed for '
@@ -926,18 +927,18 @@ class ValidateSampleSheetTests(BaseTests):
         for project in obs.Contact.Sample_Project:
             self.assertTrue(project in scrubbed)
 
-    def test_validate_sample_sheet_bad_project_names(self):
+    def test_validate_and_scrub_sample_sheet_bad_project_names(self):
         sheet = KLSampleSheet(self.bad_project_name_ss)
 
         message = ('ErrorMessage: The following project names in the '
                    'Sample_Project column are missing a Qiita study '
                    'identifier: Feist, Gerwick')
 
-        sheet = validate_sample_sheet(sheet)
+        sheet = validate_and_scrub_sample_sheet(sheet)
         self.assertStdOutEqual(message)
         self.assertIsNone(sheet)
 
-    def test_validate_sample_sheet_project_missing_lane(self):
+    def test_validate_and_scrub_sample_sheet_project_missing_lane(self):
         sheet = KLSampleSheet(self.good_ss)
 
         # set the lane value as empty for one of the two projects
@@ -945,7 +946,7 @@ class ValidateSampleSheetTests(BaseTests):
             if sample.Sample_Project == 'Feist_11661':
                 sample.Lane = ' '
 
-        sheet = validate_sample_sheet(sheet)
+        sheet = validate_and_scrub_sample_sheet(sheet)
         message = ('ErrorMessage: The following projects are missing a Lane '
                    'value: Feist_11661')
         self.assertStdOutEqual(message)

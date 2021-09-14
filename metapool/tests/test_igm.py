@@ -70,7 +70,7 @@ class IGMManifestTests(unittest.TestCase):
         m.task_number = 3
         m.number_of_samples = 384
         m.number_of_lanes = 1
-        m.pools = ['Scooby_dooby_doo']
+        m.pools = ['TMI_AGP_300_302_304_308', 'OTHER']
 
         with tempfile.NamedTemporaryFile('w+', suffix='.xlsx') as tmp:
             m.write(tmp.name)
@@ -97,13 +97,20 @@ class IGMManifestTests(unittest.TestCase):
             self.assertEqual(sheet['D1'].fill,
                              PatternFill(fill_type='solid', fgColor='FFFF00'))
 
-            self.assertEqual(sheet['A25'].value, 'Scooby_dooby_doo')
-            self.assertEqual(sheet['B25'].value, 'Scooby_dooby_doo')
+            self.assertEqual(sheet['A25'].value, 'TMI_AGP_300_302_304_308')
+            self.assertEqual(sheet['B25'].value, 'TMI_AGP_300_302_304_308')
             self.assertEqual(sheet['C25'].value, 500)
             self.assertEqual(sheet['D25'].value, 'KHP')
 
+            self.assertEqual(sheet['A26'].value, 'OTHER')
+            self.assertEqual(sheet['B26'].value, 'OTHER')
+            self.assertEqual(sheet['C26'].value, 500)
+            self.assertEqual(sheet['D26'].value, 'KHP')
+
         observed = sys.stdout.getvalue().strip()
-        self.assertEqual(observed, 'Saving manifest to %s' % exp_name)
+        self.maxDiff = None
+        self.assertEqual(
+            observed, ('Saving manifest to %s\n' % exp_name) + BASE_MANIFEST)
 
     def test_write_pools(self):
         m = IGMManifest()
@@ -146,6 +153,60 @@ class IGMManifestTests(unittest.TestCase):
         self.assertIsNone(m._sheet['C27'].value)
         self.assertIsNone(m._sheet['D27'].value)
 
+    def test_str(self):
+        m = IGMManifest()
+        m.submission_date = '01/01/00'
+        m.project_number = 1000
+        m.task_number = 3
+        m.number_of_lanes = 1
+        m.number_of_samples = 384
+        m.pools = ['TMI_AGP_300_302_304_308', 'OTHER']
+
+        self.assertEqual(str(m), BASE_MANIFEST)
+
+    def test_str_missing_values(self):
+        m = IGMManifest()
+        m.submission_date = '04/26/21'
+
+        self.assertEqual(str(m), MISSING_VALS_MANIFEST)
+
+
+BASE_MANIFEST = """Date of Sample Submission: 01/01/00
+Institute/Company Name: Knight Lab
+PI Name: Dr. Knight
+PI Email: mackenzie.m.bryant@gmail.com
+Contact Name: MacKenzie Bryant
+Contact Email: mackenzie.m.bryant@gmail.com
+Project Number: 1000
+Task Number: 3
+Platform: NovaSeq S4
+Run Type: PE150
+Custom Primer? (Provide more info in comments box): No-Standard Illumina \
+Primers are fine
+Total number of Samples: 384
+Total number of Lanes OR Total Reads Required: 1
+
+Sample Name\tPool Name\tLibrary Size (bp)\tLibrary Prep Method
+TMI_AGP_300_302_304_308\tTMI_AGP_300_302_304_308\t500\tKHP
+OTHER\tOTHER\t500\tKHP"""
+
+MISSING_VALS_MANIFEST = """Date of Sample Submission: 04/26/21
+Institute/Company Name: Knight Lab
+PI Name: Dr. Knight
+PI Email: mackenzie.m.bryant@gmail.com
+Contact Name: MacKenzie Bryant
+Contact Email: mackenzie.m.bryant@gmail.com
+Project Number: 2004033
+Task Number: 1
+Platform: NovaSeq S4
+Run Type: PE150
+Custom Primer? (Provide more info in comments box): No-Standard Illumina \
+Primers are fine
+Total number of Samples: None
+Total number of Lanes OR Total Reads Required: 1
+
+Sample Name\tPool Name\tLibrary Size (bp)\tLibrary Prep Method
+"""
 
 if __name__ == '__main__':
     assert not hasattr(sys.stdout, "getvalue")
