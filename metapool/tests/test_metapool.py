@@ -3,6 +3,7 @@ from unittest import TestCase, main
 import pandas as pd
 import numpy as np
 import numpy.testing as npt
+import os
 from io import StringIO
 
 from metapool.metapool import (read_plate_map_csv, read_pico_csv,
@@ -174,6 +175,17 @@ class Tests(TestCase):
 
         pd.testing.assert_frame_equal(
             obs_pico_df, exp_pico_df, check_like=True)
+
+    def test_read_pico_csv_spectramax(self):
+        # Test a normal sheet
+        fp_spectramax = os.path.join(os.path.dirname(__file__), 'data',
+            'pico_spectramax.txt')
+
+        obs_pico_df = read_pico_csv(fp_spectramax,
+            plate_reader='SpectraMax_i3x')
+        self.assertEqual(obs_pico_df.shape[0], 384)
+        self.assertEqual(list(obs_pico_df.columns),
+            ['Well','Sample DNA Concentration'])
 
     def test_calculate_norm_vol(self):
         dna_concs = np.array([[2, 7.89],
