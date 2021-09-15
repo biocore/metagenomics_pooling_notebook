@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 import warnings
 
 
-REVCOMP_SEQUENCERS = ['HiSeq4000', 'MiniSeq', 'NextSeq', 'HiSeq3000','iSeq','NovaSeq']
-OTHER_SEQUENCERS = ['HiSeq2500', 'HiSeq1500', 'MiSeq']
+REVCOMP_SEQUENCERS = ['HiSeq4000', 'MiniSeq', 'NextSeq', 'HiSeq3000']
+OTHER_SEQUENCERS = ['HiSeq2500', 'HiSeq1500', 'MiSeq', 'NovaSeq']
 
 
 def read_plate_map_csv(f, sep='\t'):
@@ -48,7 +48,7 @@ def read_plate_map_csv(f, sep='\t'):
 
 
 # method to read minipico output
-def read_pico_csv(f, sep='\t', plate_reader='Synergy_HT', conc_col_name='Sample DNA Concentration'):
+def read_pico_csv(f, sep='\t', conc_col_name='Sample DNA Concentration'):
     """
     reads tab-delimited pico quant
 
@@ -58,8 +58,6 @@ def read_pico_csv(f, sep='\t', plate_reader='Synergy_HT', conc_col_name='Sample 
         pico quant file
     sep: str
         sep char used in quant file
-    plate_reader: str
-        plate reader used to generate quant file ['Synergy_HT','SpectraMax_i3x']
     conc_col_name: str
         name to use for concentration column output
 
@@ -68,28 +66,17 @@ def read_pico_csv(f, sep='\t', plate_reader='Synergy_HT', conc_col_name='Sample 
     pico_df: pandas DataFrame object
         DataFrame relating well location and DNA concentration
     """
-    if plate_reader == 'Synergy_HT':
-        raw_df = pd.read_csv(f, sep = sep, skiprows=2,
-                             skipfooter=5, engine='python')
 
-        pico_df = raw_df[['Well','[Concentration]']]
-        pico_df = pico_df.rename(columns={'[Concentration]':conc_col_name})
+    raw_df = pd.read_csv(f, sep=sep, skiprows=2,
+                         skipfooter=5, engine='python')
 
-        # coerce oddball concentrations to np.nan
-        pico_df[conc_col_name] = \
-            pd.to_numeric(pico_df[conc_col_name], errors = 'coerce')
-    elif plate_reader == 'SpectraMax_i3x':   
-        raw_df = pd.read_csv(open(f,encoding='utf-16'), sep = sep, skiprows=2,
-                             skipfooter=15, engine='python')
+    pico_df = raw_df[['Well', '[Concentration]']]
+    pico_df = pico_df.rename(columns={'[Concentration]': conc_col_name})
 
-        pico_df = raw_df[['Wells','Concentration']]
-        pico_df = pico_df.rename(columns={'Concentration':conc_col_name,
-                                         'Wells':'Well'})
+    # coerce oddball concentrations to np.nan
+    pico_df[conc_col_name] = \
+        pd.to_numeric(pico_df[conc_col_name], errors='coerce')
 
-        # coerce oddball concentrations to np.nan
-        pico_df[conc_col_name] = \
-        pd.to_numeric(pico_df[conc_col_name], errors = 'coerce')
-    
     return(pico_df)
 
 
