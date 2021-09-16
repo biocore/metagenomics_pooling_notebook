@@ -49,7 +49,7 @@ def read_plate_map_csv(f, sep='\t'):
 
 # method to read minipico output
 def read_pico_csv(f, sep='\t', plate_reader='Synergy_HT',
-    conc_col_name='Sample DNA Concentration'):
+                  conc_col_name='Sample DNA Concentration'):
     """
     reads tab-delimited pico quant
 
