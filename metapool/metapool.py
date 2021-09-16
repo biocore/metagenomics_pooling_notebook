@@ -70,27 +70,29 @@ def read_pico_csv(f, sep='\t', plate_reader='Synergy_HT',
         DataFrame relating well location and DNA concentration
     """
     if plate_reader == 'Synergy_HT':
-        raw_df = pd.read_csv(f, sep = sep, skiprows=2,
-                             skipfooter=5, engine='python')
+        encoding, skipfooter = None, 5
+    elif plate_reader == 'SpectraMax_i3x':
+        encoding, skipfooter = 'utf-16', 15
+    else:
+        raise ValueError("Invalid plate reader %s" % plate_reader)
 
-        pico_df = raw_df[['Well','[Concentration]']]
-        pico_df = pico_df.rename(columns={'[Concentration]':conc_col_name})
+    pico_df = pd.read_csv(open(f, encoding=encoding), sep=sep, skiprows=2,
+                          skipfooter=skipfooter, engine='python')
 
-        # coerce oddball concentrations to np.nan
-        pico_df[conc_col_name] = \
-            pd.to_numeric(pico_df[conc_col_name], errors = 'coerce')
-    elif plate_reader == 'SpectraMax_i3x':   
-        raw_df = pd.read_csv(open(f,encoding='utf-16'), sep = sep, skiprows=2,
-                             skipfooter=15, engine='python')
+    # synergy's concentration column is "Concentration", spectramax's is
+    # [Concentration]. Rename will ignore any labels not in the dataframe so
+    # only one of the two label updates should happen
+    pico_df.rename({'Concentration': conc_col_name,
+                    '[Concentration]': conc_col_name,
+                    'Wells': 'Well'}, inplace=True)
 
-        pico_df = raw_df[['Wells','Concentration']]
-        pico_df = pico_df.rename(columns={'Concentration':conc_col_name,
-                                         'Wells':'Well'})
+    pico_df = pico_df[['Well', conc_col_name]].copy()
 
-        # coerce oddball concentrations to np.nan
-        pico_df[conc_col_name] = \
-        pd.to_numeric(pico_df[conc_col_name], errors = 'coerce')
-    
+    # coerce oddball concentrations to np.nan
+    pico_df[conc_col_name] = \
+        pd.to_numeric(pico_df[conc_col_name], errors='coerce')
+
+    return pico_df
     return(pico_df)
 
 
