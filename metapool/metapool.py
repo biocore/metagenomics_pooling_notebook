@@ -7,8 +7,9 @@ import matplotlib.pyplot as plt
 import warnings
 
 
-REVCOMP_SEQUENCERS = ['HiSeq4000', 'MiniSeq', 'NextSeq', 'HiSeq3000']
-OTHER_SEQUENCERS = ['HiSeq2500', 'HiSeq1500', 'MiSeq', 'NovaSeq']
+REVCOMP_SEQUENCERS = ['HiSeq4000', 'MiniSeq', 'NextSeq', 'HiSeq3000',
+                      'iSeq', 'NovaSeq']
+OTHER_SEQUENCERS = ['HiSeq2500', 'HiSeq1500', 'MiSeq']
 
 
 def read_plate_map_csv(f, sep='\t'):
@@ -48,7 +49,8 @@ def read_plate_map_csv(f, sep='\t'):
 
 
 # method to read minipico output
-def read_pico_csv(f, sep='\t', conc_col_name='Sample DNA Concentration'):
+def read_pico_csv(f, sep='\t', plate_reader='Synergy_HT',
+                  conc_col_name='Sample DNA Concentration'):
     """
     reads tab-delimited pico quant
 
@@ -58,6 +60,9 @@ def read_pico_csv(f, sep='\t', conc_col_name='Sample DNA Concentration'):
         pico quant file
     sep: str
         sep char used in quant file
+    plate_reader: str
+        plate reader used to generate quant file ['Synergy_HT',
+        'SpectraMax_i3x']
     conc_col_name: str
         name to use for concentration column output
 
@@ -66,18 +71,32 @@ def read_pico_csv(f, sep='\t', conc_col_name='Sample DNA Concentration'):
     pico_df: pandas DataFrame object
         DataFrame relating well location and DNA concentration
     """
+    if plate_reader == 'Synergy_HT':
+        encoding, skipfooter = None, 5
+    elif plate_reader == 'SpectraMax_i3x':
+        encoding, skipfooter = 'utf-16', 15
+    else:
+        raise ValueError("Invalid plate reader %s" % plate_reader)
+    if not hasattr(f, 'read'):
+        f = open(f, encoding=encoding)
 
-    raw_df = pd.read_csv(f, sep=sep, skiprows=2,
-                         skipfooter=5, engine='python')
+    pico_df = pd.read_csv(f, sep=sep, skiprows=2,
+                          skipfooter=skipfooter, engine='python')
 
-    pico_df = raw_df[['Well', '[Concentration]']]
-    pico_df = pico_df.rename(columns={'[Concentration]': conc_col_name})
+    # synergy's concentration column is "Concentration", spectramax's is
+    # [Concentration]. Rename will ignore any labels not in the dataframe so
+    # only one of the two label updates should happen
+    pico_df.rename(columns={'Concentration': conc_col_name,
+                            '[Concentration]': conc_col_name,
+                            'Wells': 'Well'}, inplace=True)
+
+    pico_df = pico_df[['Well', conc_col_name]].copy()
 
     # coerce oddball concentrations to np.nan
     pico_df[conc_col_name] = \
         pd.to_numeric(pico_df[conc_col_name], errors='coerce')
 
-    return(pico_df)
+    return pico_df
 
 
 def calculate_norm_vol(dna_concs, ng=5, min_vol=2.5, max_vol=3500,
