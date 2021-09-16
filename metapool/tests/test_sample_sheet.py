@@ -28,6 +28,9 @@ class BaseTests(unittest.TestCase):
         self.with_comments = os.path.join(data_dir, 'good-sample-sheet-but-'
                                           'with-comments.csv')
 
+        fp = 'good-sample-sheet-with-comments-and-new-lines.csv'
+        self.with_comments_and_new_lines = os.path.join(data_dir, fp)
+
         self.no_project_ss = os.path.join(data_dir,
                                           'no-project-name-sample-sheet.csv')
 
@@ -83,7 +86,7 @@ class KLSampleSheetTests(BaseTests):
         sheets = [self.ss, self.good_ss,
                   self.no_project_ss, self.ok_ss,
                   self.scrubbable_ss, self.bad_project_name_ss,
-                  self.with_comments]
+                  self.with_comments, self.with_comments_and_new_lines]
         sheets = {sheet: KLSampleSheet(sheet) for sheet in sheets}
 
         for filename, sheet in sheets.items():
@@ -92,12 +95,13 @@ class KLSampleSheetTests(BaseTests):
                 tmp.seek(0)
                 observed = tmp.read()
 
-                # The sample sheet with comments is identical to
-                # good-sample-sheet.csv except for the comments at the
-                # beginning of the file. After parsing, the contents of the
-                # written file are the same because the comments are ignored in
-                # the current API.
-                if filename == self.with_comments:
+                # The sample sheets with comments are identical to
+                # good-sample-sheet.csv except for the comments and new lines.
+                # After parsing, the contents of the written file are the same
+                # because comments and empty lines are ignored in the current
+                # API.
+                if filename in {self.with_comments,
+                                self.with_comments_and_new_lines}:
                     filename = self.good_ss
 
                 with open(filename) as expected:
