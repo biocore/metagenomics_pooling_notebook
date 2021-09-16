@@ -7,7 +7,8 @@ import matplotlib.pyplot as plt
 import warnings
 
 
-REVCOMP_SEQUENCERS = ['HiSeq4000', 'MiniSeq', 'NextSeq', 'HiSeq3000','iSeq','NovaSeq']
+REVCOMP_SEQUENCERS = ['HiSeq4000', 'MiniSeq', 'NextSeq', 'HiSeq3000',
+                      'iSeq', 'NovaSeq']
 OTHER_SEQUENCERS = ['HiSeq2500', 'HiSeq1500', 'MiSeq']
 
 
@@ -60,7 +61,8 @@ def read_pico_csv(f, sep='\t', plate_reader='Synergy_HT',
     sep: str
         sep char used in quant file
     plate_reader: str
-        plate reader used to generate quant file ['Synergy_HT','SpectraMax_i3x']
+        plate reader used to generate quant file ['Synergy_HT',
+        'SpectraMax_i3x']
     conc_col_name: str
         name to use for concentration column output
 
@@ -75,16 +77,18 @@ def read_pico_csv(f, sep='\t', plate_reader='Synergy_HT',
         encoding, skipfooter = 'utf-16', 15
     else:
         raise ValueError("Invalid plate reader %s" % plate_reader)
+    if not hasattr(f, 'read'):
+        f = open(f, encoding=encoding)
 
-    pico_df = pd.read_csv(open(f, encoding=encoding), sep=sep, skiprows=2,
+    pico_df = pd.read_csv(f, sep=sep, skiprows=2,
                           skipfooter=skipfooter, engine='python')
 
     # synergy's concentration column is "Concentration", spectramax's is
     # [Concentration]. Rename will ignore any labels not in the dataframe so
     # only one of the two label updates should happen
-    pico_df.rename({'Concentration': conc_col_name,
-                    '[Concentration]': conc_col_name,
-                    'Wells': 'Well'}, inplace=True)
+    pico_df.rename(columns={'Concentration': conc_col_name,
+                            '[Concentration]': conc_col_name,
+                            'Wells': 'Well'}, inplace=True)
 
     pico_df = pico_df[['Well', conc_col_name]].copy()
 

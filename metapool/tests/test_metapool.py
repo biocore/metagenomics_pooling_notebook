@@ -179,13 +179,16 @@ class Tests(TestCase):
     def test_read_pico_csv_spectramax(self):
         # Test a normal sheet
         fp_spectramax = os.path.join(os.path.dirname(__file__), 'data',
-            'pico_spectramax.txt')
+                                     'pico_spectramax.txt')
 
         obs_pico_df = read_pico_csv(fp_spectramax,
-            plate_reader='SpectraMax_i3x')
+                                    plate_reader='SpectraMax_i3x')
         self.assertEqual(obs_pico_df.shape[0], 384)
         self.assertEqual(list(obs_pico_df.columns),
-            ['Well','Sample DNA Concentration'])
+                         ['Well', 'Sample DNA Concentration'])
+        # Test Invalid plate_reader error
+        with self.assertRaises(ValueError):
+            read_pico_csv(fp_spectramax, plate_reader='foo')
 
     def test_calculate_norm_vol(self):
         dna_concs = np.array([[2, 7.89],
