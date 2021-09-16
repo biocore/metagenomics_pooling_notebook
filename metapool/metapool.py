@@ -93,7 +93,6 @@ def read_pico_csv(f, sep='\t', plate_reader='Synergy_HT',
         pd.to_numeric(pico_df[conc_col_name], errors='coerce')
 
     return pico_df
-    return(pico_df)
 
 
 def calculate_norm_vol(dna_concs, ng=5, min_vol=2.5, max_vol=3500,
