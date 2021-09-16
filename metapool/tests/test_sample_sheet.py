@@ -31,6 +31,9 @@ class BaseTests(unittest.TestCase):
         fp = 'good-sample-sheet-with-comments-and-new-lines.csv'
         self.with_comments_and_new_lines = os.path.join(data_dir, fp)
 
+        self.with_new_lines = os.path.join(data_dir, 'good-sample-sheet-with-'
+                                           'new-lines.csv')
+
         self.no_project_ss = os.path.join(data_dir,
                                           'no-project-name-sample-sheet.csv')
 
@@ -86,7 +89,8 @@ class KLSampleSheetTests(BaseTests):
         sheets = [self.ss, self.good_ss,
                   self.no_project_ss, self.ok_ss,
                   self.scrubbable_ss, self.bad_project_name_ss,
-                  self.with_comments, self.with_comments_and_new_lines]
+                  self.with_comments, self.with_comments_and_new_lines,
+                  self.with_new_lines]
         sheets = {sheet: KLSampleSheet(sheet) for sheet in sheets}
 
         for filename, sheet in sheets.items():
@@ -101,6 +105,7 @@ class KLSampleSheetTests(BaseTests):
                 # because comments and empty lines are ignored in the current
                 # API.
                 if filename in {self.with_comments,
+                                self.with_new_lines,
                                 self.with_comments_and_new_lines}:
                     filename = self.good_ss
 
