@@ -64,5 +64,5 @@ setup(name='metapool',
                       'all': all_deps},
       entry_points='''
           [console_scripts]
-          seqpro=metapool.scripts.seqpro:format_preparation_files
+          seqpro=metapool.scripts.seqpro:seqpro
       ''')

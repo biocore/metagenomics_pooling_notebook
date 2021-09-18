@@ -3,11 +3,18 @@
 import click
 import os
 
+
+from metapool.count import count_collector
 from metapool import (preparations_for_run, KLSampleSheet,
                       sample_sheet_to_dataframe)
 
 
-@click.command()
+@click.group()
+def seqpro():
+    pass
+
+
+@seqpro.command()
 @click.argument('run_dir', type=click.Path(exists=True, dir_okay=True,
                                            file_okay=False))
 @click.argument('sample_sheet', type=click.Path(exists=True, dir_okay=False,
@@ -16,7 +23,7 @@ from metapool import (preparations_for_run, KLSampleSheet,
 @click.option('--pipeline', help='Which pipeline generated the data',
               show_default=True, default='fastp-and-minimap2',
               type=click.Choice(['atropos-and-bowtie2', 'fastp-and-minimap2']))
-def format_preparation_files(run_dir, sample_sheet, output_dir, pipeline):
+def generate_preparation_file(run_dir, sample_sheet, output_dir, pipeline):
     """Generate the preparation files for the projects in a run
 
     RUN_DIR: should be the directory where the results of running bcl2fastq are
@@ -44,5 +51,20 @@ def format_preparation_files(run_dir, sample_sheet, output_dir, pipeline):
         df.to_csv(filename, sep='\t', index=False)
 
 
-if __name__ == '__main__':
-    format_preparation_files()
+@seqpro.command()
+def count_sequences(run_dir, sample_sheet, filename):
+    """Collect per sample sequence counts from a run
+
+    RUN_DIR: should be the directory where the results of running bcl2fastq are
+    saved.
+
+    SAMPLE_SHEET: should be a CSV file that includes information for the
+    samples and projects in RUN_DIR.
+
+    Using a sample sheet, search for sequence files and log files to construct
+    a table of samples by sequence counts.
+    """
+    out = count_collector(os.path.abspath(run_dir),
+                          KLSampleSheet(sample_sheet))
+
+    out.to_csv(filename, sep='\t')
