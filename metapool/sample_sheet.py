@@ -132,9 +132,6 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         section_name = ''
         section_header = None
 
-        def _is_empty(csv_line):
-            return not ''.join(csv_line).strip()
-
         with open(path, encoding=self._encoding) as handle:
             lines = list(csv.reader(handle, skipinitialspace=True))
 
@@ -142,11 +139,8 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             # handle comments if they are contiguous and in the first block of
             # lines. Otherwise if comments are found halfway through the file
             # that will result in an error.
-            #
-            # Empty lines are ignored
             show_warning = False
-            while len(lines) and (_is_empty(lines[0]) or
-                                  lines[0][0].startswith('# ')):
+            while len(lines) and lines[0][0].startswith('# '):
                 lines.pop(0)
                 show_warning = True
             if show_warning:
@@ -162,7 +156,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 #
                 #   https://github.com/clintval/sample-sheet/issues/46
                 #
-                if _is_empty(line):
+                if not ''.join(line).strip():
                     continue
 
                 # Raise exception if we encounter invalid characters.
