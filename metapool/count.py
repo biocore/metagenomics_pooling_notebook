@@ -39,7 +39,7 @@ def _parse_fastp_counts(path):
         if ('summary' not in stats or
             'after_filtering' not in stats['summary'] or
            'total_reads' not in stats['summary']['after_filtering']):
-            raise ValueError('The fastp log for %s is malformed')
+            raise ValueError(f'The fastp log for {path} is malformed')
 
         return int(stats['summary']['after_filtering']['total_reads'])
 
@@ -102,17 +102,22 @@ def _parsefier(run_dir, sample_sheet, subdir, suffix, name, funk):
     found = set(out['Sample_ID'])
     expected = {s.Sample_ID for s in sample_sheet}
 
-    if found > expected:
-        out = out[out['Sample_ID'].isin(expected)]
+    # ignore the things not present in the sheet
+    out = out[out['Sample_ID'].isin(expected)]
+
+    dups = out.duplicated(subset=['Sample_ID', 'Lane'])
+    if dups.any():
+        pairs = [f"{r['Sample_ID']} in lane {r['Lane']}"
+                 for _, r in out[dups].iterrows()]
 
         # when running bcl2fastq/bclconvert multiple times you can run into
         # situations where the cell number is the only thing that changes. For
         # those situations, make sure you flag this as a possible error
-        if len(out) > len(expected):
-            raise ValueError('Multiple matches found for the same samples in'
-                             ' the same lane, only one match is expected')
+        raise ValueError('Multiple matches found for the same samples in'
+                         ' the same lane, only one match is expected: %s' %
+                         ', '.join(pairs))
 
-    elif expected > found:
+    if expected > found:
         warnings.warn(f'No {name} log found for these samples: %s' %
                       ', '.join(expected - found))
 

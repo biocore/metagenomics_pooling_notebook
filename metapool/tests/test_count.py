@@ -1,6 +1,7 @@
 import json
 import os
 import tempfile
+import shutil
 import pandas as pd
 
 from sample_sheet import Sample
@@ -52,7 +53,22 @@ class TestCount(TestCase):
                                   ('S2031_L001_R1', '1'))
 
     def test_parsefier_multiple_matches_raises(self):
-        self.fail()
+        with tempfile.TemporaryDirectory() as tmp:
+            run = os.path.join(tmp, 'funky-rerun-with-repeated-samples')
+            shutil.copytree(self.run_dir, run)
+
+            # sample 3 exists, but not with cell number S458, so this should
+            # raise an error because if this happense something else went wrong
+            fake = os.path.join(run, 'Trojecp_666', 'json',
+                                'sample3_S458_L003_R1_001.json')
+            with open(fake, 'w') as f:
+                f.write(json.dumps({}))
+
+            msg = ('Multiple matches found for the same samples in the same '
+                    'lane, only one match is expected: sample3 in lane 3')
+            with self.assertRaisesRegex(ValueError, msg):
+                _parsefier(run, self.ss, 'json', '.json', 'halloween',
+                           lambda x: 1)
 
     def test_parsefier_no_logs_warns(self):
         self.ss.add_sample(Sample({
@@ -76,7 +92,30 @@ class TestCount(TestCase):
         pd.testing.assert_frame_equal(obs.sort_index(), exp)
 
     def test_parse_fastp_malformed(self):
-        self.fail()
+        with tempfile.NamedTemporaryFile('w+') as tmp:
+            tmp.write(json.dumps({}))
+            tmp.seek(0)
+
+            with self.assertRaisesRegex(ValueError, 'The fastp log for '
+                                                    f'{tmp.name} is'
+                                                    ' malformed'):
+                _parse_fastp_counts(tmp.name)
+
+            tmp.write(json.dumps({'summary': {}}))
+            tmp.seek(0)
+
+            with self.assertRaisesRegex(ValueError, 'The fastp log for '
+                                                    f'{tmp.name} is'
+                                                    ' malformed'):
+                _parse_fastp_counts(tmp.name)
+
+            tmp.write(json.dumps({'summary': {'after_filtering': {}}}))
+            tmp.seek(0)
+
+            with self.assertRaisesRegex(ValueError, 'The fastp log for '
+                                                    f'{tmp.name} is'
+                                                    ' malformed'):
+                _parse_fastp_counts(tmp.name)
 
     def test_parse_fastp_counts(self):
         obs = _parse_fastp_counts(
