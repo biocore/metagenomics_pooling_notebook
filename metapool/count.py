@@ -49,7 +49,7 @@ def _parse_samtools_counts(path):
         matches = re.match(SAMTOOLS_PATTERN, f.read())
 
         if matches is None:
-            raise ValueError('The samtools log for %s is malformed')
+            raise ValueError(f'The samtools log for {path} is malformed')
 
         # divided by 2 because samtools outputs the number of records found
         # in the forward and reverse files

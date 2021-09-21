@@ -86,7 +86,14 @@ class TestCount(TestCase):
         self.assertEqual(obs, 4692)
 
     def test_parse_samtools_malformed(self):
-        self.fail()
+        with tempfile.NamedTemporaryFile('w+') as tmp:
+            tmp.write('[hey] we processed like 42 reads\n')
+            tmp.seek(0)
+
+            with self.assertRaisesRegex(ValueError, 'The samtools log for '
+                                                    f'{tmp.name} is'
+                                                    ' malformed'):
+                _parse_samtools_counts(tmp.name)
 
     def test_parse_samtools_counts(self):
         obs = _parse_samtools_counts(
