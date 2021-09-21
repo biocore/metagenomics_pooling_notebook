@@ -57,6 +57,8 @@ _SETTINGS = {
     'ReverseComplement': '0'
 }
 
+
+# TODO: check with MacKenzie & Rodolfo that this is where these go
 _HEADER = {
     'IEMFileVersion': '4',
     'Investigator Name': 'Knight',
@@ -65,6 +67,9 @@ _HEADER = {
     'Workflow': 'GenerateFASTQ',
     'Application': 'FASTQ Only',
     'Assay': None,
+    'Library Construction Protocol': None,
+    # TODO: determine if experiment design description and description should be different 
+    'Experiment Design Description': None,
     'Description': '',
     'Chemistry': 'Default',
 }
@@ -360,7 +365,9 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 def _validate_sample_sheet_metadata(metadata):
     msgs = []
 
-    for req in ['Assay', 'Bioinformatics', 'Contact']:
+    for req in ['Assay', 'Bioinformatics', 'Contact',
+                'Library Construction Protocol', 
+                'Experiment Design Description']:
         if req not in metadata:
             msgs.append(ErrorMessage('%s is a required attribute' % req))
 
@@ -383,7 +390,8 @@ def _validate_sample_sheet_metadata(metadata):
     if metadata.get('Assay') is not None and metadata['Assay'] not in _ASSAYS:
         msgs.append(ErrorMessage('%s is not a supported Assay' %
                                  metadata['Assay']))
-
+    
+    #TODO: check if there are specific values for requirements added
     keys = set(metadata.keys())
     if not keys.issubset(_ALL_METADATA):
         extra = sorted(keys - set(_ALL_METADATA))
@@ -491,6 +499,10 @@ def make_sample_sheet(metadata, table, sequencer, lanes):
         - Application: sample sheet's application [FASTQ Only]
         - Assay: assay type for the sequencing run. No default value will be
           set, this is required.
+        - Library Construction Protocol: No default value will be set, this is
+          required. 
+        - Experiment Design Description: No default value will be set, this
+          is required.
         - Description: additional information []
         - Chemistry: chemistry's description [Default]
         - read1: Length of forward read [151]
