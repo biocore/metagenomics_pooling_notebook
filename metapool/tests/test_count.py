@@ -1,4 +1,6 @@
+import json
 import os
+import tempfile
 import pandas as pd
 
 from sample_sheet import Sample
@@ -102,13 +104,39 @@ class TestCount(TestCase):
             bcl2fastq_counts(bad_dir, self.ss)
 
     def test_bcl2fastq_counts_malformed_conversion_results(self):
-        self.fail()
+        with tempfile.NamedTemporaryFile('w+') as tmp:
+            tmp.write(json.dumps({}))
+            tmp.seek(0)
+
+            with self.assertRaises(KeyError, 'bcl stats file is missing '
+                                             'ConversionResults attribute'):
+                bcl2fastq_counts(os.path.dirname(tmp.name), self.ss)
 
     def test_bcl2fastq_counts_malformed_demux_results(self):
-        self.fail()
+        with tempfile.TemporaryDirectory() as tmp:
+            stats = os.path.join(tmp, 'Stats')
+            os.makedirs(stats)
+
+            with open(os.path.join(stats, 'Stats.json'), 'w') as f:
+                f.write(json.dumps({}))
+
+            with self.assertRaisesRegex(KeyError, 'bcl stats file is missing '
+                                                  'ConversionResults '
+                                                  'attribute'):
+                bcl2fastq_counts(tmp, self.ss)
 
     def test_bcl2fastq_counts_malformed_lane(self):
-        self.fail()
+        with tempfile.TemporaryDirectory() as tmp:
+            stats = os.path.join(tmp, 'Stats')
+            os.makedirs(stats)
+
+            with open(os.path.join(stats, 'Stats.json'), 'w') as f:
+                f.write(json.dumps({'ConversionResults': [{}]}))
+
+            with self.assertRaisesRegex(KeyError, 'bcl stats file is missing '
+                                                  'DemuxResults '
+                                                  'attribute'):
+                bcl2fastq_counts(tmp, self.ss)
 
     def test_bcl2fastq_counts(self):
         obs = bcl2fastq_counts(self.run_dir, self.ss)
