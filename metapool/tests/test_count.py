@@ -93,6 +93,14 @@ class TestCount(TestCase):
 
         self.assertEqual(obs, 2777)
 
+    def test_bcl2fastq_no_stats_file(self):
+        bad_dir = os.path.join(os.path.abspath(self.run_dir), 'Trojecp_666')
+
+        with self.assertRaisesRegex(IOError,
+                                    rf"Cannot find stats file \({bad_dir}"
+                                    r"/Stats/Stats.json\) for this run"):
+            bcl2fastq_counts(bad_dir, self.ss)
+
     def test_bcl2fastq_counts_malformed_conversion_results(self):
         self.fail()
 
