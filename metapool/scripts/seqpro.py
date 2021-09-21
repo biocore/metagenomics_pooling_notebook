@@ -4,9 +4,8 @@ import click
 import os
 
 
-from metapool.count import count_collector
 from metapool import (preparations_for_run, KLSampleSheet,
-                      sample_sheet_to_dataframe)
+                      sample_sheet_to_dataframe, run_counts)
 
 
 @click.group()
@@ -64,7 +63,6 @@ def count_sequences(run_dir, sample_sheet, filename):
     Using a sample sheet, search for sequence files and log files to construct
     a table of samples by sequence counts.
     """
-    out = count_collector(os.path.abspath(run_dir),
-                          KLSampleSheet(sample_sheet))
+    out = run_counts(os.path.abspath(run_dir), KLSampleSheet(sample_sheet))
 
     out.to_csv(filename, sep='\t')

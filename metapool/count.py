@@ -76,7 +76,11 @@ def _parsefier(run_dir, sample_sheet, subdir, suffix, name, funk):
     for project, lane in {(s.Sample_Project, s.Lane) for s in sample_sheet}:
         lane = lane.zfill(3)
 
-        # TODO: explain wildcard carefully
+        # log files are named after the sequence files themselves, specifically
+        # the forward sequences, so we just make sure we match the right lane,
+        # the forward file and the suffix. The suffix is something like ".log"
+        # or "*.json" if you expect to see other characters before the
+        # extension
         logs = glob.glob(os.path.join(run_dir, project, subdir,
                                       f'*_L{lane}_R1_001' + suffix))
 
@@ -101,7 +105,7 @@ def _parsefier(run_dir, sample_sheet, subdir, suffix, name, funk):
                              ' the same lane, only one match is expected')
 
     elif expected > found:
-        warnings.warn(f'No {name} log found for %s' %
+        warnings.warn(f'No {name} log found for these samples: %s' %
                       ', '.join(expected - found))
 
     out[name] = out.path.apply(funk)
@@ -140,9 +144,13 @@ def minimap2_counts(run_dir, sample_sheet):
                       'minimap2', _parse_samtools_counts)
 
 
-def count_collector(run_dir, sample_sheet):
-    return bcl2fastq_counts(run_dir, sample_sheet).join([
+def run_counts(run_dir, sample_sheet):
+    out = bcl2fastq_counts(run_dir, sample_sheet).join([
             fastp_counts(run_dir, sample_sheet),
             minimap2_counts(run_dir, sample_sheet),
 
         ])
+
+    out.fillna(value='NA', inplace=True)
+
+    return out
