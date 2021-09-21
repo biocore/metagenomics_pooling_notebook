@@ -33,6 +33,14 @@ def _extract_name_and_lane(filename):
 def _parse_fastp_counts(path):
     with open(path) as fp:
         stats = json.load(fp)
+
+        # check all the required keys are present, otherwise the file could be
+        # malformed and we would only see a weird KeyError exception
+        if ('summary' not in stats or
+            'after_filtering' not in stats['summary'] or
+           'total_reads' not in stats['summary']['after_filtering']):
+            raise ValueError('The fastp log for %s is malformed')
+
         return int(stats['summary']['after_filtering']['total_reads'])
 
 
@@ -41,7 +49,7 @@ def _parse_samtools_counts(path):
         matches = re.match(SAMTOOLS_PATTERN, f.read())
 
         if matches is None:
-            raise ValueError('The samtools output for %s is malformed')
+            raise ValueError('The samtools log for %s is malformed')
 
         # divided by 2 because samtools outputs the number of records found
         # in the forward and reverse files
@@ -109,21 +117,34 @@ def _parsefier(run_dir, sample_sheet, subdir, suffix, name, funk):
                       ', '.join(expected - found))
 
     out[name] = out.path.apply(funk)
-    # TODO: do we need to get rid of sample_project?
+
     out.drop(columns=['path', 'Sample_Project'], inplace=True)
     out.set_index(['Sample_ID', 'Lane'], inplace=True, verify_integrity=True)
     return out
 
 
+def _safe_get(_document, _key):
+    """Prevent generic KeyError exceptions"""
+    if _key not in _document:
+        raise KeyError(f'bcl stats file is missing {_key} attribute')
+    else:
+        return _document[_key]
+
+
 def bcl2fastq_counts(run_dir, sample_sheet):
     path = os.path.join(os.path.abspath(run_dir), 'Stats/Stats.json')
+
+    if not os.path.exists(path):
+        raise IOError(f'Cannot find stats file ({path}) for this run')
+
     with open(path) as fp:
         contents = json.load(fp)
 
     out = []
-    for lane in contents['ConversionResults']:
-        table = pd.DataFrame(lane['DemuxResults'])
-        table['Lane'] = str(lane['LaneNumber'])
+    for lane in _safe_get(contents, 'ConversionResults'):
+        table = pd.DataFrame(_safe_get(lane, 'DemuxResults'))
+        table['Lane'] = str(_safe_get(lane, 'LaneNumber'))
+
         out.append(table)
 
     out = pd.concat(out)

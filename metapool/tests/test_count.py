@@ -1,12 +1,14 @@
 import os
 import pandas as pd
 
+from sample_sheet import Sample
 from unittest import main, TestCase
 
 from metapool import KLSampleSheet
 from metapool.count import (_extract_name_and_lane, _parse_samtools_counts,
                             _parse_fastp_counts, bcl2fastq_counts,
-                            fastp_counts, minimap2_counts, run_counts)
+                            fastp_counts, minimap2_counts, run_counts,
+                            _parsefier)
 
 
 class TestCount(TestCase):
@@ -47,6 +49,33 @@ class TestCount(TestCase):
             _extract_name_and_lane('S2031_L001_R1_S2031_L001_I1_001.fastq.gz'),
                                   ('S2031_L001_R1', '1'))
 
+    def test_parsefier_multiple_matches_raises(self):
+        self.fail()
+
+    def test_parsefier_no_logs_warns(self):
+        self.ss.add_sample(Sample({
+            'Sample_ID': 'H20_Myers',
+            'Lane': '1',
+            'Sample_Name': 'H20_Myers',
+            'index': 'ACTTTGTTGGAA',
+            'index2': 'GGTTAATTGAGA',
+            'Sample_Project': 'Trojecp_666'
+        }))
+
+        exp = pd.DataFrame(data=[[1], [1], [1], [1], [1], [1], [1]],
+                           columns=['halloween'],
+                           index=self.stats.index.copy())
+
+        with self.assertWarnsRegex(UserWarning, 'No halloween log found for '
+                                   'these samples: H20_Myers'):
+            obs = _parsefier(self.run_dir, self.ss, 'json', '.json',
+                             'halloween', lambda x: 1)
+
+        pd.testing.assert_frame_equal(obs.sort_index(), exp)
+
+    def test_parse_fastp_malformed(self):
+        self.fail()
+
     def test_parse_fastp_counts(self):
         obs = _parse_fastp_counts(
             os.path.join(self.run_dir, 'Trojecp_666', 'json',
@@ -54,12 +83,24 @@ class TestCount(TestCase):
 
         self.assertEqual(obs, 4692)
 
+    def test_parse_samtools_malformed(self):
+        self.fail()
+
     def test_parse_samtools_counts(self):
         obs = _parse_samtools_counts(
             os.path.join(self.run_dir, 'Trojecp_666', 'samtools',
                          'sample4_S369_L003_R1_001.log'))
 
         self.assertEqual(obs, 2777)
+
+    def test_bcl2fastq_counts_malformed_conversion_results(self):
+        self.fail()
+
+    def test_bcl2fastq_counts_malformed_demux_results(self):
+        self.fail()
+
+    def test_bcl2fastq_counts_malformed_lane(self):
+        self.fail()
 
     def test_bcl2fastq_counts(self):
         obs = bcl2fastq_counts(self.run_dir, self.ss)
