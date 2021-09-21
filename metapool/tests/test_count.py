@@ -103,16 +103,7 @@ class TestCount(TestCase):
                                     r"/Stats/Stats.json\) for this run"):
             bcl2fastq_counts(bad_dir, self.ss)
 
-    def test_bcl2fastq_counts_malformed_conversion_results(self):
-        with tempfile.NamedTemporaryFile('w+') as tmp:
-            tmp.write(json.dumps({}))
-            tmp.seek(0)
-
-            with self.assertRaises(KeyError, 'bcl stats file is missing '
-                                             'ConversionResults attribute'):
-                bcl2fastq_counts(os.path.dirname(tmp.name), self.ss)
-
-    def test_bcl2fastq_counts_malformed_demux_results(self):
+    def test_bcl2fastq_counts_malformed_results(self):
         with tempfile.TemporaryDirectory() as tmp:
             stats = os.path.join(tmp, 'Stats')
             os.makedirs(stats)
@@ -136,6 +127,19 @@ class TestCount(TestCase):
             with self.assertRaisesRegex(KeyError, 'bcl stats file is missing '
                                                   'DemuxResults '
                                                   'attribute'):
+                bcl2fastq_counts(tmp, self.ss)
+
+    def test_bcl2fastq_counts_malformed_lane_number(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            stats = os.path.join(tmp, 'Stats')
+            os.makedirs(stats)
+
+            with open(os.path.join(stats, 'Stats.json'), 'w') as f:
+                f.write(json.dumps(
+                    {'ConversionResults': [{'DemuxResults': {}}]}))
+
+            with self.assertRaisesRegex(KeyError, 'bcl stats file is missing '
+                                                  'LaneNumber attribute'):
                 bcl2fastq_counts(tmp, self.ss)
 
     def test_bcl2fastq_counts(self):
