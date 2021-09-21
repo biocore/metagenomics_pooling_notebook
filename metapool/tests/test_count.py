@@ -65,7 +65,7 @@ class TestCount(TestCase):
                 f.write(json.dumps({}))
 
             msg = ('Multiple matches found for the same samples in the same '
-                    'lane, only one match is expected: sample3 in lane 3')
+                   'lane, only one match is expected: sample3 in lane 3')
             with self.assertRaisesRegex(ValueError, msg):
                 _parsefier(run, self.ss, 'json', '.json', 'halloween',
                            lambda x: 1)
