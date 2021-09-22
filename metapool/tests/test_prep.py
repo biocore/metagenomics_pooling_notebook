@@ -26,9 +26,9 @@ class TestPrep(TestCase):
     def _check_run_191103_D32611_0365_G00DHB5YXX(self, obs):
         "Convenience method to check the output of a whole run"
 
-        exp = {'191103_D32611_0365_G00DHB5YXX.Baz.1',
-               '191103_D32611_0365_G00DHB5YXX.Baz.3',
-               '191103_D32611_0365_G00DHB5YXX.FooBar_666.3'}
+        exp = {('191103_D32611_0365_G00DHB5YXX', 'Baz', '1'),
+               ('191103_D32611_0365_G00DHB5YXX', 'Baz', '3'),
+               ('191103_D32611_0365_G00DHB5YXX', 'FooBar_666', '3')}
         self.assertEqual(set(obs.keys()), exp)
 
         columns = ['sample_name', 'experiment_design_description',
@@ -54,7 +54,7 @@ class TestPrep(TestCase):
                  'iTru7_107_14', 'GTCCTAAG', 'iTru5_01_A', 'CATCTGCT', '3',
                  'Baz', 'Baz_p3.sample44.B99']]
         exp = pd.DataFrame(data=data, columns=columns)
-        obs_df = obs['191103_D32611_0365_G00DHB5YXX.Baz.3']
+        obs_df = obs[('191103_D32611_0365_G00DHB5YXX', 'Baz', '3')]
 
         # make sure the columns are in the same order before comparing
         obs_df = obs_df[exp.columns].copy()
@@ -75,7 +75,7 @@ class TestPrep(TestCase):
                  'iTru7_107_08', 'CCGACTAT', 'iTru5_01_A', 'CTTCGCAA', '1',
                  'Baz', 'FooBar_666_p1.sample2.A2']]
         exp = pd.DataFrame(columns=columns, data=data)
-        obs_df = obs['191103_D32611_0365_G00DHB5YXX.Baz.1']
+        obs_df = obs[('191103_D32611_0365_G00DHB5YXX', 'Baz', '1')]
 
         # make sure the columns are in the same order before comparing
         obs_df = obs_df[exp.columns].copy()
@@ -103,7 +103,7 @@ class TestPrep(TestCase):
                  'iTru7_107_13', 'TTACCGAG', 'iTru5_01_A', 'AAGACACC', '3',
                  'FooBar_666', 'FooBar_666_p1.sample34.B8']]
         exp = pd.DataFrame(columns=columns, data=data)
-        obs_df = obs['191103_D32611_0365_G00DHB5YXX.FooBar_666.3']
+        obs_df = obs[('191103_D32611_0365_G00DHB5YXX', 'FooBar_666', '3')]
 
         # make sure the columns are in the same order before comparing
         obs_df = obs_df[exp.columns].copy()

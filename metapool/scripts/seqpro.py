@@ -4,7 +4,7 @@ import click
 import os
 
 from metapool import (preparations_for_run, KLSampleSheet,
-                      sample_sheet_to_dataframe)
+                      sample_sheet_to_dataframe, run_counts)
 
 
 @click.command()
@@ -37,8 +37,8 @@ def format_preparation_files(run_dir, sample_sheet, output_dir, pipeline):
 
     os.makedirs(output_dir, exist_ok=True)
 
-    for filename, df in preps.items():
-        filename = os.path.join(output_dir, filename) + '.tsv'
+    for (run, project, lane), df in preps.items():
+        filename = os.path.join(output_dir, f'{run}.{project}.{lane}.tsv')
 
         df.to_csv(filename, sep='\t', index=False)
 
