@@ -191,17 +191,17 @@ class TestCount(TestCase):
     def test_bcl2fastq_counts(self):
         obs = bcl2fastq_counts(self.run_dir, self.ss)
         pd.testing.assert_frame_equal(obs.sort_index(),
-                                      self.stats[['bcl']])
+                                      self.stats[['bcl_counts']])
 
     def test_fastp_counts(self):
         obs = fastp_counts(self.run_dir, self.ss)
         pd.testing.assert_frame_equal(obs.sort_index(),
-                                      self.stats[['fastp']])
+                                      self.stats[['fastp_counts']])
 
     def test_minimap2_counts(self):
         obs = minimap2_counts(self.run_dir, self.ss)
         pd.testing.assert_frame_equal(obs.sort_index(),
-                                      self.stats[['minimap2']])
+                                      self.stats[['minimap2_counts']])
 
     def test_count_collector(self):
         obs = run_counts(self.run_dir, self.ss)
@@ -209,18 +209,18 @@ class TestCount(TestCase):
 
 
 RUN_STATS = {
-    'bcl': {('sample1', '1'): 10000, ('sample2', '1'): 100000,
-            ('sample1', '3'): 100000, ('sample2', '3'): 2300000,
-            ('sample3', '3'): 300000, ('sample4', '3'): 400000,
-            ('sample5', '3'): 567000},
-    'fastp': {('sample1', '1'): 10800, ('sample2', '1'): 61404,
-              ('sample1', '3'): 335996, ('sample2', '3'): 18374,
-              ('sample3', '3'): 4692, ('sample4', '3'): 960,
-              ('sample5', '3'): 30846196},
-    'minimap2': {('sample1', '1'): 111172.0, ('sample2', '1'): 277611.0,
-                 ('sample1', '3'): 1168275.0, ('sample2', '3'): 1277.0,
-                 ('sample3', '3'): 33162.0, ('sample4', '3'): 2777.0,
-                 ('sample5', '3'): 4337654.0}
+    'bcl_counts': {('sample1', '1'): 10000, ('sample2', '1'): 100000,
+                   ('sample1', '3'): 100000, ('sample2', '3'): 2300000,
+                   ('sample3', '3'): 300000, ('sample4', '3'): 400000,
+                   ('sample5', '3'): 567000},
+    'fastp_counts': {('sample1', '1'): 10800, ('sample2', '1'): 61404,
+                     ('sample1', '3'): 335996, ('sample2', '3'): 18374,
+                     ('sample3', '3'): 4692, ('sample4', '3'): 960,
+                     ('sample5', '3'): 30846196},
+    'minimap2_counts': {('sample1', '1'): 111172.0, ('sample2', '1'): 277611.0,
+                        ('sample1', '3'): 1168275.0, ('sample2', '3'): 1277.0,
+                        ('sample3', '3'): 33162.0, ('sample4', '3'): 2777.0,
+                        ('sample5', '3'): 4337654.0}
 }
 
 

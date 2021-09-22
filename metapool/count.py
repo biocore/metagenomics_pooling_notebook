@@ -153,21 +153,21 @@ def bcl2fastq_counts(run_dir, sample_sheet):
         out.append(table)
 
     out = pd.concat(out)
-    out.rename(columns={'SampleId': 'Sample_ID', 'NumberReads': 'bcl'},
+    out.rename(columns={'SampleId': 'Sample_ID', 'NumberReads': 'bcl_counts'},
                inplace=True)
-    out = out[['Sample_ID', 'Lane', 'bcl']]
+    out = out[['Sample_ID', 'Lane', 'bcl_counts']]
     out.set_index(['Sample_ID', 'Lane'], inplace=True, verify_integrity=True)
     return out
 
 
 def fastp_counts(run_dir, sample_sheet):
-    return _parsefier(run_dir, sample_sheet, 'json', '.json', 'fastp',
+    return _parsefier(run_dir, sample_sheet, 'json', '.json', 'fastp_counts',
                       _parse_fastp_counts)
 
 
 def minimap2_counts(run_dir, sample_sheet):
     return _parsefier(run_dir, sample_sheet, 'samtools', '.log',
-                      'minimap2', _parse_samtools_counts)
+                      'minimap2_counts', _parse_samtools_counts)
 
 
 def run_counts(run_dir, sample_sheet):
