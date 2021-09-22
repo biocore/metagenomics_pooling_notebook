@@ -18,6 +18,10 @@ class SeqproTests(unittest.TestCase):
                                 '191103_D32611_0365_G00DHB5YXX')
         self.sheet = os.path.join(self.run, 'sample-sheet.csv')
 
+        self.fastp_run = os.path.join(data_dir, 'runs',
+                                      '200318_A00953_0082_AH5TWYDSXY')
+        self.fastp_sheet = os.path.join(self.fastp_run, 'sample-sheet.csv')
+
     def test_atropos_run(self):
         runner = CliRunner()
 
@@ -26,7 +30,9 @@ class SeqproTests(unittest.TestCase):
                                    args=[self.run, self.sheet, './',
                                          '--pipeline', 'atropos-and-bowtie2'])
 
-            self.assertEqual(result.output, '')
+            self.assertEqual(result.output,
+                             'Stats collection is not supported for pipeline '
+                             'atropos-and-bowtie2\n')
             self.assertEqual(result.exit_code, 0)
 
             exp_preps = [
@@ -47,21 +53,23 @@ class SeqproTests(unittest.TestCase):
 
         with runner.isolated_filesystem():
             result = runner.invoke(format_preparation_files,
-                                   args=[self.run, self.sheet, './',
-                                         '--pipeline', 'fastp-and-minimap2'])
+                                   args=[self.fastp_run, self.fastp_sheet,
+                                         './', '--pipeline',
+                                         'fastp-and-minimap2'])
 
+            print(result)
             self.assertEqual(result.output, '')
             self.assertEqual(result.exit_code, 0)
 
             exp_preps = [
-                '191103_D32611_0365_G00DHB5YXX.Baz.1.tsv',
-                '191103_D32611_0365_G00DHB5YXX.Baz.3.tsv',
-                '191103_D32611_0365_G00DHB5YXX.FooBar_666.3.tsv'
+                '200318_A00953_0082_AH5TWYDSXY.Project_1111.1.tsv',
+                '200318_A00953_0082_AH5TWYDSXY.Project_1111.3.tsv',
+                '200318_A00953_0082_AH5TWYDSXY.Trojecp_666.3.tsv'
             ]
 
             self.assertEqual(sorted(os.listdir('./')), exp_preps)
 
-            for prep, exp_lines in zip(exp_preps, [4, 5, 5]):
+            for prep, exp_lines in zip(exp_preps, [4, 4, 5]):
                 with open(prep) as f:
                     self.assertEqual(len(f.read().split('\n')), exp_lines,
                                      'Assertion error in %s' % prep)
