@@ -58,7 +58,6 @@ _SETTINGS = {
 }
 
 
-# TODO: check with MacKenzie & Rodolfo that this is where these go
 _HEADER = {
     'IEMFileVersion': '4',
     'Investigator Name': 'Knight',
@@ -68,7 +67,6 @@ _HEADER = {
     'Application': 'FASTQ Only',
     'Assay': None,
     'Library Construction Protocol': None,
-    # TODO: determine if experiment design description and description should be different 
     'Experiment Design Description': None,
     'Description': '',
     'Chemistry': 'Default',
@@ -391,7 +389,11 @@ def _validate_sample_sheet_metadata(metadata):
         msgs.append(ErrorMessage('%s is not a supported Assay' %
                                  metadata['Assay']))
     
-    #TODO: check if there are specific values for requirements added
+    if metadata.get('Library Construction Protocol') is not None: 
+        print(metadata['Library Construction Protocol'])
+    if metadata.get('Experiment Design Description') is not None:
+        print(metadata['Experiment Design Description'])
+
     keys = set(metadata.keys())
     if not keys.issubset(_ALL_METADATA):
         extra = sorted(keys - set(_ALL_METADATA))

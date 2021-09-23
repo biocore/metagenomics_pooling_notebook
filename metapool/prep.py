@@ -19,11 +19,6 @@ PREP_COLUMNS = ['sample_name', 'experiment_design_description',
                 'center_project_name', 'instrument_model', 'runid',
                 'lane', 'sample_project'] + list(REQUIRED_COLUMNS)
 
-
-# TODO: Remove these after confirming new addition works
-EXPERIMENT_PLACEHOLDER = "EXPERIMENT_DESC"
-LIBRARY_PLACEHOLDER = "LIBRARY_PROTOCOL"
-
 AMPLICON_PREP_COLUMN_RENAMER = {
     'Sample': 'sample_name',
     'Golay Barcode': 'barcode',
