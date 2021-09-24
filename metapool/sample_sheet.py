@@ -667,6 +667,10 @@ def sample_sheet_to_dataframe(sheet):
         data.append([sample[column] for column in columns])
 
     out = pd.DataFrame(data=data, columns=[c.lower() for c in columns])
-    out = out.merge(sheet.Bioinformatics, left_on='sample_project', 
-                    right_on='Sample_Project')
+    out = out.merge(sheet.Bioinformatics[['Sample_Project',
+                                          'library_construction_protocol',
+                                          'experiment_design_description']],
+                    left_on='sample_project', right_on='Sample_Project')
+    out.drop(columns='Sample_Project', inplace=True)
+    out.sort_values(by='sample_well', inplace=True)
     return out.set_index('sample_id')
