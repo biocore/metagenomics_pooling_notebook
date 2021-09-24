@@ -66,15 +66,14 @@ _HEADER = {
     'Workflow': 'GenerateFASTQ',
     'Application': 'FASTQ Only',
     'Assay': None,
-    'Library Construction Protocol': None,
-    'Experiment Design Description': None,
     'Description': '',
     'Chemistry': 'Default',
 }
 
 _BIOINFORMATICS_COLUMNS = {
     'Sample_Project', 'QiitaID', 'BarcodesAreRC', 'ForwardAdapter',
-    'ReverseAdapter', 'HumanFiltering'
+    'ReverseAdapter', 'HumanFiltering',
+    'library_construction_protocol', 'experiment_design_description'
 }
 
 _CONTACT_COLUMNS = {
@@ -363,9 +362,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 def _validate_sample_sheet_metadata(metadata):
     msgs = []
 
-    for req in ['Assay', 'Bioinformatics', 'Contact',
-                'Library Construction Protocol', 
-                'Experiment Design Description']:
+    for req in ['Assay', 'Bioinformatics', 'Contact']:
         if req not in metadata:
             msgs.append(ErrorMessage('%s is a required attribute' % req))
 
@@ -389,11 +386,6 @@ def _validate_sample_sheet_metadata(metadata):
         msgs.append(ErrorMessage('%s is not a supported Assay' %
                                  metadata['Assay']))
     
-    if metadata.get('Library Construction Protocol') is not None: 
-        print(metadata['Library Construction Protocol'])
-    if metadata.get('Experiment Design Description') is not None:
-        print(metadata['Experiment Design Description'])
-
     keys = set(metadata.keys())
     if not keys.issubset(_ALL_METADATA):
         extra = sorted(keys - set(_ALL_METADATA))
@@ -489,7 +481,8 @@ def make_sample_sheet(metadata, table, sequencer, lanes):
 
         - Bioinformatics: List of dictionaries describing each project's
           attributes: Sample_Project, QiitaID, BarcodesAreRC, ForwardAdapter,
-          ReverseAdapter, HumanFiltering
+          ReverseAdapter, HumanFiltering, library_construction_protocol,
+          experiment_design_description
         - Contact: List of dictionaries describing the e-mails to send to
           external stakeholders: Sample_Project, Email
 
@@ -501,10 +494,6 @@ def make_sample_sheet(metadata, table, sequencer, lanes):
         - Application: sample sheet's application [FASTQ Only]
         - Assay: assay type for the sequencing run. No default value will be
           set, this is required.
-        - Library Construction Protocol: No default value will be set, this is
-          required. 
-        - Experiment Design Description: No default value will be set, this
-          is required.
         - Description: additional information []
         - Chemistry: chemistry's description [Default]
         - read1: Length of forward read [151]
@@ -678,5 +667,6 @@ def sample_sheet_to_dataframe(sheet):
         data.append([sample[column] for column in columns])
 
     out = pd.DataFrame(data=data, columns=[c.lower() for c in columns])
-
+    out = out.merge(sheet.Bioinformatics, left_on='sample_project', 
+                    right_on='Sample_Project')
     return out.set_index('sample_id')
