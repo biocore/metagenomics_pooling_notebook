@@ -56,14 +56,14 @@ def assign_emp_index(plate_df, metadata, seqtype):
 def _load_emp_indices(seqtype):
     """Helper method to load EMP primer plates"""
     if seqtype == '16S':
-    	fn = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data',
-                      'emp-16S-V4-515F-806R-parada-april.tsv')
+        fn = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data',
+                          'emp-16S-V4-515F-806R-parada-april.tsv')
     elif seqtype == '18S':
-    	fn = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data',
-                      'Euk1391f_EukBr_Nov2016.tsv')
+        fn = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data',
+                          'Euk1391f_EukBr_Nov2016.tsv')
     elif seqtype == 'ITS':
-    	fn = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data',
-                      'ITS1f_ITS2_Nov2016.tsv')
+        fn = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data',
+                          'ITS1f_ITS2_Nov2016.tsv')
     indices = pd.read_csv(fn, sep='\t', dtype=str, keep_default_na=False,
                           na_values=[])
     return indices
