@@ -330,8 +330,8 @@ def preparations_for_run(run_path, sheet, pipeline='fastp-and-minimap2'):
     Returns
     -------
     dict
-        Filename to preparation file dictionary. Preparation files are
-        represented as DataFrames.
+        Dictionary keyed by run identifier, project name and lane. Values are
+        preparations represented as DataFrames.
     """
     _, run_id = os.path.split(os.path.normpath(run_path))
     run_date, instrument_code = parse_illumina_run_id(run_id)
@@ -418,9 +418,7 @@ def preparations_for_run(run_path, sheet, pipeline='fastp-and-minimap2'):
 
             _check_invalid_names(prep.sample_name)
 
-            # label the prep based on the run, project and lane
-            name = run_id + '.' + project + '.' + lane
-            output[name] = prep
+            output[(run_id, project, lane)] = prep
 
     return output
 
