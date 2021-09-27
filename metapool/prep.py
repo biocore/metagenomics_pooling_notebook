@@ -378,9 +378,9 @@ def preparations_for_run(run_path, sheet, pipeline='fastp-and-minimap2'):
                 row["sample_name"] = sample.well_description
 
                 row["experiment_design_description"] = \
-                sample.experiment_design_description
+                    sample.experiment_design_description
                 row["library_construction_protocol"] = \
-                sample.library_construction_protocol
+                    sample.library_construction_protocol
                 row["platform"] = "Illumina"
                 row["run_center"] = run_center
                 row["run_date"] = run_date
