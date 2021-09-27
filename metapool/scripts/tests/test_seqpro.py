@@ -26,7 +26,9 @@ class SeqproTests(unittest.TestCase):
                                    args=[self.run, self.sheet, './',
                                          '--pipeline', 'atropos-and-bowtie2'])
 
+            print(result.output)
             self.assertEqual(result.output, '')
+            print(result.exit_code)
             self.assertEqual(result.exit_code, 0)
 
             exp_preps = [
