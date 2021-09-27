@@ -384,7 +384,7 @@ def _validate_sample_sheet_metadata(metadata):
 
     if metadata.get('Assay') is not None and metadata['Assay'] not in _ASSAYS:
         msgs.append(ErrorMessage('%s is not a supported Assay' %
-                                 metadata['Assay']))
+                                 metadata['Assay']))     
     
     keys = set(metadata.keys())
     if not keys.issubset(_ALL_METADATA):

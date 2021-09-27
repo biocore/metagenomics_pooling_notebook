@@ -54,7 +54,7 @@ class BaseTests(unittest.TestCase):
              'BarcodesAreRC': 'False',
              'ForwardAdapter': 'GATACA',
              'ReverseAdapter': 'CATCAT',
-             'HumanFiltering': 'False', 
+             'HumanFiltering': 'False',
              'library_construction_protocol': 'Knight Lab Kapa HP',
              'experiment_design_description': 'Eqiiperiment'
             },
@@ -1005,25 +1005,25 @@ DF_DATA = [
      'Knight Lab Kapa HP', 'Eqiiperiment'],
     ['1', 'sample2', 'FooBar_666_p1', 'A2', 'iTru7_107_08', 'CCGACTAT',
      'iTru5_01_A', 'CTTCGCAA', 'Baz', 'importantsample2',
-     'Knight Lab Kapa HP' , 'Eqiiperiment'],
+     'Knight Lab Kapa HP', 'Eqiiperiment'],
     ['3', 'sample1', 'FooBar_666_p1', 'A3', 'iTru7_107_09', 'GCCTTGTT',
      'iTru5_01_A', 'AACACCAC', 'Baz', 'importantsample1',
-     'Knight Lab Kapa HP' , 'Eqiiperiment'],
+     'Knight Lab Kapa HP', 'Eqiiperiment'],
     ['3', 'sample2', 'FooBar_666_p1', 'A4', 'iTru7_107_10', 'AACTTGCC',
      'iTru5_01_A', 'CGTATCTC', 'Baz', 'importantsample2',
-     'Knight Lab Kapa HP' , 'Eqiiperiment'],
+     'Knight Lab Kapa HP', 'Eqiiperiment'],
     ['3', 'sample31', 'FooBar_666_p1', 'A5', 'iTru7_107_11', 'CAATGTGG',
      'iTru5_01_A', 'GGTACGAA', 'FooBar_666', 'importantsample31',
-     'Knight Lab Kapa HP' , 'SomethingWitty'],
+     'Knight Lab Kapa HP', 'SomethingWitty'],
     ['3', 'sample32', 'FooBar_666_p1', 'B6', 'iTru7_107_12', 'AAGGCTGA',
      'iTru5_01_A', 'CGATCGAT', 'FooBar_666', 'importantsample32',
-     'Knight Lab Kapa HP' , 'SomethingWitty'],
+     'Knight Lab Kapa HP', 'SomethingWitty'],
     ['3', 'sample34', 'FooBar_666_p1', 'B8', 'iTru7_107_13', 'TTACCGAG',
      'iTru5_01_A', 'AAGACACC', 'FooBar_666', 'importantsample34',
-     'Knight Lab Kapa HP' , 'SomethingWitty'],
+     'Knight Lab Kapa HP', 'SomethingWitty'],
     ['3', 'sample44', 'Baz_p3', 'B99', 'iTru7_107_14', 'GTCCTAAG',
      'iTru5_01_A', 'CATCTGCT', 'Baz', 'importantsample44',
-     'Knight Lab Kapa HP' , 'Eqiiperiment']]
+     'Knight Lab Kapa HP', 'Eqiiperiment']]
 
 
 if __name__ == '__main__':

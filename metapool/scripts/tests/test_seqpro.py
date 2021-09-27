@@ -34,7 +34,7 @@ class SeqproTests(unittest.TestCase):
                              'Stats collection is not supported for pipeline '
                              'atropos-and-bowtie2\n')
             self.assertEqual(result.exit_code, 0)
-            
+
             exp_preps = [
                 '191103_D32611_0365_G00DHB5YXX.Baz.1.tsv',
                 '191103_D32611_0365_G00DHB5YXX.Baz.3.tsv',
