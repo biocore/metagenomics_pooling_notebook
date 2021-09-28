@@ -88,7 +88,7 @@ class AmplipoolTests(TestCase):
         self.df = pd.DataFrame(columns=columns, data=data)
 
     def test_assign_emp_index_position_one(self):
-        obs = assign_emp_index(self.df, self.plate_metadata, self.seq_type)
+        obs = assign_emp_index(self.df, self.plate_metadata, self.seqtype)
 
         data = [
             ['X00180471', 'A', 1, False, 'THDMI_10317_PUK2', 'THDMI_10317',
