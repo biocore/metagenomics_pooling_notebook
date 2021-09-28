@@ -30,6 +30,8 @@ def read_plate_map_csv(f, sep='\t'):
     ------
     UserWarning
         If there are wells with no sample names associated with them.
+    AssertionError
+        If there are repeated sample names.
     """
 
     plate_df = pd.read_csv(f, sep=sep)
@@ -44,6 +46,19 @@ def read_plate_map_csv(f, sep='\t'):
         # still indexed with a continuous list of integers
         plate_df = plate_df[~null_samples]
         plate_df.reset_index(inplace=True, drop=True)
+    
+    try: #Check that there are no duplicated sample names, if there are duplicates then throws an assertion error and doesn't create plates_df
+        assert(len(set(plate_df['Sample'])) == len(plate_df['Sample']))
+    except AssertionError as e:
+        prev = ''
+        for sample in sorted(plate_df['Sample']):
+            if sample == prev:
+                print('\nDuplicates:')
+                print(plate_df.loc[plate_df['Sample'] == prev,])
+
+            prev = sample
+        print('\n\nERROR! Some samples names are duplicate! Please update plate map to fix duplciates')
+        raise e
 
     return plate_df
 
