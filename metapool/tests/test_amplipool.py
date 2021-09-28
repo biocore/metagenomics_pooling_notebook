@@ -86,6 +86,7 @@ class AmplipoolTests(TestCase):
              'THDMI_10317_UK2-US6', 'K1']]
 
         self.df = pd.DataFrame(columns=columns, data=data)
+        self.seqtype = '16S'
 
     def test_assign_emp_index_position_one(self):
         obs = assign_emp_index(self.df, self.plate_metadata, self.seqtype)
@@ -192,7 +193,7 @@ class AmplipoolTests(TestCase):
         self.df.loc[5, 'Col'] = '10'
         self.df.loc[5, 'Well'] = 'F10'
 
-        obs = assign_emp_index(self.df, self.plate_metadata)
+        obs = assign_emp_index(self.df, self.plate_metadata, self.seqtype)
 
         data = [
             ['X00180471', 'A', '1', False, 'THDMI_10317_PUK2', 'THDMI_10317',
@@ -258,7 +259,7 @@ class AmplipoolTests(TestCase):
         pd.testing.assert_frame_equal(obs, exp)
 
     def test_load_emp_indices(self):
-        obs = _load_emp_indices()
+        obs = _load_emp_indices(self.seqtype)
 
         # no NaN values of any kind
         pd.testing.assert_frame_equal(obs, obs.dropna(how='any'))
