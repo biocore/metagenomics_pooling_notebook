@@ -504,42 +504,50 @@ def generate_qiita_prep_file(platedf, seqtype):
     prep = platedf[column_renamer.keys()].copy()
     prep.rename(column_renamer, inplace=True, axis=1)
 
+    primers_16S = 'FWD:GTGYCAGCMGCCGCGGTAA; REV:GGACTACNVGGGTWTCTAAT'
+    primers_18S = 'FWD:GTACACACCGCCCGTC; REV:TGATCCTTCTGCAGGTTCACCTAC'
+    primers_ITS = 'FWD:CTTGGTCATTTAGAGGAAGTAA; REV:GCTGCGTTCTTCATCGATGC'
+
+    ptl_16S = 'Illumina EMP protocol 515fbc, 806r amplification of 16S rRNA V4'
+    prtcl_18S = 'Illumina EMP 18S rRNA 1391f/EukBr'
+    prtcl_ITS = 'Illumina  EMP protocol amplification of ITS1fbc, ITS2r'
+
     if seqtype == '16S':
         prep['orig_name'] = prep['sample_name']
         prep['well_description'] = prep['sample_plate'] + '.'
         + prep['sample_name'] + '.' + prep['well_id']
-        prep['pcr_primers'] = 'FWD:GTGYCAGCMGCCGCGGTAA; REV:GGACTACNVGGGTWTCTAAT'
+        prep['pcr_primers'] = primers_16S
         prep['center_name'] = 'UCSDMI'
         prep['run_center'] = 'UCSDMI'
         prep['platform'] = 'Illumina'
         prep['target_subfragment'] = 'V4'
         prep['target_gene'] = '16S rRNA'
         prep['sequencing_meth'] = 'Sequencing by synthesis'
-        prep['library_construction_protocol'] = 'Illumina EMP protocol 515fbc, 806r amplification of 16S rRNA V4'
+        prep['library_construction_protocol'] = ptl_16S
     elif seqtype == '18S':
         prep['orig_name'] = prep['sample_name']
         prep['well_description'] = prep['sample_plate'] + '.'
         + prep['sample_name'] + '.' + prep['well_id']
-        prep['pcr_primers'] = 'FWD:GTACACACCGCCCGTC; REV:TGATCCTTCTGCAGGTTCACCTAC'
+        prep['pcr_primers'] = primers_18S
         prep['center_name'] = 'UCSDMI'
         prep['run_center'] = 'UCSDMI'
         prep['platform'] = 'Illumina'
         prep['target_subfragment'] = 'V9'
         prep['target_gene'] = '18S rRNA'
         prep['sequencing_meth'] = 'Sequencing by synthesis'
-        prep['library_construction_protocol'] = 'Illumina EMP 18S rRNA 1391f/EukBr'
+        prep['library_construction_protocol'] = prtcl_18S
     elif seqtype == 'ITS':
         prep['orig_name'] = prep['sample_name']
         prep['well_description'] = prep['sample_plate'] + '.'
         + prep['sample_name'] + '.' + prep['well_id']
-        prep['pcr_primers'] = 'FWD:CTTGGTCATTTAGAGGAAGTAA; REV:GCTGCGTTCTTCATCGATGC'
+        prep['pcr_primers'] = primers_ITS
         prep['center_name'] = 'UCSDMI'
         prep['run_center'] = 'UCSDMI'
         prep['platform'] = 'Illumina'
         prep['target_subfragment'] = 'ITS1/2'
         prep['target_gene'] = 'ITS'
         prep['sequencing_meth'] = 'Sequencing by synthesis'
-        prep['library_construction_protocol'] = 'Illumina  EMP protocol amplification of ITS1fbc, ITS2r'
+        prep['library_construction_protocol'] = prtcl_ITS
     else:
         raise ValueError(f'Unrecognized value "{seqtype}" for seqtype')
 
