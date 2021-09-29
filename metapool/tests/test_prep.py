@@ -460,50 +460,122 @@ class TestPrep(TestCase):
         pd.testing.assert_frame_equal(obs, exp)
 
     def test_generate_qiita_prep_file(self):
-        columns = ['Sample', 'Row', 'Col', 'Blank', 'Project Plate',
-                   'Project Name', 'Compressed Plate Name', 'Well',
-                   'Plate Position', 'Primer Plate #', 'Sample Plate',
-                   'Project_Name', 'Plating', 'Extraction Kit Lot',
-                   'Extraction Robot', 'TM1000 8 Tool', 'Primer Date',
-                   'MasterMix Lot', 'Water Lot', 'Processing Robot',
-                   'Original Name', 'Plate', 'EMP Primer Plate Well', 'Name',
-                   'Illumina 5prime Adapter', 'Golay Barcode',
-                   'Forward Primer Pad', 'Forward Primer Linker',
-                   '515FB Forward Primer (Parada)', 'Primer For PCR',
-                   'sample sheet Sample_ID']
-        data = [['X00180471', 'A', 1, False, 'THDMI_10317_PUK2',
-                 'THDMI_10317', 'THDMI_10317_UK2-US6', 'A1',
-                 '1', '1', 'THDMI_UK_Plate_2', 'THDMI UK',
-                 'SF', '166032128', 'Carmen_HOWE_KF3',
-                 '109379Z', '2021-08-17', '978215', 'RNBJ0628',
-                 'Echo550', '', '1', 'A1', '515rcbc0',
-                 'AATGATACGGCGACCACCGAGATCTACACGCT', 'AGCCTTCGTCGC',
-                 'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
-                 ('AATGATACGGCGACCACCGAGATCTACACGCTAGCCTTCGTCGCT'
-                  'ATGGTAATTGTGTGYCAGCMGCCGCGGTAA'),
-                 'X00180471'],
-                ['X00180199', 'C', 1, False, 'THDMI_10317_PUK2',
-                 'THDMI_10317', 'THDMI_10317_UK2-US6', 'C1',
-                 '1', '1', 'THDMI_UK_Plate_2', 'THDMI UK',
-                 'SF', '166032128', 'Carmen_HOWE_KF3',
-                 '109379Z', '2021-08-17', '978215', 'RNBJ0628',
-                 'Echo550', '', '1', 'B1', '515rcbc12',
-                 'AATGATACGGCGACCACCGAGATCTACACGCT',
-                 'CGTATAAATGCG', 'TATGGTAATT', 'GT',
-                 'GTGYCAGCMGCCGCGGTAA',
-                 ('AATGATACGGCGACCACCGAGATCTACACGCTCGTATAAATGCG'
-                  'TATGGTAATTGTGTGYCAGCMGCCGCGGTAA'),
-                 'X00180199']]
+        columns1 = ['Sample', 'Row', 'Col', 'Blank', 'Project Plate',
+                    'Project Name', 'Compressed Plate Name', 'Well',
+                    'Plate Position', 'Primer Plate #', 'Sample Plate',
+                    'Project_Name', 'Plating', 'Extraction Kit Lot',
+                    'Extraction Robot', 'TM1000 8 Tool', 'Primer Date',
+                    'MasterMix Lot', 'Water Lot', 'Processing Robot',
+                    'Original Name', 'Plate', 'EMP Primer Plate Well', 'Name',
+                    'Illumina 5prime Adapter', 'Golay Barcode',
+                    'Forward Primer Pad', 'Forward Primer Linker',
+                    '515FB Forward Primer (Parada)', 'Primer For PCR',
+                    'sample sheet Sample_ID']
+        columns2 = ['Sample', 'Row', 'Col', 'Blank', 'Project Plate',
+                    'Project Name', 'Compressed Plate Name', 'Well',
+                    'Plate Position', 'Primer Plate #', 'Sample Plate',
+                    'Project_Name', 'Plating', 'Extraction Kit Lot',
+                    'Extraction Robot', 'TM1000 8 Tool', 'Primer Date',
+                    'MasterMix Lot', 'Water Lot', 'Processing Robot',
+                    'Original Name', 'Plate', 'EMP Primer Plate Well', 'Name',
+                    'Reverse complement of 3prime Illumina Adapter',
+                    'Golay Barcode',
+                    'Reverse Primer Pad', 'Reverste Primer Linker',
+                    'Reverse primer (EukBr)', 'Primer For PCR',
+                    'sample sheet Sample_ID']
+        columns3 = ['Sample', 'Row', 'Col', 'Blank', 'Project Plate',
+                    'Project Name', 'Compressed Plate Name', 'Well',
+                    'Plate Position', 'Primer Plate #', 'Sample Plate',
+                    'Project_Name', 'Plating', 'Extraction Kit Lot',
+                    'Extraction Robot', 'TM1000 8 Tool', 'Primer Date',
+                    'MasterMix Lot', 'Water Lot', 'Processing Robot',
+                    'Original Name', 'Plate', 'EMP Primer Plate Well', 'Name',
+                    'Reverse complement of 3prime Illumina Adapter',
+                    'Golay Barcode',
+                    'Reverse Primer Pad', 'Reverste Primer Linker',
+                    'ITS2 Reverse Primer', 'Primer For PCR',
+                    'sample sheet Sample_ID']
+        data1 = [['X00180471', 'A', 1, False, 'THDMI_10317_PUK2',
+                  'THDMI_10317', 'THDMI_10317_UK2-US6', 'A1',
+                  '1', '1', 'THDMI_UK_Plate_2', 'THDMI UK',
+                  'SF', '166032128', 'Carmen_HOWE_KF3',
+                  '109379Z', '2021-08-17', '978215', 'RNBJ0628',
+                  'Echo550', '', '1', 'A1', '515rcbc0',
+                  'AATGATACGGCGACCACCGAGATCTACACGCT', 'AGCCTTCGTCGC',
+                  'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
+                  ('AATGATACGGCGACCACCGAGATCTACACGCTAGCCTTCGTCGCT'
+                   'ATGGTAATTGTGTGYCAGCMGCCGCGGTAA'),
+                  'X00180471'],
+                 ['X00180199', 'C', 1, False, 'THDMI_10317_PUK2',
+                  'THDMI_10317', 'THDMI_10317_UK2-US6', 'C1',
+                  '1', '1', 'THDMI_UK_Plate_2', 'THDMI UK',
+                  'SF', '166032128', 'Carmen_HOWE_KF3',
+                  '109379Z', '2021-08-17', '978215', 'RNBJ0628',
+                  'Echo550', '', '1', 'B1', '515rcbc12',
+                  'AATGATACGGCGACCACCGAGATCTACACGCT',
+                  'CGTATAAATGCG', 'TATGGTAATT', 'GT',
+                  'GTGYCAGCMGCCGCGGTAA',
+                  ('AATGATACGGCGACCACCGAGATCTACACGCTCGTATAAATGCG'
+                   'TATGGTAATTGTGTGYCAGCMGCCGCGGTAA'),
+                  'X00180199']]
+        data2 = [['X00180471', 'A', 1, False, 'THDMI_10317_PUK2',
+                  'THDMI_10317',
+                  'THDMI_10317_UK2-US6', 'A1', '1', '1', 'THDMI_UK_Plate_2',
+                  'THDMI UK', 'SF', '166032128', 'Carmen_HOWE_KF3', '109379Z',
+                  '2021-08-17', '978215', 'RNBJ0628', 'Echo550', '', '1', 'A1',
+                  'EukBr_Hiseq_0017', 'CAAGCAGAAGACGGCATACGAGAT',
+                  'ACGAGACTGATT',
+                  'AGTCAGTCAG', 'CA', 'TGATCCTTCTGCAGGTTCACCTAC',
+                  ('CAAGCAGAAGACGGCATACGAGATACGAGACTGATTAGTCAGTCAGCAT'
+                   'GATCCTTCTGCAGGTTCACCTAC'),
+                  'X00180471'],
+                 ['X00180199', 'C', 1, False, 'THDMI_10317_PUK2',
+                  'THDMI_10317',
+                  'THDMI_10317_UK2-US6', 'C1', '1', '1', 'THDMI_UK_Plate_2',
+                  'THDMI UK', 'SF', '166032128', 'Carmen_HOWE_KF3', '109379Z',
+                  '2021-08-17', '978215', 'RNBJ0628', 'Echo550', '', '1', 'B1',
+                  'EukBr_Hiseq_0029', 'CAAGCAGAAGACGGCATACGAGAT',
+                  'GAATACCAAGTC',
+                  'AGTCAGTCAG', 'CA', 'TGATCCTTCTGCAGGTTCACCTAC',
+                  ('CAAGCAGAAGACGGCATACGAGATGAATACCAAGTCAGTCAGTCAGCAT'
+                   'GATCCTTCTGCAGGTTCACCTAC'),
+                  'X00180199']]
+        data3 = [['X00180471', 'A', 1, False, 'THDMI_10317_PUK2',
+                  'THDMI_10317',
+                  'THDMI_10317_UK2-US6', 'A1', '1', '1', 'THDMI_UK_Plate_2',
+                  'THDMI UK', 'SF', '166032128', 'Carmen_HOWE_KF3', '109379Z',
+                  '2021-08-17', '978215', 'RNBJ0628', 'Echo550', '', '1',
+                  'A1',
+                  'kabir_ITS2rcbc0', 'CAAGCAGAAGACGGCATACGAGAT',
+                  'TCCCTTGTCTCC',
+                  '', 'CG', 'GCTGCGTTCTTCATCGATGC',
+                  ('CAAGCAGAAGACGGCATACGAGATTCCCTTGTCTCCC'
+                   'GGCTGCGTTCTTCATCGATGC'),
+                  'X00180471'],
+                 ['X00180199', 'C', 1, False, 'THDMI_10317_PUK2',
+                  'THDMI_10317',
+                  'THDMI_10317_UK2-US6', 'C1', '1', '1', 'THDMI_UK_Plate_2',
+                  'THDMI UK', 'SF', '166032128', 'Carmen_HOWE_KF3', '109379Z',
+                  '2021-08-17', '978215', 'RNBJ0628', 'Echo550', '',
+                  '1', 'B1',
+                  'kabir_ITS2rcbc12', 'CAAGCAGAAGACGGCATACGAGAT',
+                  'TGCATACACTGG',
+                  '', 'CG', 'GCTGCGTTCTTCATCGATGC',
+                  ('CAAGCAGAAGACGGCATACGAGATTGCATACACTGGC'
+                   'GGCTGCGTTCTTCATCGATGC'),
+                  'X00180199']]
 
-        self.platedf1 = pd.DataFrame(columns=columns, data=data)
+        self.platedf1 = pd.DataFrame(columns=columns1, data=data1)
+        self.platedf2 = pd.DataFrame(columns=columns2, data=data2)
+        self.platedf3 = pd.DataFrame(columns=columns3, data=data3)
 
         self.seqtype1 = '16S'
         self.seqtype2 = '18S'
         self.seqtype3 = 'ITS'
 
         obs1 = generate_qiita_prep_file(self.platedf1, self.seqtype1)
-        obs2 = generate_qiita_prep_file(self.platedf1, self.seqtype2)
-        obs3 = generate_qiita_prep_file(self.platedf1, self.seqtype3)
+        obs2 = generate_qiita_prep_file(self.platedf2, self.seqtype2)
+        obs3 = generate_qiita_prep_file(self.platedf3, self.seqtype3)
 
         common_col = ['sample_name', 'barcode', 'primer', 'project_name',
                       'well_id', 'primer_plate', 'plating',

@@ -321,13 +321,17 @@ class AmplipoolTests(TestCase):
                      'Reverse complement of 3prime Illumina Adapter',
                      'Golay Barcode', 'Reverse Primer Pad',
                      'Reverse Primer Linker', 'ITS2 Reverse Primer',
-                     'Primer For PCR', 'sample sheet Sample_ID'],
+                     'Primer For PCR'],
             data=data3)
 
         pd.testing.assert_frame_equal(obs1, exp1)
         pd.testing.assert_frame_equal(obs3, exp3)
 
     def test_load_emp_indices(self):
+        self.seqtype1 = '16S'
+        self.seqtype2 = '18S'
+        self.seqtype3 = 'ITS'
+
         obs1 = _load_emp_indices(self.seqtype1)
         obs2 = _load_emp_indices(self.seqtype2)
         obs3 = _load_emp_indices(self.seqtype3)
