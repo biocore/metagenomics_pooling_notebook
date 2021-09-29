@@ -512,41 +512,28 @@ def generate_qiita_prep_file(platedf, seqtype):
     prtcl_18S = 'Illumina EMP 18S rRNA 1391f/EukBr'
     prtcl_ITS = 'Illumina  EMP protocol amplification of ITS1fbc, ITS2r'
 
+    prep['orig_name'] = prep['sample_name']
+    prep['well_description'] = (prep['sample_plate'] + '.'
+        + prep['sample_name'] + '.' + prep['well_id'])
+    prep['center_name'] = 'UCSDMI'
+    prep['run_center'] = 'UCSDMI'
+    prep['platform'] = 'Illumina'
+    prep['sequencing_meth'] = 'Sequencing by synthesis'
+
     if seqtype == '16S':
-        prep['orig_name'] = prep['sample_name']
-        prep['well_description'] = prep['sample_plate'] + '.'
-        + prep['sample_name'] + '.' + prep['well_id']
         prep['pcr_primers'] = primers_16S
-        prep['center_name'] = 'UCSDMI'
-        prep['run_center'] = 'UCSDMI'
-        prep['platform'] = 'Illumina'
         prep['target_subfragment'] = 'V4'
         prep['target_gene'] = '16S rRNA'
-        prep['sequencing_meth'] = 'Sequencing by synthesis'
         prep['library_construction_protocol'] = ptl_16S
     elif seqtype == '18S':
-        prep['orig_name'] = prep['sample_name']
-        prep['well_description'] = prep['sample_plate'] + '.'
-        + prep['sample_name'] + '.' + prep['well_id']
         prep['pcr_primers'] = primers_18S
-        prep['center_name'] = 'UCSDMI'
-        prep['run_center'] = 'UCSDMI'
-        prep['platform'] = 'Illumina'
         prep['target_subfragment'] = 'V9'
         prep['target_gene'] = '18S rRNA'
-        prep['sequencing_meth'] = 'Sequencing by synthesis'
         prep['library_construction_protocol'] = prtcl_18S
     elif seqtype == 'ITS':
-        prep['orig_name'] = prep['sample_name']
-        prep['well_description'] = prep['sample_plate'] + '.'
-        + prep['sample_name'] + '.' + prep['well_id']
         prep['pcr_primers'] = primers_ITS
-        prep['center_name'] = 'UCSDMI'
-        prep['run_center'] = 'UCSDMI'
-        prep['platform'] = 'Illumina'
         prep['target_subfragment'] = 'ITS1/2'
         prep['target_gene'] = 'ITS'
-        prep['sequencing_meth'] = 'Sequencing by synthesis'
         prep['library_construction_protocol'] = prtcl_ITS
     else:
         raise ValueError(f'Unrecognized value "{seqtype}" for seqtype')
