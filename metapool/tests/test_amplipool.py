@@ -149,7 +149,7 @@ class AmplipoolTests(TestCase):
                      'Primer Date', 'MasterMix Lot', 'Water Lot',
                      'Processing Robot', 'Sample Plate', 'Project_Name',
                      'Original Name', 'Plate', 'EMP Primer Plate Well', 'Name',
-                     "Illumina 5' Adapter", 'Golay Barcode',
+                     "Illumina 5prime Adapter", 'Golay Barcode',
                      'Forward Primer Pad', 'Forward Primer Linker',
                      '515FB Forward Primer (Parada)', 'Primer For PCR'],
             data=data
@@ -304,7 +304,7 @@ class AmplipoolTests(TestCase):
                      'Primer Date', 'MasterMix Lot', 'Water Lot',
                      'Processing Robot', 'Sample Plate', 'Project_Name',
                      'Original Name', 'Plate', 'EMP Primer Plate Well', 'Name',
-                     "Illumina 5' Adapter", 'Golay Barcode',
+                     "Illumina 5prime Adapter", 'Golay Barcode',
                      'Forward Primer Pad', 'Forward Primer Linker',
                      '515FB Forward Primer (Parada)', 'Primer For PCR'],
             data=data1

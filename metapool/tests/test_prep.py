@@ -480,7 +480,7 @@ class TestPrep(TestCase):
                     'Original Name', 'Plate', 'EMP Primer Plate Well', 'Name',
                     'Reverse complement of 3prime Illumina Adapter',
                     'Golay Barcode',
-                    'Reverse Primer Pad', 'Reverste Primer Linker',
+                    'Reverse Primer Pad', 'Reverse Primer Linker',
                     'Reverse primer (EukBr)', 'Primer For PCR',
                     'sample sheet Sample_ID']
         columns3 = ['Sample', 'Row', 'Col', 'Blank', 'Project Plate',
@@ -492,7 +492,7 @@ class TestPrep(TestCase):
                     'Original Name', 'Plate', 'EMP Primer Plate Well', 'Name',
                     'Reverse complement of 3prime Illumina Adapter',
                     'Golay Barcode',
-                    'Reverse Primer Pad', 'Reverste Primer Linker',
+                    'Reverse Primer Pad', 'Reverse Primer Linker',
                     'ITS2 Reverse Primer', 'Primer For PCR',
                     'sample sheet Sample_ID']
         data1 = [['X00180471', 'A', 1, False, 'THDMI_10317_PUK2',
