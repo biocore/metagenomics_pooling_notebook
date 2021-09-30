@@ -309,48 +309,48 @@ class AmplipoolTests(TestCase):
              'Echo550', 'THDMI_UK_Plate_2', 'THDMI UK', '', '5', 'A1',
              'kabir_ITS2rcbc384', 'CAAGCAGAAGACGGCATACGAGAT', 'GGAATTATCGGT',
              '', 'CG', 'GCTGCGTTCTTCATCGATGC',
-             ('CAAGCAGAAGACGGCATACGAGATTCCCTTGT'
-              'CTCCCGGCTGCGTTCTTCATCGATGC')],
+             ('CAAGCAGAAGACGGCATACGAGATGGAATTAT'
+              'CGGTCGGCTGCGTTCTTCATCGATGC')],
             ['X00180199', 'A', '4', False, 'THDMI_10317_PUK2', 'THDMI_10317',
              'THDMI_10317_UK2-US6', 'A4', '2', '6', 'AS', '166032128',
              'Carmen_HOWE_KF4', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
              'Echo550', 'THDMI_UK_Plate_3', 'THDMI UK', '', '6', 'A2',
              'kabir_ITS2rcbc481', 'CAAGCAGAAGACGGCATACGAGAT', 'TGACGTAGAACT',
              '', 'CG', 'GCTGCGTTCTTCATCGATGC',
-             ('CAAGCAGAAGACGGCATACGAGATTGTGCGAT'
-              'AACACGGCTGCGTTCTTCATCGATGC')],
+             ('CAAGCAGAAGACGGCATACGAGATTGACGTAG'
+              'AACTCGGCTGCGTTCTTCATCGATGC')],
             ['X00179789', 'D', '7', False, 'THDMI_10317_PUK2', 'THDMI_10317',
              'THDMI_10317_UK2-US6', 'D7', '3', '9', 'MB_SF', '166032128',
              'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
              'Echo550', 'THDMI_UK_Plate_4', 'THDMI UK', '', '9', 'B4',
              'kabir_ITS2rcbc783', 'CAAGCAGAAGACGGCATACGAGAT', 'ATCGATCCACAG',
              '', 'CG', 'GCTGCGTTCTTCATCGATGC',
-             ('CAAGCAGAAGACGGCATACGAGATACTGATGG'
-              'CCTCCGGCTGCGTTCTTCATCGATGC')],
+             ('CAAGCAGAAGACGGCATACGAGATATCGATCC'
+              'ACAGCGGCTGCGTTCTTCATCGATGC')],
             ['X00180201', 'F', '9', False, 'THDMI_10317_PUK2', 'THDMI_10317',
              'THDMI_10317_UK2-US6', 'F9', '3', '9', 'MB_SF', '166032128',
              'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
              'Echo550', 'THDMI_UK_Plate_4', 'THDMI UK', '', '9', 'C5',
              'kabir_ITS2rcbc796', 'CAAGCAGAAGACGGCATACGAGAT', 'TCCAGGGCTATA',
              '', 'CG', 'GCTGCGTTCTTCATCGATGC',
-             ('CAAGCAGAAGACGGCATACGAGATGTCGTCCA'
-              'AATGCGGCTGCGTTCTTCATCGATGC')],
+             ('CAAGCAGAAGACGGCATACGAGATTCCAGGGC'
+              'TATACGGCTGCGTTCTTCATCGATGC')],
             ['X00180464', 'B', '6', False, 'THDMI_10317_PUK2', 'THDMI_10317',
              'THDMI_10317_UK2-US6', 'B6', '4', '10', 'AS', '166032128',
              'Carmen_HOWE_KF4', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
              'Echo550', 'THDMI_US_Plate_6', 'THDMI US', '', '10', 'A3',
              'kabir_ITS2rcbc866', 'CAAGCAGAAGACGGCATACGAGAT', 'ACATGTCACGTG',
              '', 'CG', 'GCTGCGTTCTTCATCGATGC',
-             ('CAAGCAGAAGACGGCATACGAGATAGACATAC'
-              'CGTACGGCTGCGTTCTTCATCGATGC')],
+             ('CAAGCAGAAGACGGCATACGAGATACATGTCA'
+              'CGTGCGGCTGCGTTCTTCATCGATGC')],
             ['X00179796', 'F', '10', False, 'THDMI_10317_PUK2', 'THDMI_10317',
              'THDMI_10317_UK2-US6', 'F10', '4', '10', 'AS', '166032128',
              'Carmen_HOWE_KF4', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
              'Echo550', 'THDMI_US_Plate_6', 'THDMI US', '', '10', 'C5',
              'kabir_ITS2rcbc892', 'CAAGCAGAAGACGGCATACGAGAT', 'ACGTGAGGAACG',
              '', 'CG', 'GCTGCGTTCTTCATCGATGC',
-             ('CAAGCAGAAGACGGCATACGAGATCTCTTCTG'
-              'ATCACGGCTGCGTTCTTCATCGATGC')]
+             ('CAAGCAGAAGACGGCATACGAGATACGTGAGG'
+              'AACGCGGCTGCGTTCTTCATCGATGC')]
         ]
 
         exp1 = pd.DataFrame(
