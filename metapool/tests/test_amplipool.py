@@ -257,7 +257,7 @@ class AmplipoolTests(TestCase):
              'THDMI_10317_UK2-US6', 'A1', '1', '5', 'SF', '166032128',
              'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
              'Echo550', 'THDMI_UK_Plate_2', 'THDMI UK', '', '5', 'A1',
-             'EukBr_Hiseq_0411', 'CAAGCAGAAGACGGCATACGAGAT', 'ACGAGACTGATT',
+             'EukBr_Hiseq_0411', 'CAAGCAGAAGACGGCATACGAGAT', 'AACAAACTGCCA',
              'AGTCAGTCAG', 'CA', 'TGATCCTTCTGCAGGTTCACCTAC',
              ('CAAGCAGAAGACGGCATACGAGATACGAGACTGATTAGT'
               'CAGTCAGCATGATCCTTCTGCAGGTTCACCTAC')],
@@ -265,7 +265,7 @@ class AmplipoolTests(TestCase):
              'THDMI_10317_UK2-US6', 'A4', '2', '6', 'AS', '166032128',
              'Carmen_HOWE_KF4', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
              'Echo550', 'THDMI_UK_Plate_3', 'THDMI UK', '', '6', 'A2',
-             'EukBr_Hiseq_0508', 'CAAGCAGAAGACGGCATACGAGAT', 'ACTCCTTGTGTT',
+             'EukBr_Hiseq_0508', 'CAAGCAGAAGACGGCATACGAGAT', 'GGAGAGATCACG',
              'AGTCAGTCAG', 'CA', 'TGATCCTTCTGCAGGTTCACCTAC',
              ('CAAGCAGAAGACGGCATACGAGATACTCCTTGTGTTAGT'
               'CAGTCAGCATGATCCTTCTGCAGGTTCACCTAC')],
@@ -273,7 +273,7 @@ class AmplipoolTests(TestCase):
              'THDMI_10317_UK2-US6', 'D7', '3', '9', 'MB_SF', '166032128',
              'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
              'Echo550', 'THDMI_UK_Plate_4', 'THDMI UK', '', '9', 'B4',
-             'EukBr_Hiseq_0810', 'CAAGCAGAAGACGGCATACGAGAT', 'GGATAGCCAAGG',
+             'EukBr_Hiseq_0810', 'CAAGCAGAAGACGGCATACGAGAT', 'CATTTGACGACG',
              'AGTCAGTCAG', 'CA', 'TGATCCTTCTGCAGGTTCACCTAC',
              ('CAAGCAGAAGACGGCATACGAGATGGATAGCCAAGGAGT'
               'CAGTCAGCATGATCCTTCTGCAGGTTCACCTAC')],
@@ -281,7 +281,7 @@ class AmplipoolTests(TestCase):
              'THDMI_10317_UK2-US6', 'F9', '3', '9', 'MB_SF', '166032128',
              'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
              'Echo550', 'THDMI_UK_Plate_4', 'THDMI UK', '', '9', 'C5',
-             'EukBr_Hiseq_0823', 'CAAGCAGAAGACGGCATACGAGAT', 'CCGAGGTATAAT',
+             'EukBr_Hiseq_0823', 'CAAGCAGAAGACGGCATACGAGAT', 'CACGTTTATTCC',
              'AGTCAGTCAG', 'CA', 'TGATCCTTCTGCAGGTTCACCTAC',
              ('CAAGCAGAAGACGGCATACGAGATCCGAGGTATAATAGT'
               'CAGTCAGCATGATCCTTCTGCAGGTTCACCTAC')],
@@ -289,7 +289,7 @@ class AmplipoolTests(TestCase):
              'THDMI_10317_UK2-US6', 'B6', '4', '10', 'AS', '166032128',
              'Carmen_HOWE_KF4', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
              'Echo550', 'THDMI_US_Plate_6', 'THDMI US', '', '10', 'A3',
-             'EukBr_Hiseq_0893', 'CAAGCAGAAGACGGCATACGAGAT', 'TCGTGGATAGCT',
+             'EukBr_Hiseq_0893', 'CAAGCAGAAGACGGCATACGAGAT', 'GTATGGAGCTAT',
              'AGTCAGTCAG', 'CA', 'TGATCCTTCTGCAGGTTCACCTAC',
              ('CAAGCAGAAGACGGCATACGAGATTCGTGGATAGCTAGT'
               'CAGTCAGCATGATCCTTCTGCAGGTTCACCTAC')],
@@ -297,7 +297,7 @@ class AmplipoolTests(TestCase):
              'THDMI_10317_UK2-US6', 'F10', '4', '10', 'AS', '166032128',
              'Carmen_HOWE_KF4', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
              'Echo550', 'THDMI_US_Plate_6', 'THDMI US', '', '10', 'C5',
-             'EukBr_Hiseq_0919', 'CAAGCAGAAGACGGCATACGAGAT', 'CGGAGTAATCCT',
+             'EukBr_Hiseq_0919', 'CAAGCAGAAGACGGCATACGAGAT', 'CAGCCTGCAAAT',
              'AGTCAGTCAG', 'CA', 'TGATCCTTCTGCAGGTTCACCTAC',
              ('CAAGCAGAAGACGGCATACGAGATCGGAGTAATCCTAGT'
               'CAGTCAGCATGATCCTTCTGCAGGTTCACCTAC')]
