@@ -262,7 +262,7 @@ class AmplipoolTests(TestCase):
             data=data1
         )
         exp2 = pd.DataFrame(
-            columms=['Sample', 'Row', 'Col', 'Blank', 'Project Plate',
+            columns=['Sample', 'Row', 'Col', 'Blank', 'Project Plate',
                      'Project Name', 'Compressed Plate Name', 'Well',
                      'Plate Position', 'Primer Plate #', 'Plating',
                      'Extraction Kit Lot', 'Extraction Robot',
