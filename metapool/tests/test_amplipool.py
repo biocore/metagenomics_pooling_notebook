@@ -155,7 +155,7 @@ class AmplipoolTests(TestCase):
             data=data
         )
 
-        pd.testing.assert_frame_equal(obs, exp)
+        pd.testing.assert_frame_equal(obs, exp)#
 
     def test_assign_emp_index_multiple_positions(self):
         self.seqtype1 = '16S'
