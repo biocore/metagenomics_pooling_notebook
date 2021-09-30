@@ -595,21 +595,23 @@ class TestPrep(TestCase):
                                    'Carmen_HOWE_KF3', '109379Z',
                                    '2021-08-17', '978215', 'RNBJ0628',
                                    'Echo550', 'THDMI_UK_Plate_2', 'GT',
-                                   'X00180471', 'THDMI_UK_Plate_2.',
+                                   'X00180471',
+                                   'THDMI_UK_Plate_2.X00180471.A1',
                                    'UCSDMI', 'UCSDMI', 'Illumina',
                                    'Sequencing by synthesis',
                                    ('FWD:GTGYCAGCMGCCGCGGTAA; '
                                     'REV:GGACTACNVGGGTWTCTAAT'), 'V4',
-                                   '16S rRNA', 
+                                   '16S rRNA',
                                    ('Illumina EMP protocol 515fbc, '
                                     '806r amplification of 16S rRNA V4')],
-                                  ['X00180199', 'CGTATAAATGCG', 
+                                  ['X00180199', 'CGTATAAATGCG',
                                    'GTGYCAGCMGCCGCGGTAA', 'THDMI_10317',
                                    'C1', '1', 'SF', '166032128',
                                    'Carmen_HOWE_KF3', '109379Z',
                                    '2021-08-17', '978215', 'RNBJ0628',
                                    'Echo550', 'THDMI_UK_Plate_2', 'GT',
-                                   'X00180199', 'THDMI_UK_Plate_2.',
+                                   'X00180199',
+                                   'THDMI_UK_Plate_2.X00180199.C1',
                                    'UCSDMI', 'UCSDMI', 'Illumina',
                                    'Sequencing by synthesis',
                                    ('FWD:GTGYCAGCMGCCGCGGTAA; '
@@ -635,7 +637,7 @@ class TestPrep(TestCase):
                                    'THDMI_UK_Plate_2',
                                    'CA',
                                    'X00180471',
-                                   'THDMI_UK_Plate_2.',
+                                   'THDMI_UK_Plate_2.X00180471.A1',
                                    ('FWD:GTACACACCGCCCGTC; '
                                     'REV:TGATCCTTCTGCAGGTTCACCTAC'),
                                    'UCSDMI',
@@ -644,7 +646,7 @@ class TestPrep(TestCase):
                                    'V9',
                                    '18S rRNA',
                                    'Sequencing by synthesis',
-                                   'Illumina EMP 18S rRNA 1391f/EukBr'],
+                                   'Illumina EMP 18S rRNA 1391f EukBr'],
                                   ['X00180199',
                                    'GAATACCAAGTC',
                                    'CAAGCAGAAGACGGCATACGAGAT',
@@ -662,7 +664,7 @@ class TestPrep(TestCase):
                                    'THDMI_UK_Plate_2',
                                    'CA',
                                    'X00180199',
-                                   'THDMI_UK_Plate_2.',
+                                   'THDMI_UK_Plate_2.X00180199.C1',
                                    ('FWD:GTACACACCGCCCGTC; '
                                     'REV:TGATCCTTCTGCAGGTTCACCTAC'),
                                    'UCSDMI',
@@ -671,7 +673,7 @@ class TestPrep(TestCase):
                                    'V9',
                                    '18S rRNA',
                                    'Sequencing by synthesis',
-                                   'Illumina EMP 18S rRNA 1391f/EukBr']])
+                                   'Illumina EMP 18S rRNA 1391f EukBr']])
         exp3 = pd.DataFrame(columns=common_col,
                             data=[['X00180471',
                                    'TCCCTTGTCTCC',
@@ -690,7 +692,7 @@ class TestPrep(TestCase):
                                    'THDMI_UK_Plate_2',
                                    'CG',
                                    'X00180471',
-                                   'THDMI_UK_Plate_2.',
+                                   'THDMI_UK_Plate_2.X00180471.A1',
                                    ('FWD:CTTGGTCATTTAGAGGAAGTAA; '
                                     'REV:GCTGCGTTCTTCATCGATGC'),
                                    'UCSDMI',
@@ -718,7 +720,7 @@ class TestPrep(TestCase):
                                    'THDMI_UK_Plate_2',
                                    'CG',
                                    'X00180199',
-                                   'THDMI_UK_Plate_2.',
+                                   'THDMI_UK_Plate_2.X00180199.C1',
                                    ('FWD:CTTGGTCATTTAGAGGAAGTAA; '
                                     'REV:GCTGCGTTCTTCATCGATGC'),
                                    'UCSDMI',

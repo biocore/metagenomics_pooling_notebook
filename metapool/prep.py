@@ -509,7 +509,7 @@ def generate_qiita_prep_file(platedf, seqtype):
     primers_ITS = 'FWD:CTTGGTCATTTAGAGGAAGTAA; REV:GCTGCGTTCTTCATCGATGC'
 
     ptl_16S = 'Illumina EMP protocol 515fbc, 806r amplification of 16S rRNA V4'
-    prtcl_18S = 'Illumina EMP 18S rRNA 1391f/EukBr'
+    prtcl_18S = 'Illumina EMP 18S rRNA 1391f EukBr'
     prtcl_ITS = 'Illumina  EMP protocol amplification of ITS1fbc, ITS2r'
 
     prep['orig_name'] = prep['sample_name']
@@ -532,7 +532,7 @@ def generate_qiita_prep_file(platedf, seqtype):
         prep['library_construction_protocol'] = prtcl_18S
     elif seqtype == 'ITS':
         prep['pcr_primers'] = primers_ITS
-        prep['target_subfragment'] = 'ITS1/2'
+        prep['target_subfragment'] = 'ITS_1_2'
         prep['target_gene'] = 'ITS'
         prep['library_construction_protocol'] = prtcl_ITS
     else:
