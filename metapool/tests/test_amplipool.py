@@ -99,8 +99,7 @@ class AmplipoolTests(TestCase):
              '515rcbc0', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'AGCCTTCGTCGC',
              'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
              ('AATGATACGGCGACCACCGAGATCTACACGCTAG'
-              'CCTTCGTCGCTATGGTAATTGTGTGYCAG'),
-             'MGCCGCGGTAA'],
+              'CCTTCGTCGCTATGGTAATTGTGTGYCAG')],
             ['X00180199', 'C', 1, False, 'THDMI_10317_PUK2', 'THDMI_10317',
              'THDMI_10317_UK2-US6', 'C1', '1', '1', 'SF', '166032128',
              'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
@@ -108,8 +107,7 @@ class AmplipoolTests(TestCase):
              '515rcbc12', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'CGTATAAATGCG',
              'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
              ('AATGATACGGCGACCACCGAGATCTACACGCTCG'
-              'TATAAATGCGTATGGTAATTGTGTGYCAG'),
-             'MGCCGCGGTAA'],
+              'TATAAATGCGTATGGTAATTGTGTGYCAG')],
             ['X00179789', 'E', 1, False, 'THDMI_10317_PUK2', 'THDMI_10317',
              'THDMI_10317_UK2-US6', 'E1', '1', '1', 'SF', '166032128',
              'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
@@ -117,8 +115,7 @@ class AmplipoolTests(TestCase):
              '515rcbc24', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'TGACTAATGGCC',
              'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
              ('AATGATACGGCGACCACCGAGATCTACACGCTTGAC'
-              'TAATGGCCTATGGTAATTGTGTGYCAG'),
-             'MGCCGCGGTAA'],
+              'TAATGGCCTATGGTAATTGTGTGYCAG')],
             ['X00180201', 'G', 1, False, 'THDMI_10317_PUK2', 'THDMI_10317',
              'THDMI_10317_UK2-US6', 'G1', '1', '1', 'SF', '166032128',
              'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
@@ -126,8 +123,7 @@ class AmplipoolTests(TestCase):
              '515rcbc36', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'GTGGAGTCTCAT',
              'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
              ('AATGATACGGCGACCACCGAGATCTACACGC'
-              'TGTGGAGTCTCATTATGGTAATTGTGTGYCAG'),
-             'MGCCGCGGTAA'],
+              'TGTGGAGTCTCATTATGGTAATTGTGTGYCAG')],
             ['X00180464', 'I', 1, False, 'THDMI_10317_PUK2', 'THDMI_10317',
              'THDMI_10317_UK2-US6', 'I1', '1', '1', 'SF', '166032128',
              'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
@@ -135,8 +131,7 @@ class AmplipoolTests(TestCase):
              '515rcbc48', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'TGATGTGCTAAG',
              'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
              ('AATGATACGGCGACCACCGAGATCTACACGCTTGATGTG'
-              'CTAAGTATGGTAATTGTGTGYCAGC'),
-             'MGCCGCGGTAA'],
+              'CTAAGTATGGTAATTGTGTGYCAGC')],
             ['X00179796', 'K', 1, False, 'THDMI_10317_PUK2', 'THDMI_10317',
              'THDMI_10317_UK2-US6', 'K1', '1', '1', 'SF', '166032128',
              'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
@@ -144,8 +139,7 @@ class AmplipoolTests(TestCase):
              '515rcbc60', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'TGTGCACGCCAT',
              'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
              ('AATGATACGGCGACCACCGAG'
-              'ATCTACACGCTTGTGCACGCCATTATGGTAATTGTGTGYCAGC'),
-             'MGCCGCGGTAA']
+              'ATCTACACGCTTGTGCACGCCATTATGGTAATTGTGTGYCAGC')]
         ]
 
         exp = pd.DataFrame(
@@ -158,8 +152,7 @@ class AmplipoolTests(TestCase):
                      'Original Name', 'Plate', 'EMP Primer Plate Well', 'Name',
                      "Illumina 5prime Adapter", 'Golay Barcode',
                      'Forward Primer Pad', 'Forward Primer Linker',
-                     '515FB Forward Primer (Parada)', 'Primer For PCR',
-                     'sample sheet Sample_ID'],
+                     '515FB Forward Primer (Parada)', 'Primer For PCR'],
             data=data
         )
 
@@ -217,8 +210,7 @@ class AmplipoolTests(TestCase):
              '515rcbc384', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'ATGTTAGGGAAT',
              'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
              ('AATGATACGGCGACCACCGAGATCTACACGCTATGTTA'
-              'GGGAATTATGGTAATTGTGTGYCAGC'),
-             'MGCCGCGGTAA'],
+              'GGGAATTATGGTAATTGTGTGYCAGC')],
             ['X00180199', 'A', '4', False, 'THDMI_10317_PUK2', 'THDMI_10317',
              'THDMI_10317_UK2-US6', 'A4', '2', '6', 'AS', '166032128',
              'Carmen_HOWE_KF4', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
@@ -226,8 +218,7 @@ class AmplipoolTests(TestCase):
              '515rcbc481', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'CTACCGATTGCG',
              'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
              ('AATGATACGGCGACCACCGAGATCTACACGCTCTACCG'
-              'ATTGCGTATGGTAATTGTGTGYCAGC'),
-             'MGCCGCGGTAA'],
+              'ATTGCGTATGGTAATTGTGTGYCAGC')],
             ['X00179789', 'D', '7', False, 'THDMI_10317_PUK2', 'THDMI_10317',
              'THDMI_10317_UK2-US6', 'D7', '3', '9', 'MB_SF', '166032128',
              'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
@@ -235,8 +226,7 @@ class AmplipoolTests(TestCase):
              '515rcbc783', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'GGTTACGGTTAC',
              'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
              ('AATGATACGGCGACCACCGAGATCTACACGCTGGTTAC'
-              'GGTTACTATGGTAATTGTGTGYCAGC'),
-             'MGCCGCGGTAA'],
+              'GGTTACTATGGTAATTGTGTGYCAGC')],
             ['X00180201', 'F', '9', False, 'THDMI_10317_PUK2', 'THDMI_10317',
              'THDMI_10317_UK2-US6', 'F9', '3', '9', 'MB_SF', '166032128',
              'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
@@ -244,8 +234,7 @@ class AmplipoolTests(TestCase):
              '515rcbc796', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'GATCTGCGATCC',
              'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
              ('AATGATACGGCGACCACCGAGATCTACACGCTGATCTG'
-              'CGATCCTATGGTAATTGTGTGYCAGC'),
-             'MGCCGCGGTAA'],
+              'CGATCCTATGGTAATTGTGTGYCAGC')],
             ['X00180464', 'B', '6', False, 'THDMI_10317_PUK2', 'THDMI_10317',
              'THDMI_10317_UK2-US6', 'B6', '4', '10', 'AS', '166032128',
              'Carmen_HOWE_KF4', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
@@ -253,8 +242,7 @@ class AmplipoolTests(TestCase):
              '515rcbc866', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'TTGACGACATCG',
              'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
              ('AATGATACGGCGACCACCGAGATCTACACGCTTTGACG'
-              'ACATCGTATGGTAATTGTGTGYCAGC'),
-             'MGCCGCGGTAA'],
+              'ACATCGTATGGTAATTGTGTGYCAGC')],
             ['X00179796', 'F', '10', False, 'THDMI_10317_PUK2', 'THDMI_10317',
              'THDMI_10317_UK2-US6', 'F10', '4', '10', 'AS', '166032128',
              'Carmen_HOWE_KF4', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
@@ -262,8 +250,7 @@ class AmplipoolTests(TestCase):
              '515rcbc892', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'TAGAGGCGTAGG',
              'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
              ('AATGATACGGCGACCACCGAGATCTACACGCTTAGAGG'
-              'CGTAGGTATGGTAATTGTGTGYCAGC'),
-             'MGCCGCGGTAA']
+              'CGTAGGTATGGTAATTGTGTGYCAGC')]
         ]
 
         exp1 = pd.DataFrame(
@@ -276,8 +263,7 @@ class AmplipoolTests(TestCase):
                      'Original Name', 'Plate', 'EMP Primer Plate Well', 'Name',
                      "Illumina 5prime Adapter", 'Golay Barcode',
                      'Forward Primer Pad', 'Forward Primer Linker',
-                     '515FB Forward Primer (Parada)', 'Primer For PCR',
-                     'sample sheet Sample_ID'],
+                     '515FB Forward Primer (Parada)', 'Primer For PCR'],
             data=data1
         )
         exp2 = pd.DataFrame(
@@ -291,8 +277,7 @@ class AmplipoolTests(TestCase):
                      'Reverse complement of 3prime Illumina Adapter',
                      'Golay Barcode',
                      'Reverse Primer Pad', 'Reverse Primer Linker',
-                     'Reverse primer (EukBr)', 'Primer For PCR',
-                     'sample sheet Sample_ID'],
+                     'Reverse primer (EukBr)', 'Primer For PCR'],
             data=data1
         )
         exp3 = pd.DataFrame(
@@ -306,7 +291,7 @@ class AmplipoolTests(TestCase):
                      'Reverse complement of 3prime Illumina Adapter',
                      'Golay Barcode', 'Reverse Primer Pad',
                      'Reverse Primer Linker', 'ITS2 Reverse Primer',
-                     'Primer For PCR', 'sample sheet Sample_ID'],
+                     'Primer For PCR'],
             data=data1
         )
 
