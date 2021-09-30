@@ -18,6 +18,8 @@ Chemistry,Default,,,,,,,,,
 ,,,,,,,,,,
 [Settings],,,,,,,,,,
 ReverseComplement,0,,,,,,,,,
+MaskShortReads,1,,,,,,,,,
+OverrideCycles,Y151;I8N2;I8N2;Y151,,,,,,,,,
 ,,,,,,,,,,
 [Data],,,,,,,,,,
 Lane,Sample_ID,Sample_Name,Sample_Plate,Sample_Well,I7_Index_ID,index,I5_Index_ID,index2,Sample_Project,Well_description
