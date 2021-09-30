@@ -514,7 +514,7 @@ def generate_qiita_prep_file(platedf, seqtype):
 
     prep['orig_name'] = prep['sample_name']
     prep['well_description'] = (prep['sample_plate'] + '.'
-        + prep['sample_name'] + '.' + prep['well_id'])
+                                + prep['sample_name'] + '.' + prep['well_id'])
     prep['center_name'] = 'UCSDMI'
     prep['run_center'] = 'UCSDMI'
     prep['platform'] = 'Illumina'
