@@ -252,6 +252,118 @@ class AmplipoolTests(TestCase):
              ('AATGATACGGCGACCACCGAGATCTACACGCTTAGAGGCG'
               'TAGGTATGGTAATTGTGTGYCAGCMGCCGCGGTAA')]
         ]
+        data2 = [
+            ['X00180471', 'A', '1', False, 'THDMI_10317_PUK2', 'THDMI_10317',
+             'THDMI_10317_UK2-US6', 'A1', '1', '5', 'THDMI_UK_Plate_2',
+             'THDMI UK', 'SF', '166032128',
+             'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
+             'Echo550', '', '5', 'A1',
+             '515rcbc384', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'ATGTTAGGGAAT',
+             'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
+             ('AATGATACGGCGACCACCGAGATCTACACGCTATGTTAGG'
+              'GAATTATGGTAATTGTGTGYCAGCMGCCGCGGTAA')],
+            ['X00180199', 'A', '4', False, 'THDMI_10317_PUK2', 'THDMI_10317',
+             'THDMI_10317_UK2-US6', 'A4', '2', '6', 'THDMI_UK_Plate_2',
+             'THDMI UK', 'AS', '166032128',
+             'Carmen_HOWE_KF4', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
+             'Echo550', 'THDMI_UK_Plate_3', 'THDMI UK', '', '6', 'A2',
+             '515rcbc481', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'CTACCGATTGCG',
+             'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
+             ('AATGATACGGCGACCACCGAGATCTACACGCTCTACCGAT'
+              'TGCGTATGGTAATTGTGTGYCAGCMGCCGCGGTAA')],
+            ['X00179789', 'D', '7', False, 'THDMI_10317_PUK2', 'THDMI_10317',
+             'THDMI_10317_UK2-US6', 'D7', '3', '9', 'THDMI_UK_Plate_2',
+             'THDMI UK', 'MB_SF', '166032128',
+             'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
+             'Echo550', 'THDMI_UK_Plate_4', 'THDMI UK', '', '9', 'B4',
+             '515rcbc783', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'GGTTACGGTTAC',
+             'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
+             ('AATGATACGGCGACCACCGAGATCTACACGCTGGTTACGG'
+              'TTACTATGGTAATTGTGTGYCAGCMGCCGCGGTAA')],
+            ['X00180201', 'F', '9', False, 'THDMI_10317_PUK2', 'THDMI_10317',
+             'THDMI_10317_UK2-US6', 'F9', '3', '9', 'THDMI_UK_Plate_2',
+             'THDMI UK', 'MB_SF', '166032128',
+             'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
+             'Echo550', 'THDMI_UK_Plate_4', 'THDMI UK', '', '9', 'C5',
+             '515rcbc796', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'GATCTGCGATCC',
+             'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
+             ('AATGATACGGCGACCACCGAGATCTACACGCTGATCTGCG'
+              'ATCCTATGGTAATTGTGTGYCAGCMGCCGCGGTAA')],
+            ['X00180464', 'B', '6', False, 'THDMI_10317_PUK2', 'THDMI_10317',
+             'THDMI_10317_UK2-US6', 'B6', '4', '10',  'THDMI_UK_Plate_2',
+             'THDMI UK', 'AS', '166032128',
+             'Carmen_HOWE_KF4', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
+             'Echo550', 'THDMI_US_Plate_6', 'THDMI US', '', '10', 'A3',
+             '515rcbc866', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'TTGACGACATCG',
+             'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
+             ('AATGATACGGCGACCACCGAGATCTACACGCTTTGACGAC'
+              'ATCGTATGGTAATTGTGTGYCAGCMGCCGCGGTAA')],
+            ['X00179796', 'F', '10', False, 'THDMI_10317_PUK2', 'THDMI_10317',
+             'THDMI_10317_UK2-US6', 'F10', '4', '10', 'THDMI_UK_Plate_2',
+             'THDMI UK', 'AS', '166032128',
+             'Carmen_HOWE_KF4', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
+             'Echo550', 'THDMI_US_Plate_6', 'THDMI US', '', '10', 'C5',
+             '515rcbc892', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'TAGAGGCGTAGG',
+             'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
+             ('AATGATACGGCGACCACCGAGATCTACACGCTTAGAGGCG'
+              'TAGGTATGGTAATTGTGTGYCAGCMGCCGCGGTAA')]
+        ]
+        data3 = [
+            ['X00180471', 'A', '1', False, 'THDMI_10317_PUK2', 'THDMI_10317',
+             'THDMI_10317_UK2-US6', 'A1', '1', '5', 'THDMI_UK_Plate_2',
+             'THDMI UK', 'SF', '166032128',
+             'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
+             'Echo550', '', '5', 'A1',
+             '515rcbc384', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'ATGTTAGGGAAT',
+             'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
+             ('AATGATACGGCGACCACCGAGATCTACACGCTATGTTAGG'
+              'GAATTATGGTAATTGTGTGYCAGCMGCCGCGGTAA')],
+            ['X00180199', 'A', '4', False, 'THDMI_10317_PUK2', 'THDMI_10317',
+             'THDMI_10317_UK2-US6', 'A4', '2', '6', 'THDMI_UK_Plate_2',
+             'THDMI UK', 'AS', '166032128',
+             'Carmen_HOWE_KF4', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
+             'Echo550', 'THDMI_UK_Plate_3', 'THDMI UK', '', '6', 'A2',
+             '515rcbc481', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'CTACCGATTGCG',
+             'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
+             ('AATGATACGGCGACCACCGAGATCTACACGCTCTACCGAT'
+              'TGCGTATGGTAATTGTGTGYCAGCMGCCGCGGTAA')],
+            ['X00179789', 'D', '7', False, 'THDMI_10317_PUK2', 'THDMI_10317',
+             'THDMI_10317_UK2-US6', 'D7', '3', '9', 'THDMI_UK_Plate_2',
+             'THDMI UK', 'MB_SF', '166032128',
+             'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
+             'Echo550', 'THDMI_UK_Plate_4', 'THDMI UK', '', '9', 'B4',
+             '515rcbc783', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'GGTTACGGTTAC',
+             'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
+             ('AATGATACGGCGACCACCGAGATCTACACGCTGGTTACGG'
+              'TTACTATGGTAATTGTGTGYCAGCMGCCGCGGTAA')],
+            ['X00180201', 'F', '9', False, 'THDMI_10317_PUK2', 'THDMI_10317',
+             'THDMI_10317_UK2-US6', 'F9', '3', '9', 'THDMI_UK_Plate_2',
+             'THDMI UK', 'MB_SF', '166032128',
+             'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
+             'Echo550', 'THDMI_UK_Plate_4', 'THDMI UK', '', '9', 'C5',
+             '515rcbc796', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'GATCTGCGATCC',
+             'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
+             ('AATGATACGGCGACCACCGAGATCTACACGCTGATCTGCG'
+              'ATCCTATGGTAATTGTGTGYCAGCMGCCGCGGTAA')],
+            ['X00180464', 'B', '6', False, 'THDMI_10317_PUK2', 'THDMI_10317',
+             'THDMI_10317_UK2-US6', 'B6', '4', '10',  'THDMI_UK_Plate_2',
+             'THDMI UK', 'AS', '166032128',
+             'Carmen_HOWE_KF4', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
+             'Echo550', 'THDMI_US_Plate_6', 'THDMI US', '', '10', 'A3',
+             '515rcbc866', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'TTGACGACATCG',
+             'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
+             ('AATGATACGGCGACCACCGAGATCTACACGCTTTGACGAC'
+              'ATCGTATGGTAATTGTGTGYCAGCMGCCGCGGTAA')],
+            ['X00179796', 'F', '10', False, 'THDMI_10317_PUK2', 'THDMI_10317',
+             'THDMI_10317_UK2-US6', 'F10', '4', '10', 'THDMI_UK_Plate_2',
+             'THDMI UK', 'AS', '166032128',
+             'Carmen_HOWE_KF4', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
+             'Echo550', 'THDMI_US_Plate_6', 'THDMI US', '', '10', 'C5',
+             '515rcbc892', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'TAGAGGCGTAGG',
+             'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
+             ('AATGATACGGCGACCACCGAGATCTACACGCTTAGAGGCG'
+              'TAGGTATGGTAATTGTGTGYCAGCMGCCGCGGTAA')]
+        ]
 
         exp1 = pd.DataFrame(
             columns=['Sample', 'Row', 'Col', 'Blank', 'Project Plate',
@@ -269,30 +381,34 @@ class AmplipoolTests(TestCase):
         exp2 = pd.DataFrame(
             columns=['Sample', 'Row', 'Col', 'Blank', 'Project Plate',
                      'Project Name', 'Compressed Plate Name', 'Well',
-                     'Plate Position', 'Primer Plate #', 'Plating',
-                     'Extraction Kit Lot', 'Extraction Robot', 'TM1000 8 Tool',
-                     'Primer Date', 'MasterMix Lot', 'Water Lot',
-                     'Processing Robot', 'Sample Plate', 'Project_Name',
-                     'Original Name', 'Plate', 'EMP Primer Plate Well', 'Name',
+                     'Plate Position', 'Primer Plate #',
+                     'Sample Plate', 'Project_Name',
+                     'Plating', 'Extraction Kit Lot', 'Extraction Robot',
+                     'TM1000 8 Tool', 'Primer Date', 'MasterMix Lot',
+                     'Water Lot', 'Processing Robot', 'Original Name',
+                     'Plate', 'EMP Primer Plate Well', 'Name',
                      'Reverse complement of 3prime Illumina Adapter',
                      'Golay Barcode',
                      'Reverse Primer Pad', 'Reverse Primer Linker',
-                     'Reverse primer (EukBr)', 'Primer For PCR'],
-            data=data1
+                     'Reverse primer (EukBr)',
+                     'Primer For PCR'],
+            data=data2
         )
         exp3 = pd.DataFrame(
             columns=['Sample', 'Row', 'Col', 'Blank', 'Project Plate',
                      'Project Name', 'Compressed Plate Name', 'Well',
-                     'Plate Position', 'Primer Plate #', 'Plating',
-                     'Extraction Kit Lot', 'Extraction Robot', 'TM1000 8 Tool',
-                     'Primer Date', 'MasterMix Lot', 'Water Lot',
-                     'Processing Robot', 'Sample Plate', 'Project_Name',
-                     'Original Name', 'Plate', 'EMP Primer Plate Well', 'Name',
+                     'Plate Position', 'Primer Plate #',
+                     'Sample Plate', 'Project_Name',
+                     'Plating', 'Extraction Kit Lot', 'Extraction Robot',
+                     'TM1000 8 Tool', 'Primer Date', 'MasterMix Lot',
+                     'Water Lot', 'Processing Robot', 'Original Name',
+                     'Plate', 'EMP Primer Plate Well', 'Name',
                      'Reverse complement of 3prime Illumina Adapter',
-                     'Golay Barcode', 'Reverse Primer Pad',
-                     'Reverse Primer Linker', 'ITS2 Reverse Primer',
+                     'Golay Barcode',
+                     'Reverse Primer Pad', 'Reverse Primer Linker',
+                     'ITS2 Reverse Primer',
                      'Primer For PCR'],
-            data=data1
+            data=data3
         )
 
         pd.testing.assert_frame_equal(obs1, exp1)
