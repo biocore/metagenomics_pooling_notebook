@@ -153,21 +153,22 @@ def bcl2fastq_counts(run_dir, sample_sheet):
         out.append(table)
 
     out = pd.concat(out)
-    out.rename(columns={'SampleId': 'Sample_ID', 'NumberReads': 'bcl_counts'},
+    out.rename(columns={'SampleId': 'Sample_ID', 'NumberReads': 'raw_reads'},
                inplace=True)
-    out = out[['Sample_ID', 'Lane', 'bcl_counts']]
+    out = out[['Sample_ID', 'Lane', 'raw_reads']]
     out.set_index(['Sample_ID', 'Lane'], inplace=True, verify_integrity=True)
     return out
 
 
 def fastp_counts(run_dir, sample_sheet):
-    return _parsefier(run_dir, sample_sheet, 'json', '.json', 'fastp_counts',
+    return _parsefier(run_dir, sample_sheet, 'json', '.json',
+                      'quality_filtered_reads',
                       _parse_fastp_counts)
 
 
 def minimap2_counts(run_dir, sample_sheet):
     return _parsefier(run_dir, sample_sheet, 'samtools', '.log',
-                      'minimap2_counts', _parse_samtools_counts)
+                      'non_host_reads', _parse_samtools_counts)
 
 
 def run_counts(run_dir, sample_sheet):
@@ -176,6 +177,12 @@ def run_counts(run_dir, sample_sheet):
             minimap2_counts(run_dir, sample_sheet),
 
         ])
+
+    # convenience columns to assess sample quality
+    out['fraction_passing_quality_filter'] = (out['quality_filtered_reads'] /
+                                              out['raw_reads'])
+    out['fraction_non_human'] = (out['non_host_reads'] /
+                                 out['quality_filtered_reads'])
 
     out.fillna(value='NA', inplace=True)
 

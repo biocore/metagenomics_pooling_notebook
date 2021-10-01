@@ -191,17 +191,17 @@ class TestCount(TestCase):
     def test_bcl2fastq_counts(self):
         obs = bcl2fastq_counts(self.run_dir, self.ss)
         pd.testing.assert_frame_equal(obs.sort_index(),
-                                      self.stats[['bcl_counts']])
+                                      self.stats[['raw_reads']])
 
     def test_fastp_counts(self):
         obs = fastp_counts(self.run_dir, self.ss)
         pd.testing.assert_frame_equal(obs.sort_index(),
-                                      self.stats[['fastp_counts']])
+                                      self.stats[['quality_filtered_reads']])
 
     def test_minimap2_counts(self):
         obs = minimap2_counts(self.run_dir, self.ss)
         pd.testing.assert_frame_equal(obs.sort_index(),
-                                      self.stats[['minimap2_counts']])
+                                      self.stats[['non_host_reads']])
 
     def test_count_collector(self):
         obs = run_counts(self.run_dir, self.ss)
@@ -209,19 +209,34 @@ class TestCount(TestCase):
 
 
 RUN_STATS = {
-    'bcl_counts': {('sample1', '1'): 10000, ('sample2', '1'): 100000,
-                   ('sample1', '3'): 100000, ('sample2', '3'): 2300000,
-                   ('sample3', '3'): 300000, ('sample4', '3'): 400000,
-                   ('sample5', '3'): 567000},
-    'fastp_counts': {('sample1', '1'): 10800, ('sample2', '1'): 61404,
-                     ('sample1', '3'): 335996, ('sample2', '3'): 18374,
-                     ('sample3', '3'): 4692, ('sample4', '3'): 960,
-                     ('sample5', '3'): 30846196},
-    'minimap2_counts': {('sample1', '1'): 111172.0, ('sample2', '1'): 277611.0,
-                        ('sample1', '3'): 1168275.0, ('sample2', '3'): 1277.0,
-                        ('sample3', '3'): 33162.0, ('sample4', '3'): 2777.0,
-                        ('sample5', '3'): 4337654.0}
-}
+    'raw_reads': {('sample1', '1'): 10000, ('sample2', '1'): 100000,
+                  ('sample1', '3'): 100000, ('sample2', '3'): 2300000,
+                  ('sample3', '3'): 300000, ('sample4', '3'): 400000,
+                  ('sample5', '3'): 567000},
+    'quality_filtered_reads': {('sample1', '1'): 10800,
+                               ('sample2', '1'): 61404,
+                               ('sample1', '3'): 335996,
+                               ('sample2', '3'): 18374,
+                               ('sample3', '3'): 4692, ('sample4', '3'): 960,
+                               ('sample5', '3'): 30846196},
+    'non_host_reads': {('sample1', '1'): 111172.0, ('sample2', '1'): 277611.0,
+                       ('sample1', '3'): 1168275.0, ('sample2', '3'): 1277.0,
+                       ('sample3', '3'): 33162.0, ('sample4', '3'): 2777.0,
+                       ('sample5', '3'): 4337654.0},
+    'fraction_passing_quality_filter': {('sample1', '1'): 1.08,
+                                        ('sample2', '1'): 0.61404,
+                                        ('sample1', '3'): 3.35996,
+                                        ('sample2', '3'): 0.007988695652173913,
+                                        ('sample3', '3'): 0.01564,
+                                        ('sample4', '3'): 0.0024,
+                                        ('sample5', '3'): 54.402462081128746},
+    'fraction_non_human': {('sample1', '1'): 10.293703703703704,
+                           ('sample2', '1'): 4.521057260113348,
+                           ('sample1', '3'): 3.477050322027643,
+                           ('sample2', '3'): 0.06950038097311419,
+                           ('sample3', '3'): 7.067774936061381,
+                           ('sample4', '3'): 2.892708333333333,
+                           ('sample5', '3'): 0.14062200732952615}}
 
 
 if __name__ == '__main__':
