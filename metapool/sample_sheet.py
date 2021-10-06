@@ -19,7 +19,8 @@ _KL_SAMPLE_SHEET_SECTIONS = [
 
 _KL_SAMPLE_SHEET_DATA_COLUMNS = [
     'Sample_ID', 'Sample_Name', 'Sample_Plate', 'Sample_Well', 'I7_Index_ID',
-    'index', 'I5_Index_ID', 'index2', 'Sample_Project', 'Well_description'
+    'index', 'I5_Index_ID', 'index2', 'Sample_Project', 'Well_description', 
+    'library_construction_protocol', 'experiment_design_description'
 ]
 
 _KL_AMPLICON_REMAPPER = {
