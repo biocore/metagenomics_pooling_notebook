@@ -569,13 +569,9 @@ class TestPrep(TestCase):
         self.platedf2 = pd.DataFrame(columns=columns2, data=data2)
         self.platedf3 = pd.DataFrame(columns=columns3, data=data3)
 
-        self.seqtype1 = '16S'
-        self.seqtype2 = '18S'
-        self.seqtype3 = 'ITS'
-
-        obs1 = generate_qiita_prep_file(self.platedf1, self.seqtype1)
-        obs2 = generate_qiita_prep_file(self.platedf2, self.seqtype2)
-        obs3 = generate_qiita_prep_file(self.platedf3, self.seqtype3)
+        obs1 = generate_qiita_prep_file(self.platedf1, '16S')
+        obs2 = generate_qiita_prep_file(self.platedf2, '18S')
+        obs3 = generate_qiita_prep_file(self.platedf3, 'ITS')
 
         common_col = ['sample_name', 'barcode', 'primer', 'project_name',
                       'well_id', 'primer_plate', 'plating',
