@@ -198,9 +198,9 @@ class AmplipoolTests(TestCase):
         self.df.loc[5, 'Col'] = '10'
         self.df.loc[5, 'Well'] = 'F10'
 
-        obs1 = assign_emp_index(self.df, self.plate_metadata, self.seqtype1)
-        obs2 = assign_emp_index(self.df, self.plate_metadata, self.seqtype2)
-        obs3 = assign_emp_index(self.df, self.plate_metadata, self.seqtype3)
+        obs1 = assign_emp_index(self.df, self.plate_metadata, '16S')
+        obs2 = assign_emp_index(self.df, self.plate_metadata, '18S')
+        obs3 = assign_emp_index(self.df, self.plate_metadata, 'ITS')
 
         data1 = [
             ['X00180471', 'A', '1', False, 'THDMI_10317_PUK2', 'THDMI_10317',
