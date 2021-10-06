@@ -19,7 +19,7 @@ _KL_SAMPLE_SHEET_SECTIONS = [
 
 _KL_SAMPLE_SHEET_DATA_COLUMNS = [
     'Sample_ID', 'Sample_Name', 'Sample_Plate', 'Sample_Well', 'I7_Index_ID',
-    'index', 'I5_Index_ID', 'index2', 'Sample_Project', 'Well_description' 
+    'index', 'I5_Index_ID', 'index2', 'Sample_Project', 'Well_description'
 ]
 
 _KL_AMPLICON_REMAPPER = {
@@ -381,7 +381,6 @@ def _validate_sample_sheet_metadata(metadata):
                                'exactly these keys %s') %
                                (section, i+1, ', '.join(sorted(columns))))
                     msgs.append(ErrorMessage(message))
-
     if metadata.get('Assay') is not None and metadata['Assay'] not in _ASSAYS:
         msgs.append(ErrorMessage('%s is not a supported Assay' %
                                  metadata['Assay']))
