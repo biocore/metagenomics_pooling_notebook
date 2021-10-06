@@ -406,13 +406,9 @@ class AmplipoolTests(TestCase):
         pd.testing.assert_frame_equal(obs3, exp3)
 
     def test_load_emp_indices(self):
-        self.seqtype1 = '16S'
-        self.seqtype2 = '18S'
-        self.seqtype3 = 'ITS'
-
-        obs1 = _load_emp_indices(self.seqtype1)
-        obs2 = _load_emp_indices(self.seqtype2)
-        obs3 = _load_emp_indices(self.seqtype3)
+        obs1 = _load_emp_indices('16S')
+        obs2 = _load_emp_indices('18S')
+        obs3 = _load_emp_indices('ITS')
 
         # no NaN values of any kind
         pd.testing.assert_frame_equal(obs1, obs1.dropna(how='any'))
