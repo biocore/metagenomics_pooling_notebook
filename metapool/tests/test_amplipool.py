@@ -159,10 +159,6 @@ class AmplipoolTests(TestCase):
         pd.testing.assert_frame_equal(obs, exp)
 
     def test_assign_emp_index_multiple_positions(self):
-        self.seqtype1 = '16S'
-        self.seqtype2 = '18S'
-        self.seqtype3 = 'ITS'
-
         # change some of the well ids and their primer plates to spot check
         # that correct barcodes are retrieved from the EMP indices file
 
