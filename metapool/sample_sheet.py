@@ -388,7 +388,7 @@ def _validate_sample_sheet_metadata(metadata):
                                     'have library_construction_protocol '
                                     'specified') % (section, i+1))
                         msgs.append(ErrorMessage(message))
-                    if (project['experiment_design_description'] == None or
+                    if (project['experiment_design_description'] is None or
                             project['experiment_design_description'] == ''):
                         message = (('In the %s section Project #%d does not '
                                     'have experiment_design_description '
