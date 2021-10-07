@@ -442,3 +442,100 @@ def parse_prep(prep_path):
                        na_values=[])
     prep.set_index('sample_name', verify_integrity=True, inplace=True)
     return prep
+
+
+def generate_qiita_prep_file(platedf, seqtype):
+    """Renames columns from prep sheet to common ones
+
+    Parameters
+    ----------
+    platedf: pd.DataFrame
+        dataframe that needs to be renamed and added to generate
+        Qiita mapping file
+    seqtype: str
+        designates what type of amplicon sequencing
+
+    Returns
+    -------
+    pd.DataFrame
+        df formatted with all the Qiita prep info for the designated
+        amplicon sequencing type
+    """
+
+    if seqtype == '16S':
+        column_renamer = {
+            'Sample': 'sample_name',
+            'Golay Barcode': 'barcode',
+            '515FB Forward Primer (Parada)': 'primer',
+            'Project Name': 'project_name',
+            'Well': 'well_id',
+            'Primer Plate #': 'primer_plate',
+            'Plating': 'plating',
+            'Extraction Kit Lot': 'extractionkit_lot',
+            'Extraction Robot': 'extraction_robot',
+            'TM1000 8 Tool': 'tm1000_8_tool',
+            'Primer Date': 'primer_date',
+            'MasterMix Lot': 'mastermix_lot',
+            'Water Lot': 'water_lot',
+            'Processing Robot': 'processing_robot',
+            'Sample Plate': 'sample_plate',
+            'Forward Primer Linker': 'linker',
+            }
+    else:
+        column_renamer = {
+            'Sample': 'sample_name',
+            'Golay Barcode': 'barcode',
+            'Reverse complement of 3prime Illumina Adapter': 'primer',
+            'Project Name': 'project_name',
+            'Well': 'well_id',
+            'Primer Plate #': 'primer_plate',
+            'Plating': 'plating',
+            'Extraction Kit Lot': 'extractionkit_lot',
+            'Extraction Robot': 'extraction_robot',
+            'TM1000 8 Tool': 'tm1000_8_tool',
+            'Primer Date': 'primer_date',
+            'MasterMix Lot': 'mastermix_lot',
+            'Water Lot': 'water_lot',
+            'Processing Robot': 'processing_robot',
+            'Sample Plate': 'sample_plate',
+            'Reverse Primer Linker': 'linker'
+            }
+
+    prep = platedf[column_renamer.keys()].copy()
+    prep.rename(column_renamer, inplace=True, axis=1)
+
+    primers_16S = 'FWD:GTGYCAGCMGCCGCGGTAA; REV:GGACTACNVGGGTWTCTAAT'
+    primers_18S = 'FWD:GTACACACCGCCCGTC; REV:TGATCCTTCTGCAGGTTCACCTAC'
+    primers_ITS = 'FWD:CTTGGTCATTTAGAGGAAGTAA; REV:GCTGCGTTCTTCATCGATGC'
+
+    ptl_16S = 'Illumina EMP protocol 515fbc, 806r amplification of 16S rRNA V4'
+    prtcl_18S = 'Illumina EMP 18S rRNA 1391f EukBr'
+    prtcl_ITS = 'Illumina  EMP protocol amplification of ITS1fbc, ITS2r'
+
+    prep['orig_name'] = prep['sample_name']
+    prep['well_description'] = (prep['sample_plate'] + '.'
+                                + prep['sample_name'] + '.' + prep['well_id'])
+    prep['center_name'] = 'UCSDMI'
+    prep['run_center'] = 'UCSDMI'
+    prep['platform'] = 'Illumina'
+    prep['sequencing_meth'] = 'Sequencing by synthesis'
+
+    if seqtype == '16S':
+        prep['pcr_primers'] = primers_16S
+        prep['target_subfragment'] = 'V4'
+        prep['target_gene'] = '16S rRNA'
+        prep['library_construction_protocol'] = ptl_16S
+    elif seqtype == '18S':
+        prep['pcr_primers'] = primers_18S
+        prep['target_subfragment'] = 'V9'
+        prep['target_gene'] = '18S rRNA'
+        prep['library_construction_protocol'] = prtcl_18S
+    elif seqtype == 'ITS':
+        prep['pcr_primers'] = primers_ITS
+        prep['target_subfragment'] = 'ITS_1_2'
+        prep['target_gene'] = 'ITS'
+        prep['library_construction_protocol'] = prtcl_ITS
+    else:
+        raise ValueError(f'Unrecognized value "{seqtype}" for seqtype')
+
+    return prep
