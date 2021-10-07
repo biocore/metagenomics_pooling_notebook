@@ -47,18 +47,10 @@ def read_plate_map_csv(f, sep='\t'):
         plate_df = plate_df[~null_samples]
         plate_df.reset_index(inplace=True, drop=True)
     
-    try: #Check that there are no duplicated sample names, if there are duplicates then throws an assertion error and doesn't create plates_df
-        assert(len(set(plate_df['Sample'])) == len(plate_df['Sample']))
-    except AssertionError as e:
-        prev = ''
-        for sample in sorted(plate_df['Sample']):
-            if sample == prev:
-                print('\nDuplicates:')
-                print(plate_df.loc[plate_df['Sample'] == prev,])
-
-            prev = sample
-        print('\n\nERROR! Some samples names are duplicate! Please update plate map to fix duplciates')
-        raise e
+    duplicated_samples = plate_df.Sample[plate_df.Sample.duplicated()]
+    if len(duplicated_samples):
+        raise ValueError('The following sample names are duplicated %s' %
+                         ', '.join(sorted(duplicated_samples)))
 
     return plate_df
 
