@@ -4,7 +4,7 @@ import pandas as pd
 from metapool.plate import _decompress_well, _plate_position
 
 
-def assign_emp_index(plate_df, metadata):
+def assign_emp_index(plate_df, metadata, seqtype):
     """Assign an EMP index to wells based on their compressed position
 
     Parameters
@@ -14,6 +14,8 @@ def assign_emp_index(plate_df, metadata):
         384 rows).
     metadata: pd.DataFrame
         Object with all the plate metadata (usually with 1-4 rows).
+    seqtype: string
+        string denoting the amplicon sequencing type.
 
     Returns
     -------
@@ -22,7 +24,7 @@ def assign_emp_index(plate_df, metadata):
         metadata, and the EMP indices.
     """
     # dataframe of wells organized by plate with a barcode per well
-    emp_indices = _load_emp_indices()
+    emp_indices = _load_emp_indices(seqtype)
 
     # the Well column exists elsewhere already so we rename it to avoid
     # duplication in the merged table
@@ -51,10 +53,19 @@ def assign_emp_index(plate_df, metadata):
     return plate_df
 
 
-def _load_emp_indices():
+def _load_emp_indices(seqtype):
     """Helper method to load EMP primer plates"""
+    if seqtype == '16S':
+        tsv_name = 'emp-16S-V4-515F-806R-parada-april.tsv'
+    elif seqtype == '18S':
+        tsv_name = 'Euk1391f_EukBr_Nov2016.tsv'
+    elif seqtype == 'ITS':
+        tsv_name = 'ITS1f_ITS2_Nov2016.tsv'
+    else:
+        raise ValueError(f'Unrecognized value "{seqtype}" for seqtype')
+
     fn = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data',
-                      'emp-16S-V4-515F-806R-parada-april.tsv')
+                      tsv_name)
     indices = pd.read_csv(fn, sep='\t', dtype=str, keep_default_na=False,
                           na_values=[])
     return indices
