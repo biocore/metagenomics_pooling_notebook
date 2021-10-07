@@ -381,6 +381,19 @@ def _validate_sample_sheet_metadata(metadata):
                                'exactly these keys %s') %
                                (section, i+1, ', '.join(sorted(columns))))
                     msgs.append(ErrorMessage(message))
+                if section == 'Bioinformatics': 
+                    if (project['library_construction_protocol'] == None or
+                        project['library_construction_protocol'] == ''):
+                        message = (('In the %s section Project #%d does not have '
+                                    'library_construction_protocol specified') %
+                                    (section, i+1))
+                        msgs.append(ErrorMessage(message))
+                    if (project['experiment_design_description'] == None or
+                        project['experiment_design_description'] == ''):
+                        message = (('In the %s section Project #%d does not have '
+                                    'experiment_design_description specified') %
+                                    (section, i+1))
+                        msgs.append(ErrorMessage(message))
     if metadata.get('Assay') is not None and metadata['Assay'] not in _ASSAYS:
         msgs.append(ErrorMessage('%s is not a supported Assay' %
                                  metadata['Assay']))
