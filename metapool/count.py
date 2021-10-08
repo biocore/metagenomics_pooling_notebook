@@ -138,10 +138,21 @@ def _safe_get(_document, _key):
 
 def bcl2fastq_counts(run_dir, sample_sheet):
     path = os.path.join(os.path.abspath(run_dir), 'Stats/Stats.json')
+    path2 = os.path.join(os.path.abspath(run_dir),
+                         'Data/Fastq/Reports/Demultiplex_Stats.csv')
 
-    if not os.path.exists(path):
-        raise IOError(f'Cannot find stats file ({path}) for this run')
+    if os.path.exists(path):
+        # bcl2fastq Stats file
+        return _bcl2fastq_counts(path, sample_sheet)
+    elif os.path.exists(path2):
+        # bcl-convert Demultiplex_Stats file
+        return _bclconvert_counts(path2, sample_sheet)
+    else:
+        raise IOError(f'Cannot find stats file ({path} or {path2}) for this '
+                      'run')
 
+
+def _bcl2fastq_counts(path, sample_sheet):
     with open(path) as fp:
         contents = json.load(fp)
 
@@ -158,6 +169,15 @@ def bcl2fastq_counts(run_dir, sample_sheet):
     out = out[['Sample_ID', 'Lane', 'raw_reads']]
     out.set_index(['Sample_ID', 'Lane'], inplace=True, verify_integrity=True)
     return out
+
+
+def _bclconvert_counts(path, sample_sheet):
+    df = pd.read_csv(path)
+    df2 = df[["SampleID", "Lane", "# Reads"]].copy()
+    df2.rename(columns={'SampleID': 'Sample_ID', '# Reads': 'raw_reads'},
+               inplace=True)
+    df2.set_index(['Sample_ID', 'Lane'], inplace=True, verify_integrity=True)
+    return df2
 
 
 def fastp_counts(run_dir, sample_sheet):
