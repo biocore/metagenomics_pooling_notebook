@@ -139,7 +139,7 @@ def _safe_get(_document, _key):
 def bcl2fastq_counts(run_dir, sample_sheet):
     path = os.path.join(os.path.abspath(run_dir), 'Stats/Stats.json')
     path2 = os.path.join(os.path.abspath(run_dir),
-                         'Data/Fastq/Reports/Demultiplex_Stats.csv')
+                         'Reports/Demultiplex_Stats.csv')
 
     if os.path.exists(path):
         # bcl2fastq Stats file
@@ -172,12 +172,20 @@ def _bcl2fastq_counts(path, sample_sheet):
 
 
 def _bclconvert_counts(path, sample_sheet):
+    # read the csv in from file
     df = pd.read_csv(path)
-    df2 = df[["SampleID", "Lane", "# Reads"]].copy()
-    df2.rename(columns={'SampleID': 'Sample_ID', '# Reads': 'raw_reads'},
+    # subselect only the columns we're concerned with
+    df = df[["SampleID", "Lane", "# Reads"]]
+    # filter out rows that reference and 'Undetermined' fastq.gz file
+    df = df.loc[df['SampleID'] != 'Undetermined']
+    # create our own copy to return to the user
+    df = df.copy()
+    # rename columns to standard values for metapool
+    df.rename(columns={'SampleID': 'Sample_ID', '# Reads': 'raw_reads'},
                inplace=True)
-    df2.set_index(['Sample_ID', 'Lane'], inplace=True, verify_integrity=True)
-    return df2
+    # create indexes on these columns
+    df.set_index(['Sample_ID', 'Lane'], inplace=True, verify_integrity=True)
+    return df
 
 
 def fastp_counts(run_dir, sample_sheet):
