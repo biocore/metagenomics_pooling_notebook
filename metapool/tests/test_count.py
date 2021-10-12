@@ -143,10 +143,11 @@ class TestCount(TestCase):
 
     def test_bcl2fastq_no_stats_file(self):
         bad_dir = os.path.join(os.path.abspath(self.run_dir), 'Trojecp_666')
-
-        with self.assertRaisesRegex(IOError,
-                                    rf"Cannot find stats file \({bad_dir}"
-                                    r"/Stats/Stats.json\) for this run"):
+        with self.assertRaisesRegex(IOError, "Cannot find Stats.json '"
+                                             f"{bad_dir}/Stats/Stats.json' or "
+                                             "Demultiplex_Stats.csv '"
+                                             f"{bad_dir}/Reports/Demultiplex_"
+                                             "Stats.csv' for this run"):
             bcl2fastq_counts(bad_dir, self.ss)
 
     def test_bcl2fastq_counts_malformed_results(self):
