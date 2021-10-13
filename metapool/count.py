@@ -174,7 +174,7 @@ def _bclconvert_counts(path, sample_sheet):
     df = pd.read_csv(path)
     # subselect only the columns we're concerned with
     df = df[["SampleID", "Lane", "# Reads"]]
-    # filter out rows that reference and 'Undetermined' fastq.gz file
+    # filter out rows that reference an 'Undetermined' fastq.gz file
     # and create our own copy to return to the user
     df = df.loc[df['SampleID'] != 'Undetermined'].copy()
     # rename columns to standard values for metapool
