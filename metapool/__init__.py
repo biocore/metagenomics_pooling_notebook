@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from .prep import preparations_for_run, parse_prep
+from .prep import preparations_for_run, parse_prep, generate_qiita_prep_file
 from .sample_sheet import (sample_sheet_to_dataframe, KLSampleSheet,
                            validate_and_scrub_sample_sheet, make_sample_sheet)
 from .plate import validate_plate_metadata
@@ -10,7 +10,7 @@ from .count import run_counts
 
 __credits__ = ("https://github.com/biocore/metagenomics_pooling_notebook/"
                "graphs/contributors")
-__all__ = ['preparations_for_run', 'parse_prep',
+__all__ = ['preparations_for_run', 'parse_prep', 'generate_qiita_prep_file',
            'sample_sheet_to_dataframe', 'KLSampleSheet',
            'validate_and_scrub_sample_sheet', 'make_sample_sheet',
            'parse_sample_sheet',

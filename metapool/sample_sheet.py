@@ -61,6 +61,7 @@ _SETTINGS = {
     'OverrideCycles': 'Y151;I8N2;I8N2;Y151'
 }
 
+
 _HEADER = {
     'IEMFileVersion': '4',
     'Investigator Name': 'Knight',
@@ -75,7 +76,8 @@ _HEADER = {
 
 _BIOINFORMATICS_COLUMNS = {
     'Sample_Project', 'QiitaID', 'BarcodesAreRC', 'ForwardAdapter',
-    'ReverseAdapter', 'HumanFiltering'
+    'ReverseAdapter', 'HumanFiltering',
+    'library_construction_protocol', 'experiment_design_description'
 }
 
 _CONTACT_COLUMNS = {
@@ -383,7 +385,19 @@ def _validate_sample_sheet_metadata(metadata):
                                'exactly these keys %s') %
                                (section, i+1, ', '.join(sorted(columns))))
                     msgs.append(ErrorMessage(message))
-
+                if section == 'Bioinformatics':
+                    if (project['library_construction_protocol'] is None or
+                            project['library_construction_protocol'] == ''):
+                        message = (('In the %s section Project #%d does not '
+                                    'have library_construction_protocol '
+                                    'specified') % (section, i+1))
+                        msgs.append(ErrorMessage(message))
+                    if (project['experiment_design_description'] is None or
+                            project['experiment_design_description'] == ''):
+                        message = (('In the %s section Project #%d does not '
+                                    'have experiment_design_description '
+                                    'specified') % (section, i+1))
+                        msgs.append(ErrorMessage(message))
     if metadata.get('Assay') is not None and metadata['Assay'] not in _ASSAYS:
         msgs.append(ErrorMessage('%s is not a supported Assay' %
                                  metadata['Assay']))
@@ -488,7 +502,8 @@ def make_sample_sheet(metadata, table, sequencer, lanes):
 
         - Bioinformatics: List of dictionaries describing each project's
           attributes: Sample_Project, QiitaID, BarcodesAreRC, ForwardAdapter,
-          ReverseAdapter, HumanFiltering
+          ReverseAdapter, HumanFiltering, library_construction_protocol,
+          experiment_design_description
         - Contact: List of dictionaries describing the e-mails to send to
           external stakeholders: Sample_Project, Email
 
@@ -673,5 +688,10 @@ def sample_sheet_to_dataframe(sheet):
         data.append([sample[column] for column in columns])
 
     out = pd.DataFrame(data=data, columns=[c.lower() for c in columns])
-
+    out = out.merge(sheet.Bioinformatics[['Sample_Project',
+                                          'library_construction_protocol',
+                                          'experiment_design_description']],
+                    left_on='sample_project', right_on='Sample_Project')
+    out.drop(columns='Sample_Project', inplace=True)
+    out.sort_values(by='sample_well', inplace=True)
     return out.set_index('sample_id')
