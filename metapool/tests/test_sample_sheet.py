@@ -54,7 +54,9 @@ class BaseTests(unittest.TestCase):
              'BarcodesAreRC': 'False',
              'ForwardAdapter': 'GATACA',
              'ReverseAdapter': 'CATCAT',
-             'HumanFiltering': 'False'
+             'HumanFiltering': 'False',
+             'library_construction_protocol': 'Knight Lab Kapa HP',
+             'experiment_design_description': 'Eqiiperiment'
             },
             {
              'Sample_Project': 'Yanomani_2008_10052',
@@ -62,7 +64,9 @@ class BaseTests(unittest.TestCase):
              'BarcodesAreRC': 'False',
              'ForwardAdapter': 'GATACA',
              'ReverseAdapter': 'CATCAT',
-             'HumanFiltering': 'False'
+             'HumanFiltering': 'False',
+             'library_construction_protocol': 'Knight Lab Kapa HP',
+             'experiment_design_description': 'Eqiiperiment'
             }
         ]
 
@@ -189,39 +193,52 @@ class KLSampleSheetTests(BaseTests):
 
         data = (
             '1,sample1,sample1,FooBar_666_p1,A1,iTru7_107_07,CCGACTAT,'
-            'iTru5_01_A,ACCGACAA,Baz,importantsample1\n'
+            'iTru5_01_A,ACCGACAA,Baz,importantsample1,'
+            'KnightLabKapaHP,Eqiiperiment\n'
             '1,sample2,sample2,FooBar_666_p1,A2,iTru7_107_08,CCGACTAT,'
-            'iTru5_01_A,CTTCGCAA,Baz,importantsample2\n'
+            'iTru5_01_A,CTTCGCAA,Baz,importantsample2,'
+            'KnightLabKapaHP,Eqiiperiment\n'
             '3,sample1,sample1,FooBar_666_p1,A3,iTru7_107_09,GCCTTGTT,'
-            'iTru5_01_A,AACACCAC,Baz,importantsample1\n'
+            'iTru5_01_A,AACACCAC,Baz,importantsample1,'
+            'KnightLabKapaHP,Eqiiperiment\n'
             '3,sample2,sample2,FooBar_666_p1,A4,iTru7_107_10,AACTTGCC,'
-            'iTru5_01_A,CGTATCTC,Baz,importantsample2\n'
+            'iTru5_01_A,CGTATCTC,Baz,importantsample2,'
+            'KnightLabKapaHP,Eqiiperiment\n'
             '3,sample31,sample31,FooBar_666_p1,A5,iTru7_107_11,CAATGTGG,'
-            'iTru5_01_A,GGTACGAA,FooBar_666,importantsample31\n'
+            'iTru5_01_A,GGTACGAA,FooBar_666,importantsample31,'
+            'KnightLabKapaHP,SomethingWitty\n'
             '3,sample32,sample32,FooBar_666_p1,B6,iTru7_107_12,AAGGCTGA,'
-            'iTru5_01_A,CGATCGAT,FooBar_666,importantsample32\n'
+            'iTru5_01_A,CGATCGAT,FooBar_666,importantsample32,'
+            'KnightLabKapaHP,SomethingWitty\n'
             '3,sample34,sample34,FooBar_666_p1,B8,iTru7_107_13,TTACCGAG,'
-            'iTru5_01_A,AAGACACC,FooBar_666,importantsample34\n'
+            'iTru5_01_A,AAGACACC,FooBar_666,importantsample34,'
+            'KnightLabKapaHP,SomethingWitty\n'
             '3,sample44,sample44,Baz_p3,B99,iTru7_107_14,GTCCTAAG,'
-            'iTru5_01_A,CATCTGCT,Baz,importantsample44\n'
+            'iTru5_01_A,CATCTGCT,Baz,importantsample44,'
+            'KnightLabKapaHP,Eqiiperiment\n'
         )
         keys = ['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
                 'Sample_Well', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
-                'Sample_Project', 'Well_description']
+                'Sample_Project', 'Well_description',
+                'library_construction_protocol', 'experiment_design_protocol']
 
         for sample, line in zip(sheet.samples, data.split()):
             values = line.strip().split(',')
+            print(values)
             exp = sample_sheet.Sample(dict(zip(keys, values)))
-
             self.assertEqual(sample, exp)
 
         # check for Bioinformatics
         exp = pd.DataFrame(
             columns=['Sample_Project', 'QiitaID', 'BarcodesAreRC',
-                     'ForwardAdapter', 'ReverseAdapter', 'HumanFiltering'],
+                     'ForwardAdapter', 'ReverseAdapter', 'HumanFiltering',
+                     'library_construction_protocol',
+                     'experiment_design_description'],
             data=[
-                ['Baz', '100', 'False', 'AACC', 'GGTT', 'False'],
-                ['FooBar_666', '666', 'False', 'AACC', 'GGTT', 'False']
+                ['Baz', '100', 'False', 'AACC', 'GGTT', 'False',
+                 'Knight Lab Kapa HP', 'Eqiiperiment'],
+                ['FooBar_666', '666', 'False', 'AACC', 'GGTT', 'False',
+                 'Knight Lab Kapa HP', 'SomethingWitty']
             ]
         )
         pd.testing.assert_frame_equal(sheet.Bioinformatics, exp)
@@ -397,16 +414,18 @@ class KLSampleSheetTests(BaseTests):
         # check for Bioinformatics
         exp = pd.DataFrame(
             columns=['Sample_Project', 'QiitaID', 'BarcodesAreRC',
-                     'ForwardAdapter', 'ReverseAdapter', 'HumanFiltering'],
+                     'ForwardAdapter', 'ReverseAdapter', 'HumanFiltering',
+                     'library_construction_protocol',
+                     'experiment_design_description'],
             data=[
                 ['Koening_ITS_101', '101', 'False', 'GATACA', 'CATCAT',
-                 'False'],
+                 'False', 'Knight Lab Kapa HP', 'Eqiiperiment'],
                 ['Yanomani_2008_10052', '10052', 'False', 'GATACA', 'CATCAT',
-                 'False'],
+                 'False', 'Knight Lab Kapa HP', 'Eqiiperiment'],
                 ['paco_Koening_ITS_101', '101', 'False', 'GATACA', 'CATCAT',
-                 'False'],
+                 'False', 'Knight Lab Kapa HP', 'Eqiiperiment'],
                 ['paco_Yanomani_2008_10052', '10052', 'False', 'GATACA',
-                 'CATCAT', 'False']
+                 'CATCAT', 'False', 'Knight Lab Kapa HP', 'Eqiiperiment']
             ]
         )
 
@@ -490,7 +509,9 @@ class KLSampleSheetTests(BaseTests):
         exp = [ErrorMessage('In the Bioinformatics section Project #1 does not'
                             ' have exactly these keys BarcodesAreRC, '
                             'ForwardAdapter, HumanFiltering, QiitaID, '
-                            'ReverseAdapter, Sample_Project')]
+                            'ReverseAdapter, Sample_Project, '
+                            'experiment_design_description, '
+                            'library_construction_protocol')]
         obs = _validate_sample_sheet_metadata(self.metadata)
         self.assertEqual(str(obs[0]), str(exp[0]))
 
@@ -967,7 +988,9 @@ class ValidateSampleSheetTests(BaseTests):
 
         columns = ['lane', 'sample_name', 'sample_plate', 'sample_well',
                    'i7_index_id', 'index', 'i5_index_id', 'index2',
-                   'sample_project', 'well_description']
+                   'sample_project', 'well_description',
+                   'library_construction_protocol',
+                   'experiment_design_description']
         index = ['sample1', 'sample2', 'sample1', 'sample2', 'sample31',
                  'sample32', 'sample34', 'sample44']
 
@@ -978,21 +1001,29 @@ class ValidateSampleSheetTests(BaseTests):
 
 DF_DATA = [
     ['1', 'sample1', 'FooBar_666_p1', 'A1', 'iTru7_107_07', 'CCGACTAT',
-     'iTru5_01_A', 'ACCGACAA', 'Baz', 'importantsample1'],
+     'iTru5_01_A', 'ACCGACAA', 'Baz', 'importantsample1',
+     'Knight Lab Kapa HP', 'Eqiiperiment'],
     ['1', 'sample2', 'FooBar_666_p1', 'A2', 'iTru7_107_08', 'CCGACTAT',
-     'iTru5_01_A', 'CTTCGCAA', 'Baz', 'importantsample2'],
+     'iTru5_01_A', 'CTTCGCAA', 'Baz', 'importantsample2',
+     'Knight Lab Kapa HP', 'Eqiiperiment'],
     ['3', 'sample1', 'FooBar_666_p1', 'A3', 'iTru7_107_09', 'GCCTTGTT',
-     'iTru5_01_A', 'AACACCAC', 'Baz', 'importantsample1'],
+     'iTru5_01_A', 'AACACCAC', 'Baz', 'importantsample1',
+     'Knight Lab Kapa HP', 'Eqiiperiment'],
     ['3', 'sample2', 'FooBar_666_p1', 'A4', 'iTru7_107_10', 'AACTTGCC',
-     'iTru5_01_A', 'CGTATCTC', 'Baz', 'importantsample2'],
+     'iTru5_01_A', 'CGTATCTC', 'Baz', 'importantsample2',
+     'Knight Lab Kapa HP', 'Eqiiperiment'],
     ['3', 'sample31', 'FooBar_666_p1', 'A5', 'iTru7_107_11', 'CAATGTGG',
-     'iTru5_01_A', 'GGTACGAA', 'FooBar_666', 'importantsample31'],
+     'iTru5_01_A', 'GGTACGAA', 'FooBar_666', 'importantsample31',
+     'Knight Lab Kapa HP', 'SomethingWitty'],
     ['3', 'sample32', 'FooBar_666_p1', 'B6', 'iTru7_107_12', 'AAGGCTGA',
-     'iTru5_01_A', 'CGATCGAT', 'FooBar_666', 'importantsample32'],
+     'iTru5_01_A', 'CGATCGAT', 'FooBar_666', 'importantsample32',
+     'Knight Lab Kapa HP', 'SomethingWitty'],
     ['3', 'sample34', 'FooBar_666_p1', 'B8', 'iTru7_107_13', 'TTACCGAG',
-     'iTru5_01_A', 'AAGACACC', 'FooBar_666', 'importantsample34'],
+     'iTru5_01_A', 'AAGACACC', 'FooBar_666', 'importantsample34',
+     'Knight Lab Kapa HP', 'SomethingWitty'],
     ['3', 'sample44', 'Baz_p3', 'B99', 'iTru7_107_14', 'GTCCTAAG',
-     'iTru5_01_A', 'CATCTGCT', 'Baz', 'importantsample44']]
+     'iTru5_01_A', 'CATCTGCT', 'Baz', 'importantsample44',
+     'Knight Lab Kapa HP', 'Eqiiperiment']]
 
 
 if __name__ == '__main__':
