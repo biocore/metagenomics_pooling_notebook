@@ -253,9 +253,9 @@ class TestBCLConvertCount(TestCase):
 
         # before continuing, disable Stats directory and create Reports
         # directory w/bcl-convert generated stats file.
-        self.src1 = os.path.join(self.run_dir, 'Stats')
-        self.dst1 = os.path.join(self.run_dir, 'Disabled')
-        os.rename(self.src1, self.dst1)
+        self.stats_active = os.path.join(self.run_dir, 'Stats')
+        self.stats_disabled = os.path.join(self.run_dir, 'Disabled')
+        os.rename(self.stats_active, self.stats_disabled)
         self.reports_dir = os.path.join(self.run_dir, 'Reports')
         os.makedirs(self.reports_dir, exist_ok=True)
         os.rename(os.path.join(self.data_dir, 'Demultiplex_Stats.csv'),
@@ -322,7 +322,7 @@ class TestBCLConvertCount(TestCase):
         os.rename(os.path.join(self.reports_dir, 'Demultiplex_Stats.csv'),
                   os.path.join(self.data_dir, 'Demultiplex_Stats.csv'))
         os.rmdir(self.reports_dir)
-        os.rename(self.dst1, self.src1)
+        os.rename(self.stats_disabled, self.stats_active)
 
 
 if __name__ == '__main__':

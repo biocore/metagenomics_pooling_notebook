@@ -75,5 +75,60 @@ class SeqproTests(unittest.TestCase):
                                      'Assertion error in %s' % prep)
 
 
+class SeqproBCLConvertTests(unittest.TestCase):
+    def setUp(self):
+        # we need to get the test data directory in the parent directory
+        # important to use abspath because we use CliRunner.isolated_filesystem
+        tests_dir = os.path.abspath(os.path.dirname(__file__))
+        tests_dir = os.path.dirname(os.path.dirname(tests_dir))
+        self.data_dir = os.path.join(tests_dir, 'tests', 'data')
+
+        self.fastp_run = os.path.join(self.data_dir, 'runs',
+                                      '200318_A00953_0082_AH5TWYDSXY')
+        self.fastp_sheet = os.path.join(self.fastp_run, 'sample-sheet.csv')
+
+        # before continuing, disable Stats directory and create Reports
+        # directory w/bcl-convert generated stats file.
+        self.stats_active = os.path.join(self.fastp_run, 'Stats')
+        self.stats_disabled = os.path.join(self.fastp_run, 'Disabled')
+        os.rename(self.stats_active, self.stats_disabled)
+        self.reports_dir = os.path.join(self.fastp_run, 'Reports')
+        os.makedirs(self.reports_dir, exist_ok=True)
+        os.rename(os.path.join(self.data_dir, 'Demultiplex_Stats.csv'),
+                  os.path.join(self.reports_dir, 'Demultiplex_Stats.csv'))
+
+    def test_fastp_run(self):
+        runner = CliRunner()
+
+        with runner.isolated_filesystem():
+            result = runner.invoke(format_preparation_files,
+                                   args=[self.fastp_run, self.fastp_sheet,
+                                         './', '--pipeline',
+                                         'fastp-and-minimap2'])
+            print(result)
+            self.assertEqual(result.output, '')
+            self.assertEqual(result.exit_code, 0)
+
+            exp_preps = [
+                '200318_A00953_0082_AH5TWYDSXY.Project_1111.1.tsv',
+                '200318_A00953_0082_AH5TWYDSXY.Project_1111.3.tsv',
+                '200318_A00953_0082_AH5TWYDSXY.Trojecp_666.3.tsv'
+            ]
+
+            self.assertEqual(sorted(os.listdir('./')), exp_preps)
+
+            for prep, exp_lines in zip(exp_preps, [4, 4, 5]):
+                with open(prep) as f:
+                    self.assertEqual(len(f.read().split('\n')), exp_lines,
+                                     'Assertion error in %s' % prep)
+
+    def tearDown(self):
+        # undo changes to 200318_A00953_0082_AH5TWYDSXY
+        os.rename(os.path.join(self.reports_dir, 'Demultiplex_Stats.csv'),
+                  os.path.join(self.data_dir, 'Demultiplex_Stats.csv'))
+        os.rmdir(self.reports_dir)
+        os.rename(self.stats_disabled, self.stats_active)
+
+
 if __name__ == '__main__':
     unittest.main()

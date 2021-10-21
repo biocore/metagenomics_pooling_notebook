@@ -149,7 +149,7 @@ def bcl2fastq_counts(run_dir, sample_sheet):
         else:
             return _bcl2fastq_counts(bcl2fastq_path)
     elif os.path.exists(bclconvert_path):
-            return _bclconvert_counts(bclconvert_path)
+        return _bclconvert_counts(bclconvert_path)
     else:
         raise IOError(f"Cannot find Stats.json '{bcl2fastq_path}' or "
                       f"Demultiplex_Stats.csv '{bclconvert_path}' for this"
