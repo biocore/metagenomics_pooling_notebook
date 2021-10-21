@@ -240,19 +240,27 @@ RUN_STATS = {
                            ('sample5', '3'): 0.14062200732952615}}
 
 
-class TestCount2(TestCase):
+class TestBCLConvertCount(TestCase):
     '''
-    TestCount2 repeats specific tests from TestCount(), using a bcl-convert-
-    generated Demultiplex_Stats.csv file for input instead of a bcl2fastq-
-    generated Stats.json file.
+    TestBCLConvertCount repeats specific tests from TestCount(), using a bcl-
+    convert-generated Demultiplex_Stats.csv file for input instead of a
+    bcl2fastq-generated Stats.json file.
     '''
     def setUp(self):
-        data_dir = os.path.join(os.path.dirname(__file__), 'data')
+        self.data_dir = os.path.join(os.path.dirname(__file__), 'data')
+        self.run_dir = os.path.join(self.data_dir, 'runs',
+                                    '200318_A00953_0082_AH5TWYDSXY')
 
-        # Use 200418_A00953_0082_AH5TWYDSXY, a sample dataset containing
-        # bcl-convert-generated metadata.
-        self.run_dir = os.path.join(data_dir, 'runs',
-                                    '200418_A00953_0082_AH5TWYDSXY')
+        # before continuing, disable Stats directory and create Reports
+        # directory w/bcl-convert generated stats file.
+        self.src1 = os.path.join(self.run_dir, 'Stats')
+        self.dst1 = os.path.join(self.run_dir, 'Disabled')
+        os.rename(self.src1, self.dst1)
+        self.reports_dir = os.path.join(self.run_dir, 'Reports')
+        os.makedirs(self.reports_dir, exist_ok=True)
+        os.rename(os.path.join(self.data_dir, 'Demultiplex_Stats.csv'),
+                  os.path.join(self.reports_dir, 'Demultiplex_Stats.csv'))
+
         self.ss = KLSampleSheet(os.path.join(self.run_dir, 'sample-sheet.csv'))
 
         self.stats = pd.DataFrame(RUN_STATS)
@@ -308,6 +316,13 @@ class TestCount2(TestCase):
         obs = bcl2fastq_counts(self.run_dir, self.ss)
         pd.testing.assert_frame_equal(obs.sort_index(),
                                       self.stats[['raw_reads']])
+
+    def tearDown(self):
+        # undo changes to 200318_A00953_0082_AH5TWYDSXY
+        os.rename(os.path.join(self.reports_dir, 'Demultiplex_Stats.csv'),
+                  os.path.join(self.data_dir, 'Demultiplex_Stats.csv'))
+        os.rmdir(self.reports_dir)
+        os.rename(self.dst1, self.src1)
 
 
 if __name__ == '__main__':
