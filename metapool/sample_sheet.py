@@ -54,7 +54,11 @@ _READS = {
 }
 
 _SETTINGS = {
-    'ReverseComplement': '0'
+    'ReverseComplement': '0',
+
+    # these are needed ever since we moved from bcl2fastq -> bclconvert
+    'MaskShortReads': '1',
+    'OverrideCycles': 'Y151;I8N2;I8N2;Y151'
 }
 
 
@@ -439,6 +443,11 @@ def _add_metadata_to_sheet(metadata, sheet):
     if metadata['Assay'] == _AMPLICON:
         del sheet.Header['Investigator Name']
         del sheet.Header['Experiment Name']
+
+        # these are only relevant for metagenomics because they are used in
+        # bclconvert
+        del sheet.Settings['MaskShortReads']
+        del sheet.Settings['OverrideCycles']
 
     return sheet
 

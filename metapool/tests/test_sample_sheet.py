@@ -771,6 +771,39 @@ class SampleSheetWorkflow(BaseTests):
 
             self.assertEqual(dict(sample), dict(exp))
 
+    def test_add_metadata_to_sheet_all_defaults_amplicon(self):
+        sheet = KLSampleSheet()
+
+        self.metadata['Assay'] = 'TruSeq HT'
+        exp_bfx = pd.DataFrame(self.metadata['Bioinformatics'])
+        exp_contact = pd.DataFrame(self.metadata['Contact'])
+
+        obs = _add_metadata_to_sheet(self.metadata, sheet)
+
+        self.assertEqual(obs.Reads, [151, 151])
+
+        settings = {
+            'ReverseComplement': '0',
+        }
+        self.assertEqual(obs.Settings, settings)
+
+        pd.testing.assert_frame_equal(obs.Bioinformatics, exp_bfx)
+        pd.testing.assert_frame_equal(obs.Contact, exp_contact)
+
+        header = {
+            'IEMFileVersion': '4',
+            'Date': datetime.today().strftime('%Y-%m-%d'),
+            'Workflow': 'GenerateFASTQ',
+            'Application': 'FASTQ Only',
+            'Assay': 'TruSeq HT',
+            'Description': '',
+            'Chemistry': 'Default',
+        }
+
+        self.assertEqual(obs.Header, header)
+
+        self.assertEqual(len(obs.samples), 0)
+
     def test_add_metadata_to_sheet_most_defaults(self):
         sheet = KLSampleSheet()
 
@@ -781,7 +814,13 @@ class SampleSheetWorkflow(BaseTests):
         obs = _add_metadata_to_sheet(self.metadata, sheet)
 
         self.assertEqual(obs.Reads, [151, 151])
-        self.assertEqual(obs.Settings, {'ReverseComplement': '0'})
+
+        settings = {
+            'ReverseComplement': '0',
+            'MaskShortReads': '1',
+            'OverrideCycles': 'Y151;I8N2;I8N2;Y151'
+        }
+        self.assertEqual(obs.Settings, settings)
 
         pd.testing.assert_frame_equal(obs.Bioinformatics, exp_bfx)
         pd.testing.assert_frame_equal(obs.Contact, exp_contact)
