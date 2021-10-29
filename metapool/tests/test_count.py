@@ -3,7 +3,6 @@ import os
 import tempfile
 import shutil
 import pandas as pd
-
 from sample_sheet import Sample
 from unittest import main, TestCase
 
@@ -248,18 +247,19 @@ class TestBCLConvertCount(TestCase):
     '''
     def setUp(self):
         self.data_dir = os.path.join(os.path.dirname(__file__), 'data')
-        self.run_dir = os.path.join(self.data_dir, 'runs',
-                                    '200318_A00953_0082_AH5TWYDSXY')
+        self.orig_dir = os.path.join(self.data_dir, 'runs',
+                                     '200318_A00953_0082_AH5TWYDSXY')
 
-        # before continuing, disable Stats directory and create Reports
-        # directory w/bcl-convert generated stats file.
-        self.stats_active = os.path.join(self.run_dir, 'Stats')
-        self.stats_disabled = os.path.join(self.run_dir, 'Disabled')
-        os.rename(self.stats_active, self.stats_disabled)
-        self.reports_dir = os.path.join(self.run_dir, 'Reports')
-        os.makedirs(self.reports_dir, exist_ok=True)
-        os.rename(os.path.join(self.data_dir, 'Demultiplex_Stats.csv'),
-                  os.path.join(self.reports_dir, 'Demultiplex_Stats.csv'))
+        # before continuing, create a copy of 200318_A00953_0082_AH5TWYDSXY
+        # and replace Stats sub-dir with Reports.
+        self.run_dir = self.orig_dir.replace('200318', '200418')
+        shutil.copytree(self.orig_dir, self.run_dir)
+        shutil.rmtree(os.path.join(self.run_dir, 'Stats'))
+        os.makedirs(os.path.join(self.run_dir, 'Reports'))
+        shutil.copy(os.path.join(self.data_dir, 'Demultiplex_Stats.csv'),
+                    os.path.join(self.run_dir,
+                                 'Reports',
+                                 'Demultiplex_Stats.csv'))
 
         self.ss = KLSampleSheet(os.path.join(self.run_dir, 'sample-sheet.csv'))
 
@@ -311,11 +311,7 @@ class TestBCLConvertCount(TestCase):
                                       self.stats[['raw_reads']])
 
     def tearDown(self):
-        # undo changes to 200318_A00953_0082_AH5TWYDSXY
-        os.rename(os.path.join(self.reports_dir, 'Demultiplex_Stats.csv'),
-                  os.path.join(self.data_dir, 'Demultiplex_Stats.csv'))
-        os.rmdir(self.reports_dir)
-        os.rename(self.stats_disabled, self.stats_active)
+        shutil.rmtree(self.run_dir)
 
 
 if __name__ == '__main__':
