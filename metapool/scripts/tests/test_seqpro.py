@@ -1,9 +1,9 @@
 import os
 import unittest
-
 from click.testing import CliRunner
-
 from metapool.scripts.seqpro import format_preparation_files
+from shutil import copy, copytree, rmtree
+from os.path import join
 
 
 class SeqproTests(unittest.TestCase):
@@ -57,7 +57,6 @@ class SeqproTests(unittest.TestCase):
                                          './', '--pipeline',
                                          'fastp-and-minimap2'])
 
-            print(result)
             self.assertEqual(result.output, '')
             self.assertEqual(result.exit_code, 0)
 
@@ -87,15 +86,14 @@ class SeqproBCLConvertTests(unittest.TestCase):
                                       '200318_A00953_0082_AH5TWYDSXY')
         self.fastp_sheet = os.path.join(self.fastp_run, 'sample-sheet.csv')
 
-        # before continuing, disable Stats directory and create Reports
-        # directory w/bcl-convert generated stats file.
-        self.stats_active = os.path.join(self.fastp_run, 'Stats')
-        self.stats_disabled = os.path.join(self.fastp_run, 'Disabled')
-        os.rename(self.stats_active, self.stats_disabled)
-        self.reports_dir = os.path.join(self.fastp_run, 'Reports')
-        os.makedirs(self.reports_dir, exist_ok=True)
-        os.rename(os.path.join(self.data_dir, 'Demultiplex_Stats.csv'),
-                  os.path.join(self.reports_dir, 'Demultiplex_Stats.csv'))
+        # before continuing, create a copy of 200318_A00953_0082_AH5TWYDSXY
+        # and replace Stats sub-dir with Reports.
+        self.temp_copy = self.fastp_run.replace('200318', '200418')
+        copytree(self.fastp_run, self.temp_copy)
+        rmtree(join(self.temp_copy, 'Stats'))
+        os.makedirs(join(self.temp_copy, 'Reports'))
+        copy(join(self.data_dir, 'Demultiplex_Stats.csv'),
+             join(self.temp_copy, 'Reports', 'Demultiplex_Stats.csv'))
 
     def test_fastp_run(self):
         runner = CliRunner()
@@ -105,14 +103,13 @@ class SeqproBCLConvertTests(unittest.TestCase):
                                    args=[self.fastp_run, self.fastp_sheet,
                                          './', '--pipeline',
                                          'fastp-and-minimap2'])
-            print(result)
             self.assertEqual(result.output, '')
             self.assertEqual(result.exit_code, 0)
 
             exp_preps = [
-                '200318_A00953_0082_AH5TWYDSXY.Project_1111.1.tsv',
-                '200318_A00953_0082_AH5TWYDSXY.Project_1111.3.tsv',
-                '200318_A00953_0082_AH5TWYDSXY.Trojecp_666.3.tsv'
+                '200418_A00953_0082_AH5TWYDSXY.Project_1111.1.tsv',
+                '200418_A00953_0082_AH5TWYDSXY.Project_1111.3.tsv',
+                '200418_A00953_0082_AH5TWYDSXY.Trojecp_666.3.tsv'
             ]
 
             self.assertEqual(sorted(os.listdir('./')), exp_preps)
@@ -123,11 +120,7 @@ class SeqproBCLConvertTests(unittest.TestCase):
                                      'Assertion error in %s' % prep)
 
     def tearDown(self):
-        # undo changes to 200318_A00953_0082_AH5TWYDSXY
-        os.rename(os.path.join(self.reports_dir, 'Demultiplex_Stats.csv'),
-                  os.path.join(self.data_dir, 'Demultiplex_Stats.csv'))
-        os.rmdir(self.reports_dir)
-        os.rename(self.stats_disabled, self.stats_active)
+        rmtree(self.temp_copy)
 
 
 if __name__ == '__main__':

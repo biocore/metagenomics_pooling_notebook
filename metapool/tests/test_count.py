@@ -269,13 +269,6 @@ class TestBCLConvertCount(TestCase):
 
         self.stats.index.set_names(['Sample_ID', 'Lane'], inplace=True)
 
-    def test_parse_fastp_counts(self):
-        obs = _parse_fastp_counts(
-            os.path.join(self.run_dir, 'Trojecp_666', 'json',
-                         'sample3_S457_L003_R1_001.json'))
-
-        self.assertEqual(obs, 4692)
-
     def test_bcl2fastq_no_stats_file(self):
         bad_dir = os.path.join(os.path.abspath(self.run_dir), 'Trojecp_666')
         with self.assertRaisesRegex(IOError, f"Cannot find Stats.json '"
