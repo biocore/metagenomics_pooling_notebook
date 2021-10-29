@@ -100,7 +100,7 @@ class SeqproBCLConvertTests(unittest.TestCase):
 
         with runner.isolated_filesystem():
             result = runner.invoke(format_preparation_files,
-                                   args=[self.fastp_run, self.fastp_sheet,
+                                   args=[self.temp_copy, self.fastp_sheet,
                                          './', '--pipeline',
                                          'fastp-and-minimap2'])
             self.assertEqual(result.output, '')
