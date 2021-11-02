@@ -46,7 +46,7 @@ def read_plate_map_csv(f, sep='\t'):
         # still indexed with a continuous list of integers
         plate_df = plate_df[~null_samples]
         plate_df.reset_index(inplace=True, drop=True)
-    
+
     duplicated_samples = plate_df.Sample[plate_df.Sample.duplicated()]
     if len(duplicated_samples):
         raise ValueError('The following sample names are duplicated %s' %

@@ -134,10 +134,10 @@ class Tests(TestCase):
             'blank1\tB\t4\tTrue\n'
 
         plate_map_f = StringIO(plate_map_csv)
-        
+
         with self.assertRaises(Exception):
-            obs_plate_df = read_plate_map_csv(plate_map_f)
-    
+            read_plate_map_csv(plate_map_f)
+
     def test_read_pico_csv(self):
         # Test a normal sheet
         pico_csv = '''Results
