@@ -3,7 +3,6 @@ import os
 import tempfile
 import shutil
 import pandas as pd
-
 from sample_sheet import Sample
 from unittest import main, TestCase
 
@@ -240,19 +239,28 @@ RUN_STATS = {
                            ('sample5', '3'): 0.14062200732952615}}
 
 
-class TestCount2(TestCase):
+class TestBCLConvertCount(TestCase):
     '''
-    TestCount2 repeats specific tests from TestCount(), using a bcl-convert-
-    generated Demultiplex_Stats.csv file for input instead of a bcl2fastq-
-    generated Stats.json file.
+    TestBCLConvertCount repeats specific tests from TestCount(), using a bcl-
+    convert-generated Demultiplex_Stats.csv file for input instead of a
+    bcl2fastq-generated Stats.json file.
     '''
     def setUp(self):
-        data_dir = os.path.join(os.path.dirname(__file__), 'data')
+        self.data_dir = os.path.join(os.path.dirname(__file__), 'data')
+        self.orig_dir = os.path.join(self.data_dir, 'runs',
+                                     '200318_A00953_0082_AH5TWYDSXY')
 
-        # Use 200418_A00953_0082_AH5TWYDSXY, a sample dataset containing
-        # bcl-convert-generated metadata.
-        self.run_dir = os.path.join(data_dir, 'runs',
-                                    '200418_A00953_0082_AH5TWYDSXY')
+        # before continuing, create a copy of 200318_A00953_0082_AH5TWYDSXY
+        # and replace Stats sub-dir with Reports.
+        self.run_dir = self.orig_dir.replace('200318', '200418')
+        shutil.copytree(self.orig_dir, self.run_dir)
+        shutil.rmtree(os.path.join(self.run_dir, 'Stats'))
+        os.makedirs(os.path.join(self.run_dir, 'Reports'))
+        shutil.copy(os.path.join(self.data_dir, 'Demultiplex_Stats.csv'),
+                    os.path.join(self.run_dir,
+                                 'Reports',
+                                 'Demultiplex_Stats.csv'))
+
         self.ss = KLSampleSheet(os.path.join(self.run_dir, 'sample-sheet.csv'))
 
         self.stats = pd.DataFrame(RUN_STATS)
@@ -260,13 +268,6 @@ class TestCount2(TestCase):
         self.stats.sort_index(inplace=True)
 
         self.stats.index.set_names(['Sample_ID', 'Lane'], inplace=True)
-
-    def test_parse_fastp_counts(self):
-        obs = _parse_fastp_counts(
-            os.path.join(self.run_dir, 'Trojecp_666', 'json',
-                         'sample3_S457_L003_R1_001.json'))
-
-        self.assertEqual(obs, 4692)
 
     def test_bcl2fastq_no_stats_file(self):
         bad_dir = os.path.join(os.path.abspath(self.run_dir), 'Trojecp_666')
@@ -308,6 +309,9 @@ class TestCount2(TestCase):
         obs = bcl2fastq_counts(self.run_dir, self.ss)
         pd.testing.assert_frame_equal(obs.sort_index(),
                                       self.stats[['raw_reads']])
+
+    def tearDown(self):
+        shutil.rmtree(self.run_dir)
 
 
 if __name__ == '__main__':

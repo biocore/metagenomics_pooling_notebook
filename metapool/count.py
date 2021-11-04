@@ -137,20 +137,26 @@ def _safe_get(_document, _key):
 
 
 def bcl2fastq_counts(run_dir, sample_sheet):
-    path2stats = os.path.join(os.path.abspath(run_dir), 'Stats/Stats.json')
-    path2report = os.path.join(os.path.abspath(run_dir),
-                               'Reports/Demultiplex_Stats.csv')
+    bcl2fastq_path = os.path.join(os.path.abspath(run_dir),
+                                  'Stats/Stats.json')
+    bclconvert_path = os.path.join(os.path.abspath(run_dir),
+                                   'Reports/Demultiplex_Stats.csv')
 
-    if os.path.exists(path2stats):
-        return _bcl2fastq_counts(path2stats, sample_sheet)
-    elif os.path.exists(path2report):
-        return _bclconvert_counts(path2report, sample_sheet)
+    if os.path.exists(bcl2fastq_path):
+        if os.path.exists(bclconvert_path):
+            raise IOError(f"both '{bcl2fastq_path}' and '{bclconvert_path}'"
+                          " exist")
+        else:
+            return _bcl2fastq_counts(bcl2fastq_path)
+    elif os.path.exists(bclconvert_path):
+        return _bclconvert_counts(bclconvert_path)
     else:
-        raise IOError(f"Cannot find Stats.json '{path2stats}' or "
-                      f"Demultiplex_Stats.csv '{path2report}' for this run")
+        raise IOError(f"Cannot find Stats.json '{bcl2fastq_path}' or "
+                      f"Demultiplex_Stats.csv '{bclconvert_path}' for this"
+                      " run")
 
 
-def _bcl2fastq_counts(path, sample_sheet):
+def _bcl2fastq_counts(path):
     with open(path) as fp:
         contents = json.load(fp)
 
@@ -169,7 +175,7 @@ def _bcl2fastq_counts(path, sample_sheet):
     return out
 
 
-def _bclconvert_counts(path, sample_sheet):
+def _bclconvert_counts(path):
     # read the csv in from file
     df = pd.read_csv(path)
     # subselect only the columns we're concerned with
