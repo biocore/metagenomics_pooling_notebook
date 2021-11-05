@@ -12,6 +12,7 @@ import pandas as pd
 from metapool.metapool import (bcl_scrub_name, sequencer_i5_index,
                                REVCOMP_SEQUENCERS)
 from metapool.plate import ErrorMessage, WarningMessage
+from metapool.prep import qiita_scrub_name
 
 _KL_SAMPLE_SHEET_SECTIONS = [
     'Header', 'Reads', 'Settings', 'Data', 'Bioinformatics', 'Contact'
@@ -459,17 +460,21 @@ def _remap_table(table, assay):
         remapper = _KL_METAGENOMICS_REMAPPER
 
     # make a copy because we are going to modify the data
-    table = table[remapper.keys()].copy()
+    out = table[remapper.keys()].copy()
 
-    table.rename(remapper, axis=1, inplace=True)
+    out.rename(remapper, axis=1, inplace=True)
+
+    if 'Well_description' not in out.columns:
+        # grab the original sample names from the inputted table
+        out['Well_description'] = table.Sample.apply(qiita_scrub_name)
 
     for column in _KL_SAMPLE_SHEET_DATA_COLUMNS:
-        if column not in table.columns:
+        if column not in out.columns:
             warnings.warn('The column %s in the sample sheet is empty' %
                           column)
-            table[column] = ''
+            out[column] = ''
 
-    return table
+    return out
 
 
 def _add_data_to_sheet(table, sheet, sequencer, lanes, assay):

@@ -537,3 +537,19 @@ def generate_qiita_prep_file(platedf, seqtype):
         raise ValueError(f'Unrecognized value "{seqtype}" for seqtype')
 
     return prep
+
+
+def qiita_scrub_name(name):
+    """Modifies a sample name to be Qiita compatible
+
+    Parameters
+    ----------
+    name : str
+        the sample name
+
+    Returns
+    -------
+    str
+        the sample name, formatted for qiita
+    """
+    return re.sub(r'[^0-9a-zA-Z\-\.]+', '.', name)

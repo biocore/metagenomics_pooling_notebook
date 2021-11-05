@@ -653,17 +653,17 @@ class SampleSheetWorkflow(BaseTests):
 
         data = (
             [5, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
-             'AGCCTTCGTCGC', '', '', 'THDMI_10317', ''],
+             'AGCCTTCGTCGC', '', '', 'THDMI_10317', 'X00180471'],
             [5, 'X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1',
-             '515rcbc12', 'CGTATAAATGCG', '', '', 'THDMI_10317', ''],
+             '515rcbc12', 'CGTATAAATGCG', '', '', 'THDMI_10317', 'X00180199'],
             [5, 'X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1',
-             '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317', ''],
+             '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317', 'X00179789'],
             [7, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
-             'AGCCTTCGTCGC', '', '', 'THDMI_10317', ''],
+             'AGCCTTCGTCGC', '', '', 'THDMI_10317', 'X00180471'],
             [7, 'X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1',
-             '515rcbc12', 'CGTATAAATGCG', '', '', 'THDMI_10317', ''],
+             '515rcbc12', 'CGTATAAATGCG', '', '', 'THDMI_10317', 'X00180199'],
             [7, 'X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1',
-             '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317', ''],
+             '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317', 'X00179789'],
         )
         keys = ['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
                 'Sample_Well', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
@@ -680,17 +680,17 @@ class SampleSheetWorkflow(BaseTests):
                    'Sample_Project', 'Well_description']
         data = [
             ['X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
-             'AGCCTTCGTCGC', '', '', 'THDMI_10317', ''],
+             'AGCCTTCGTCGC', '', '', 'THDMI_10317', 'X00180471'],
             ['X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1', '515rcbc12',
-             'CGTATAAATGCG', '', '', 'THDMI_10317', ''],
+             'CGTATAAATGCG', '', '', 'THDMI_10317', 'X00180199'],
             ['X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1', '515rcbc24',
-             'TGACTAATGGCC', '', '', 'THDMI_10317', ''],
+             'TGACTAATGGCC', '', '', 'THDMI_10317', 'X00179789'],
         ]
 
         exp = pd.DataFrame(columns=columns, data=data)
 
         # for amplicon we expect the following three columns to not be there
-        message = (r'The column (I5_Index_ID|index2|Well_description) '
+        message = (r'The column (I5_Index_ID|index2) '
                    r'in the sample sheet is empty')
         with self.assertWarnsRegex(UserWarning, message):
             obs = _remap_table(self.table, 'TruSeq HT')
@@ -724,24 +724,21 @@ class SampleSheetWorkflow(BaseTests):
         data = [
             ['33-A1', '33-A1', 'The_plate', 'A1', 'iTru7_109_01',
              'CTCGTCTT', 'iTru5_19_A', 'AACGCACA', 'Tst_project_1234',
-             ''],
+             '33-A1'],
             ['820072905-2', '820072905-2', 'The_plate', 'C1', 'iTru7_109_02',
              'CGAACTGT', 'iTru5_19_B', 'ATGCCTAG', 'Tst_project_1234',
-             ''],
+             '820072905-2'],
             ['820029517-3', '820029517-3', 'The_plate', 'E1', 'iTru7_109_03',
              'CATTCGGT', 'iTru5_19_C', 'CATACGGA', 'Tst_project_1234',
-             ''],
+             '820029517-3'],
         ]
 
         exp = pd.DataFrame(columns=columns, data=data)
 
-        message = (r'The column (Well_description)'
-                   r' in the sample sheet is empty')
-        with self.assertWarnsRegex(UserWarning, message):
-            obs = _remap_table(self.table, 'Metagenomics')
+        obs = _remap_table(self.table, 'Metagenomics')
 
-            self.assertEqual(len(obs), 3)
-            pd.testing.assert_frame_equal(obs, exp, check_like=True)
+        self.assertEqual(len(obs), 3)
+        pd.testing.assert_frame_equal(obs, exp, check_like=True)
 
     def test_add_data_to_sheet(self):
 
@@ -756,11 +753,11 @@ class SampleSheetWorkflow(BaseTests):
 
         data = (
             [1, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
-             'AGCCTTCGTCGC', '', '', 'THDMI_10317', ''],
+             'AGCCTTCGTCGC', '', '', 'THDMI_10317', 'X00180471'],
             [1, 'X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1',
-             '515rcbc12', 'CGTATAAATGCG', '', '', 'THDMI_10317', ''],
+             '515rcbc12', 'CGTATAAATGCG', '', '', 'THDMI_10317', 'X00180199'],
             [1, 'X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1',
-             '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317', ''],
+             '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317', 'X00179789'],
         )
         keys = ['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
                 'Sample_Well', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
