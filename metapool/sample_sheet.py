@@ -551,8 +551,8 @@ def make_sample_sheet(metadata, table, sequencer, lanes):
             message.echo()
 
 
-def validate_and_scrub_sample_sheet(sheet):
-    """Validate the sample sheet and scrub invalid characters
+def quiet_validate_and_scrub_sample_sheet(sheet):
+    """Quietly validate the sample sheet and scrub invalid characters
 
     The character scrubbing is only applied to the Sample_Project and the
     Sample_ID columns.
@@ -564,23 +564,30 @@ def validate_and_scrub_sample_sheet(sheet):
 
     Returns
     -------
-    sample_sheet.SampleSheet
-        Corrected and validated sample sheet if no errors are found.
+    list
+        List of error or warning messages.
+    sample_sheet.SampleSheet or None
+        Corrected and validated sample sheet if no errors are found. Otherwise
+        None is returned.
     """
+    msgs = []
 
     # we print an error return None and exit when this happens otherwise we
     # won't be able to run some of the other checks
     for column in _KL_SAMPLE_SHEET_DATA_COLUMNS:
         if column not in sheet.all_sample_keys:
-            ErrorMessage('The %s column in the Data section is missing' %
-                         column).echo()
-            return
+            msgs.append(
+                ErrorMessage('The %s column in the Data section is missing' %
+                             column))
     for section in ['Bioinformatics', 'Contact']:
         if getattr(sheet, section) is None:
-            ErrorMessage('The %s section cannot be empty' % section).echo()
-            return
+            msgs.append(ErrorMessage('The %s section cannot be empty' %
+                                     section))
 
-    msgs = []
+    # if any errors are found up to this point then we can't continue with the
+    # validation
+    if msgs:
+        return msgs, None
 
     # we track the updated projects as a dictionary so we can propagate these
     # changes to the Bioinformatics and Contact sections
@@ -658,10 +665,36 @@ def validate_and_scrub_sample_sheet(sheet):
                           'be included in the Contact section.') %
                          ', '.join(sorted(contact - projects))))
 
-    [m.echo() for m in msgs]
-
     # if there are no error messages then return the sheet
     if not any([isinstance(m, ErrorMessage) for m in msgs]):
+        return msgs, sheet
+    else:
+        return msgs, None
+
+
+def validate_and_scrub_sample_sheet(sheet):
+    """Validate the sample sheet and scrub invalid characters
+
+    The character scrubbing is only applied to the Sample_Project and the
+    Sample_ID columns. The main difference between this function and
+    quiet_validate_and_scrub_sample_sheet is that this function will *always*
+    print errors and warnings to standard output.
+
+    Parameters
+    ----------
+    sheet: sample_sheet.KLSampleSheet
+        The sample sheet object to validate and scrub.
+
+    Returns
+    -------
+    sample_sheet.SampleSheet
+        Corrected and validated sample sheet if no errors are found.
+    """
+    msgs, sheet = quiet_validate_and_scrub_sample_sheet(sheet)
+
+    [msg.echo() for msg in msgs]
+
+    if sheet is not None:
         return sheet
 
 

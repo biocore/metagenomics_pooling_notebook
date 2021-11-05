@@ -9,12 +9,13 @@ import sample_sheet
 
 from metapool.sample_sheet import (KLSampleSheet,
                                    validate_and_scrub_sample_sheet,
+                                   quiet_validate_and_scrub_sample_sheet,
                                    sample_sheet_to_dataframe,
                                    _add_metadata_to_sheet, _add_data_to_sheet,
                                    _validate_sample_sheet_metadata,
                                    _remap_table,
                                    make_sample_sheet)
-from metapool.plate import ErrorMessage
+from metapool.plate import ErrorMessage, WarningMessage
 
 
 # The classes below share the same filepaths, so we use this dummy class
@@ -892,12 +893,29 @@ class ValidateSampleSheetTests(BaseTests):
         self.assertStdOutEqual('')
         self.assertTrue(isinstance(sheet, KLSampleSheet))
 
+    def test_quiet_validate_and_scrub_sample_sheet(self):
+        sheet = KLSampleSheet(self.good_ss)
+        msgs, sheet = quiet_validate_and_scrub_sample_sheet(sheet)
+        # no errors
+        self.assertStdOutEqual('')
+        self.assertEqual(msgs, [])
+        self.assertTrue(isinstance(sheet, KLSampleSheet))
+
     def test_validate_and_scrub_sample_sheet_no_sample_project(self):
         sheet = KLSampleSheet(self.no_project_ss)
         sheet = validate_and_scrub_sample_sheet(sheet)
 
         self.assertStdOutEqual('ErrorMessage: The Sample_Project column in the'
                                ' Data section is missing')
+        self.assertIsNone(sheet)
+
+    def test_quiet_validate_and_scrub_sample_sheet_no_sample_project(self):
+        sheet = KLSampleSheet(self.no_project_ss)
+        msgs, sheet = quiet_validate_and_scrub_sample_sheet(sheet)
+
+        self.assertStdOutEqual('')
+        self.assertEqual(msgs, [ErrorMessage('The Sample_Project column in '
+                                             'the Data section is missing')])
         self.assertIsNone(sheet)
 
     def test_validate_and_scrub_sample_sheet_missing_bioinformatics(self):
@@ -907,6 +925,16 @@ class ValidateSampleSheetTests(BaseTests):
 
         self.assertStdOutEqual('ErrorMessage: The Bioinformatics section '
                                'cannot be empty')
+        self.assertIsNone(sheet)
+
+    def test_quiet_validate_scrub_sample_sheet_missing_bioinformatics(self):
+        sheet = KLSampleSheet(self.good_ss)
+        sheet.Bioinformatics = None
+        msgs, sheet = quiet_validate_and_scrub_sample_sheet(sheet)
+
+        self.assertStdOutEqual('')
+        self.assertEqual(msgs, [ErrorMessage('The Bioinformatics section '
+                                             'cannot be empty')])
         self.assertIsNone(sheet)
 
     def test_validate_and_scrub_sample_sheet_missing_contact(self):
@@ -952,6 +980,43 @@ class ValidateSampleSheetTests(BaseTests):
 
         self.assertStdOutEqual(message)
         self.assertTrue(isinstance(sheet, KLSampleSheet))
+
+    def test_quiet_validate_and_scrub_sample_sheet_scrubbed_names(self):
+        sheet = KLSampleSheet(self.scrubbable_ss)
+
+        message = ('The following sample names were scrubbed for bcl2fastq '
+                   'compatibility:\nCDPH-SAL_Salmonella_Typhi_MDL.143, '
+                   'CDPH-SAL_Salmonella_Typhi_MDL.144, CDPH-SAL_Salmonella_'
+                   'Typhi_MDL.145, CDPH-SAL_Salmonella_Typhi_MDL.146, CDPH-'
+                   'SAL_Salmonella_Typhi_MDL.147, CDPH-SAL_Salmonella_Typhi'
+                   '_MDL.148, CDPH-SAL_Salmonella_Typhi_MDL.149, CDPH-SAL_S'
+                   'almonella_Typhi_MDL.150, CDPH-SAL_Salmonella_Typhi_MDL.'
+                   '151, CDPH-SAL_Salmonella_Typhi_MDL.152, CDPH-SAL_Salmon'
+                   'ella_Typhi_MDL.153, CDPH-SAL_Salmonella_Typhi_MDL.154, '
+                   'CDPH-SAL_Salmonella_Typhi_MDL.155, CDPH-SAL_Salmonella_'
+                   'Typhi_MDL.156, CDPH-SAL_Salmonella_Typhi_MDL.157, CDPH-'
+                   'SAL_Salmonella_Typhi_MDL.158, CDPH-SAL_Salmonella_Typhi'
+                   '_MDL.159, CDPH-SAL_Salmonella_Typhi_MDL.160, CDPH-SAL_S'
+                   'almonella_Typhi_MDL.161, CDPH-SAL_Salmonella_Typhi_MDL.'
+                   '162, CDPH-SAL_Salmonella_Typhi_MDL.163, CDPH-SAL_Salmon'
+                   'ella_Typhi_MDL.164, CDPH-SAL_Salmonella_Typhi_MDL.165, '
+                   'CDPH-SAL_Salmonella_Typhi_MDL.166, CDPH-SAL_Salmonella_'
+                   'Typhi_MDL.167, CDPH-SAL_Salmonella_Typhi_MDL.168, P21_E'
+                   '.coli ELI344, P21_E.coli ELI345, P21_E.coli ELI347, P21'
+                   '_E.coli ELI348, P21_E.coli ELI349, P21_E.coli ELI350, P'
+                   '21_E.coli ELI351, P21_E.coli ELI352, P21_E.coli ELI353,'
+                   ' P21_E.coli ELI354, P21_E.coli ELI355, P21_E.coli ELI35'
+                   '7, P21_E.coli ELI358, P21_E.coli ELI359, P21_E.coli ELI'
+                   '361, P21_E.coli ELI362, P21_E.coli ELI363, P21_E.coli '
+                   'ELI364, P21_E.coli ELI365, P21_E.coli ELI366, P21_E.coli '
+                   'ELI367, P21_E.coli ELI368, P21_E.coli ELI369')
+        message = WarningMessage(message)
+
+        sheet = KLSampleSheet(self.scrubbable_ss)
+        msgs, sheet = quiet_validate_and_scrub_sample_sheet(sheet)
+        self.assertStdOutEqual('')
+        self.assertTrue(isinstance(sheet, KLSampleSheet))
+        self.assertEqual(msgs, [message])
 
     def test_validate_and_scrub_sample_sheet_scrubbed_project_names(self):
         sheet = KLSampleSheet(self.good_ss)
