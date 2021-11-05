@@ -8,7 +8,7 @@ from metapool.prep import (preparations_for_run, remove_qiita_id,
                            get_machine_code, get_model_and_center,
                            parse_illumina_run_id,
                            _check_invalid_names, agp_transform, parse_prep,
-                           generate_qiita_prep_file)
+                           generate_qiita_prep_file, qiita_scrub_name)
 
 
 class TestPrep(TestCase):
@@ -681,6 +681,13 @@ class TestPrep(TestCase):
         pd.testing.assert_frame_equal(obs1, exp1)
         pd.testing.assert_frame_equal(obs2, exp2)
         pd.testing.assert_frame_equal(obs3, exp3)
+
+    def test_qiita_scrub_name(self):
+        self.assertEqual(qiita_scrub_name('its my life'), 'its.my.life')
+        self.assertEqual(qiita_scrub_name('7-11.10()'), '7-11.10.')
+        self.assertEqual(qiita_scrub_name('{}/<>'), '.')
+        self.assertEqual(qiita_scrub_name('th!s.has.happened'),
+                         'th.s.has.happened')
 
 
 if __name__ == "__main__":
