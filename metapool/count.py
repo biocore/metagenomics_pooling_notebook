@@ -137,11 +137,26 @@ def _safe_get(_document, _key):
 
 
 def bcl2fastq_counts(run_dir, sample_sheet):
-    path = os.path.join(os.path.abspath(run_dir), 'Stats/Stats.json')
+    bcl2fastq_path = os.path.join(os.path.abspath(run_dir),
+                                  'Stats/Stats.json')
+    bclconvert_path = os.path.join(os.path.abspath(run_dir),
+                                   'Reports/Demultiplex_Stats.csv')
 
-    if not os.path.exists(path):
-        raise IOError(f'Cannot find stats file ({path}) for this run')
+    if os.path.exists(bcl2fastq_path):
+        if os.path.exists(bclconvert_path):
+            raise IOError(f"both '{bcl2fastq_path}' and '{bclconvert_path}'"
+                          " exist")
+        else:
+            return _bcl2fastq_counts(bcl2fastq_path)
+    elif os.path.exists(bclconvert_path):
+        return _bclconvert_counts(bclconvert_path)
+    else:
+        raise IOError(f"Cannot find Stats.json '{bcl2fastq_path}' or "
+                      f"Demultiplex_Stats.csv '{bclconvert_path}' for this"
+                      " run")
 
+
+def _bcl2fastq_counts(path):
     with open(path) as fp:
         contents = json.load(fp)
 
@@ -158,6 +173,24 @@ def bcl2fastq_counts(run_dir, sample_sheet):
     out = out[['Sample_ID', 'Lane', 'raw_reads']]
     out.set_index(['Sample_ID', 'Lane'], inplace=True, verify_integrity=True)
     return out
+
+
+def _bclconvert_counts(path):
+    # read the csv in from file
+    df = pd.read_csv(path)
+    # subselect only the columns we're concerned with
+    df = df[["SampleID", "Lane", "# Reads"]]
+    # filter out rows that reference an 'Undetermined' fastq.gz file
+    # and create our own copy to return to the user
+    df = df.loc[df['SampleID'] != 'Undetermined'].copy()
+    # rename columns to standard values for metapool
+    df.rename(columns={'SampleID': 'Sample_ID', '# Reads': 'raw_reads'},
+              inplace=True)
+    # create indexes on these columns
+    df['Lane'] = df['Lane'].astype(str)
+    df.set_index(['Sample_ID', 'Lane'], inplace=True, verify_integrity=True)
+
+    return df
 
 
 def fastp_counts(run_dir, sample_sheet):

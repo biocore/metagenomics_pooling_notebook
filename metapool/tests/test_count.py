@@ -3,7 +3,6 @@ import os
 import tempfile
 import shutil
 import pandas as pd
-
 from sample_sheet import Sample
 from unittest import main, TestCase
 
@@ -143,10 +142,11 @@ class TestCount(TestCase):
 
     def test_bcl2fastq_no_stats_file(self):
         bad_dir = os.path.join(os.path.abspath(self.run_dir), 'Trojecp_666')
-
-        with self.assertRaisesRegex(IOError,
-                                    rf"Cannot find stats file \({bad_dir}"
-                                    r"/Stats/Stats.json\) for this run"):
+        with self.assertRaisesRegex(IOError, "Cannot find Stats.json '"
+                                             f"{bad_dir}/Stats/Stats.json' or "
+                                             "Demultiplex_Stats.csv '"
+                                             f"{bad_dir}/Reports/Demultiplex_"
+                                             "Stats.csv' for this run"):
             bcl2fastq_counts(bad_dir, self.ss)
 
     def test_bcl2fastq_counts_malformed_results(self):
@@ -237,6 +237,81 @@ RUN_STATS = {
                            ('sample3', '3'): 7.067774936061381,
                            ('sample4', '3'): 2.892708333333333,
                            ('sample5', '3'): 0.14062200732952615}}
+
+
+class TestBCLConvertCount(TestCase):
+    '''
+    TestBCLConvertCount repeats specific tests from TestCount(), using a bcl-
+    convert-generated Demultiplex_Stats.csv file for input instead of a
+    bcl2fastq-generated Stats.json file.
+    '''
+    def setUp(self):
+        self.data_dir = os.path.join(os.path.dirname(__file__), 'data')
+        self.orig_dir = os.path.join(self.data_dir, 'runs',
+                                     '200318_A00953_0082_AH5TWYDSXY')
+
+        # before continuing, create a copy of 200318_A00953_0082_AH5TWYDSXY
+        # and replace Stats sub-dir with Reports.
+        self.run_dir = self.orig_dir.replace('200318', '200418')
+        shutil.copytree(self.orig_dir, self.run_dir)
+        shutil.rmtree(os.path.join(self.run_dir, 'Stats'))
+        os.makedirs(os.path.join(self.run_dir, 'Reports'))
+        shutil.copy(os.path.join(self.data_dir, 'Demultiplex_Stats.csv'),
+                    os.path.join(self.run_dir,
+                                 'Reports',
+                                 'Demultiplex_Stats.csv'))
+
+        self.ss = KLSampleSheet(os.path.join(self.run_dir, 'sample-sheet.csv'))
+
+        self.stats = pd.DataFrame(RUN_STATS)
+        # help make comparisons consistent
+        self.stats.sort_index(inplace=True)
+
+        self.stats.index.set_names(['Sample_ID', 'Lane'], inplace=True)
+
+    def test_bcl2fastq_no_stats_file(self):
+        bad_dir = os.path.join(os.path.abspath(self.run_dir), 'Trojecp_666')
+        with self.assertRaisesRegex(IOError, f"Cannot find Stats.json '"
+                                             f"{bad_dir}/Stats/Stats.json' or "
+                                             "Demultiplex_Stats.csv '"
+                                             f"{bad_dir}/Reports/Demultiplex_"
+                                             "Stats.csv' for this run"):
+            bcl2fastq_counts(bad_dir, self.ss)
+
+    def test_bcl2fastq_counts_malformed_results(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            stats = os.path.join(tmp, 'Reports')
+            os.makedirs(stats)
+
+            with open(os.path.join(stats, 'Demultiplex_Stats.csv'), 'w') as f:
+                f.write('')
+
+            with self.assertRaisesRegex(pd.errors.EmptyDataError,
+                                        'No columns to parse from file'):
+                bcl2fastq_counts(tmp, self.ss)
+
+    def test_bcl2fastq_counts_malformed_lane(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            stats = os.path.join(tmp, 'Reports')
+            os.makedirs(stats)
+
+            with open(os.path.join(stats, 'Demultiplex_Stats.csv'), 'w') as f:
+                f.write('SampleID,Index,# Reads,# Perfect Index Reads,# One '
+                        'Mismatch Index Reads,# of >= Q30 Bases (PF),Mean Qu'
+                        'ality Score (PF),well_description\n')
+                f.write('sample1,AAAAAAAA-GGGGGGGG,10000,0,0,0,50.00,sample1'
+                        '\n')
+
+            with self.assertRaisesRegex(KeyError, r"\['Lane'\] not in index"):
+                bcl2fastq_counts(tmp, self.ss)
+
+    def test_bcl2fastq_counts(self):
+        obs = bcl2fastq_counts(self.run_dir, self.ss)
+        pd.testing.assert_frame_equal(obs.sort_index(),
+                                      self.stats[['raw_reads']])
+
+    def tearDown(self):
+        shutil.rmtree(self.run_dir)
 
 
 if __name__ == '__main__':
