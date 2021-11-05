@@ -927,6 +927,16 @@ class ValidateSampleSheetTests(BaseTests):
                                'cannot be empty')
         self.assertIsNone(sheet)
 
+    def test_quiet_validate_scrub_sample_sheet_missing_bioinformatics(self):
+        sheet = KLSampleSheet(self.good_ss)
+        sheet.Bioinformatics = None
+        msgs, sheet = quiet_validate_and_scrub_sample_sheet(sheet)
+
+        self.assertStdOutEqual('')
+        self.assertEqual(msgs, [ErrorMessage('The Bioinformatics section '
+                                             'cannot be empty')])
+        self.assertIsNone(sheet)
+
     def test_validate_and_scrub_sample_sheet_missing_contact(self):
         sheet = KLSampleSheet(self.good_ss)
         sheet.Contact = None
