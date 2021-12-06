@@ -7,13 +7,15 @@ from datetime import datetime
 import pandas as pd
 import sample_sheet
 
-from metapool.sample_sheet import (KLSampleSheet, validate_sample_sheet,
+from metapool.sample_sheet import (KLSampleSheet,
+                                   validate_and_scrub_sample_sheet,
+                                   quiet_validate_and_scrub_sample_sheet,
                                    sample_sheet_to_dataframe,
                                    _add_metadata_to_sheet, _add_data_to_sheet,
                                    _validate_sample_sheet_metadata,
                                    _remap_table,
                                    make_sample_sheet)
-from metapool.plate import ErrorMessage
+from metapool.plate import ErrorMessage, WarningMessage
 
 
 # The classes below share the same filepaths, so we use this dummy class
@@ -27,6 +29,12 @@ class BaseTests(unittest.TestCase):
         self.good_ss = os.path.join(data_dir, 'good-sample-sheet.csv')
         self.with_comments = os.path.join(data_dir, 'good-sample-sheet-but-'
                                           'with-comments.csv')
+
+        fp = 'good-sample-sheet-with-comments-and-new-lines.csv'
+        self.with_comments_and_new_lines = os.path.join(data_dir, fp)
+
+        self.with_new_lines = os.path.join(data_dir, 'good-sample-sheet-with-'
+                                           'new-lines.csv')
 
         self.no_project_ss = os.path.join(data_dir,
                                           'no-project-name-sample-sheet.csv')
@@ -47,7 +55,9 @@ class BaseTests(unittest.TestCase):
              'BarcodesAreRC': 'False',
              'ForwardAdapter': 'GATACA',
              'ReverseAdapter': 'CATCAT',
-             'HumanFiltering': 'False'
+             'HumanFiltering': 'False',
+             'library_construction_protocol': 'Knight Lab Kapa HP',
+             'experiment_design_description': 'Eqiiperiment'
             },
             {
              'Sample_Project': 'Yanomani_2008_10052',
@@ -55,7 +65,9 @@ class BaseTests(unittest.TestCase):
              'BarcodesAreRC': 'False',
              'ForwardAdapter': 'GATACA',
              'ReverseAdapter': 'CATCAT',
-             'HumanFiltering': 'False'
+             'HumanFiltering': 'False',
+             'library_construction_protocol': 'Knight Lab Kapa HP',
+             'experiment_design_description': 'Eqiiperiment'
             }
         ]
 
@@ -83,7 +95,8 @@ class KLSampleSheetTests(BaseTests):
         sheets = [self.ss, self.good_ss,
                   self.no_project_ss, self.ok_ss,
                   self.scrubbable_ss, self.bad_project_name_ss,
-                  self.with_comments]
+                  self.with_comments, self.with_comments_and_new_lines,
+                  self.with_new_lines]
         sheets = {sheet: KLSampleSheet(sheet) for sheet in sheets}
 
         for filename, sheet in sheets.items():
@@ -92,12 +105,14 @@ class KLSampleSheetTests(BaseTests):
                 tmp.seek(0)
                 observed = tmp.read()
 
-                # The sample sheet with comments is identical to
-                # good-sample-sheet.csv except for the comments at the
-                # beginning of the file. After parsing, the contents of the
-                # written file are the same because the comments are ignored in
-                # the current API.
-                if filename == self.with_comments:
+                # The sample sheets with comments are identical to
+                # good-sample-sheet.csv except for the comments and new lines.
+                # After parsing, the contents of the written file are the same
+                # because comments and empty lines are ignored in the current
+                # API.
+                if filename in {self.with_comments,
+                                self.with_new_lines,
+                                self.with_comments_and_new_lines}:
                     filename = self.good_ss
 
                 with open(filename) as expected:
@@ -179,39 +194,52 @@ class KLSampleSheetTests(BaseTests):
 
         data = (
             '1,sample1,sample1,FooBar_666_p1,A1,iTru7_107_07,CCGACTAT,'
-            'iTru5_01_A,ACCGACAA,Baz,importantsample1\n'
+            'iTru5_01_A,ACCGACAA,Baz,importantsample1,'
+            'KnightLabKapaHP,Eqiiperiment\n'
             '1,sample2,sample2,FooBar_666_p1,A2,iTru7_107_08,CCGACTAT,'
-            'iTru5_01_A,CTTCGCAA,Baz,importantsample2\n'
+            'iTru5_01_A,CTTCGCAA,Baz,importantsample2,'
+            'KnightLabKapaHP,Eqiiperiment\n'
             '3,sample1,sample1,FooBar_666_p1,A3,iTru7_107_09,GCCTTGTT,'
-            'iTru5_01_A,AACACCAC,Baz,importantsample1\n'
+            'iTru5_01_A,AACACCAC,Baz,importantsample1,'
+            'KnightLabKapaHP,Eqiiperiment\n'
             '3,sample2,sample2,FooBar_666_p1,A4,iTru7_107_10,AACTTGCC,'
-            'iTru5_01_A,CGTATCTC,Baz,importantsample2\n'
+            'iTru5_01_A,CGTATCTC,Baz,importantsample2,'
+            'KnightLabKapaHP,Eqiiperiment\n'
             '3,sample31,sample31,FooBar_666_p1,A5,iTru7_107_11,CAATGTGG,'
-            'iTru5_01_A,GGTACGAA,FooBar_666,importantsample31\n'
+            'iTru5_01_A,GGTACGAA,FooBar_666,importantsample31,'
+            'KnightLabKapaHP,SomethingWitty\n'
             '3,sample32,sample32,FooBar_666_p1,B6,iTru7_107_12,AAGGCTGA,'
-            'iTru5_01_A,CGATCGAT,FooBar_666,importantsample32\n'
+            'iTru5_01_A,CGATCGAT,FooBar_666,importantsample32,'
+            'KnightLabKapaHP,SomethingWitty\n'
             '3,sample34,sample34,FooBar_666_p1,B8,iTru7_107_13,TTACCGAG,'
-            'iTru5_01_A,AAGACACC,FooBar_666,importantsample34\n'
+            'iTru5_01_A,AAGACACC,FooBar_666,importantsample34,'
+            'KnightLabKapaHP,SomethingWitty\n'
             '3,sample44,sample44,Baz_p3,B99,iTru7_107_14,GTCCTAAG,'
-            'iTru5_01_A,CATCTGCT,Baz,importantsample44\n'
+            'iTru5_01_A,CATCTGCT,Baz,importantsample44,'
+            'KnightLabKapaHP,Eqiiperiment\n'
         )
         keys = ['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
                 'Sample_Well', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
-                'Sample_Project', 'Well_description']
+                'Sample_Project', 'Well_description',
+                'library_construction_protocol', 'experiment_design_protocol']
 
         for sample, line in zip(sheet.samples, data.split()):
             values = line.strip().split(',')
+            print(values)
             exp = sample_sheet.Sample(dict(zip(keys, values)))
-
             self.assertEqual(sample, exp)
 
         # check for Bioinformatics
         exp = pd.DataFrame(
             columns=['Sample_Project', 'QiitaID', 'BarcodesAreRC',
-                     'ForwardAdapter', 'ReverseAdapter', 'HumanFiltering'],
+                     'ForwardAdapter', 'ReverseAdapter', 'HumanFiltering',
+                     'library_construction_protocol',
+                     'experiment_design_description'],
             data=[
-                ['Baz', '100', 'False', 'AACC', 'GGTT', 'False'],
-                ['FooBar_666', '666', 'False', 'AACC', 'GGTT', 'False']
+                ['Baz', '100', 'False', 'AACC', 'GGTT', 'False',
+                 'Knight Lab Kapa HP', 'Eqiiperiment'],
+                ['FooBar_666', '666', 'False', 'AACC', 'GGTT', 'False',
+                 'Knight Lab Kapa HP', 'SomethingWitty']
             ]
         )
         pd.testing.assert_frame_equal(sheet.Bioinformatics, exp)
@@ -387,16 +415,18 @@ class KLSampleSheetTests(BaseTests):
         # check for Bioinformatics
         exp = pd.DataFrame(
             columns=['Sample_Project', 'QiitaID', 'BarcodesAreRC',
-                     'ForwardAdapter', 'ReverseAdapter', 'HumanFiltering'],
+                     'ForwardAdapter', 'ReverseAdapter', 'HumanFiltering',
+                     'library_construction_protocol',
+                     'experiment_design_description'],
             data=[
                 ['Koening_ITS_101', '101', 'False', 'GATACA', 'CATCAT',
-                 'False'],
+                 'False', 'Knight Lab Kapa HP', 'Eqiiperiment'],
                 ['Yanomani_2008_10052', '10052', 'False', 'GATACA', 'CATCAT',
-                 'False'],
+                 'False', 'Knight Lab Kapa HP', 'Eqiiperiment'],
                 ['paco_Koening_ITS_101', '101', 'False', 'GATACA', 'CATCAT',
-                 'False'],
+                 'False', 'Knight Lab Kapa HP', 'Eqiiperiment'],
                 ['paco_Yanomani_2008_10052', '10052', 'False', 'GATACA',
-                 'CATCAT', 'False']
+                 'CATCAT', 'False', 'Knight Lab Kapa HP', 'Eqiiperiment']
             ]
         )
 
@@ -480,7 +510,9 @@ class KLSampleSheetTests(BaseTests):
         exp = [ErrorMessage('In the Bioinformatics section Project #1 does not'
                             ' have exactly these keys BarcodesAreRC, '
                             'ForwardAdapter, HumanFiltering, QiitaID, '
-                            'ReverseAdapter, Sample_Project')]
+                            'ReverseAdapter, Sample_Project, '
+                            'experiment_design_description, '
+                            'library_construction_protocol')]
         obs = _validate_sample_sheet_metadata(self.metadata)
         self.assertEqual(str(obs[0]), str(exp[0]))
 
@@ -622,17 +654,17 @@ class SampleSheetWorkflow(BaseTests):
 
         data = (
             [5, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
-             'AGCCTTCGTCGC', '', '', 'THDMI_10317', ''],
+             'AGCCTTCGTCGC', '', '', 'THDMI_10317', 'X00180471'],
             [5, 'X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1',
-             '515rcbc12', 'CGTATAAATGCG', '', '', 'THDMI_10317', ''],
+             '515rcbc12', 'CGTATAAATGCG', '', '', 'THDMI_10317', 'X00180199'],
             [5, 'X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1',
-             '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317', ''],
+             '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317', 'X00179789'],
             [7, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
-             'AGCCTTCGTCGC', '', '', 'THDMI_10317', ''],
+             'AGCCTTCGTCGC', '', '', 'THDMI_10317', 'X00180471'],
             [7, 'X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1',
-             '515rcbc12', 'CGTATAAATGCG', '', '', 'THDMI_10317', ''],
+             '515rcbc12', 'CGTATAAATGCG', '', '', 'THDMI_10317', 'X00180199'],
             [7, 'X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1',
-             '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317', ''],
+             '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317', 'X00179789'],
         )
         keys = ['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
                 'Sample_Well', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
@@ -649,17 +681,17 @@ class SampleSheetWorkflow(BaseTests):
                    'Sample_Project', 'Well_description']
         data = [
             ['X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
-             'AGCCTTCGTCGC', '', '', 'THDMI_10317', ''],
+             'AGCCTTCGTCGC', '', '', 'THDMI_10317', 'X00180471'],
             ['X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1', '515rcbc12',
-             'CGTATAAATGCG', '', '', 'THDMI_10317', ''],
+             'CGTATAAATGCG', '', '', 'THDMI_10317', 'X00180199'],
             ['X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1', '515rcbc24',
-             'TGACTAATGGCC', '', '', 'THDMI_10317', ''],
+             'TGACTAATGGCC', '', '', 'THDMI_10317', 'X00179789'],
         ]
 
         exp = pd.DataFrame(columns=columns, data=data)
 
         # for amplicon we expect the following three columns to not be there
-        message = (r'The column (I5_Index_ID|index2|Well_description) '
+        message = (r'The column (I5_Index_ID|index2) '
                    r'in the sample sheet is empty')
         with self.assertWarnsRegex(UserWarning, message):
             obs = _remap_table(self.table, 'TruSeq HT')
@@ -693,24 +725,21 @@ class SampleSheetWorkflow(BaseTests):
         data = [
             ['33-A1', '33-A1', 'The_plate', 'A1', 'iTru7_109_01',
              'CTCGTCTT', 'iTru5_19_A', 'AACGCACA', 'Tst_project_1234',
-             ''],
+             '33-A1'],
             ['820072905-2', '820072905-2', 'The_plate', 'C1', 'iTru7_109_02',
              'CGAACTGT', 'iTru5_19_B', 'ATGCCTAG', 'Tst_project_1234',
-             ''],
+             '820072905-2'],
             ['820029517-3', '820029517-3', 'The_plate', 'E1', 'iTru7_109_03',
              'CATTCGGT', 'iTru5_19_C', 'CATACGGA', 'Tst_project_1234',
-             ''],
+             '820029517-3'],
         ]
 
         exp = pd.DataFrame(columns=columns, data=data)
 
-        message = (r'The column (Well_description)'
-                   r' in the sample sheet is empty')
-        with self.assertWarnsRegex(UserWarning, message):
-            obs = _remap_table(self.table, 'Metagenomics')
+        obs = _remap_table(self.table, 'Metagenomics')
 
-            self.assertEqual(len(obs), 3)
-            pd.testing.assert_frame_equal(obs, exp, check_like=True)
+        self.assertEqual(len(obs), 3)
+        pd.testing.assert_frame_equal(obs, exp, check_like=True)
 
     def test_add_data_to_sheet(self):
 
@@ -725,11 +754,11 @@ class SampleSheetWorkflow(BaseTests):
 
         data = (
             [1, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
-             'AGCCTTCGTCGC', '', '', 'THDMI_10317', ''],
+             'AGCCTTCGTCGC', '', '', 'THDMI_10317', 'X00180471'],
             [1, 'X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1',
-             '515rcbc12', 'CGTATAAATGCG', '', '', 'THDMI_10317', ''],
+             '515rcbc12', 'CGTATAAATGCG', '', '', 'THDMI_10317', 'X00180199'],
             [1, 'X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1',
-             '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317', ''],
+             '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317', 'X00179789'],
         )
         keys = ['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
                 'Sample_Well', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
@@ -739,6 +768,39 @@ class SampleSheetWorkflow(BaseTests):
             exp = sample_sheet.Sample(dict(zip(keys, row)))
 
             self.assertEqual(dict(sample), dict(exp))
+
+    def test_add_metadata_to_sheet_all_defaults_amplicon(self):
+        sheet = KLSampleSheet()
+
+        self.metadata['Assay'] = 'TruSeq HT'
+        exp_bfx = pd.DataFrame(self.metadata['Bioinformatics'])
+        exp_contact = pd.DataFrame(self.metadata['Contact'])
+
+        obs = _add_metadata_to_sheet(self.metadata, sheet)
+
+        self.assertEqual(obs.Reads, [151, 151])
+
+        settings = {
+            'ReverseComplement': '0',
+        }
+        self.assertEqual(obs.Settings, settings)
+
+        pd.testing.assert_frame_equal(obs.Bioinformatics, exp_bfx)
+        pd.testing.assert_frame_equal(obs.Contact, exp_contact)
+
+        header = {
+            'IEMFileVersion': '4',
+            'Date': datetime.today().strftime('%Y-%m-%d'),
+            'Workflow': 'GenerateFASTQ',
+            'Application': 'FASTQ Only',
+            'Assay': 'TruSeq HT',
+            'Description': '',
+            'Chemistry': 'Default',
+        }
+
+        self.assertEqual(obs.Header, header)
+
+        self.assertEqual(len(obs.samples), 0)
 
     def test_add_metadata_to_sheet_most_defaults(self):
         sheet = KLSampleSheet()
@@ -750,7 +812,13 @@ class SampleSheetWorkflow(BaseTests):
         obs = _add_metadata_to_sheet(self.metadata, sheet)
 
         self.assertEqual(obs.Reads, [151, 151])
-        self.assertEqual(obs.Settings, {'ReverseComplement': '0'})
+
+        settings = {
+            'ReverseComplement': '0',
+            'MaskShortReads': '1',
+            'OverrideCycles': 'Y151;I8N2;I8N2;Y151'
+        }
+        self.assertEqual(obs.Settings, settings)
 
         pd.testing.assert_frame_equal(obs.Bioinformatics, exp_bfx)
         pd.testing.assert_frame_equal(obs.Contact, exp_contact)
@@ -815,40 +883,67 @@ class ValidateSampleSheetTests(BaseTests):
         observed = sys.stdout.getvalue().strip()
         self.assertEqual(observed, expected)
 
-    def test_validate_sample_sheet(self):
+    def test_validate_and_scrub_sample_sheet(self):
         sheet = KLSampleSheet(self.good_ss)
-        sheet = validate_sample_sheet(sheet)
+        sheet = validate_and_scrub_sample_sheet(sheet)
         # no errors
         self.assertStdOutEqual('')
         self.assertTrue(isinstance(sheet, KLSampleSheet))
 
-    def test_validate_sample_sheet_no_sample_project(self):
+    def test_quiet_validate_and_scrub_sample_sheet(self):
+        sheet = KLSampleSheet(self.good_ss)
+        msgs, sheet = quiet_validate_and_scrub_sample_sheet(sheet)
+        # no errors
+        self.assertStdOutEqual('')
+        self.assertEqual(msgs, [])
+        self.assertTrue(isinstance(sheet, KLSampleSheet))
+
+    def test_validate_and_scrub_sample_sheet_no_sample_project(self):
         sheet = KLSampleSheet(self.no_project_ss)
-        sheet = validate_sample_sheet(sheet)
+        sheet = validate_and_scrub_sample_sheet(sheet)
 
         self.assertStdOutEqual('ErrorMessage: The Sample_Project column in the'
                                ' Data section is missing')
         self.assertIsNone(sheet)
 
-    def test_validate_sample_sheet_missing_bioinformatics(self):
+    def test_quiet_validate_and_scrub_sample_sheet_no_sample_project(self):
+        sheet = KLSampleSheet(self.no_project_ss)
+        msgs, sheet = quiet_validate_and_scrub_sample_sheet(sheet)
+
+        self.assertStdOutEqual('')
+        self.assertEqual(msgs, [ErrorMessage('The Sample_Project column in '
+                                             'the Data section is missing')])
+        self.assertIsNone(sheet)
+
+    def test_validate_and_scrub_sample_sheet_missing_bioinformatics(self):
         sheet = KLSampleSheet(self.good_ss)
         sheet.Bioinformatics = None
-        sheet = validate_sample_sheet(sheet)
+        sheet = validate_and_scrub_sample_sheet(sheet)
 
         self.assertStdOutEqual('ErrorMessage: The Bioinformatics section '
                                'cannot be empty')
         self.assertIsNone(sheet)
 
-    def test_validate_sample_sheet_missing_contact(self):
+    def test_quiet_validate_scrub_sample_sheet_missing_bioinformatics(self):
+        sheet = KLSampleSheet(self.good_ss)
+        sheet.Bioinformatics = None
+        msgs, sheet = quiet_validate_and_scrub_sample_sheet(sheet)
+
+        self.assertStdOutEqual('')
+        self.assertEqual(msgs, [ErrorMessage('The Bioinformatics section '
+                                             'cannot be empty')])
+        self.assertIsNone(sheet)
+
+    def test_validate_and_scrub_sample_sheet_missing_contact(self):
         sheet = KLSampleSheet(self.good_ss)
         sheet.Contact = None
-        sheet = validate_sample_sheet(sheet)
+        sheet = validate_and_scrub_sample_sheet(sheet)
 
         self.assertStdOutEqual('ErrorMessage: The Contact section '
                                'cannot be empty')
         self.assertIsNone(sheet)
 
-    def test_validate_sample_sheet_scrubbed_names(self):
+    def test_validate_and_scrub_sample_sheet_scrubbed_names(self):
         sheet = KLSampleSheet(self.scrubbable_ss)
 
         message = ('WarningMessage: '
@@ -878,12 +973,49 @@ class ValidateSampleSheetTests(BaseTests):
                    '361, P21_E.coli ELI362, P21_E.coli ELI363, P21_E.coli '
                    'ELI364, P21_E.coli ELI365, P21_E.coli ELI366, P21_E.coli '
                    'ELI367, P21_E.coli ELI368, P21_E.coli ELI369')
-        sheet = validate_sample_sheet(sheet)
+        sheet = validate_and_scrub_sample_sheet(sheet)
 
         self.assertStdOutEqual(message)
         self.assertTrue(isinstance(sheet, KLSampleSheet))
 
-    def test_validate_sample_sheet_scrubbed_project_names(self):
+    def test_quiet_validate_and_scrub_sample_sheet_scrubbed_names(self):
+        sheet = KLSampleSheet(self.scrubbable_ss)
+
+        message = ('The following sample names were scrubbed for bcl2fastq '
+                   'compatibility:\nCDPH-SAL_Salmonella_Typhi_MDL.143, '
+                   'CDPH-SAL_Salmonella_Typhi_MDL.144, CDPH-SAL_Salmonella_'
+                   'Typhi_MDL.145, CDPH-SAL_Salmonella_Typhi_MDL.146, CDPH-'
+                   'SAL_Salmonella_Typhi_MDL.147, CDPH-SAL_Salmonella_Typhi'
+                   '_MDL.148, CDPH-SAL_Salmonella_Typhi_MDL.149, CDPH-SAL_S'
+                   'almonella_Typhi_MDL.150, CDPH-SAL_Salmonella_Typhi_MDL.'
+                   '151, CDPH-SAL_Salmonella_Typhi_MDL.152, CDPH-SAL_Salmon'
+                   'ella_Typhi_MDL.153, CDPH-SAL_Salmonella_Typhi_MDL.154, '
+                   'CDPH-SAL_Salmonella_Typhi_MDL.155, CDPH-SAL_Salmonella_'
+                   'Typhi_MDL.156, CDPH-SAL_Salmonella_Typhi_MDL.157, CDPH-'
+                   'SAL_Salmonella_Typhi_MDL.158, CDPH-SAL_Salmonella_Typhi'
+                   '_MDL.159, CDPH-SAL_Salmonella_Typhi_MDL.160, CDPH-SAL_S'
+                   'almonella_Typhi_MDL.161, CDPH-SAL_Salmonella_Typhi_MDL.'
+                   '162, CDPH-SAL_Salmonella_Typhi_MDL.163, CDPH-SAL_Salmon'
+                   'ella_Typhi_MDL.164, CDPH-SAL_Salmonella_Typhi_MDL.165, '
+                   'CDPH-SAL_Salmonella_Typhi_MDL.166, CDPH-SAL_Salmonella_'
+                   'Typhi_MDL.167, CDPH-SAL_Salmonella_Typhi_MDL.168, P21_E'
+                   '.coli ELI344, P21_E.coli ELI345, P21_E.coli ELI347, P21'
+                   '_E.coli ELI348, P21_E.coli ELI349, P21_E.coli ELI350, P'
+                   '21_E.coli ELI351, P21_E.coli ELI352, P21_E.coli ELI353,'
+                   ' P21_E.coli ELI354, P21_E.coli ELI355, P21_E.coli ELI35'
+                   '7, P21_E.coli ELI358, P21_E.coli ELI359, P21_E.coli ELI'
+                   '361, P21_E.coli ELI362, P21_E.coli ELI363, P21_E.coli '
+                   'ELI364, P21_E.coli ELI365, P21_E.coli ELI366, P21_E.coli '
+                   'ELI367, P21_E.coli ELI368, P21_E.coli ELI369')
+        message = WarningMessage(message)
+
+        sheet = KLSampleSheet(self.scrubbable_ss)
+        msgs, sheet = quiet_validate_and_scrub_sample_sheet(sheet)
+        self.assertStdOutEqual('')
+        self.assertTrue(isinstance(sheet, KLSampleSheet))
+        self.assertEqual(msgs, [message])
+
+    def test_validate_and_scrub_sample_sheet_scrubbed_project_names(self):
         sheet = KLSampleSheet(self.good_ss)
 
         remapper = {
@@ -898,7 +1030,7 @@ class ValidateSampleSheetTests(BaseTests):
         sheet.Contact.Sample_Project.replace(remapper, inplace=True)
         sheet.Bioinformatics.Sample_Project.replace(remapper, inplace=True)
 
-        obs = validate_sample_sheet(sheet)
+        obs = validate_and_scrub_sample_sheet(sheet)
 
         message = (
             'WarningMessage: The following project names were scrubbed for '
@@ -926,18 +1058,18 @@ class ValidateSampleSheetTests(BaseTests):
         for project in obs.Contact.Sample_Project:
             self.assertTrue(project in scrubbed)
 
-    def test_validate_sample_sheet_bad_project_names(self):
+    def test_validate_and_scrub_sample_sheet_bad_project_names(self):
         sheet = KLSampleSheet(self.bad_project_name_ss)
 
         message = ('ErrorMessage: The following project names in the '
                    'Sample_Project column are missing a Qiita study '
                    'identifier: Feist, Gerwick')
 
-        sheet = validate_sample_sheet(sheet)
+        sheet = validate_and_scrub_sample_sheet(sheet)
         self.assertStdOutEqual(message)
         self.assertIsNone(sheet)
 
-    def test_validate_sample_sheet_project_missing_lane(self):
+    def test_validate_and_scrub_sample_sheet_project_missing_lane(self):
         sheet = KLSampleSheet(self.good_ss)
 
         # set the lane value as empty for one of the two projects
@@ -945,7 +1077,7 @@ class ValidateSampleSheetTests(BaseTests):
             if sample.Sample_Project == 'Feist_11661':
                 sample.Lane = ' '
 
-        sheet = validate_sample_sheet(sheet)
+        sheet = validate_and_scrub_sample_sheet(sheet)
         message = ('ErrorMessage: The following projects are missing a Lane '
                    'value: Feist_11661')
         self.assertStdOutEqual(message)
@@ -957,7 +1089,9 @@ class ValidateSampleSheetTests(BaseTests):
 
         columns = ['lane', 'sample_name', 'sample_plate', 'sample_well',
                    'i7_index_id', 'index', 'i5_index_id', 'index2',
-                   'sample_project', 'well_description']
+                   'sample_project', 'well_description',
+                   'library_construction_protocol',
+                   'experiment_design_description']
         index = ['sample1', 'sample2', 'sample1', 'sample2', 'sample31',
                  'sample32', 'sample34', 'sample44']
 
@@ -968,21 +1102,29 @@ class ValidateSampleSheetTests(BaseTests):
 
 DF_DATA = [
     ['1', 'sample1', 'FooBar_666_p1', 'A1', 'iTru7_107_07', 'CCGACTAT',
-     'iTru5_01_A', 'ACCGACAA', 'Baz', 'importantsample1'],
+     'iTru5_01_A', 'ACCGACAA', 'Baz', 'importantsample1',
+     'Knight Lab Kapa HP', 'Eqiiperiment'],
     ['1', 'sample2', 'FooBar_666_p1', 'A2', 'iTru7_107_08', 'CCGACTAT',
-     'iTru5_01_A', 'CTTCGCAA', 'Baz', 'importantsample2'],
+     'iTru5_01_A', 'CTTCGCAA', 'Baz', 'importantsample2',
+     'Knight Lab Kapa HP', 'Eqiiperiment'],
     ['3', 'sample1', 'FooBar_666_p1', 'A3', 'iTru7_107_09', 'GCCTTGTT',
-     'iTru5_01_A', 'AACACCAC', 'Baz', 'importantsample1'],
+     'iTru5_01_A', 'AACACCAC', 'Baz', 'importantsample1',
+     'Knight Lab Kapa HP', 'Eqiiperiment'],
     ['3', 'sample2', 'FooBar_666_p1', 'A4', 'iTru7_107_10', 'AACTTGCC',
-     'iTru5_01_A', 'CGTATCTC', 'Baz', 'importantsample2'],
+     'iTru5_01_A', 'CGTATCTC', 'Baz', 'importantsample2',
+     'Knight Lab Kapa HP', 'Eqiiperiment'],
     ['3', 'sample31', 'FooBar_666_p1', 'A5', 'iTru7_107_11', 'CAATGTGG',
-     'iTru5_01_A', 'GGTACGAA', 'FooBar_666', 'importantsample31'],
+     'iTru5_01_A', 'GGTACGAA', 'FooBar_666', 'importantsample31',
+     'Knight Lab Kapa HP', 'SomethingWitty'],
     ['3', 'sample32', 'FooBar_666_p1', 'B6', 'iTru7_107_12', 'AAGGCTGA',
-     'iTru5_01_A', 'CGATCGAT', 'FooBar_666', 'importantsample32'],
+     'iTru5_01_A', 'CGATCGAT', 'FooBar_666', 'importantsample32',
+     'Knight Lab Kapa HP', 'SomethingWitty'],
     ['3', 'sample34', 'FooBar_666_p1', 'B8', 'iTru7_107_13', 'TTACCGAG',
-     'iTru5_01_A', 'AAGACACC', 'FooBar_666', 'importantsample34'],
+     'iTru5_01_A', 'AAGACACC', 'FooBar_666', 'importantsample34',
+     'Knight Lab Kapa HP', 'SomethingWitty'],
     ['3', 'sample44', 'Baz_p3', 'B99', 'iTru7_107_14', 'GTCCTAAG',
-     'iTru5_01_A', 'CATCTGCT', 'Baz', 'importantsample44']]
+     'iTru5_01_A', 'CATCTGCT', 'Baz', 'importantsample44',
+     'Knight Lab Kapa HP', 'Eqiiperiment']]
 
 
 if __name__ == '__main__':

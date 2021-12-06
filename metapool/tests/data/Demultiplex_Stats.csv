@@ -1,0 +1,8 @@
+Lane,SampleID,Index,# Reads,# Perfect Index Reads,# One Mismatch Index Reads,# of >= Q30 Bases (PF),Mean Quality Score (PF),well_description
+1,sample1,AAAAAAAA-GGGGGGGG,10000,0,0,0,50.00,sample1
+1,sample2,AAAAAAAA-GGGGGGGG,100000,0,0,0,50.00,sample2
+3,sample1,AAAAAAAA-GGGGGGGG,100000,0,0,0,50.00,sample1
+3,sample2,AAAAAAAA-GGGGGGGG,2300000,0,0,0,50.00,sample2
+3,sample3,AAAAAAAA-GGGGGGGG,300000,0,0,0,50.00,sample3
+3,sample4,AAAAAAAA-GGGGGGGG,400000,0,0,0,50.00,sample4
+3,sample5,AAAAAAAA-GGGGGGGG,567000,0,0,0,50.00,sample5

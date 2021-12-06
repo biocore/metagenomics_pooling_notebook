@@ -132,6 +132,33 @@ class IGMManifest(object):
 
         self._pools = value
 
+    def __str__(self):
+        out = (
+            f'Date of Sample Submission: {self.submission_date}\n'
+            f'Institute/Company Name: {self.institute}\n'
+            f'PI Name: {self.pi_name}\n'
+            f'PI Email: {self.pi_email}\n'
+            f'Contact Name: {self.contact_name}\n'
+            f'Contact Email: {self.contact_email}\n'
+            f'Project Number: {self.project_number}\n'
+            f'Task Number: {self.task_number}\n'
+            f'Platform: {self.platform}\n'
+            f'Run Type: {self.run_type}\n'
+            'Custom Primer? (Provide more info in comments box): '
+            f'{self.custom_primer}\n'
+            f'Total number of Samples: {self.number_of_samples}\n'
+            'Total number of Lanes OR Total Reads Required: '
+            f'{self.number_of_lanes}\n\n'
+            'Sample Name\tPool Name\tLibrary Size (bp)\tLibrary Prep Method\n'
+        )
+
+        if self.pools:
+            pools = '\n'.join(f'{p}\t{p}\t500\tKHP'for p in self.pools)
+        else:
+            pools = ''
+
+        return out + pools
+
     def write(self, path=None):
         """Write the manifest to disk
 
@@ -155,6 +182,7 @@ class IGMManifest(object):
 
         path = self._default_path() if path is None else path
         print('Saving manifest to %s' % path)
+        print(str(self))
 
         self._workbook.save(path)
 

@@ -95,9 +95,11 @@ def read_pico_csv(f, sep='\t', plate_reader='Synergy_HT',
     # coerce oddball concentrations to np.nan
     pico_df[conc_col_name] = \
         pd.to_numeric(pico_df[conc_col_name], errors='coerce')
+
     # limit concentration range (0 - 60 )
     pico_df[conc_col_name] = np.clip(pico_df[conc_col_name],0,60)
-    return(pico_df)
+
+    return pico_df
 
 def calculate_norm_vol(dna_concs, ng=5, min_vol=2.5, max_vol=3500,
                        resolution=2.5):
