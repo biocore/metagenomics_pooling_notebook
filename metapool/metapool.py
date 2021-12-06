@@ -97,7 +97,7 @@ def read_pico_csv(f, sep='\t', plate_reader='Synergy_HT',
         pd.to_numeric(pico_df[conc_col_name], errors='coerce')
 
     # limit concentration range (0 - 60 )
-    pico_df[conc_col_name] = np.clip(pico_df[conc_col_name],0,60)
+    pico_df[conc_col_name] = np.clip(pico_df[conc_col_name], 0, 60)
 
     return pico_df
 
