@@ -101,6 +101,7 @@ def read_pico_csv(f, sep='\t', plate_reader='Synergy_HT',
 
     return pico_df
 
+
 def calculate_norm_vol(dna_concs, ng=5, min_vol=2.5, max_vol=3500,
                        resolution=2.5):
     """
