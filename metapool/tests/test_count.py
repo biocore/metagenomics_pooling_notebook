@@ -79,9 +79,10 @@ class TestCount(TestCase):
             'Sample_Project': 'Trojecp_666'
         }))
 
-        exp = pd.DataFrame(data=[[1], [1], [1], [1], [1], [1], [1]],
-                           columns=['halloween'],
-                           index=self.stats.index.copy())
+        exp = pd.DataFrame(
+            data=[[1.0], [1.0], [1.0], [1.0], [1.0], [1.0], [1.0]],
+            columns=['halloween'],
+            index=self.stats.index.copy())
 
         with self.assertWarnsRegex(UserWarning, 'No halloween log found for '
                                    'these samples: H20_Myers'):
@@ -213,12 +214,13 @@ RUN_STATS = {
                   ('sample1', '3'): 100000, ('sample2', '3'): 2300000,
                   ('sample3', '3'): 300000, ('sample4', '3'): 400000,
                   ('sample5', '3'): 567000},
-    'quality_filtered_reads': {('sample1', '1'): 10800,
-                               ('sample2', '1'): 61404,
-                               ('sample1', '3'): 335996,
-                               ('sample2', '3'): 18374,
-                               ('sample3', '3'): 4692, ('sample4', '3'): 960,
-                               ('sample5', '3'): 30846196},
+    'quality_filtered_reads': {('sample1', '1'): 10800.0,
+                               ('sample2', '1'): 61404.0,
+                               ('sample1', '3'): 335996.0,
+                               ('sample2', '3'): 18374.0,
+                               ('sample3', '3'): 4692.0,
+                               ('sample4', '3'): 960.0,
+                               ('sample5', '3'): 30846196.0},
     'non_host_reads': {('sample1', '1'): 111172.0, ('sample2', '1'): 277611.0,
                        ('sample1', '3'): 1168275.0, ('sample2', '3'): 1277.0,
                        ('sample3', '3'): 33162.0, ('sample4', '3'): 2777.0,
