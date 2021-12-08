@@ -121,7 +121,7 @@ def _parsefier(run_dir, sample_sheet, subdir, suffix, name, funk):
         warnings.warn(f'No {name} log found for these samples: %s' %
                       ', '.join(expected - found))
 
-    out[name] = out.path.apply(funk)
+    out[name] = out.path.apply(funk).astype('float64')
 
     out.drop(columns=['path', 'Sample_Project'], inplace=True)
     out.set_index(['Sample_ID', 'Lane'], inplace=True, verify_integrity=True)
