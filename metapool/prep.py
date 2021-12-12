@@ -538,7 +538,6 @@ def generate_qiita_prep_file(platedf, seqtype):
 
     # Add eight additional columns to the prep-file that the user will fill in
     # manually.
-
     prep['tm300_8_tool'] = ''
     prep['tm50_8_tool'] = ''
     prep['experiment_design_description'] = ''
