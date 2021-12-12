@@ -258,7 +258,7 @@ def get_model_and_center(instrument_code):
 
         instrument_model = INSTRUMENT_LOOKUP[
             INSTRUMENT_LOOKUP['machine prefix'] == instrument_prefix
-        ]['Vocab'].unique()[0]
+            ]['Vocab'].unique()[0]
 
     return instrument_model, run_center
 
@@ -478,7 +478,7 @@ def generate_qiita_prep_file(platedf, seqtype):
             'Processing Robot': 'processing_robot',
             'Sample Plate': 'sample_plate',
             'Forward Primer Linker': 'linker',
-            }
+        }
     else:
         column_renamer = {
             'Sample': 'sample_name',
@@ -497,7 +497,7 @@ def generate_qiita_prep_file(platedf, seqtype):
             'Processing Robot': 'processing_robot',
             'Sample Plate': 'sample_plate',
             'Reverse Primer Linker': 'linker'
-            }
+        }
 
     prep = platedf[column_renamer.keys()].copy()
     prep.rename(column_renamer, inplace=True, axis=1)
@@ -536,7 +536,34 @@ def generate_qiita_prep_file(platedf, seqtype):
     else:
         raise ValueError(f'Unrecognized value "{seqtype}" for seqtype')
 
-    return prep
+    # Add eight additional columns to the prep-file that the user will fill in
+    # manually.
+    prep['tm300_8_tool'] = ''
+    prep['tm50_8_tool'] = ''
+    prep['experiment_design_description'] = ''
+    prep['run_date'] = ''
+    prep['run_prefix'] = ''
+    prep['center_project_name'] = ''
+    prep['instrument_model'] = ''
+    prep['runid'] = ''
+
+    # the approved order of columns in the prep-file.
+    column_order = ['sample_name', 'barcode', 'primer', 'primer_plate',
+                    'well_id', 'plating', 'extractionkit_lot',
+                    'extraction_robot', 'tm1000_8_tool', 'primer_date',
+                    'mastermix_lot', 'water_lot',
+                    'processing_robot', 'tm300_8_tool', 'tm50_8_tool',
+                    'sample_plate', 'project_name', 'orig_name',
+                    'well_description', 'experiment_design_description',
+                    'library_construction_protocol', 'linker',
+                    'platform', 'run_center', 'run_date', 'run_prefix',
+                    'pcr_primers', 'sequencing_meth',
+                    'target_gene', 'target_subfragment', 'center_name',
+                    'center_project_name', 'instrument_model',
+                    'runid']
+
+    # reorder the dataframe's columns according to the order in the list above.
+    return prep[column_order]
 
 
 def qiita_scrub_name(name):
