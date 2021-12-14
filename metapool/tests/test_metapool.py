@@ -125,6 +125,19 @@ class Tests(TestCase):
         pd.testing.assert_frame_equal(
             obs_plate_df, exp, check_like=True)
 
+    def test_read_plate_map_csv_error_repeated_sample_names(self):
+        plate_map_csv = \
+            'Sample\tRow\tCol\tBlank\n' + \
+            'sam1\tA\t1\tFalse\n' + \
+            'sam2\tA\t2\tFalse\n' + \
+            'blank1\tB\t1\tTrue\n' + \
+            'blank1\tB\t4\tTrue\n'
+
+        plate_map_f = StringIO(plate_map_csv)
+
+        with self.assertRaises(Exception):
+            read_plate_map_csv(plate_map_f)
+
     def test_read_pico_csv(self):
         # Test a normal sheet
         pico_csv = '''Results
