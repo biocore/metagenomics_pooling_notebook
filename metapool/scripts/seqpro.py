@@ -2,6 +2,7 @@
 
 import click
 import os
+import re
 
 from metapool import (preparations_for_run, KLSampleSheet,
                       sample_sheet_to_dataframe, run_counts)
@@ -60,6 +61,17 @@ def format_preparation_files(run_dir, sample_sheet, output_dir, pipeline):
             # that we care about, otherwise we'll end up with repeated rows
             df = df.merge(stats.xs(lane, level=1), how='left',
                           on='sample_name')
+
+        # strip qiita_id from project names in sample_project column
+        df['sample_project'] = df['sample_project'].map(
+            lambda x: re.sub(r'_\d+$', r'', x))
+
+        # hardcode center_name to be 'UCSD'
+        df['center_name'] = 'UCSD'
+
+        # center_project_name is a legacy column that should mirror
+        # the values for sample_project.
+        df['center_project_name'] = df['sample_project']
 
         df.to_csv(filename, sep='\t', index=False)
 
