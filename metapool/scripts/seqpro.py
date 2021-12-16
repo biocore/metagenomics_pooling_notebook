@@ -66,9 +66,6 @@ def format_preparation_files(run_dir, sample_sheet, output_dir, pipeline):
         df['sample_project'] = df['sample_project'].map(
             lambda x: re.sub(r'_\d+$', r'', x))
 
-        # hardcode center_name to be 'UCSD'
-        df['center_name'] = 'UCSD'
-
         # center_project_name is a legacy column that should mirror
         # the values for sample_project.
         df['center_project_name'] = df['sample_project']
