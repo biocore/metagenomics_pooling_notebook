@@ -386,7 +386,7 @@ def preparations_for_run(run_path, sheet, pipeline='fastp-and-minimap2'):
                 row["run_date"] = run_date
                 row["run_prefix"] = run_prefix
                 row["sequencing_meth"] = "sequencing by synthesis"
-                row["center_name"] = "CENTER_NAME"
+                row["center_name"] = "UCSD"
                 row["center_project_name"] = project_name
 
                 row["instrument_model"] = instrument_model
