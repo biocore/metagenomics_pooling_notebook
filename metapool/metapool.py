@@ -95,9 +95,9 @@ def read_pico_csv(f, sep='\t', plate_reader='Synergy_HT',
     # coerce oddball concentrations to np.nan
     pico_df[conc_col_name] = \
         pd.to_numeric(pico_df[conc_col_name], errors='coerce')
-
-    # limit concentration range (0 - 60 )
-    pico_df[conc_col_name] = np.clip(pico_df[conc_col_name], 0, 60)
+    if plate_reader == 'SpectraMax_i3x':
+        # limit concentration range (0 - 60 )
+        pico_df[conc_col_name] = np.clip(pico_df[conc_col_name], 0, 60)
 
     return pico_df
 
