@@ -191,15 +191,16 @@ class Tests(TestCase):
             read_pico_csv(fp_spectramax, plate_reader='foo')
 
     def test_read_pico_csv_spectramax_negfix(self):
-        #Tests that Concentration values are clipped
-        #to a range of (0,60), eliminating possible 
-        #negative concentration values.
+        # Tests that Concentration values are clipped
+        # to a range of (0,60), eliminating possible
+        # negative concentration values.
         fp_spectramax = os.path.join(os.path.dirname(__file__), 'data',
                                      'pico_spectramax.txt')
 
         obs_pico_df = read_pico_csv(fp_spectramax,
                                     plate_reader='SpectraMax_i3x')
-        self.assertEqual(all(obs_pico_df['Sample DNA Concentration']>=0),True)
+        self.assertEqual(all(obs_pico_df['Sample DNA Concentration'] >= 0),
+                         True)
 
     def test_calculate_norm_vol(self):
         dna_concs = np.array([[2, 7.89],
