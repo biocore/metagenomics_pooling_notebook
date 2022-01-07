@@ -199,7 +199,7 @@ class Tests(TestCase):
 
         obs_pico_df = read_pico_csv(fp_spectramax,
                                     plate_reader='SpectraMax_i3x')
-        self.assertEqual(all(obs_pico_df['Sample DNA Concentration']>=0))
+        self.assertEqual(all(obs_pico_df['Sample DNA Concentration']>=0),True)
 
     def test_calculate_norm_vol(self):
         dna_concs = np.array([[2, 7.89],
