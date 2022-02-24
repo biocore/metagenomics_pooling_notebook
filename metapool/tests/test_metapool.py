@@ -202,6 +202,17 @@ class Tests(TestCase):
         self.assertEqual(all(obs_pico_df['Sample DNA Concentration'] >= 0),
                          True)
 
+        check_for_neg = pd.read_csv(open(fp_spectramax, encoding='utf-16'),
+                                    sep='\t', skiprows=2, skipfooter=15,
+                                    engine='python')
+
+        conc_col_name='Sample DNA Concentration'
+        check_for_neg.rename(columns={'Concentration':conc_col_name,
+                                      'Wells':'Well'},inplace=True)
+
+        self.assertEqual(any(check_for_neg[conc_col_name]<0),True)
+
+
     def test_calculate_norm_vol(self):
         dna_concs = np.array([[2, 7.89],
                               [np.nan, .0]])
