@@ -281,6 +281,10 @@ class TestPrep(TestCase):
         self.assertEqual(date, '2016-09-09')
         self.assertEqual(rid, 'K00180_0244_BH7VNKBBXX')
 
+        date, rid = parse_illumina_run_id('20220303_FS10001773_6_BRB11606-1914')  # noqa
+        self.assertEqual(date, '2022-03-03')
+        self.assertEqual(rid, 'FS10001773_6_BRB11606-1914')
+
     def test_machine_code(self):
         obs = get_machine_code('K00180')
         self.assertEqual(obs, 'K')
