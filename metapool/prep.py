@@ -40,6 +40,8 @@ AMPLICON_PREP_COLUMN_RENAMER = {
 
 # put together by Gail, based on the instruments we know of
 INSTRUMENT_LOOKUP = pd.DataFrame({
+    'FS10001773': {'machine prefix': 'FS', 'Vocab': 'Illumina iSeq',
+                   'Machine type': 'iSeq', 'run_center': 'KLM'},
     'A00953': {'machine prefix': 'A', 'Vocab': 'Illumina NovaSeq 6000',
                'Machine type': 'NovaSeq', 'run_center': 'IGM'},
     'A00169': {'machine prefix': 'A', 'Vocab': 'Illumina NovaSeq 6000',
@@ -74,15 +76,33 @@ def parse_illumina_run_id(run_id):
     # this regex has two groups, the first one is the date, and the second one
     # is the machine name + suffix. This URL shows some examples
     # tinyurl.com/rmy67kw
-    matches = re.search(r'^(\d{6})_(\w*)', run_id)
+    matches6 = re.search(r'^(\d{6})_(\w*)', run_id)
 
-    if matches is None or len(matches.groups()) != 2:
+    # iSeq uses YYYYMMDD and has a trailing -XXXX value, for example
+    # 20220303_FS10001773_6_BRB11606-1914
+    # So the regex is updated to allow 8 numbers for the date, and to handle
+    # the trailing -XXXX piece
+    matches8 = re.search(r'^(\d{8})_([\w-]*)', run_id)
+
+    if matches6 is None and matches8 is None:
+        raise ValueError('Unrecognized run identifier format "%s". The '
+                         'expected format is YYMMDD_machinename_XXXX_FC.' %
+                         run_id)
+
+    if matches6 is None:
+        matches = matches8
+        fmt = "%Y%m%d"
+    else:
+        matches = matches6
+        fmt = "%y%m%d"
+
+    if len(matches.groups()) != 2:
         raise ValueError('Unrecognized run identifier format "%s". The '
                          'expected format is YYMMDD_machinename_XXXX_FC.' %
                          run_id)
 
     # convert illumina's format to qiita's format
-    run_date = datetime.strptime(matches[1], '%y%m%d').strftime('%Y-%m-%d')
+    run_date = datetime.strptime(matches[1], fmt).strftime('%Y-%m-%d')
 
     return run_date, matches[2]
 
