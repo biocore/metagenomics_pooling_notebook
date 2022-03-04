@@ -86,7 +86,9 @@ def parse_illumina_run_id(run_id):
 
     if matches6 is None and matches8 is None:
         raise ValueError('Unrecognized run identifier format "%s". The '
-                         'expected format is YYMMDD_machinename_XXXX_FC.' %
+                         'expected format is either '
+                         'YYMMDD_machinename_XXXX_FC or '
+                         'YYYYMMDD_machinename_XXXX-XXXX' %
                          run_id)
 
     if matches6 is None:
@@ -98,7 +100,9 @@ def parse_illumina_run_id(run_id):
 
     if len(matches.groups()) != 2:
         raise ValueError('Unrecognized run identifier format "%s". The '
-                         'expected format is YYMMDD_machinename_XXXX_FC.' %
+                         'expected format is either '
+                         'YYMMDD_machinename_XXXX_FC or '
+                         'YYYYMMDD_machinename_XXXX-XXXX' %
                          run_id)
 
     # convert illumina's format to qiita's format

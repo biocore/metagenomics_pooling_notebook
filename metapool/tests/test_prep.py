@@ -285,6 +285,13 @@ class TestPrep(TestCase):
         self.assertEqual(date, '2022-03-03')
         self.assertEqual(rid, 'FS10001773_6_BRB11606-1914')
 
+    def test_parse_illumina_run_id_malformed(self):
+        bad_entries = ['0220303_FS10001773_6_BRB11606-1914',
+                       'verybad', '123456-bad', '12345678-bad']
+        for bad in bad_entries:
+            with self.assertRaises(ValueError):
+                parse_illumina_run_id(bad)
+
     def test_machine_code(self):
         obs = get_machine_code('K00180')
         self.assertEqual(obs, 'K')
