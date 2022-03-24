@@ -77,11 +77,11 @@ class Tests(TestCase):
     #     npt.assert_almost_equal(obs_water, exp_water)
     def test_read_plate_map_csv(self):
         plate_map_csv = \
-            'Sample\tRow\tCol\tBlank\n' + \
-            'sam1\tA\t1\tFalse\n' + \
-            'sam2\tA\t2\tFalse\n' + \
-            'blank1\tB\t1\tTrue\n' + \
-            'sam3\tB\t2\tFalse\n'
+            'Sample\tRow\tCol\tBlank\tProject Name\n' + \
+            'sam1\tA\t1\tFalse\tstudy_1\n' + \
+            'sam2\tA\t2\tFalse\tstudy_1\n' + \
+            'blank1\tB\t1\tTrue\tstudy_1\n' + \
+            'sam3\tB\t2\tFalse\tstudy_1\n'
 
         plate_map_f = StringIO(plate_map_csv)
 
@@ -89,6 +89,8 @@ class Tests(TestCase):
                                                 'sam3'],
                                      'Row': ['A', 'A', 'B', 'B'],
                                      'Col': [1, 2, 1, 2],
+                                     'Project Name': ['study_1', 'study_1',
+                                                      'study_1', 'study_1'],
                                      'Well': ['A1', 'A2', 'B1', 'B2'],
                                      'Blank': [False, False, True, False]})
 
@@ -99,20 +101,22 @@ class Tests(TestCase):
 
     def test_read_plate_map_csv_remove_empty_wells(self):
         plate_map_csv = (
-            'Sample\tRow\tCol\tBlank\n'
-            'sam1\tA\t1\tFalse\n'
-            'sam2\tA\t2\tFalse\n'
-            'blank1\tB\t1\tTrue\n'
-            '\tC\t1\tFalse\n'
-            '\tD\t1\tFalse\n'
-            '\tE\t1\tFalse\n'
-            'sam3\tB\t2\tFalse\n'
-            '\tD\t2\tFalse\n')
+            'Sample\tRow\tCol\tBlank\tProject Name\n'
+            'sam1\tA\t1\tFalse\tstudy_1\n'
+            'sam2\tA\t2\tFalse\tstudy_1\n'
+            'blank1\tB\t1\tTrue\tstudy_1\n'
+            '\tC\t1\tFalse\tstudy_1\n'
+            '\tD\t1\tFalse\tstudy_1\n'
+            '\tE\t1\tFalse\tstudy_1\n'
+            'sam3\tB\t2\tFalse\tstudy_1\n'
+            '\tD\t2\tFalse\tstudy_1\n')
 
         plate_map_f = StringIO(plate_map_csv)
         exp = pd.DataFrame({'Sample': ['sam1', 'sam2', 'blank1',
                                        'sam3'],
                             'Row': ['A', 'A', 'B', 'B'],
+                            'Project Name': [
+                                'study_1', 'study_1', 'study_1', 'study_1'],
                             'Col': [1, 2, 1, 2],
                             'Well': ['A1', 'A2', 'B1', 'B2'],
                             'Blank': [False, False, True, False]})

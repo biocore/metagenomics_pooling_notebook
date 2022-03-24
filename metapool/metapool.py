@@ -28,6 +28,8 @@ def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
     ----------
     f: fp or open filehandle
         plate map file
+    qiita_oauth2_conf_fp: str, filepath
+        the path to the oauth2 configuration file to connect to Qiita
 
     Returns
     -------
@@ -38,8 +40,11 @@ def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
     ------
     UserWarning
         If there are wells with no sample names associated with them.
-    AssertionError
+        If qiita_oauth2_conf_fp is None, no Qiita sample name validation.
+    ValueError
+        If plate_map doesn't have a 'Project Name' column.
         If there are repeated sample names.
+        If the sample(s) in the plate_map are not a subset of Qiita samples.
     """
 
     qiita_validate = False
@@ -58,6 +63,8 @@ def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
                       'and Qiita study overlap')
 
     plate_df = pd.read_csv(f, sep=sep)
+    if 'Project Name' not in plate_df.columns:
+        raise ValueError('Missing `Project Name` column.')
     plate_df['Well'] = plate_df['Row'] + plate_df['Col'].map(str)
 
     null_samples = plate_df.Sample.isnull()
@@ -86,26 +93,25 @@ def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
                 s for s in _df['Sample'] if not s.startswith('BLANK')}
             qsamples = {
                 s.replace(f'{qiita_id}.', '') for s in qclient.get(qurl)}
-            sample_name_overlap = plate_map_samples - set(qsamples)
-            if sample_name_overlap:
+            sample_name_diff = plate_map_samples - set(qsamples)
+            if sample_name_diff:
                 # before we report as an error, check tube_id
                 error_tube_id = 'No tube_id column in Qiita.'
                 if 'tube_id' in qclient.get(f'{qurl}/info')['categories']:
                     tids = qclient.get(f'{qurl}/categories=tube_id')['samples']
                     tids = {tid[0] for _, tid in tids.items()}
-                    tube_id_overlap = plate_map_samples - tids
-                    if not tube_id_overlap:
+                    tube_id_diff = plate_map_samples - tids
+                    if not tube_id_diff:
                         continue
-                    len_tube_id_overlap = len(tube_id_overlap)
-                    tids_example = ', '.join(
-                        choices(list(tids), k=5))
+                    len_tube_id_overlap = len(tube_id_diff)
+                    tids_example = ', '.join(choices(list(tids), k=5))
                     error_tube_id = (
                         f'tube_id in Qiita but {len_tube_id_overlap} missing '
                         f'samples. Some samples from tube_id: {tids_example}.')
 
-                len_overlap = len(sample_name_overlap)
+                len_overlap = len(sample_name_diff)
                 samples_example = ', '.join(
-                    choices(list(sample_name_overlap), k=5))
+                    choices(list(sample_name_diff), k=5))
                 errors.append(
                     f'{project} has {len_overlap} missing samples. Some '
                     f'samples from Qiita: {samples_example}. {error_tube_id}')
