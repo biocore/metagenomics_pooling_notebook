@@ -1,6 +1,6 @@
 name: Metapool CI
 
-# Controls when the action will run. 
+# Controls when the action will run.
 on:
   # Triggers the workflow on pull request and push events, only on the master
   # branch
@@ -18,6 +18,26 @@ jobs:
     strategy:
       matrix:
         python-version: ['3.6', '3.7', '3.8']
+
+    services:
+      postgres:
+        # Docker Hub image
+        image: postgres:9.5
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          COVER_PACKAGE: ${{ matrix.cover_package }}
+
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          # based on https://github.com/actions/example-services/blob/master/.github/workflows/postgres-service.yml#L44-L72
+          - 5432/tcp
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -38,6 +58,63 @@ jobs:
           python-version: ${{ matrix.python-version }}
           conda-channels: anaconda, conda-forge, bioconda
           auto-update-conda: true
+
+      - name: Install Qiita
+        env:
+          COVER_PACKAGE: ${{ matrix.cover_package }}
+        shell: bash -l {0}
+        run: |
+          # we need to download qiita directly so we have "easy" access to
+          # all config files
+          wget https://github.com/biocore/qiita/archive/dev.zip
+          unzip dev.zip
+
+          # pull out the port so we can modify the configuration file easily
+          pgport=${{ job.services.postgres.ports[5432] }}
+          sed -i "s/PORT = 5432/PORT = $pgport/" qiita-dev/qiita_core/support_files/config_test.cfg
+
+          # PGPASSWORD is read by pg_restore, which is called by the build_db process.
+          export PGPASSWORD=postgres
+
+          # Setting up main qiita conda environment
+          conda config --add channels conda-forge
+          conda create -q --yes -n qiita python=3.9 libgfortran numpy nginx cython redis
+          conda activate qiita
+          pip install sphinx sphinx-bootstrap-theme nose-timer codecov Click
+
+          conda activate qiita
+          pip install qiita-dev/ --no-binary redbiom
+          mkdir ~/.qiita_plugins
+
+      - name: Starting Qiita Services
+        shell: bash -l {0}
+        run: |
+          conda activate qiita
+          export QIITA_SERVER_CERT=`pwd`/qiita-dev/qiita_core/support_files/server.crt
+          export QIITA_CONFIG_FP=`pwd`/qiita-dev/qiita_core/support_files/config_test_local.cfg
+          sed "s#/home/runner/work/qiita/qiita#${PWD}/qiita-dev/#g" `pwd`/qiita-dev/qiita_core/support_files/config_test.cfg > ${QIITA_CONFIG_FP}
+
+          export REDBIOM_HOST="http://localhost:7379"
+
+          echo "1. Setting up redis"
+          redis-server --daemonize yes --port 7777
+
+          echo "2. Setting up nginx"
+          mkdir -p ${CONDA_PREFIX}/var/run/nginx/
+          export NGINX_FILE=`pwd`/qiita-dev/qiita_pet/nginx_example.conf
+          export NGINX_FILE_NEW=`pwd`/qiita-dev/qiita_pet/nginx_example_local.conf
+          sed "s#/home/runner/work/qiita/qiita#${PWD}/qiita-dev/#g" ${NGINX_FILE} > ${NGINX_FILE_NEW}
+          nginx -c ${NGINX_FILE_NEW}
+
+          echo "3. Setting up qiita"
+          qiita-env make --no-load-ontologies
+          qiita plugins update
+          qiita-test-install
+
+          echo "4. Starting supervisord => multiple qiita instances"
+          supervisord -c ${PWD}/qiita-dev/qiita_pet/supervisor_example.conf
+          sleep 10
+          cat /tmp/supervisord.log
 
       - name: Install metapool
         shell: bash -l {0}
