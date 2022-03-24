@@ -110,11 +110,12 @@ def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
                         f'samples. Some samples from tube_id: {tids_example}.')
 
                 len_overlap = len(sample_name_diff)
-                samples_example = ', '.join(
-                    choices(list(sample_name_diff), k=5))
+                samples_example = ', '.join(choices(list(qsamples), k=5))
+                missing = ', '.join(sorted(sample_name_diff)[:4])
                 errors.append(
-                    f'{project} has {len_overlap} missing samples. Some '
-                    f'samples from Qiita: {samples_example}. {error_tube_id}')
+                    f'{project} has {len_overlap} missing samples (i.e. '
+                    f'{missing}). Some samples from Qiita: {samples_example}. '
+                    f'{error_tube_id}')
 
         if errors:
             raise ValueError('\n'.join(errors))
