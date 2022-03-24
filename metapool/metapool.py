@@ -42,6 +42,7 @@ def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
         If there are repeated sample names.
     """
 
+    qiita_validate = False
     if qiita_oauth2_conf_fp is not None:
         parser = ConfigParser()
         with open(qiita_oauth2_conf_fp, "r") as qfp:
@@ -51,6 +52,7 @@ def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
         client_secret = parser.get("qiita-oauth2", "CLIENT_SECRET")
         server_cert = parser.get("qiita-oauth2", "SERVER_CERT")
         qclient = QiitaClient(url, client_id, client_secret, server_cert)
+        qiita_validate = True
     else:
         warnings.warn('No qiita_oauth2_conf_fp set so not checking plate_map '
                       'and Qiita study overlap')
@@ -73,42 +75,43 @@ def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
         raise ValueError('The following sample names are duplicated %s' %
                          ', '.join(sorted(duplicated_samples)))
 
-    errors = []
-    for project, _df in plate_df.groupby(['Project Name']):
-        project_name = remove_qiita_id(project)
-        qiita_id = project.replace(f'{project_name}_', '')
-        qurl = f'/api/v1/study/{qiita_id}/samples'
+    if qiita_validate:
+        errors = []
+        for project, _df in plate_df.groupby(['Project Name']):
+            project_name = remove_qiita_id(project)
+            qiita_id = project.replace(f'{project_name}_', '')
+            qurl = f'/api/v1/study/{qiita_id}/samples'
 
-        plate_map_samples = {
-            s for s in _df['Sample'] if not s.startswith('BLANK')}
-        qsamples = {
-            s.replace(f'{qiita_id}.', '') for s in qclient.get(qurl)}
-        sample_name_overlap = plate_map_samples - set(qsamples)
-        if sample_name_overlap:
-            # before we report as an error, check tube_id
-            error_tube_id = 'No tube_id column in Qiita.'
-            if 'tube_id' in qclient.get(f'{qurl}/info')['categories']:
-                tids = qclient.get(f'{qurl}/categories=tube_id')['samples']
-                tids = {tid[0] for _, tid in tids.items()}
-                tube_id_overlap = plate_map_samples - tids
-                if not tube_id_overlap:
-                    continue
-                len_tube_id_overlap = len(tube_id_overlap)
-                tids_example = ', '.join(
-                    choices(list(tids), k=5))
-                error_tube_id = (f'tube_id in Qiita but {len_tube_id_overlap} '
-                                 'missing samples. Some samples from tube_id: '
-                                 f'{tids_example}.')
+            plate_map_samples = {
+                s for s in _df['Sample'] if not s.startswith('BLANK')}
+            qsamples = {
+                s.replace(f'{qiita_id}.', '') for s in qclient.get(qurl)}
+            sample_name_overlap = plate_map_samples - set(qsamples)
+            if sample_name_overlap:
+                # before we report as an error, check tube_id
+                error_tube_id = 'No tube_id column in Qiita.'
+                if 'tube_id' in qclient.get(f'{qurl}/info')['categories']:
+                    tids = qclient.get(f'{qurl}/categories=tube_id')['samples']
+                    tids = {tid[0] for _, tid in tids.items()}
+                    tube_id_overlap = plate_map_samples - tids
+                    if not tube_id_overlap:
+                        continue
+                    len_tube_id_overlap = len(tube_id_overlap)
+                    tids_example = ', '.join(
+                        choices(list(tids), k=5))
+                    error_tube_id = (
+                        f'tube_id in Qiita but {len_tube_id_overlap} missing '
+                        f'samples. Some samples from tube_id: {tids_example}.')
 
-            len_overlap = len(sample_name_overlap)
-            samples_example = ', '.join(
-                choices(list(sample_name_overlap), k=5))
-            errors.append(f'{project} has {len_overlap} missing samples. Some '
-                          f'samples from Qiita: {samples_example}. '
-                          f'{error_tube_id}')
+                len_overlap = len(sample_name_overlap)
+                samples_example = ', '.join(
+                    choices(list(sample_name_overlap), k=5))
+                errors.append(
+                    f'{project} has {len_overlap} missing samples. Some '
+                    f'samples from Qiita: {samples_example}. {error_tube_id}')
 
-    if errors:
-        raise ValueError('\n'.join(errors))
+        if errors:
+            raise ValueError('\n'.join(errors))
 
     return plate_df
 
