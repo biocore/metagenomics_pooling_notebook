@@ -6,15 +6,23 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import warnings
 
+from random import choices
+from configparser import ConfigParser
+from qiita_client import QiitaClient
+
+from .prep import remove_qiita_id
+
 
 REVCOMP_SEQUENCERS = ['HiSeq4000', 'MiniSeq', 'NextSeq', 'HiSeq3000',
                       'iSeq', 'NovaSeq']
 OTHER_SEQUENCERS = ['HiSeq2500', 'HiSeq1500', 'MiSeq']
 
 
-def read_plate_map_csv(f, sep='\t'):
+def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
     """
-    reads tab-delimited plate map into a Pandas dataframe
+    reads tab-delimited plate map into a Pandas dataframe and if
+    qiita_oauth2_conf_fp is passed the code will also check for Sample
+    overlap between the plate_map and the Qiita study.
 
     Parameters
     ----------
@@ -34,6 +42,19 @@ def read_plate_map_csv(f, sep='\t'):
         If there are repeated sample names.
     """
 
+    if qiita_oauth2_conf_fp is not None:
+        parser = ConfigParser()
+        with open(qiita_oauth2_conf_fp, "r") as qfp:
+            parser.read_file(qfp)
+        url = parser.get("qiita-oauth2", "URL")
+        client_id = parser.get("qiita-oauth2", "CLIENT_ID")
+        client_secret = parser.get("qiita-oauth2", "CLIENT_SECRET")
+        server_cert = parser.get("qiita-oauth2", "SERVER_CERT")
+        qclient = QiitaClient(url, client_id, client_secret, server_cert)
+    else:
+        warnings.warn('No qiita_oauth2_conf_fp set so not checking plate_map '
+                      'and Qiita study overlap')
+
     plate_df = pd.read_csv(f, sep=sep)
     plate_df['Well'] = plate_df['Row'] + plate_df['Col'].map(str)
 
@@ -51,6 +72,43 @@ def read_plate_map_csv(f, sep='\t'):
     if len(duplicated_samples):
         raise ValueError('The following sample names are duplicated %s' %
                          ', '.join(sorted(duplicated_samples)))
+
+    errors = []
+    for project, _df in plate_df.groupby(['Project Name']):
+        project_name = remove_qiita_id(project)
+        qiita_id = project.replace(f'{project_name}_', '')
+        qurl = f'/api/v1/study/{qiita_id}/samples'
+
+        plate_map_samples = {
+            s for s in _df['Sample'] if not s.startswith('BLANK')}
+        qsamples = {
+            s.replace(f'{qiita_id}.', '') for s in qclient.get(qurl)}
+        sample_name_overlap = plate_map_samples - set(qsamples)
+        if sample_name_overlap:
+            # before we report as an error, check tube_id
+            error_tube_id = 'No tube_id column in Qiita.'
+            if 'tube_id' in qclient.get(f'{qurl}/info')['categories']:
+                tids = qclient.get(f'{qurl}/categories=tube_id')['samples']
+                tids = {tid[0] for _, tid in tids.items()}
+                tube_id_overlap = plate_map_samples - tids
+                if not tube_id_overlap:
+                    continue
+                len_tube_id_overlap = len(tube_id_overlap)
+                tids_example = ', '.join(
+                    choices(list(tids), k=5))
+                error_tube_id = (f'tube_id in Qiita but {len_tube_id_overlap} '
+                                 'missing samples. Some samples from tube_id: '
+                                 f'{tids_example}.')
+
+            len_overlap = len(sample_name_overlap)
+            samples_example = ', '.join(
+                choices(list(sample_name_overlap), k=5))
+            errors.append(f'{project} has {len_overlap} missing samples. Some '
+                          f'samples from Qiita: {samples_example}. '
+                          f'{error_tube_id}')
+
+    if errors:
+        raise ValueError('\n'.join(errors))
 
     return plate_df
 

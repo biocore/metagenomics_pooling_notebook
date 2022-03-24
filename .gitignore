@@ -104,3 +104,4 @@ ENV/
 *.swp
 *.swo
 *~
+*.local
