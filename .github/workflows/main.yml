@@ -119,7 +119,8 @@ jobs:
       - name: Install metapool
         shell: bash -l {0}
         run: |
-          conda install --yes pandas numpy nose pep8 flake8 matplotlib jupyter notebook 'seaborn>=0.7.1' pip openpyxl
+          conda create -q --yes -n metapool pandas numpy nose pep8 flake8 matplotlib jupyter notebook 'seaborn>=0.7.1' pip openpyxl
+          conda activate metapool
           pip install coveralls
           pip install -e ".[all]"
 
@@ -127,11 +128,14 @@ jobs:
           export QIITA_SERVER_CERT=`pwd`/qiita-dev/qiita_core/support_files/server.crt
           echo -e "[qiita-oauth2]\nURL=https://localhost:8383\nCLIENT_ID=gdhB2qre7pgCtgi7DMUdfFyZqRfshCHTTgF1pFSwTmpPRRWDHg\nCLIENT_SECRET=QZQRwfn9ZuUYAYNrV6uVRwOZo5Q5HqcZtYer52c2MrWY7aU4c44gmba0nKFGDVxCsoEyZngnRwR7cPxS7XarqQQVwQh2p8NiyYwijk66dKuw2n3aoJLequniK2cIAjsSoGA8Nc8mg15DUbWTGNcTyqObZWPQsHMwozgRljWN9ko6jSMeKC7eAI2coWwFIOZxtBKhYR4RpnSLCkHiomAPmx6oMwOEtNlYngzQYUwKvySnl79vlUl7zRV7w0VzAJi\nSERVER_CERT=${QIITA_SERVER_CERT}" > qiita.oauth2.cfg.local
 
+          python -c 'from metapool.metapool import *; read_plate_map_csv(open("notebooks/test_data/Plate_Maps/Finrisk 33-36_plate_map.tsv","r"), qiita_oauth2_conf_fp="qiita.oauth2.cfg.local")'
+
           cat qiita.oauth2.cfg.local
 
       - name: Run tests and measure coverage
         shell: bash -l {0}
         run: |
+          conda activate metapool
           nosetests --with-coverage --cover-inclusive --cover-package metapool
           coverage report
 
