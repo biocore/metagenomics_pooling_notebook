@@ -123,6 +123,7 @@ jobs:
           conda activate metapool
           pip install coveralls
           pip install -e ".[all]"
+          pip install certifi
 
           # create local Qiita connection
           export QIITA_SERVER_CERT=`pwd`/qiita-dev/qiita_core/support_files/server.crt
