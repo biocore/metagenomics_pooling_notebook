@@ -129,8 +129,6 @@ jobs:
           echo -e "[qiita-oauth2]\nURL=https://localhost:8383\nCLIENT_ID=yKDgajoKn5xlOA8tpo48Rq8mWJkH9z4LBCx2SvqWYLIryaan2u\nCLIENT_SECRET=9xhU5rvzq8dHCEI5sSN95jesUULrZi6pT6Wuc71fDbFbsrnWarcSq56TJLN4kP4hH\nSERVER_CERT=${QIITA_SERVER_CERT}" > qiita.oauth2.cfg.local
 
           cat qiita.oauth2.cfg.local
-          ls -la $QIITA_SERVER_CERT
-          ps -elf | grep qiita
 
           python -c 'from metapool.metapool import *; read_plate_map_csv(open("notebooks/test_data/Plate_Maps/Finrisk 33-36_plate_map.tsv","r"), qiita_oauth2_conf_fp="qiita.oauth2.cfg.local")'
 
