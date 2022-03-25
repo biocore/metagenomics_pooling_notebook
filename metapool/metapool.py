@@ -56,7 +56,6 @@ def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
         client_id = parser.get("qiita-oauth2", "CLIENT_ID")
         client_secret = parser.get("qiita-oauth2", "CLIENT_SECRET")
         server_cert = parser.get("qiita-oauth2", "SERVER_CERT")
-        print("===>", url, client_id, client_secret, server_cert)
         qclient = QiitaClient(url, client_id, client_secret, server_cert)
         qiita_validate = True
     else:
