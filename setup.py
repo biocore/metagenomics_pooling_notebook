@@ -37,7 +37,8 @@ with open('README.md') as f:
 keywords = 'microbiome wetlab bioinformatics',
 
 base = ['numpy', 'pandas', 'matplotlib >= 2.0', 'seaborn >= 0.7.1', 'click',
-        'sample_sheet', 'openpyxl']
+        'sample_sheet', 'openpyxl', 'qiita_client @ https://github.com/'
+        'qiita-spots/qiita_client/archive/master.zip']
 test = ["nose", "pep8", "flake8"]
 coverage = ['coverage']
 notebook = ['jupyter', 'notebook', 'jupyter_contrib_nbextensions', 'watermark']

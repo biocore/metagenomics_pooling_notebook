@@ -77,11 +77,11 @@ class Tests(TestCase):
     #     npt.assert_almost_equal(obs_water, exp_water)
     def test_read_plate_map_csv(self):
         plate_map_csv = \
-            'Sample\tRow\tCol\tBlank\n' + \
-            'sam1\tA\t1\tFalse\n' + \
-            'sam2\tA\t2\tFalse\n' + \
-            'blank1\tB\t1\tTrue\n' + \
-            'sam3\tB\t2\tFalse\n'
+            'Sample\tRow\tCol\tBlank\tProject Name\n' + \
+            'sam1\tA\t1\tFalse\tstudy_1\n' + \
+            'sam2\tA\t2\tFalse\tstudy_1\n' + \
+            'blank1\tB\t1\tTrue\tstudy_1\n' + \
+            'sam3\tB\t2\tFalse\tstudy_1\n'
 
         plate_map_f = StringIO(plate_map_csv)
 
@@ -89,6 +89,8 @@ class Tests(TestCase):
                                                 'sam3'],
                                      'Row': ['A', 'A', 'B', 'B'],
                                      'Col': [1, 2, 1, 2],
+                                     'Project Name': ['study_1', 'study_1',
+                                                      'study_1', 'study_1'],
                                      'Well': ['A1', 'A2', 'B1', 'B2'],
                                      'Blank': [False, False, True, False]})
 
@@ -99,20 +101,22 @@ class Tests(TestCase):
 
     def test_read_plate_map_csv_remove_empty_wells(self):
         plate_map_csv = (
-            'Sample\tRow\tCol\tBlank\n'
-            'sam1\tA\t1\tFalse\n'
-            'sam2\tA\t2\tFalse\n'
-            'blank1\tB\t1\tTrue\n'
-            '\tC\t1\tFalse\n'
-            '\tD\t1\tFalse\n'
-            '\tE\t1\tFalse\n'
-            'sam3\tB\t2\tFalse\n'
-            '\tD\t2\tFalse\n')
+            'Sample\tRow\tCol\tBlank\tProject Name\n'
+            'sam1\tA\t1\tFalse\tstudy_1\n'
+            'sam2\tA\t2\tFalse\tstudy_1\n'
+            'blank1\tB\t1\tTrue\tstudy_1\n'
+            '\tC\t1\tFalse\tstudy_1\n'
+            '\tD\t1\tFalse\tstudy_1\n'
+            '\tE\t1\tFalse\tstudy_1\n'
+            'sam3\tB\t2\tFalse\tstudy_1\n'
+            '\tD\t2\tFalse\tstudy_1\n')
 
         plate_map_f = StringIO(plate_map_csv)
         exp = pd.DataFrame({'Sample': ['sam1', 'sam2', 'blank1',
                                        'sam3'],
                             'Row': ['A', 'A', 'B', 'B'],
+                            'Project Name': [
+                                'study_1', 'study_1', 'study_1', 'study_1'],
                             'Col': [1, 2, 1, 2],
                             'Well': ['A1', 'A2', 'B1', 'B2'],
                             'Blank': [False, False, True, False]})
@@ -137,6 +141,41 @@ class Tests(TestCase):
 
         with self.assertRaises(Exception):
             read_plate_map_csv(plate_map_f)
+
+    def test_read_plate_map_csv_validate_qiita_sample_names(self):
+        qiita_oauth2_conf_fp = os.path.join(
+            os.getcwd(), 'qiita.oauth2.cfg.local')
+
+        # Test error
+        plate_map_csv = \
+            'Sample\tRow\tCol\tBlank\tProject Name\n' + \
+            'sam1\tA\t1\tFalse\tstudy_1\n' + \
+            'sam2\tA\t2\tFalse\tstudy_1\n' + \
+            'BLANK1\tB\t1\tTrue\tstudy_1\n' + \
+            'sam3\tB\t2\tFalse\tstudy_1\n'
+        with self.assertRaisesRegex(ValueError, "study_1 has 3 missing "
+                                    r"samples \(i.e. sam1, sam2, sam3\). Some "
+                                    "samples from Qiita: SK"):
+            read_plate_map_csv(StringIO(plate_map_csv),
+                               qiita_oauth2_conf_fp=qiita_oauth2_conf_fp)
+
+        # Test success
+        plate_map_csv = \
+            'Sample\tRow\tCol\tBlank\tProject Name\n' + \
+            'SKM640183\tA\t1\tFalse\tstudy_1\n' + \
+            'SKM7.640188\tA\t2\tFalse\tstudy_1\n' + \
+            'BLANK1\tB\t1\tTrue\tstudy_1\n' + \
+            'SKD3.640198\tB\t2\tFalse\tstudy_1\n'
+        obs = read_plate_map_csv(
+            StringIO(plate_map_csv), qiita_oauth2_conf_fp=qiita_oauth2_conf_fp)
+        exp = pd.DataFrame({
+            'Sample': ['SKM640183', 'SKM7.640188', 'BLANK1', 'SKD3.640198'],
+            'Row': ['A', 'A', 'B', 'B'],
+            'Project Name': ['study_1', 'study_1', 'study_1', 'study_1'],
+            'Col': [1, 2, 1, 2],
+            'Well': ['A1', 'A2', 'B1', 'B2'],
+            'Blank': [False, False, True, False]})
+        pd.testing.assert_frame_equal(obs, exp, check_like=True)
 
     def test_read_pico_csv(self):
         # Test a normal sheet
