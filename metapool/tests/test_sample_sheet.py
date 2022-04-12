@@ -492,10 +492,10 @@ class KLSampleSheetTests(BaseTests):
         self.assertEqual(obs, exp)
 
     def test_validate_missing_assay(self):
-        self.metadata['Assay'] = 'Metatranscriptomics'
+        self.metadata['Assay'] = 'NewAssayType'
 
         obs = _validate_sample_sheet_metadata(self.metadata)
-        exp = [ErrorMessage('Metatranscriptomics is not a supported Assay')]
+        exp = [ErrorMessage('NewAssayType is not a supported Assay')]
         self.assertEqual(obs, exp)
 
     def test_validate_missing_bioinformatics_data(self):
