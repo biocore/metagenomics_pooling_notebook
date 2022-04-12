@@ -776,7 +776,7 @@ class SampleSheetWorkflow(BaseTests):
         exp_bfx = pd.DataFrame(self.metadata['Bioinformatics'])
         exp_contact = pd.DataFrame(self.metadata['Contact'])
 
-        obs = _add_metadata_to_sheet(self.metadata, sheet)
+        obs = _add_metadata_to_sheet(self.metadata, sheet, 'HiSeq4000')
 
         self.assertEqual(obs.Reads, [151, 151])
 
@@ -809,7 +809,7 @@ class SampleSheetWorkflow(BaseTests):
         exp_bfx = pd.DataFrame(self.metadata['Bioinformatics'])
         exp_contact = pd.DataFrame(self.metadata['Contact'])
 
-        obs = _add_metadata_to_sheet(self.metadata, sheet)
+        obs = _add_metadata_to_sheet(self.metadata, sheet, 'HiSeq4000')
 
         self.assertEqual(obs.Reads, [151, 151])
 
@@ -854,7 +854,7 @@ class SampleSheetWorkflow(BaseTests):
         exp_contact = pd.DataFrame(self.metadata['Contact'])
         self.metadata['Date'] = '1970-01-01'
 
-        obs = _add_metadata_to_sheet(self.metadata, sheet)
+        obs = _add_metadata_to_sheet(self.metadata, sheet, 'HiSeq4000')
 
         self.assertEqual(obs.Reads, [151, 151])
         self.assertEqual(obs.Settings, {'ReverseComplement': '0'})
@@ -875,6 +875,17 @@ class SampleSheetWorkflow(BaseTests):
         self.assertEqual(obs.Header, header)
 
         self.assertEqual(len(obs.samples), 1)
+
+    def test_remove_options_for_iseq(self):
+        sheet = KLSampleSheet()
+        self.metadata['Assay'] = 'Metagenomics'
+        obs = _add_metadata_to_sheet(self.metadata, sheet, 'iSeq')
+
+        settings = {
+            'ReverseComplement': '0'
+        }
+
+        self.assertEqual(obs.Settings, settings)
 
 
 class ValidateSampleSheetTests(BaseTests):
