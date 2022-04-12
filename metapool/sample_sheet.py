@@ -45,9 +45,22 @@ _KL_METAGENOMICS_REMAPPER = {
     'Project Name': 'Sample_Project',
 }
 
+_KL_METATRANSCRIPTOMICS_REMAPPER = {
+    'sample sheet Sample_ID': 'Sample_ID',
+    'Sample': 'Sample_Name',
+    'Project Plate': 'Sample_Plate',
+    'Well': 'Sample_Well',
+    'i7 name': 'I7_Index_ID',
+    'i7 sequence': 'index',
+    'i5 name': 'I5_Index_ID',
+    'i5 sequence': 'index2',
+    'Project Name': 'Sample_Project',
+}
+
 _AMPLICON = 'TruSeq HT'
 _METAGENOMICS = 'Metagenomics'
-_ASSAYS = {_AMPLICON, _METAGENOMICS}
+_METATRANSCRIPTOMICS = 'Metatranscriptomics'
+_ASSAYS = {_AMPLICON, _METAGENOMICS, _METATRANSCRIPTOMICS}
 
 _READS = {
     'Read1': 151,
@@ -458,6 +471,8 @@ def _remap_table(table, assay):
         remapper = _KL_AMPLICON_REMAPPER
     elif assay == _METAGENOMICS:
         remapper = _KL_METAGENOMICS_REMAPPER
+    elif assay == _METATRANSCRIPTOMICS:
+        remapper = _KL_METATRANSCRIPTOMICS_REMAPPER
 
     # make a copy because we are going to modify the data
     out = table[remapper.keys()].copy()
@@ -481,7 +496,7 @@ def _add_data_to_sheet(table, sheet, sequencer, lanes, assay):
     table = _remap_table(table, assay)
 
     # for amplicon we don't have reverse barcodes
-    if assay == _METAGENOMICS:
+    if assay != _AMPLICON:
         table['index2'] = sequencer_i5_index(sequencer, table['index2'])
 
         sheet.Bioinformatics['BarcodesAreRC'] = str(
