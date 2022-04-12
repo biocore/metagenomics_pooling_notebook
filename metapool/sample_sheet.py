@@ -462,7 +462,7 @@ def _add_metadata_to_sheet(metadata, sheet, sequencer):
             type_found = sequencer_type
             break
 
-    if type_found == None:
+    if type_found is None:
         # if even the 'iSeq' substring could not be found, this is an
         # unlikely and unexpected value for sequencer.
         raise ErrorMessage(f"{sequencer} isn't a known sequencer")
