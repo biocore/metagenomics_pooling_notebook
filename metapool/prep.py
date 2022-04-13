@@ -40,6 +40,8 @@ AMPLICON_PREP_COLUMN_RENAMER = {
 
 # put together by Gail, based on the instruments we know of
 INSTRUMENT_LOOKUP = pd.DataFrame({
+    'FS10001773': {'machine prefix': 'FS', 'Vocab': 'Illumina iSeq',
+                   'Machine type': 'iSeq', 'run_center': 'KLM'},
     'A00953': {'machine prefix': 'A', 'Vocab': 'Illumina NovaSeq 6000',
                'Machine type': 'NovaSeq', 'run_center': 'IGM'},
     'A00169': {'machine prefix': 'A', 'Vocab': 'Illumina NovaSeq 6000',
@@ -74,15 +76,37 @@ def parse_illumina_run_id(run_id):
     # this regex has two groups, the first one is the date, and the second one
     # is the machine name + suffix. This URL shows some examples
     # tinyurl.com/rmy67kw
-    matches = re.search(r'^(\d{6})_(\w*)', run_id)
+    matches6 = re.search(r'^(\d{6})_(\w*)', run_id)
 
-    if matches is None or len(matches.groups()) != 2:
+    # iSeq uses YYYYMMDD and has a trailing -XXXX value, for example
+    # 20220303_FS10001773_6_BRB11606-1914
+    # So the regex is updated to allow 8 numbers for the date, and to handle
+    # the trailing -XXXX piece
+    matches8 = re.search(r'^(\d{8})_([\w-]*)', run_id)
+
+    if matches6 is None and matches8 is None:
         raise ValueError('Unrecognized run identifier format "%s". The '
-                         'expected format is YYMMDD_machinename_XXXX_FC.' %
+                         'expected format is either '
+                         'YYMMDD_machinename_XXXX_FC or '
+                         'YYYYMMDD_machinename_XXXX-XXXX' %
+                         run_id)
+
+    if matches6 is None:
+        matches = matches8
+        fmt = "%Y%m%d"
+    else:
+        matches = matches6
+        fmt = "%y%m%d"
+
+    if len(matches.groups()) != 2:
+        raise ValueError('Unrecognized run identifier format "%s". The '
+                         'expected format is either '
+                         'YYMMDD_machinename_XXXX_FC or '
+                         'YYYYMMDD_machinename_XXXX-XXXX' %
                          run_id)
 
     # convert illumina's format to qiita's format
-    run_date = datetime.strptime(matches[1], '%y%m%d').strftime('%Y-%m-%d')
+    run_date = datetime.strptime(matches[1], fmt).strftime('%Y-%m-%d')
 
     return run_date, matches[2]
 
@@ -258,7 +282,7 @@ def get_model_and_center(instrument_code):
 
         instrument_model = INSTRUMENT_LOOKUP[
             INSTRUMENT_LOOKUP['machine prefix'] == instrument_prefix
-        ]['Vocab'].unique()[0]
+            ]['Vocab'].unique()[0]
 
     return instrument_model, run_center
 
@@ -386,7 +410,7 @@ def preparations_for_run(run_path, sheet, pipeline='fastp-and-minimap2'):
                 row["run_date"] = run_date
                 row["run_prefix"] = run_prefix
                 row["sequencing_meth"] = "sequencing by synthesis"
-                row["center_name"] = "CENTER_NAME"
+                row["center_name"] = "UCSD"
                 row["center_project_name"] = project_name
 
                 row["instrument_model"] = instrument_model
@@ -478,7 +502,7 @@ def generate_qiita_prep_file(platedf, seqtype):
             'Processing Robot': 'processing_robot',
             'Sample Plate': 'sample_plate',
             'Forward Primer Linker': 'linker',
-            }
+        }
     else:
         column_renamer = {
             'Sample': 'sample_name',
@@ -497,7 +521,7 @@ def generate_qiita_prep_file(platedf, seqtype):
             'Processing Robot': 'processing_robot',
             'Sample Plate': 'sample_plate',
             'Reverse Primer Linker': 'linker'
-            }
+        }
 
     prep = platedf[column_renamer.keys()].copy()
     prep.rename(column_renamer, inplace=True, axis=1)
@@ -536,7 +560,34 @@ def generate_qiita_prep_file(platedf, seqtype):
     else:
         raise ValueError(f'Unrecognized value "{seqtype}" for seqtype')
 
-    return prep
+    # Add eight additional columns to the prep-file that the user will fill in
+    # manually.
+    prep['tm300_8_tool'] = ''
+    prep['tm50_8_tool'] = ''
+    prep['experiment_design_description'] = ''
+    prep['run_date'] = ''
+    prep['run_prefix'] = ''
+    prep['center_project_name'] = ''
+    prep['instrument_model'] = ''
+    prep['runid'] = ''
+
+    # the approved order of columns in the prep-file.
+    column_order = ['sample_name', 'barcode', 'primer', 'primer_plate',
+                    'well_id', 'plating', 'extractionkit_lot',
+                    'extraction_robot', 'tm1000_8_tool', 'primer_date',
+                    'mastermix_lot', 'water_lot',
+                    'processing_robot', 'tm300_8_tool', 'tm50_8_tool',
+                    'sample_plate', 'project_name', 'orig_name',
+                    'well_description', 'experiment_design_description',
+                    'library_construction_protocol', 'linker',
+                    'platform', 'run_center', 'run_date', 'run_prefix',
+                    'pcr_primers', 'sequencing_meth',
+                    'target_gene', 'target_subfragment', 'center_name',
+                    'center_project_name', 'instrument_model',
+                    'runid']
+
+    # reorder the dataframe's columns according to the order in the list above.
+    return prep[column_order]
 
 
 def qiita_scrub_name(name):

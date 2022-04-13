@@ -412,7 +412,7 @@ def _validate_sample_sheet_metadata(metadata):
     return msgs
 
 
-def _add_metadata_to_sheet(metadata, sheet):
+def _add_metadata_to_sheet(metadata, sheet, sequencer):
     # set the default to avoid index errors if only one of the two is provided
     sheet.Reads = [_READS['Read1'], _READS['Read2']]
 
@@ -449,6 +449,29 @@ def _add_metadata_to_sheet(metadata, sheet):
         # bclconvert
         del sheet.Settings['MaskShortReads']
         del sheet.Settings['OverrideCycles']
+
+    # 'MaskShortReads' and 'OverrideCycles' are not relevant for iSeq runs,
+    # and can cause issues downstream.
+
+    # Note: 'iseq' should remain at the tail of this list, since it
+    # is a substring of the others.
+    sequencer_types = ['novaseq', 'hiseq', 'miseq', 'miniseq', 'iseq']
+    type_found = None
+    for sequencer_type in sequencer_types:
+        if sequencer_type in sequencer.lower():
+            type_found = sequencer_type
+            break
+
+    if type_found is None:
+        # if even the 'iSeq' substring could not be found, this is an
+        # unlikely and unexpected value for sequencer.
+        raise ErrorMessage(f"{sequencer} isn't a known sequencer")
+    elif type_found == 'iseq':
+        #   Verify the settings exist before deleting them.
+        if 'MaskShortReads' in sheet.Settings:
+            del sheet.Settings['MaskShortReads']
+        if 'OverrideCycles' in sheet.Settings:
+            del sheet.Settings['OverrideCycles']
 
     return sheet
 
@@ -532,6 +555,10 @@ def make_sample_sheet(metadata, table, sequencer, lanes):
         sequence'), forward and reverse barcode names ('i5 name', 'i7
         name'), description ('Sample'), well identifier ('Well'), project
         plate ('Project Plate'), and project name ('Project Name').
+    sequencer: string
+        A string representing the sequencer used.
+    lanes: list of integers
+        A list of integers representing the lanes used.
 
     Returns
     -------
@@ -547,7 +574,7 @@ def make_sample_sheet(metadata, table, sequencer, lanes):
 
     if len(messages) == 0:
         sheet = KLSampleSheet()
-        sheet = _add_metadata_to_sheet(metadata, sheet)
+        sheet = _add_metadata_to_sheet(metadata, sheet, sequencer)
         sheet = _add_data_to_sheet(table, sheet, sequencer, lanes,
                                    metadata['Assay'])
         return sheet
