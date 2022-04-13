@@ -259,7 +259,7 @@ class Tests(TestCase):
                                     engine='python')
 
         conc_col_name = 'Sample DNA Concentration'
-        check_for_neg.rename(columns = {'Concentration': conc_col_name,
+        check_for_neg.rename(columns={'Concentration': conc_col_name,
                                       'Wells': 'Well'}, inplace=True)
 
         self.assertEqual(any(check_for_neg[conc_col_name] < 0), True)
