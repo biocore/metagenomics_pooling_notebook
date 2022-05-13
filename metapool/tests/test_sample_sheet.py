@@ -193,28 +193,28 @@ class KLSampleSheetTests(BaseTests):
         self.assertEqual(sheet.Settings, {'ReverseComplement': '0'})
 
         data = (
-            '1,sample1,sample1,FooBar_666_p1,A1,iTru7_107_07,CCGACTAT,'
+            '1,sample_1,sample.1,FooBar_666_p1,A1,iTru7_107_07,CCGACTAT,'
             'iTru5_01_A,ACCGACAA,Baz,importantsample1,'
             'KnightLabKapaHP,Eqiiperiment\n'
-            '1,sample2,sample2,FooBar_666_p1,A2,iTru7_107_08,CCGACTAT,'
+            '1,sample_2,sample.2,FooBar_666_p1,A2,iTru7_107_08,CCGACTAT,'
             'iTru5_01_A,CTTCGCAA,Baz,importantsample2,'
             'KnightLabKapaHP,Eqiiperiment\n'
-            '3,sample1,sample1,FooBar_666_p1,A3,iTru7_107_09,GCCTTGTT,'
+            '3,sample_1,sample.1,FooBar_666_p1,A3,iTru7_107_09,GCCTTGTT,'
             'iTru5_01_A,AACACCAC,Baz,importantsample1,'
             'KnightLabKapaHP,Eqiiperiment\n'
-            '3,sample2,sample2,FooBar_666_p1,A4,iTru7_107_10,AACTTGCC,'
+            '3,sample_2,sample.2,FooBar_666_p1,A4,iTru7_107_10,AACTTGCC,'
             'iTru5_01_A,CGTATCTC,Baz,importantsample2,'
             'KnightLabKapaHP,Eqiiperiment\n'
-            '3,sample31,sample31,FooBar_666_p1,A5,iTru7_107_11,CAATGTGG,'
+            '3,sample_31,sample.31,FooBar_666_p1,A5,iTru7_107_11,CAATGTGG,'
             'iTru5_01_A,GGTACGAA,FooBar_666,importantsample31,'
             'KnightLabKapaHP,SomethingWitty\n'
-            '3,sample32,sample32,FooBar_666_p1,B6,iTru7_107_12,AAGGCTGA,'
+            '3,sample_32,sample.32,FooBar_666_p1,B6,iTru7_107_12,AAGGCTGA,'
             'iTru5_01_A,CGATCGAT,FooBar_666,importantsample32,'
             'KnightLabKapaHP,SomethingWitty\n'
-            '3,sample34,sample34,FooBar_666_p1,B8,iTru7_107_13,TTACCGAG,'
+            '3,sample_34,sample.34,FooBar_666_p1,B8,iTru7_107_13,TTACCGAG,'
             'iTru5_01_A,AAGACACC,FooBar_666,importantsample34,'
             'KnightLabKapaHP,SomethingWitty\n'
-            '3,sample44,sample44,Baz_p3,B99,iTru7_107_14,GTCCTAAG,'
+            '3,sample_44,sample.44,Baz_p3,B99,iTru7_107_14,GTCCTAAG,'
             'iTru5_01_A,CATCTGCT,Baz,importantsample44,'
             'KnightLabKapaHP,Eqiiperiment\n'
         )
@@ -1145,8 +1145,8 @@ class ValidateSampleSheetTests(BaseTests):
                    'sample_project', 'well_description',
                    'library_construction_protocol',
                    'experiment_design_description']
-        index = ['sample1', 'sample2', 'sample1', 'sample2', 'sample31',
-                 'sample32', 'sample34', 'sample44']
+        index = ['sample_1', 'sample_2', 'sample_1', 'sample_2', 'sample_31',
+                 'sample_32', 'sample_34', 'sample_44']
 
         exp = pd.DataFrame(index=index, data=DF_DATA, columns=columns)
         exp.index.name = 'sample_id'
@@ -1154,28 +1154,28 @@ class ValidateSampleSheetTests(BaseTests):
 
 
 DF_DATA = [
-    ['1', 'sample1', 'FooBar_666_p1', 'A1', 'iTru7_107_07', 'CCGACTAT',
+    ['1', 'sample.1', 'FooBar_666_p1', 'A1', 'iTru7_107_07', 'CCGACTAT',
      'iTru5_01_A', 'ACCGACAA', 'Baz', 'importantsample1',
      'Knight Lab Kapa HP', 'Eqiiperiment'],
-    ['1', 'sample2', 'FooBar_666_p1', 'A2', 'iTru7_107_08', 'CCGACTAT',
+    ['1', 'sample.2', 'FooBar_666_p1', 'A2', 'iTru7_107_08', 'CCGACTAT',
      'iTru5_01_A', 'CTTCGCAA', 'Baz', 'importantsample2',
      'Knight Lab Kapa HP', 'Eqiiperiment'],
-    ['3', 'sample1', 'FooBar_666_p1', 'A3', 'iTru7_107_09', 'GCCTTGTT',
+    ['3', 'sample.1', 'FooBar_666_p1', 'A3', 'iTru7_107_09', 'GCCTTGTT',
      'iTru5_01_A', 'AACACCAC', 'Baz', 'importantsample1',
      'Knight Lab Kapa HP', 'Eqiiperiment'],
-    ['3', 'sample2', 'FooBar_666_p1', 'A4', 'iTru7_107_10', 'AACTTGCC',
+    ['3', 'sample.2', 'FooBar_666_p1', 'A4', 'iTru7_107_10', 'AACTTGCC',
      'iTru5_01_A', 'CGTATCTC', 'Baz', 'importantsample2',
      'Knight Lab Kapa HP', 'Eqiiperiment'],
-    ['3', 'sample31', 'FooBar_666_p1', 'A5', 'iTru7_107_11', 'CAATGTGG',
+    ['3', 'sample.31', 'FooBar_666_p1', 'A5', 'iTru7_107_11', 'CAATGTGG',
      'iTru5_01_A', 'GGTACGAA', 'FooBar_666', 'importantsample31',
      'Knight Lab Kapa HP', 'SomethingWitty'],
-    ['3', 'sample32', 'FooBar_666_p1', 'B6', 'iTru7_107_12', 'AAGGCTGA',
+    ['3', 'sample.32', 'FooBar_666_p1', 'B6', 'iTru7_107_12', 'AAGGCTGA',
      'iTru5_01_A', 'CGATCGAT', 'FooBar_666', 'importantsample32',
      'Knight Lab Kapa HP', 'SomethingWitty'],
-    ['3', 'sample34', 'FooBar_666_p1', 'B8', 'iTru7_107_13', 'TTACCGAG',
+    ['3', 'sample.34', 'FooBar_666_p1', 'B8', 'iTru7_107_13', 'TTACCGAG',
      'iTru5_01_A', 'AAGACACC', 'FooBar_666', 'importantsample34',
      'Knight Lab Kapa HP', 'SomethingWitty'],
-    ['3', 'sample44', 'Baz_p3', 'B99', 'iTru7_107_14', 'GTCCTAAG',
+    ['3', 'sample.44', 'Baz_p3', 'B99', 'iTru7_107_14', 'GTCCTAAG',
      'iTru5_01_A', 'CATCTGCT', 'Baz', 'importantsample44',
      'Knight Lab Kapa HP', 'Eqiiperiment']]
 

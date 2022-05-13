@@ -40,41 +40,47 @@ class TestPrep(TestCase):
                    'i5_index_id', 'index2', 'lane', 'sample_project',
                    'well_description']
 
-        data = [['importantsample1', 'Eqiiperiment', 'Knight Lab Kapa HP',
-                 'Illumina', 'UCSDMI', '2019-11-03', 'sample1_S11_L003',
+        data = [['sample.1', 'Eqiiperiment', 'Knight Lab Kapa HP',
+                 'Illumina', 'UCSDMI', '2019-11-03', 'sample_1_S11_L003',
                  'sequencing by synthesis', 'UCSD', 'Baz',
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
                  'FooBar_666_p1', 'A3', 'iTru7_107_09', 'GCCTTGTT',
                  'iTru5_01_A', 'AACACCAC', '3', 'Baz',
-                 'FooBar_666_p1.sample1.A3'],
-                ['importantsample44', 'Eqiiperiment', 'Knight Lab Kapa HP',
-                 'Illumina', 'UCSDMI', '2019-11-03', 'sample44_S14_L003',
+                 'FooBar_666_p1.sample.1.A3'],
+                ['sample.44', 'Eqiiperiment', 'Knight Lab Kapa HP',
+                 'Illumina', 'UCSDMI', '2019-11-03', 'sample_44_S14_L003',
                  'sequencing by synthesis', 'UCSD', 'Baz',
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
                  'Baz_p3', 'B99', 'iTru7_107_14', 'GTCCTAAG', 'iTru5_01_A',
-                 'CATCTGCT', '3', 'Baz', 'Baz_p3.sample44.B99']]
+                 'CATCTGCT', '3', 'Baz', 'Baz_p3.sample.44.B99']]
 
         exp = pd.DataFrame(data=data, columns=columns)
+
+        # obs is a dictionary of dataframes, where the keys are tuples of
+        # strings, rather than ordinary strings. We'll use the dataframe
+        # associated w/('191103_D32611_0365_G00DHB5YXX', 'Baz', '3') for
+        # our unittest.
         obs_df = obs[('191103_D32611_0365_G00DHB5YXX', 'Baz', '3')]
 
         # make sure the columns are in the same order before comparing
         obs_df = obs_df[exp.columns].copy()
+
         pd.testing.assert_frame_equal(obs_df, exp)
 
-        data = [['importantsample1', 'Eqiiperiment', 'Knight Lab Kapa HP',
-                 'Illumina', 'UCSDMI', '2019-11-03', 'sample1_S11_L001',
+        data = [['sample.1', 'Eqiiperiment', 'Knight Lab Kapa HP',
+                 'Illumina', 'UCSDMI', '2019-11-03', 'sample_1_S11_L001',
                  'sequencing by synthesis', 'UCSD', 'Baz',
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
                  'FooBar_666_p1', 'A1', 'iTru7_107_07', 'CCGACTAT',
                  'iTru5_01_A', 'ACCGACAA', '1', 'Baz',
-                 'FooBar_666_p1.sample1.A1'],
-                ['importantsample2', 'Eqiiperiment', 'Knight Lab Kapa HP',
-                 'Illumina', 'UCSDMI', '2019-11-03', 'sample2_S10_L001',
+                 'FooBar_666_p1.sample.1.A1'],
+                ['sample.2', 'Eqiiperiment', 'Knight Lab Kapa HP',
+                 'Illumina', 'UCSDMI', '2019-11-03', 'sample_2_S10_L001',
                  'sequencing by synthesis', 'UCSD', 'Baz',
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
                  'FooBar_666_p1', 'A2', 'iTru7_107_08', 'CCGACTAT',
                  'iTru5_01_A', 'CTTCGCAA', '1', 'Baz',
-                 'FooBar_666_p1.sample2.A2']]
+                 'FooBar_666_p1.sample.2.A2']]
         exp = pd.DataFrame(columns=columns, data=data)
         obs_df = obs[('191103_D32611_0365_G00DHB5YXX', 'Baz', '1')]
 
@@ -82,27 +88,27 @@ class TestPrep(TestCase):
         obs_df = obs_df[exp.columns].copy()
         pd.testing.assert_frame_equal(obs_df, exp)
 
-        data = [['importantsample31', 'SomethingWitty', 'Knight Lab Kapa HP',
-                 'Illumina', 'UCSDMI', '2019-11-03', 'sample31_S13_L003',
+        data = [['sample.31', 'SomethingWitty', 'Knight Lab Kapa HP',
+                 'Illumina', 'UCSDMI', '2019-11-03', 'sample_31_S13_L003',
                  'sequencing by synthesis', 'UCSD', 'FooBar',
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
                  'FooBar_666_p1', 'A5', 'iTru7_107_11', 'CAATGTGG',
                  'iTru5_01_A', 'GGTACGAA', '3', 'FooBar_666',
-                 'FooBar_666_p1.sample31.A5'],
-                ['importantsample32', 'SomethingWitty', 'Knight Lab Kapa HP',
-                 'Illumina', 'UCSDMI', '2019-11-03', 'sample32_S19_L003',
+                 'FooBar_666_p1.sample.31.A5'],
+                ['sample.32', 'SomethingWitty', 'Knight Lab Kapa HP',
+                 'Illumina', 'UCSDMI', '2019-11-03', 'sample_32_S19_L003',
                  'sequencing by synthesis', 'UCSD', 'FooBar',
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
                  'FooBar_666_p1', 'B6', 'iTru7_107_12', 'AAGGCTGA',
                  'iTru5_01_A', 'CGATCGAT', '3', 'FooBar_666',
-                 'FooBar_666_p1.sample32.B6'],
-                ['importantsample34', 'SomethingWitty', 'Knight Lab Kapa HP',
-                 'Illumina', 'UCSDMI', '2019-11-03', 'sample34_S33_L003',
+                 'FooBar_666_p1.sample.32.B6'],
+                ['sample.34', 'SomethingWitty', 'Knight Lab Kapa HP',
+                 'Illumina', 'UCSDMI', '2019-11-03', 'sample_34_S33_L003',
                  'sequencing by synthesis', 'UCSD', 'FooBar',
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
                  'FooBar_666_p1', 'B8', 'iTru7_107_13', 'TTACCGAG',
                  'iTru5_01_A', 'AAGACACC', '3', 'FooBar_666',
-                 'FooBar_666_p1.sample34.B8']]
+                 'FooBar_666_p1.sample.34.B8']]
         exp = pd.DataFrame(columns=columns, data=data)
         obs_df = obs[('191103_D32611_0365_G00DHB5YXX', 'FooBar_666', '3')]
 
@@ -112,7 +118,11 @@ class TestPrep(TestCase):
 
     def test_preparations_for_run(self):
         ss = sample_sheet_to_dataframe(KLSampleSheet(self.ss))
-        obs = preparations_for_run(self.good_run, ss,
+
+        # obs will be a dictionary of dataframes, with the keys being
+        # a triplet of strings, rather than a single string.
+        obs = preparations_for_run(self.good_run,
+                                   ss,
                                    pipeline='atropos-and-bowtie2')
         self._check_run_191103_D32611_0365_G00DHB5YXX(obs)
 
@@ -126,11 +136,12 @@ class TestPrep(TestCase):
         with self.assertWarns(UserWarning) as cm:
             obs = preparations_for_run(self.good_run, ss,
                                        pipeline='atropos-and-bowtie2')
-
-            self.assertEqual(str(cm.warnings[0].message), 'These required colu'
-                                                          'mns were not found '
-                                                          'well_description'
-                             )
+            self.assertEqual(str(cm.warnings[0].message), "'well_description' "
+                                                          "is not present in s"
+                                                          "ample-sheet. It is "
+                                                          "not a required colu"
+                                                          "mn but it is a reco"
+                                                          "mmended one.")
             self.assertEqual(str(cm.warnings[1].message), "Using 'description'"
                                                           " instead of 'well_d"
                                                           "escription' because"
@@ -168,34 +179,34 @@ class TestPrep(TestCase):
 
     def test_get_run_prefix(self):
         # project 1
-        obs = get_run_prefix(self.good_run, 'Baz', 'sample1', '1',
+        obs = get_run_prefix(self.good_run, 'Baz', 'sample_1', '1',
                              'atropos-and-bowtie2')
-        self.assertEqual('sample1_S11_L001', obs)
+        self.assertEqual('sample_1_S11_L001', obs)
 
-        obs = get_run_prefix(self.good_run, 'Baz', 'sample1', '3',
+        obs = get_run_prefix(self.good_run, 'Baz', 'sample_1', '3',
                              'atropos-and-bowtie2')
-        self.assertEqual('sample1_S11_L003', obs)
+        self.assertEqual('sample_1_S11_L003', obs)
 
-        obs = get_run_prefix(self.good_run, 'Baz', 'sample2', '1',
+        obs = get_run_prefix(self.good_run, 'Baz', 'sample_2', '1',
                              'atropos-and-bowtie2')
-        self.assertEqual('sample2_S10_L001', obs)
+        self.assertEqual('sample_2_S10_L001', obs)
 
-        obs = get_run_prefix(self.good_run, 'Baz', 'sample2', '3',
+        obs = get_run_prefix(self.good_run, 'Baz', 'sample_2', '3',
                              'atropos-and-bowtie2')
         self.assertIsNone(obs)
 
         # project 2
-        obs = get_run_prefix(self.good_run, 'FooBar_666', 'sample31', '3',
+        obs = get_run_prefix(self.good_run, 'FooBar_666', 'sample_31', '3',
                              'atropos-and-bowtie2')
-        self.assertEqual('sample31_S13_L003', obs)
+        self.assertEqual('sample_31_S13_L003', obs)
 
-        obs = get_run_prefix(self.good_run, 'FooBar_666', 'sample32', '3',
+        obs = get_run_prefix(self.good_run, 'FooBar_666', 'sample_32', '3',
                              'atropos-and-bowtie2')
-        self.assertEqual('sample32_S19_L003', obs)
+        self.assertEqual('sample_32_S19_L003', obs)
 
-        obs = get_run_prefix(self.good_run, 'FooBar_666', 'sample34', '3',
+        obs = get_run_prefix(self.good_run, 'FooBar_666', 'sample_34', '3',
                              'atropos-and-bowtie2')
-        self.assertEqual('sample34_S33_L003', obs)
+        self.assertEqual('sample_34_S33_L003', obs)
 
     def test_get_run_prefix_fastp_minimap(self):
         obs = get_run_prefix(self.good_run_new_version, 'Baz', 'sample1', '1',
@@ -258,18 +269,17 @@ class TestPrep(TestCase):
         self.assertIsNone(obs)
 
     def test_is_non_empty_gz_file(self):
-        non_empty = os.path.join(self.good_run, 'Baz', 'sample2_S10_L001_R1_00'
-                                                       '1.fastq.gz')
+        non_empty = os.path.join(self.good_run, 'Baz', 'sample_2_S10_L001_R1_0'
+                                                       '01.fastq.gz')
         self.assertTrue(is_nonempty_gz_file(non_empty))
-        non_empty = os.path.join(self.good_run, 'Baz', 'sample2_S10_L001_R2_00'
-                                                       '1.fastq.gz')
+        non_empty = os.path.join(self.good_run, 'Baz', 'sample_2_S10_L001_R2_0'
+                                                       '01.fastq.gz')
         self.assertTrue(is_nonempty_gz_file(non_empty))
-
-        empty = os.path.join(self.good_run, 'Baz/atropos_qc/sample2_S10_L003_R'
-                                            '1_001.fastq.gz')
+        empty = os.path.join(self.good_run, 'Baz/atropos_qc/sample_2_S10_L003_'
+                                            'R1_001.fastq.gz')
         self.assertFalse(is_nonempty_gz_file(empty))
-        empty = os.path.join(self.good_run, 'Baz/atropos_qc/sample2_S10_L003_R'
-                                            '2_001.fastq.gz')
+        empty = os.path.join(self.good_run, 'Baz/atropos_qc/sample_2_S10_L003_'
+                                            'R2_001.fastq.gz')
         self.assertFalse(is_nonempty_gz_file(empty))
 
     def test_parse_illumina_run_id(self):
