@@ -8,12 +8,11 @@ from glob import glob
 from datetime import datetime
 from string import ascii_letters, digits
 
-# TODO: Ideally these should be imported from Qiita
 
-REQUIRED_COLUMNS = {'well_description', 'sample_plate', 'sample_well',
-                    'i7_index_id', 'index', 'i5_index_id', 'index2'}
+REQUIRED_COLUMNS = {'sample_plate', 'sample_well', 'i7_index_id', 'index',
+                    'i5_index_id', 'index2', 'sample_name'}
 
-PREP_COLUMNS = ['sample_name', 'experiment_design_description',
+PREP_COLUMNS = ['experiment_design_description', 'well_description',
                 'library_construction_protocol', 'platform', 'run_center',
                 'run_date', 'run_prefix', 'sequencing_meth', 'center_name',
                 'center_project_name', 'instrument_model', 'runid',
@@ -135,7 +134,7 @@ def remove_qiita_id(project_name):
         return matches[1]
 
 
-def get_run_prefix(run_path, project, sample, lane, pipeline):
+def get_run_prefix(run_path, project, sample_id, lane, pipeline):
     """For a sample find the run prefix
 
     Parameters
@@ -144,8 +143,8 @@ def get_run_prefix(run_path, project, sample, lane, pipeline):
         Base path for the run
     project: str
         Name of the project
-    sample: str
-        Sample name
+    sample_id: str
+        Sample ID (was sample_name). Changed to reflect name used for files.
     lane: str
         Lane number
     pipeline: str
@@ -188,15 +187,14 @@ def get_run_prefix(run_path, project, sample, lane, pipeline):
     else:
         raise ValueError('Invalid pipeline "%s"' % pipeline)
 
-    results = glob(os.path.join(path, '%s_S*_L*%s_R*.fastq.gz' %
-                                (sample, lane)))
+    search_me = '%s_S*_L*%s_R*.fastq.gz' % (sample_id, lane)
+
+    results = glob(os.path.join(path, search_me))
 
     # at this stage there should only be two files forward and reverse
     if len(results) == 2:
         forward, reverse = sorted(results)
-
         if is_nonempty_gz_file(forward) and is_nonempty_gz_file(reverse):
-
             f, r = os.path.basename(forward), os.path.basename(reverse)
             if len(f) != len(r):
                 raise ValueError("Forward and reverse sequences filenames "
@@ -217,8 +215,10 @@ def get_run_prefix(run_path, project, sample, lane, pipeline):
     elif len(results) > 2:
         warnings.warn(('There are %d matches for sample "%s" in lane %s. Only'
                        ' two matches are allowed (forward and reverse): %s') %
-                      (len(results), sample, lane, ', '.join(sorted(results))))
-
+                      (len(results),
+                       sample_id,
+                       lane,
+                       ', '.join(sorted(results))))
     return None
 
 
@@ -364,20 +364,32 @@ def preparations_for_run(run_path, sheet, pipeline='fastp-and-minimap2'):
     output = {}
 
     not_present = REQUIRED_COLUMNS - set(sheet.columns)
+
     if not_present:
-        warnings.warn('These required columns were not found %s'
-                      % ', '.join(not_present), UserWarning)
-        for col in not_present:
-            if col == 'well_description':
-                warnings.warn("Using 'description' instead of "
-                              "'well_description' because that column "
-                              "isn't present", UserWarning)
-                sheet[col] = sheet['description'].copy()
-            else:
-                sheet[col] = 'MISSING_FROM_THE_SAMPLE_SHEET'
+        raise ValueError("Required columns are missing: %s" %
+                         ', '.join(not_present))
+
+    # well_description is no longer a required column, since the sample-name
+    #  is now taken from column sample_name, which is distinct from sample_id.
+    # sample_id remains the version of sample_name acceptable to bcl2fastq/
+    #  bcl-convert, while sample_name is now the original string. The
+    #  well_description and description columns are no longer needed or
+    #  required, but a warning will be generated if neither are present as
+    #  they are customarily present.
+
+    # if 'well_description' is defined instead as 'description', rename it.
+    # well_description is a recommended column but is not required.
+    if 'well_description' not in set(sheet.columns):
+        warnings.warn("'well_description' is not present in sample-sheet. It "
+                      "is not a required column but it is a recommended one.")
+        if 'description' in sheet:
+            warnings.warn("Using 'description' instead of 'well_description'"
+                          " because that column isn't present", UserWarning)
+            # copy and drop the original column
+            sheet['well_description'] = sheet['description'].copy()
+            sheet.drop('description', axis=1, inplace=True)
 
     for project, project_sheet in sheet.groupby('sample_project'):
-
         project_name = remove_qiita_id(project)
         qiita_id = project.replace(project_name + '_', '')
 
@@ -386,12 +398,14 @@ def preparations_for_run(run_path, sheet, pipeline='fastp-and-minimap2'):
             qiita_id = 'QIITA-ID'
 
         for lane, lane_sheet in project_sheet.groupby('lane'):
-
             # this is the portion of the loop that creates the prep
             data = []
-            for sample_name, sample in lane_sheet.iterrows():
-                run_prefix = get_run_prefix(run_path, project, sample_name,
-                                            lane, pipeline)
+            for sample_id, sample in lane_sheet.iterrows():
+                run_prefix = get_run_prefix(run_path,
+                                            project,
+                                            sample_id,
+                                            lane,
+                                            pipeline)
 
                 # we don't care about the sample if there's no file
                 if run_prefix is None:
@@ -399,8 +413,7 @@ def preparations_for_run(run_path, sheet, pipeline='fastp-and-minimap2'):
 
                 row = {c: '' for c in PREP_COLUMNS}
 
-                row["sample_name"] = sample.well_description
-
+                row["sample_name"] = sample.sample_name
                 row["experiment_design_description"] = \
                     sample.experiment_design_description
                 row["library_construction_protocol"] = \
@@ -412,7 +425,6 @@ def preparations_for_run(run_path, sheet, pipeline='fastp-and-minimap2'):
                 row["sequencing_meth"] = "sequencing by synthesis"
                 row["center_name"] = "UCSD"
                 row["center_project_name"] = project_name
-
                 row["instrument_model"] = instrument_model
                 row["runid"] = run_id
                 row["sample_plate"] = sample.sample_plate
@@ -437,7 +449,9 @@ def preparations_for_run(run_path, sheet, pipeline='fastp-and-minimap2'):
             # to grow this study with more and more runs. So we fill some of
             # the blanks if we can verify the study id corresponds to the AGP.
             # This was a request by Daniel McDonald and Gail
-            prep = agp_transform(pd.DataFrame(columns=PREP_COLUMNS, data=data),
+
+            prep = agp_transform(pd.DataFrame(columns=PREP_COLUMNS,
+                                              data=data),
                                  qiita_id)
 
             _check_invalid_names(prep.sample_name)
