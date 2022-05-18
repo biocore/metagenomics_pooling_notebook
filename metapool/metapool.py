@@ -198,7 +198,6 @@ def calculate_norm_vol(dna_concs, ng=5, min_vol=2.5, max_vol=3500,
     sample_vols : numpy array of float
         The volumes to pool (nL)
     """
-    # TODO: possible divide by zero warnings.
     sample_vols = ng / np.nan_to_num(dna_concs) * 1000
 
     sample_vols = np.clip(sample_vols, min_vol, max_vol)

@@ -8,14 +8,6 @@ from glob import glob
 from datetime import datetime
 from string import ascii_letters, digits
 
-# TODO: Ideally these should be imported from Qiita
-
-# well_description is no longer a required column, since the sample-name
-#  is now taken from column sample_name, which is distinct from sample_id.
-# sample_id remains the version of sample_name acceptable to bcl2fastq/bcl-
-#  convert, while sample_name is now the original string. The well_description
-# and description columns are no longer needed or required, but a warning will
-# be generated if neither are present as they are customarily present.
 
 REQUIRED_COLUMNS = {'sample_plate', 'sample_well', 'i7_index_id', 'index',
                     'i5_index_id', 'index2', 'sample_name'}
@@ -376,6 +368,14 @@ def preparations_for_run(run_path, sheet, pipeline='fastp-and-minimap2'):
     if not_present:
         raise ValueError("Required columns are missing: %s" %
                          ', '.join(not_present))
+
+    # well_description is no longer a required column, since the sample-name
+    #  is now taken from column sample_name, which is distinct from sample_id.
+    # sample_id remains the version of sample_name acceptable to bcl2fastq/
+    #  bcl-convert, while sample_name is now the original string. The
+    #  well_description and description columns are no longer needed or
+    #  required, but a warning will be generated if neither are present as
+    #  they are customarily present.
 
     # if 'well_description' is defined instead as 'description', rename it.
     # well_description is a recommended column but is not required.
