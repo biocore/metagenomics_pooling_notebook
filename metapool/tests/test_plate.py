@@ -5,7 +5,95 @@ from unittest import TestCase, main
 from metapool.plate import (_well_to_row_and_col, _decompress_well,
                             _plate_position, validate_plate_metadata,
                             _validate_plate, Message, ErrorMessage,
-                            WarningMessage)
+                            WarningMessage, requires_dilution, dilute_gDNA,
+                            find_threshold, autopool)
+from metapool.metapool import (read_plate_map_csv, read_pico_csv,
+                               calculate_norm_vol, assign_index,
+                               compute_pico_concentration)
+
+
+class DilutionTests(TestCase):
+    def test_dilution_test(self):
+        plate_df = read_plate_map_csv('notebooks/test_data/Plate_Maps/Finrisk'
+                                      ' 33-36_plate_map.tsv')
+        sample_concs = read_pico_csv(open('notebooks/test_data/Quant/MiniPico'
+                                          '/FinRisk_33-36_gDNA_quant.tsv',
+                                          'r'))
+        plate_df = pd.merge(plate_df, sample_concs, on='Well')
+
+        self.assertFalse(requires_dilution(plate_df,
+                                           threshold=20,
+                                           tolerance=.10))
+        self.assertTrue(requires_dilution(plate_df,
+                                          threshold=10,
+                                          tolerance=.10))
+
+        # these values shouldn't change
+        self.assertEqual(plate_df['Sample DNA Concentration'][0], 0.044)
+        self.assertEqual(plate_df['Sample DNA Concentration'][2], 3.336)
+        self.assertEqual(plate_df['Sample DNA Concentration'][3], 1.529)
+        self.assertEqual(plate_df['Sample DNA Concentration'][4], 6.705)
+
+        # these should change
+        self.assertEqual(plate_df['Sample DNA Concentration'][1], 25.654)
+        self.assertEqual(plate_df['Sample DNA Concentration'][8], 12.605)
+        self.assertEqual(plate_df['Sample DNA Concentration'][9], 12.378)
+        self.assertEqual(plate_df['Sample DNA Concentration'][10], 10.595)
+
+        plate_df = dilute_gDNA(plate_df, threshold=10)
+
+        # these values shouldn't change
+        self.assertEqual(plate_df['Sample DNA Concentration'][0], 0.044)
+        self.assertEqual(plate_df['Sample DNA Concentration'][2], 3.336)
+        self.assertEqual(plate_df['Sample DNA Concentration'][3], 1.529)
+        self.assertEqual(plate_df['Sample DNA Concentration'][4], 6.705)
+
+        # these should change
+        self.assertEqual(plate_df['Sample DNA Concentration'][1], 2.5654)
+        self.assertEqual(plate_df['Sample DNA Concentration'][8], 1.2605)
+        self.assertEqual(plate_df['Sample DNA Concentration'][9], 1.2378)
+        self.assertEqual(plate_df['Sample DNA Concentration'][10], 1.0595)
+
+    def test_find_threshold_autopool(self):
+        plate_map_fp = ('notebooks/test_data/Plate_Maps/'
+                        'Finrisk 33-36_plate_map.tsv')
+        plate_df = read_plate_map_csv(plate_map_fp)
+        sample_concs_fp = ('notebooks/test_data/Quant/MiniPico/'
+                           'FinRisk_33-36_gDNA_quant.tsv')
+        sample_concs = read_pico_csv(open(sample_concs_fp, 'r'))
+        plate_df = pd.merge(plate_df, sample_concs, on='Well')
+        total_vol = 3500
+        dna_vols = calculate_norm_vol(plate_df['Sample DNA Concentration'],
+                                      ng=5, min_vol=25, max_vol=3500,
+                                      resolution=2.5)
+        plate_df['Normalized DNA volume'] = dna_vols
+        plate_df['Normalized water volume'] = total_vol - dna_vols
+        plate_df['Library Well'] = plate_df['Well']
+        index_combos = pd.read_csv('notebooks/test_output/iTru/'
+                                   'temp_iTru_combos.csv')
+        indices = assign_index(len(plate_df['Sample']),
+                               index_combos,
+                               start_idx=0).reset_index()
+        plate_df = pd.concat([plate_df, indices], axis=1)
+        lib_concs_fp = ('notebooks/test_data/Quant/MiniPico/'
+                        '10-13-17_FinRisk_33-36_library_quant.txt')
+        col_name = 'MiniPico Library DNA Concentration'
+        lib_concs = read_pico_csv(open(lib_concs_fp, 'r'),
+                                  conc_col_name=col_name)
+        plate_df = pd.merge(plate_df, lib_concs, on='Well')
+        result = compute_pico_concentration(plate_df[col_name], size=500)
+        plate_df['MiniPico Library Concentration'] = result
+        col1 = 'Sample DNA Concentration'
+        col2 = 'Normalized DNA volume'
+        plate_df['Input DNA'] = plate_df[col1] * plate_df[col2] / 1000
+        threshold = find_threshold(plate_df['MiniPico Library Concentration'],
+                                   plate_df['Blank'])
+        self.assertAlmostEqual(5.8818, threshold, places=4)
+        plate_df = autopool(plate_df, method='norm', pool_failures='high',
+                            automate=True, floor_conc=threshold, offset=0.01)
+        self.assertEqual(plate_df['MiniPico Pooled Volume'].tolist()[0:6],
+                         [1000.0, 314.5959409755514, 217.8574480616536,
+                          295.68518270050976, 236.59171073317077, 1000.0])
 
 
 class PlateHelperTests(TestCase):

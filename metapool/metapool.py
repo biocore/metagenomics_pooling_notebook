@@ -1,3 +1,4 @@
+import json
 import re
 import numpy as np
 import pandas as pd
@@ -5,17 +6,93 @@ import string
 import seaborn as sns
 import matplotlib.pyplot as plt
 import warnings
-
 from random import choices
 from configparser import ConfigParser
 from qiita_client import QiitaClient
-
 from .prep import remove_qiita_id
 
 
 REVCOMP_SEQUENCERS = ['HiSeq4000', 'MiniSeq', 'NextSeq', 'HiSeq3000',
                       'iSeq', 'NovaSeq']
 OTHER_SEQUENCERS = ['HiSeq2500', 'HiSeq1500', 'MiSeq']
+
+
+def _parse_stats_lane(lane_dict):
+    IndexSequence = []
+    Mismatch0 = []
+    Mismatch1 = []
+    NumberReads = []
+    YieldR1 = []
+    YieldQ30R1 = []
+    YieldR2 = []
+    YieldQ30R2 = []
+    SampleId = []
+    SampleName = []
+    Yield = []
+
+    for sample in lane_dict['DemuxResults']:
+        IndexSequence.append(sample['IndexMetrics'][0]['IndexSequence'])
+        Mismatch0.append(sample['IndexMetrics'][0]['MismatchCounts']['0'])
+        Mismatch1.append(sample['IndexMetrics'][0]['MismatchCounts']['1'])
+        NumberReads.append(sample['NumberReads'])
+        YieldR1.append(sample['ReadMetrics'][0]['Yield'])
+        YieldQ30R1.append(sample['ReadMetrics'][0]['YieldQ30'])
+        YieldR2.append(sample['ReadMetrics'][1]['Yield'])
+        YieldQ30R2.append(sample['ReadMetrics'][1]['YieldQ30'])
+        SampleId.append(sample['SampleId'])
+        SampleName.append(sample['SampleName'])
+        Yield.append(sample['Yield'])
+
+    return pd.DataFrame({'IndexSequence': IndexSequence,
+                         'Mismatch0': Mismatch0,
+                         'Mismatch1': Mismatch1,
+                         'NumberReads': NumberReads,
+                         'YieldR1': YieldR1,
+                         'YieldQ30R1': YieldQ30R1,
+                         'YieldR2': YieldR2,
+                         'YieldQ30R2': YieldQ30R2,
+                         'SampleId': SampleId,
+                         'SampleName': SampleName,
+                         'Yield': Yield})
+
+
+def parse_stats_json(stats_fp, lanes, sum_lanes=True):
+    with open(stats_fp, 'r') as f:
+        stats = json.load(f)
+
+        # store lane-wide info to a dict
+        lane_stats = {'Flowcell': stats['Flowcell'],
+                      'RunNumber': stats['RunNumber'],
+                      'RunId': stats['RunId']}
+
+        # store per-sample stats
+        lane_dfs = {}
+        unknown_dfs = {}
+
+        for lane in lanes:
+            lane_dfs[lane] = _parse_stats_lane(
+                stats['ConversionResults'][lane - 1]).set_index(
+                ['IndexSequence', 'SampleName', 'SampleId'])
+            lane_dfs[lane] = pd.concat(
+                [lane_dfs[lane].rename_axis("stat", axis="columns")],
+                keys=[lane], names=['Lane'], axis=1)
+
+            unknown_dfs[lane] = pd.DataFrame.from_dict(
+                stats['UnknownBarcodes'][lane - 1]['Barcodes'], orient='index')
+            unknown_dfs[lane] = pd.concat(
+                [unknown_dfs[lane].rename_axis("stat", axis="columns")],
+                keys=[lane], names=['Lane'], axis=1)
+
+        df = pd.concat(lane_dfs.values(), axis=1).reorder_levels(
+            ['stat', 'Lane'], axis='columns')
+        unk = pd.concat(unknown_dfs.values(), axis=1).reorder_levels(
+            ['stat', 'Lane'], axis='columns')
+
+        if sum_lanes:
+            df = df.sum(level='stat', axis=1, numeric_only=True)
+            unk = unk.sum(level='stat', axis=1, numeric_only=True)
+
+        return lane_stats, df, unk
 
 
 def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
@@ -108,7 +185,6 @@ def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
                     error_tube_id = (
                         f'tube_id in Qiita but {len_tube_id_overlap} missing '
                         f'samples. Some samples from tube_id: {tids_example}.')
-
                 len_overlap = len(sample_name_diff)
                 samples_example = ', '.join(choices(list(qsamples), k=5))
                 missing = ', '.join(sorted(sample_name_diff)[:4])
@@ -116,7 +192,6 @@ def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
                     f'{project} has {len_overlap} missing samples (i.e. '
                     f'{missing}). Some samples from Qiita: {samples_example}. '
                     f'{error_tube_id}')
-
         if errors:
             raise ValueError('\n'.join(errors))
 

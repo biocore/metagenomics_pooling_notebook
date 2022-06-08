@@ -18,11 +18,11 @@ from metapool.metapool import (read_plate_map_csv, read_pico_csv,
                                make_2D_array, combine_dfs,
                                add_dna_conc, compute_pico_concentration,
                                bcl_scrub_name, rc, sequencer_i5_index,
-                               reformat_interleaved_to_columns)
+                               reformat_interleaved_to_columns,
+                               parse_stats_json)
 
 
 class Tests(TestCase):
-
     def setUp(self):
         self.maxDiff = None
         self.cp_vals = np.array([[10.14, 7.89, 7.9, 15.48],
@@ -718,6 +718,44 @@ class Tests(TestCase):
         obs = reformat_interleaved_to_columns(wells)
 
         np.testing.assert_array_equal(exp, obs)
+
+    def test_parse_stats_json(self):
+        fp = 'notebooks/test_data/Demux/Stats.json'
+        obs_lm, obs_df, _ = parse_stats_json(fp, [5])
+        exp_lm = {"Flowcell": "HLHWHBBXX",
+                  "RunNumber": 458,
+                  "RunId": "171006_K00180_0458_AHLHWHBBXX_RKL003_FinRisk_17_48"
+                  }
+        # compare lane metadata
+        self.assertDictEqual(obs_lm, exp_lm)
+        # compare data-frames
+        obs_fr = obs_df.iloc[[0]].to_dict(orient='records')[0]
+        obs_lr = obs_df.iloc[[-1]].to_dict(orient='records')[0]
+
+        exp_fr = {
+            "Mismatch0": 137276,
+            "Mismatch1": 6458,
+            "NumberReads": 143734,
+            "YieldR1": 21703834,
+            "YieldQ30R1": 19772948,
+            "YieldR2": 21703834,
+            "YieldQ30R2": 17555284,
+            "Yield": 43407668
+        }
+
+        exp_lr = {
+            "Mismatch0": 894502,
+            "Mismatch1": 42048,
+            "NumberReads": 936550,
+            "YieldR1": 141419050,
+            "YieldQ30R1": 126289116,
+            "YieldR2": 141419050,
+            "YieldQ30R2": 116636541,
+            "Yield": 282838100
+        }
+
+        self.assertDictEqual(obs_fr, exp_fr)
+        self.assertDictEqual(obs_lr, exp_lr)
 
 
 if __name__ == "__main__":
