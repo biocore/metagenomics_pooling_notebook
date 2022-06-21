@@ -8,7 +8,7 @@ from .plate import (validate_plate_metadata, requires_dilution, dilute_gDNA,
 from .amplipool import assign_emp_index
 from .igm import IGMManifest
 from .count import run_counts
-from .metapool import parse_stats_json
+from .metapool import extract_stats_metadata
 
 __credits__ = ("https://github.com/biocore/metagenomics_pooling_notebook/"
                "graphs/contributors")
@@ -18,7 +18,7 @@ __all__ = ['preparations_for_run', 'parse_prep', 'generate_qiita_prep_file',
            'quiet_validate_and_scrub_sample_sheet', 'validate_plate_metadata',
            'assign_emp_index', 'IGMManifest', 'run_counts',
            'requires_dilution', 'dilute_gDNA', 'autopool', 'find_threshold',
-           'parse_stats_json']
+           'extract_stats_metadata']
 
 from . import _version
 

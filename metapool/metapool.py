@@ -17,82 +17,112 @@ REVCOMP_SEQUENCERS = ['HiSeq4000', 'MiniSeq', 'NextSeq', 'HiSeq3000',
 OTHER_SEQUENCERS = ['HiSeq2500', 'HiSeq1500', 'MiSeq']
 
 
-def _parse_stats_lane(lane_dict):
-    IndexSequence = []
-    Mismatch0 = []
-    Mismatch1 = []
-    NumberReads = []
-    YieldR1 = []
-    YieldQ30R1 = []
-    YieldR2 = []
-    YieldQ30R2 = []
-    SampleId = []
-    SampleName = []
-    Yield = []
-
-    for sample in lane_dict['DemuxResults']:
-        IndexSequence.append(sample['IndexMetrics'][0]['IndexSequence'])
-        Mismatch0.append(sample['IndexMetrics'][0]['MismatchCounts']['0'])
-        Mismatch1.append(sample['IndexMetrics'][0]['MismatchCounts']['1'])
-        NumberReads.append(sample['NumberReads'])
-        YieldR1.append(sample['ReadMetrics'][0]['Yield'])
-        YieldQ30R1.append(sample['ReadMetrics'][0]['YieldQ30'])
-        YieldR2.append(sample['ReadMetrics'][1]['Yield'])
-        YieldQ30R2.append(sample['ReadMetrics'][1]['YieldQ30'])
-        SampleId.append(sample['SampleId'])
-        SampleName.append(sample['SampleName'])
-        Yield.append(sample['Yield'])
-
-    return pd.DataFrame({'IndexSequence': IndexSequence,
-                         'Mismatch0': Mismatch0,
-                         'Mismatch1': Mismatch1,
-                         'NumberReads': NumberReads,
-                         'YieldR1': YieldR1,
-                         'YieldQ30R1': YieldQ30R1,
-                         'YieldR2': YieldR2,
-                         'YieldQ30R2': YieldQ30R2,
-                         'SampleId': SampleId,
-                         'SampleName': SampleName,
-                         'Yield': Yield})
-
-
-def parse_stats_json(stats_fp, lanes, sum_lanes=True):
-    with open(stats_fp, 'r') as f:
+def extract_stats_metadata(stats_json_fp, lane_numbers):
+    """
+    Extract metadata from Stats.json file.
+    :param stats_json_fp: A file-path to Stats.json file.
+    :param lane_numbers: A list of ints (lane-numbers) to extract metadata for.
+    :return: A legacy 3-tuple containing:
+                A dict() containing metadata,
+                A DataFrame() containing conversion-results,
+                A DataFrame() containing unknown barcodes found.
+    """
+    with open(stats_json_fp, 'r') as f:
         stats = json.load(f)
 
-        # store lane-wide info to a dict
-        lane_stats = {'Flowcell': stats['Flowcell'],
-                      'RunNumber': stats['RunNumber'],
-                      'RunId': stats['RunId']}
+    # gather general metadata
+    flowcell = stats['Flowcell']
+    run_number = stats['RunNumber']
+    run_id = stats['RunId']
+    conversion_results = stats['ConversionResults']
+    unknown_barcodes = stats['UnknownBarcodes']
 
-        # store per-sample stats
-        lane_dfs = {}
-        unknown_dfs = {}
+    # lane_numbers must be a list with one or more valid lane_numbers.
+    valid_lane_numbers = [x['LaneNumber'] for x in conversion_results]
+    if not set(valid_lane_numbers).issuperset(set(lane_numbers)):
+        raise ValueError(f"Valid lane numbers are: {valid_lane_numbers}")
 
-        for lane in lanes:
-            lane_dfs[lane] = _parse_stats_lane(
-                stats['ConversionResults'][lane - 1]).set_index(
-                ['IndexSequence', 'SampleName', 'SampleId'])
-            lane_dfs[lane] = pd.concat(
-                [lane_dfs[lane].rename_axis("stat", axis="columns")],
-                keys=[lane], names=['Lane'], axis=1)
+    # extract conversion_results from a list of nested dicts to a list of
+    # dataframes containing only the information required.
+    filtered_results = []
+    for conversion_result in conversion_results:
+        if conversion_result['LaneNumber'] in lane_numbers:
+            # process the metadata for this lane.
+            lane_number = conversion_result['LaneNumber']
+            rows = []
+            for demux_result in conversion_result['DemuxResults']:
+                # these prefixes are meant to simplify access for deeply
+                # nested elements.
+                index_metrics = demux_result['IndexMetrics'][0]
+                read_metrics_0 = demux_result['ReadMetrics'][0]
+                read_metrics_1 = demux_result['ReadMetrics'][1]
 
-            unknown_dfs[lane] = pd.DataFrame.from_dict(
-                stats['UnknownBarcodes'][lane - 1]['Barcodes'], orient='index')
-            unknown_dfs[lane] = pd.concat(
-                [unknown_dfs[lane].rename_axis("stat", axis="columns")],
-                keys=[lane], names=['Lane'], axis=1)
+                # extract required general metadata.
+                number_reads = demux_result['NumberReads']
+                sample_id = demux_result['SampleId']
+                sample_name = demux_result['SampleName']
+                primary_yield = demux_result['Yield']
 
-        df = pd.concat(lane_dfs.values(), axis=1).reorder_levels(
-            ['stat', 'Lane'], axis='columns')
-        unk = pd.concat(unknown_dfs.values(), axis=1).reorder_levels(
-            ['stat', 'Lane'], axis='columns')
+                # extract required index-metrics.
+                index_sequence = index_metrics['IndexSequence']
+                mismatch_0 = index_metrics['MismatchCounts']['0']
+                mismatch_1 = index_metrics['MismatchCounts']['1']
 
-        if sum_lanes:
-            df = df.sum(level='stat', axis=1, numeric_only=True)
-            unk = unk.sum(level='stat', axis=1, numeric_only=True)
+                # extract required read-metrics.
+                yield_r1 = read_metrics_0['Yield']
+                yield_q30r1 = read_metrics_0['YieldQ30']
+                yield_r2 = read_metrics_1['Yield']
+                yield_q30r2 = read_metrics_1['YieldQ30']
 
-        return lane_stats, df, unk
+                # store data as a tuple until processing is complete.
+                # order the tuple in legacy order, for backwards-compatibility.
+                rows.append((index_sequence, sample_name, sample_id,
+                             lane_number, mismatch_0, mismatch_1, number_reads,
+                             yield_r1, yield_q30r1, yield_r2, yield_q30r2,
+                             primary_yield))
+
+            # create dataframe at one time using all rows, instead of using
+            # concat() or append(). columns listed in legacy order,
+            # for backwards-compatibility.
+            filtered_results.append(pd.DataFrame(rows,
+                                                   columns=['IndexSequence',
+                                                            'SampleName',
+                                                            'SampleId',
+                                                            'Lane',
+                                                            'Mismatch0',
+                                                            'Mismatch1',
+                                                            'NumberReads',
+                                                            'YieldR1',
+                                                            'YieldQ30R1',
+                                                            'YieldR2',
+                                                            'YieldQ30R2',
+                                                            'Yield']))
+    filtered_unknowns = []
+    for unknown_barcode in unknown_barcodes:
+        if unknown_barcode['Lane'] in lane_numbers:
+            df = pd.DataFrame.from_dict(unknown_barcode['Barcodes'],
+                                        orient='index')
+            filtered_unknowns.append(df)
+
+    # convert the list of dataframes into a single dataframe spanning all
+    # selected lanes.
+    filtered_unknowns = pd.concat(filtered_unknowns)
+    filtered_results = pd.concat(filtered_results)
+
+    # set index to legacy index + lane-number.
+    filtered_results = filtered_results.set_index(['IndexSequence',
+                                                   'SampleName',
+                                                   'SampleId'])
+
+    # This code needs to return the metadata up top, plus this dataframe,
+    # plus another dataframe for unknown whatevers. Note that after these
+    # frames are returned, traditionally they are tucked up by additional
+    # transformations. try to mimic those if you have to.
+    # return general metadata (in legacy format), along with conversion-
+    # results metadata and unknown-barcodes metadata.
+    return {'Flowcell': flowcell,
+            'RunNumber': run_number,
+            'RunId': run_id}, filtered_results, filtered_unknowns
 
 
 def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
