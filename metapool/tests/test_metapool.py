@@ -19,7 +19,7 @@ from metapool.metapool import (read_plate_map_csv, read_pico_csv,
                                add_dna_conc, compute_pico_concentration,
                                bcl_scrub_name, rc, sequencer_i5_index,
                                reformat_interleaved_to_columns,
-                               parse_stats_json)
+                               extract_stats_metadata)
 
 
 class Tests(TestCase):
@@ -719,9 +719,9 @@ class Tests(TestCase):
 
         np.testing.assert_array_equal(exp, obs)
 
-    def test_parse_stats_json(self):
+    def test_extract_stats_metadata(self):
         fp = 'notebooks/test_data/Demux/Stats.json'
-        obs_lm, obs_df, _ = parse_stats_json(fp, [5])
+        obs_lm, obs_df, _ = extract_stats_metadata(fp, [5])
         exp_lm = {"Flowcell": "HLHWHBBXX",
                   "RunNumber": 458,
                   "RunId": "171006_K00180_0458_AHLHWHBBXX_RKL003_FinRisk_17_48"
