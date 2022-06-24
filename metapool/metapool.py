@@ -85,18 +85,18 @@ def extract_stats_metadata(stats_json_fp, lane_numbers):
             # concat() or append(). columns listed in legacy order,
             # for backwards-compatibility.
             filtered_results.append(pd.DataFrame(rows,
-                                                   columns=['IndexSequence',
-                                                            'SampleName',
-                                                            'SampleId',
-                                                            'Lane',
-                                                            'Mismatch0',
-                                                            'Mismatch1',
-                                                            'NumberReads',
-                                                            'YieldR1',
-                                                            'YieldQ30R1',
-                                                            'YieldR2',
-                                                            'YieldQ30R2',
-                                                            'Yield']))
+                                                 columns=['IndexSequence',
+                                                          'SampleName',
+                                                          'SampleId',
+                                                          'Lane',
+                                                          'Mismatch0',
+                                                          'Mismatch1',
+                                                          'NumberReads',
+                                                          'YieldR1',
+                                                          'YieldQ30R1',
+                                                          'YieldR2',
+                                                          'YieldQ30R2',
+                                                          'Yield']))
     filtered_unknowns = []
     for unknown_barcode in unknown_barcodes:
         if unknown_barcode['Lane'] in lane_numbers:

@@ -733,6 +733,7 @@ class Tests(TestCase):
         obs_lr = obs_df.iloc[[-1]].to_dict(orient='records')[0]
 
         exp_fr = {
+            "Lane": 5,
             "Mismatch0": 137276,
             "Mismatch1": 6458,
             "NumberReads": 143734,
@@ -744,6 +745,7 @@ class Tests(TestCase):
         }
 
         exp_lr = {
+            "Lane": 5,
             "Mismatch0": 894502,
             "Mismatch1": 42048,
             "NumberReads": 936550,
