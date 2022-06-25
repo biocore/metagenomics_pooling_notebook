@@ -19,7 +19,7 @@ from metapool.metapool import (read_plate_map_csv, read_pico_csv,
                                add_dna_conc, compute_pico_concentration,
                                bcl_scrub_name, rc, sequencer_i5_index,
                                reformat_interleaved_to_columns,
-                               extract_stats_metadata)
+                               extract_stats_metadata, sum_lanes)
 
 
 class Tests(TestCase):

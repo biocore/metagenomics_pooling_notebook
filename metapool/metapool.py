@@ -100,8 +100,10 @@ def extract_stats_metadata(stats_json_fp, lane_numbers):
     filtered_unknowns = []
     for unknown_barcode in unknown_barcodes:
         if unknown_barcode['Lane'] in lane_numbers:
-            df = pd.DataFrame.from_dict(unknown_barcode['Barcodes'],
-                                        orient='index')
+            # convert dict of (k,v) pairs into list form.
+            l = [(k, unknown_barcode['Lane'], v) for k, v in
+                 unknown_barcode['Barcodes'].items()]
+            df = pd.DataFrame(l, columns=['IndexSequence', 'Lane', 'Value'])
             filtered_unknowns.append(df)
 
     # convert the list of dataframes into a single dataframe spanning all
@@ -114,6 +116,8 @@ def extract_stats_metadata(stats_json_fp, lane_numbers):
                                                    'SampleName',
                                                    'SampleId'])
 
+    filtered_unknowns.set_index(["IndexSequence"], inplace=True)
+
     # This code needs to return the metadata up top, plus this dataframe,
     # plus another dataframe for unknown whatevers. Note that after these
     # frames are returned, traditionally they are tucked up by additional
@@ -123,6 +127,49 @@ def extract_stats_metadata(stats_json_fp, lane_numbers):
     return {'Flowcell': flowcell,
             'RunNumber': run_number,
             'RunId': run_id}, filtered_results, filtered_unknowns
+
+
+def sum_lanes(multi_lane_df, lanes_to_sum):
+    """
+    Sum the values of a DataFrame across a given set of lanes.
+    :param multi_lane_df: A DataFrame containing a 'Lane' column.
+    :param lanes_to_sum: A list of lane numbers to sum across.
+    :return: A DataFrame containing sums across the given set of lanes.
+    """
+    if not 'Lane' in multi_lane_df:
+        raise ValueError("DataFrame must contain 'Lane' column.")
+
+    if not lanes_to_sum.issubset(set(multi_lane_df.Lane.unique())):
+        raise ValueError("One or more specified lanes does not occur in "
+                         "DataFrame.")
+
+    total = None
+
+    for lane_id in lanes_to_sum:
+        # create a dataframe w/only the rows from lane_id
+        lane = multi_lane_df[multi_lane_df['Lane'] == lane_id]
+        # drop the 'Lane' column
+        lane = lane.drop(columns=['Lane'])
+
+        if total is None:
+            total = lane
+        else:
+            # add the values for lane to the running total.
+
+            # at times, a lane will contain an index not present in another
+            # lane. Find and add these indexes as empty rows so that they
+            # won't disappear from the results.
+            rt = set(total.index.values)
+            cl = set(lane.index.values)
+
+            if not cl - rt:
+                for x in cl - rt:
+                    total.loc[x] = [0] * len(multi_lane_df.columns)
+
+            # now sum the values in current_lane to the running-total.
+            total = total.add(lane, fill_value=0)
+
+    return total
 
 
 def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
