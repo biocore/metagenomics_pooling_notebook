@@ -139,7 +139,7 @@ def sum_lanes(multi_lane_df, lanes_to_sum):
     if not 'Lane' in multi_lane_df:
         raise ValueError("DataFrame must contain 'Lane' column.")
 
-    if not lanes_to_sum.issubset(set(multi_lane_df.Lane.unique())):
+    if not set(lanes_to_sum).issubset(set(multi_lane_df.Lane.unique())):
         raise ValueError("One or more specified lanes does not occur in "
                          "DataFrame.")
 

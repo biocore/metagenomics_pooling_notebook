@@ -719,11 +719,11 @@ class Tests(TestCase):
 
     def test_extract_stats_metadata(self):
         fp = 'notebooks/test_data/Demux/Stats.json'
-        obs_lm, obs_df, _ = extract_stats_metadata(fp, [5])
+        obs_lm, obs_df, obs_unk = extract_stats_metadata(fp, [5])
 
         # test legacy, degenerate case of summing one lane.
-        obs_lm = sum_lanes(obs_lm, [5])
         obs_df = sum_lanes(obs_df, [5])
+        obs_unk = sum_lanes(obs_unk, [5])
 
         exp_lm = {"Flowcell": "HLHWHBBXX",
                   "RunNumber": 458,
