@@ -101,9 +101,9 @@ def extract_stats_metadata(stats_json_fp, lane_numbers):
     for unknown_barcode in unknown_barcodes:
         if unknown_barcode['Lane'] in lane_numbers:
             # convert dict of (k,v) pairs into list form.
-            l = [(k, unknown_barcode['Lane'], v) for k, v in
-                 unknown_barcode['Barcodes'].items()]
-            df = pd.DataFrame(l, columns=['IndexSequence', 'Lane', 'Value'])
+            lst = [(k, unknown_barcode['Lane'], v) for k, v in
+                   unknown_barcode['Barcodes'].items()]
+            df = pd.DataFrame(lst, columns=['IndexSequence', 'Lane', 'Value'])
             filtered_unknowns.append(df)
 
     # convert the list of dataframes into a single dataframe spanning all
@@ -136,7 +136,7 @@ def sum_lanes(multi_lane_df, lanes_to_sum):
     :param lanes_to_sum: A list of lane numbers to sum across.
     :return: A DataFrame containing sums across the given set of lanes.
     """
-    if not 'Lane' in multi_lane_df:
+    if 'Lane' not in multi_lane_df:
         raise ValueError("DataFrame must contain 'Lane' column.")
 
     if not set(lanes_to_sum).issubset(set(multi_lane_df.Lane.unique())):
