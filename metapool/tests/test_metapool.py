@@ -1,11 +1,9 @@
 from unittest import TestCase, main
-
 import pandas as pd
 import numpy as np
 import numpy.testing as npt
 import os
 from io import StringIO
-
 from metapool.metapool import (read_plate_map_csv, read_pico_csv,
                                calculate_norm_vol, format_dna_norm_picklist,
                                format_index_picklist,
@@ -722,6 +720,11 @@ class Tests(TestCase):
     def test_extract_stats_metadata(self):
         fp = 'notebooks/test_data/Demux/Stats.json'
         obs_lm, obs_df, _ = extract_stats_metadata(fp, [5])
+
+        # test legacy, degenerate case of summing one lane.
+        obs_lm = sum_lanes(obs_lm, [5])
+        obs_df = sum_lanes(obs_df, [5])
+
         exp_lm = {"Flowcell": "HLHWHBBXX",
                   "RunNumber": 458,
                   "RunId": "171006_K00180_0458_AHLHWHBBXX_RKL003_FinRisk_17_48"
@@ -733,7 +736,6 @@ class Tests(TestCase):
         obs_lr = obs_df.iloc[[-1]].to_dict(orient='records')[0]
 
         exp_fr = {
-            "Lane": 5,
             "Mismatch0": 137276,
             "Mismatch1": 6458,
             "NumberReads": 143734,
@@ -745,7 +747,6 @@ class Tests(TestCase):
         }
 
         exp_lr = {
-            "Lane": 5,
             "Mismatch0": 894502,
             "Mismatch1": 42048,
             "NumberReads": 936550,
