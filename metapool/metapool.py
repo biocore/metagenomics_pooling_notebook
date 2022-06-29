@@ -118,12 +118,6 @@ def extract_stats_metadata(stats_json_fp, lane_numbers):
 
     filtered_unknowns.set_index(["IndexSequence"], inplace=True)
 
-    # This code needs to return the metadata up top, plus this dataframe,
-    # plus another dataframe for unknown whatevers. Note that after these
-    # frames are returned, traditionally they are tucked up by additional
-    # transformations. try to mimic those if you have to.
-    # return general metadata (in legacy format), along with conversion-
-    # results metadata and unknown-barcodes metadata.
     return {'Flowcell': flowcell,
             'RunNumber': run_number,
             'RunId': run_id}, filtered_results, filtered_unknowns
@@ -162,9 +156,8 @@ def sum_lanes(multi_lane_df, lanes_to_sum):
             rt = set(total.index.values)
             cl = set(lane.index.values)
 
-            if not cl - rt:
-                for x in cl - rt:
-                    total.loc[x] = [0] * len(multi_lane_df.columns)
+            for x in cl - rt:
+                total.loc[x] = [0] * len(multi_lane_df.columns)
 
             # now sum the values in current_lane to the running-total.
             total = total.add(lane, fill_value=0)

@@ -243,10 +243,10 @@ def dilute_gDNA(plate_df, threshold=15):
     df['Sample DNA Concentration'] = df['Sample DNA Concentration'] / 10
 
     # Picking diluted samples for normalization
-    diluteds = (df.loc[df['Sample DNA Concentration'] > (threshold / 10)])
-    undiluteds = plate_df.loc[~plate_df['Sample'].isin(diluteds['Sample'])]
+    diluted = (df.loc[df['Sample DNA Concentration'] > (threshold / 10)])
+    undiluted = plate_df.loc[~plate_df['Sample'].isin(diluted['Sample'])]
 
-    return pd.concat([diluteds, undiluteds]).sort_index()
+    return pd.concat([diluted, undiluted]).sort_index()
 
 
 def requires_dilution(plate_df, threshold=15, tolerance=0.05):
@@ -262,10 +262,7 @@ def requires_dilution(plate_df, threshold=15, tolerance=0.05):
     within_threshold = plate_df['Sample DNA Concentration'] > threshold
     pct_of_total = plate_df.loc[within_threshold].shape[0] / plate_df.shape[0]
 
-    if pct_of_total > tolerance:
-        return True
-
-    return False
+    return pct_of_total > tolerance
 
 
 def find_threshold(concentrations, labels):
@@ -291,7 +288,7 @@ def find_threshold(concentrations, labels):
 
     for i in predictions.index:
         # Finds the first sample predicted as non-blank.
-        if predictions.loc[i, 'predicted'] == False:    # noqa: E712
+        if not predictions.loc[i, 'predicted']:
             # Returns the concentation of the first sample predicted as
             # non-blank. This concentration is optimal boundary between
             # classes passed as labels.
@@ -320,95 +317,70 @@ def autopool(plate_df, method='norm', pool_failures='low', automate=True,
     :param total_nmol:
     :return: DataFrame w/calculated pooling volumes (in nL).
     """
-
     if method not in ['evp', 'norm']:
         raise ErrorMessage('method must be either "evp" or "norm".')
+
+    if pool_failures not in ['low', 'high']:
+        raise ErrorMessage('pool_failures must be either "low" or "high".')
 
     sample_concs = plate_df['MiniPico Library Concentration']
 
     if method == 'evp':
-        # convert to nanoliters.
-        per_sample_vol = (total_vol / sample_concs.size) * 1000.0
-        sample_vols = np.zeros(sample_concs.shape) + per_sample_vol
-        plate_df['MiniPico Pooled Volume'] = sample_vols
+        return _autopool_evp(plate_df, total_vol, sample_concs)
+
+    return _autopool_norm(pool_failures, total_nmol, min_conc, sample_concs,
+                          floor_conc, offset, automate, plate_df, min_pool)
+
+
+def _autopool_evp(plate_df, total_vol, sample_concs):
+    per_sample_vol = (total_vol / sample_concs.size) * 1000.0
+    sample_vols = np.zeros(sample_concs.shape) + per_sample_vol
+    plate_df['MiniPico Pooled Volume'] = sample_vols
+
+    return plate_df
+
+
+def _autopool_norm(pool_failures, total_nmol, min_conc, sample_concs,
+                   floor_conc, offset, automate, plate_df, min_pool):
+    sample_fracs = np.ones(sample_concs.shape) / sample_concs.size
+    sample_fracs[sample_concs <= min_conc] = 0
+    sample_fracs *= 1 / sample_fracs.sum()
+
+    if pool_failures == 'low':
+        use_this = sample_concs
+        sort_ascending = True
     else:
-        # set proportion of pool(frac) occupied by each sample
-        sample_fracs = np.ones(sample_concs.shape) / sample_concs.size
+        floored_concs = sample_concs.copy()
+        floored_concs[sample_concs < floor_conc] = floor_conc
+        use_this = floored_concs
+        sort_ascending = False
 
-        # get samples above threshold
-        sample_fracs_pass = sample_fracs.copy()
-        sample_fracs_pass[sample_concs <= min_conc] = 0
+    sample_vols = (total_nmol * sample_fracs) / use_this
+    sample_vols *= 10 ** 9
+    sample_vols[sample_concs < floor_conc] = \
+        sample_vols.sort_values(ascending=sort_ascending, ignore_index=True)[
+            int(sample_vols.size * offset)]
 
-        # renormalize to exclude lost samples
-        sample_fracs_pass *= 1 / sample_fracs_pass.sum()
-
+    if automate is True:
+        sample_vols_zscored = np.clip(zscore(sample_vols, nan_policy='omit'),
+                                      -2, 2)
+        plate_df['zscore'] = sample_vols_zscored
+        zrange = plate_df['zscore'].max() - plate_df['zscore'].min()
+        zmin = plate_df['zscore'].min()
+        sample_vols_scaled = (((sample_vols_zscored - (zmin)) * (
+                    1000 - min_pool)) / zrange) + min_pool
+        plate_df['MiniPico Pooled Volume'] = sample_vols_scaled
+    else:
         if pool_failures == 'low':
-            # calculate volumetric fractions including floor val
-            sample_vols = (total_nmol * sample_fracs_pass) / sample_concs
-
-            # convert L to nL
-            sample_vols *= 10 ** 9
-            # drop volumes for samples below floor concentration to left side
-            # of distribution.
-            # offset allows to place samples below floor concentration at a
-            # relative distance from edge of distribution.
             sample_vols[sample_concs < floor_conc] = \
                 sample_vols.sort_values(ignore_index=True)[
                     int(sample_vols.size * offset)]
-            if automate is True:
-                # automate scaling of volumes from min_pool to 1000 nL.
-                sample_vols_zscored = np.clip(
-                    zscore(sample_vols, nan_policy='omit'), -2, 2)
-                plate_df['zscore'] = sample_vols_zscored
-                zrange = plate_df['zscore'].max() - plate_df['zscore'].min()
-                zmin = plate_df['zscore'].min()
-                sample_vols_scaled = (((sample_vols_zscored - (zmin)) * (
-                            1000 - min_pool)) / zrange) + min_pool
-                plate_df['MiniPico Pooled Volume'] = sample_vols_scaled
-            else:
-                # when automate False, scaling of pooling volumes is achieved
-                # through total_nmol scaling.
-                sample_vols[sample_concs < floor_conc] = \
-                    sample_vols.sort_values(ignore_index=True)[
-                        int(sample_vols.size * offset)]
-                plate_df['MiniPico Pooled Volume'] = sample_vols
-            # Any nan gets pooled at lowest pooling volume from distribution.
-            plate_df.loc[plate_df['MiniPico Pooled Volume'].isnull(),
-                         'MiniPico Pooled Volume'] = plate_df[
-                'MiniPico Pooled Volume'].min()
-        elif pool_failures == 'high':
-            # floor concentration value
-            sample_concs_floor = sample_concs.copy()
-            sample_concs_floor[sample_concs < floor_conc] = floor_conc
+            my_func = sample_vols.min()
+        else:
+            my_func = sample_vols.max()
 
-            # calculate volumetric fractions including floor val
-            sample_vols = (total_nmol * sample_fracs_pass) / sample_concs_floor
-            # convert L to nL
-            sample_vols *= 10 ** 9
-            # drop volumes for samples below floor concentration to right side
-            # of distribution.
-            # offset allows to place samples below floor concentration at a
-            # relative distance from edge of distribution.
-            sample_vols[sample_concs < floor_conc] = \
-                sample_vols.sort_values(ascending=False, ignore_index=True)[
-                    int(sample_vols.size * offset)]
-
-            if automate is True:
-                sample_vols_zscored = np.clip(
-                    zscore(sample_vols, nan_policy='omit'), -2, 2)
-                plate_df['zscore'] = sample_vols_zscored
-                zrange = plate_df['zscore'].max() - plate_df['zscore'].min()
-                zmin = plate_df['zscore'].min()
-                sample_vols_scaled = (((sample_vols_zscored - (zmin)) * (
-                            1000 - min_pool)) / zrange) + min_pool
-                plate_df['MiniPico Pooled Volume'] = sample_vols_scaled
-            else:
-                # when automate False, scaling of pooling volumes is achieved
-                # through total_nmol scaling.
-                plate_df['MiniPico Pooled Volume'] = sample_vols
-            # Any nan gets pooled at highest pooling volume from distribution.
-            plate_df.loc[plate_df['MiniPico Pooled Volume'].isnull(),
-                         'MiniPico Pooled Volume'] = plate_df[
-                'MiniPico Pooled Volume'].max()
+        plate_df['MiniPico Pooled Volume'] = sample_vols
+        plate_df.loc[plate_df['MiniPico Pooled Volume'].isnull(),
+                     'MiniPico Pooled Volume'] = my_func
 
     return plate_df
