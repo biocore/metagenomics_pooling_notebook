@@ -1,3 +1,4 @@
+import json
 import re
 import numpy as np
 import pandas as pd
@@ -5,17 +6,168 @@ import string
 import seaborn as sns
 import matplotlib.pyplot as plt
 import warnings
-
 from random import choices
 from configparser import ConfigParser
 from qiita_client import QiitaClient
-
 from .prep import remove_qiita_id
 
 
 REVCOMP_SEQUENCERS = ['HiSeq4000', 'MiniSeq', 'NextSeq', 'HiSeq3000',
                       'iSeq', 'NovaSeq']
 OTHER_SEQUENCERS = ['HiSeq2500', 'HiSeq1500', 'MiSeq']
+
+
+def extract_stats_metadata(stats_json_fp, lane_numbers):
+    """
+    Extract metadata from Stats.json file.
+    :param stats_json_fp: A file-path to Stats.json file.
+    :param lane_numbers: A list of ints (lane-numbers) to extract metadata for.
+    :return: A legacy 3-tuple containing:
+                A dict() containing metadata,
+                A DataFrame() containing conversion-results,
+                A DataFrame() containing unknown barcodes found.
+    """
+    with open(stats_json_fp, 'r') as f:
+        stats = json.load(f)
+
+    # gather general metadata
+    flowcell = stats['Flowcell']
+    run_number = stats['RunNumber']
+    run_id = stats['RunId']
+    conversion_results = stats['ConversionResults']
+    unknown_barcodes = stats['UnknownBarcodes']
+
+    # lane_numbers must be a list with one or more valid lane_numbers.
+    valid_lane_numbers = [x['LaneNumber'] for x in conversion_results]
+    if not set(valid_lane_numbers).issuperset(set(lane_numbers)):
+        raise ValueError(f"Valid lane numbers are: {valid_lane_numbers}")
+
+    # extract conversion_results from a list of nested dicts to a list of
+    # dataframes containing only the information required.
+    filtered_results = []
+    for conversion_result in conversion_results:
+        if conversion_result['LaneNumber'] in lane_numbers:
+            # process the metadata for this lane.
+            lane_number = conversion_result['LaneNumber']
+            rows = []
+            for demux_result in conversion_result['DemuxResults']:
+                # these prefixes are meant to simplify access for deeply
+                # nested elements.
+                index_metrics = demux_result['IndexMetrics'][0]
+                read_metrics_0 = demux_result['ReadMetrics'][0]
+                read_metrics_1 = demux_result['ReadMetrics'][1]
+
+                # extract required general metadata.
+                number_reads = demux_result['NumberReads']
+                sample_id = demux_result['SampleId']
+                sample_name = demux_result['SampleName']
+                primary_yield = demux_result['Yield']
+
+                # extract required index-metrics.
+                index_sequence = index_metrics['IndexSequence']
+                mismatch_0 = index_metrics['MismatchCounts']['0']
+                mismatch_1 = index_metrics['MismatchCounts']['1']
+
+                # extract required read-metrics.
+                yield_r1 = read_metrics_0['Yield']
+                yield_q30r1 = read_metrics_0['YieldQ30']
+                yield_r2 = read_metrics_1['Yield']
+                yield_q30r2 = read_metrics_1['YieldQ30']
+
+                # store data as a tuple until processing is complete.
+                # order the tuple in legacy order, for backwards-compatibility.
+                rows.append((index_sequence, sample_name, sample_id,
+                             lane_number, mismatch_0, mismatch_1, number_reads,
+                             yield_r1, yield_q30r1, yield_r2, yield_q30r2,
+                             primary_yield))
+
+            # create dataframe at one time using all rows, instead of using
+            # concat() or append(). columns listed in legacy order,
+            # for backwards-compatibility.
+            filtered_results.append(pd.DataFrame(rows,
+                                                 columns=['IndexSequence',
+                                                          'SampleName',
+                                                          'SampleId',
+                                                          'Lane',
+                                                          'Mismatch0',
+                                                          'Mismatch1',
+                                                          'NumberReads',
+                                                          'YieldR1',
+                                                          'YieldQ30R1',
+                                                          'YieldR2',
+                                                          'YieldQ30R2',
+                                                          'Yield']))
+    filtered_unknowns = []
+    for unknown_barcode in unknown_barcodes:
+        if unknown_barcode['Lane'] in lane_numbers:
+            # convert dict of (k,v) pairs into list form.
+            lst = [(k, unknown_barcode['Lane'], v) for k, v in
+                   unknown_barcode['Barcodes'].items()]
+            df = pd.DataFrame(lst, columns=['IndexSequence', 'Lane', 'Value'])
+            filtered_unknowns.append(df)
+
+    # convert the list of dataframes into a single dataframe spanning all
+    # selected lanes.
+    filtered_unknowns = pd.concat(filtered_unknowns)
+    filtered_results = pd.concat(filtered_results)
+
+    # set index to legacy index + lane-number.
+    filtered_results = filtered_results.set_index(['IndexSequence',
+                                                   'SampleName',
+                                                   'SampleId'])
+
+    filtered_unknowns.set_index(["IndexSequence"], inplace=True)
+
+    return {'Flowcell': flowcell,
+            'RunNumber': run_number,
+            'RunId': run_id}, filtered_results, filtered_unknowns
+
+
+def sum_lanes(multi_lane_df, lanes_to_sum):
+    """
+    Sum the values of a DataFrame across a given set of lanes.
+    :param multi_lane_df: A DataFrame containing a 'Lane' column.
+    :param lanes_to_sum: A list of lane numbers to sum across.
+    :return: A DataFrame containing sums across the given set of lanes.
+    """
+    if 'Lane' not in multi_lane_df:
+        raise ValueError("DataFrame must contain 'Lane' column.")
+
+    if not set(lanes_to_sum).issubset(set(multi_lane_df.Lane.unique())):
+        raise ValueError("One or more specified lanes does not occur in "
+                         "DataFrame.")
+
+    total = None
+
+    for lane_id in lanes_to_sum:
+        # create a dataframe w/only the rows from lane_id
+        lane = multi_lane_df[multi_lane_df['Lane'] == lane_id]
+        # drop the 'Lane' column
+        lane = lane.drop(columns=['Lane'])
+
+        if total is None:
+            total = lane
+        else:
+            # add the values for lane to the running total.
+
+            # at times, a lane will contain an index not present in another
+            # lane. Find and add these indexes as empty rows so that they
+            # won't disappear from the results.
+            rt = set(total.index.values)
+            cl = set(lane.index.values)
+
+            for x in cl - rt:
+                # for each key in cl not found in the running total, create
+                # a new empty row in the running total so that this row of
+                # data does not disappear from the final result.
+
+                # one less column assuming that 'Lane' is present.
+                total.loc[x] = [0] * (len(multi_lane_df.columns) - 1)
+
+            # now sum the values in current_lane to the running-total.
+            total = total.add(lane, fill_value=0)
+
+    return total
 
 
 def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
@@ -108,7 +260,6 @@ def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
                     error_tube_id = (
                         f'tube_id in Qiita but {len_tube_id_overlap} missing '
                         f'samples. Some samples from tube_id: {tids_example}.')
-
                 len_overlap = len(sample_name_diff)
                 samples_example = ', '.join(choices(list(qsamples), k=5))
                 missing = ', '.join(sorted(sample_name_diff)[:4])
@@ -116,7 +267,6 @@ def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
                     f'{project} has {len_overlap} missing samples (i.e. '
                     f'{missing}). Some samples from Qiita: {samples_example}. '
                     f'{error_tube_id}')
-
         if errors:
             raise ValueError('\n'.join(errors))
 

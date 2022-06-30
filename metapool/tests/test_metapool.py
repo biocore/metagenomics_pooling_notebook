@@ -1,11 +1,9 @@
 from unittest import TestCase, main
-
 import pandas as pd
 import numpy as np
 import numpy.testing as npt
 import os
 from io import StringIO
-
 from metapool.metapool import (read_plate_map_csv, read_pico_csv,
                                calculate_norm_vol, format_dna_norm_picklist,
                                format_index_picklist,
@@ -18,11 +16,11 @@ from metapool.metapool import (read_plate_map_csv, read_pico_csv,
                                make_2D_array, combine_dfs,
                                add_dna_conc, compute_pico_concentration,
                                bcl_scrub_name, rc, sequencer_i5_index,
-                               reformat_interleaved_to_columns)
+                               reformat_interleaved_to_columns,
+                               extract_stats_metadata, sum_lanes)
 
 
 class Tests(TestCase):
-
     def setUp(self):
         self.maxDiff = None
         self.cp_vals = np.array([[10.14, 7.89, 7.9, 15.48],
@@ -718,6 +716,127 @@ class Tests(TestCase):
         obs = reformat_interleaved_to_columns(wells)
 
         np.testing.assert_array_equal(exp, obs)
+
+    def test_extract_stats_metadata_plus_sum_lanes_single_lane(self):
+        fp = 'notebooks/test_data/Demux/Stats.json'
+        obs_lm, obs_df, obs_unk = extract_stats_metadata(fp, [5])
+
+        # test legacy, degenerate case of summing one lane.
+        obs_df = sum_lanes(obs_df, [5])
+        obs_unk = sum_lanes(obs_unk, [5])
+
+        exp_lm = {"Flowcell": "HLHWHBBXX",
+                  "RunNumber": 458,
+                  "RunId": "171006_K00180_0458_AHLHWHBBXX_RKL003_FinRisk_17_48"
+                  }
+        # compare lane metadata
+        self.assertDictEqual(obs_lm, exp_lm)
+
+        # compare data-frames (first row and last row only)
+        obs_fr = obs_df.iloc[[0]].to_dict(orient='records')[0]
+        obs_lr = obs_df.iloc[[-1]].to_dict(orient='records')[0]
+
+        exp_fr = {
+            "Mismatch0": 137276,
+            "Mismatch1": 6458,
+            "NumberReads": 143734,
+            "YieldR1": 21703834,
+            "YieldQ30R1": 19772948,
+            "YieldR2": 21703834,
+            "YieldQ30R2": 17555284,
+            "Yield": 43407668
+        }
+
+        exp_lr = {
+            "Mismatch0": 894502,
+            "Mismatch1": 42048,
+            "NumberReads": 936550,
+            "YieldR1": 141419050,
+            "YieldQ30R1": 126289116,
+            "YieldR2": 141419050,
+            "YieldQ30R2": 116636541,
+            "Yield": 282838100
+        }
+        self.assertDictEqual(obs_fr, exp_fr)
+        self.assertDictEqual(obs_lr, exp_lr)
+
+        # compare unknown barcodes output (first row and last row only)
+        obs_fr = obs_unk.iloc[[0]].to_dict(orient='records')[0]
+        obs_lr = obs_unk.iloc[[-1]].to_dict(orient='records')[0]
+
+        exp_fr = {
+            "Mismatch0": 137276,
+            "Mismatch1": 6458,
+            "NumberReads": 143734,
+            "YieldR1": 21703834,
+            "YieldQ30R1": 19772948,
+            "YieldR2": 21703834,
+            "YieldQ30R2": 17555284,
+            "Yield": 43407668
+        }
+
+        exp_lr = {
+            "Mismatch0": 894502,
+            "Mismatch1": 42048,
+            "NumberReads": 936550,
+            "YieldR1": 141419050,
+            "YieldQ30R1": 126289116,
+            "YieldR2": 141419050,
+            "YieldQ30R2": 116636541,
+            "Yield": 282838100
+        }
+        self.assertDictEqual(obs_fr, {"Value": 67880})
+        self.assertDictEqual(obs_lr, {"Value": 2440})
+
+    def test_extract_stats_metadata_plus_sum_lanes_two_lanes(self):
+        fp = 'notebooks/test_data/Demux/OverlapSeqStats.json'
+        _, obs_df, obs_unk = extract_stats_metadata(fp, [5, 1])
+
+        # test legacy, degenerate case of summing one lane.
+        obs_df = sum_lanes(obs_df, [5, 1])
+        obs_unk = sum_lanes(obs_unk, [5, 1])
+
+        # compare data-frames
+        obs_fr = obs_df.iloc[[0]].to_dict(orient='records')[0]
+        obs_lr = obs_df.iloc[[-1]].to_dict(orient='records')[0]
+
+        exp_fr = {
+            "Mismatch0": 6917044,
+            "Mismatch1": 452990,
+            "NumberReads": 7376278,
+            "YieldR1": 1106441700,
+            "YieldQ30R1": 875757969,
+            "YieldR2": 1106441700,
+            "YieldQ30R2": 676057515,
+            "Yield": 2212883400
+        }
+        exp_lr = {
+            "Mismatch0": 5075088,
+            "Mismatch1": 368852,
+            "NumberReads": 16174348,
+            "YieldR1": 2426152200,
+            "YieldQ30R1": 1913639164,
+            "YieldR2": 2426152200,
+            "YieldQ30R2": 1472852479,
+            "Yield": 4852304400
+        }
+
+        self.assertDictEqual(obs_fr, exp_fr)
+        self.assertDictEqual(obs_lr, exp_lr)
+
+        # compare unknown barcodes output (first row and last row only)
+        obs_fr = obs_unk.iloc[[0]].to_dict(orient='records')[0]
+        obs_lr = obs_unk.iloc[[-1]].to_dict(orient='records')[0]
+
+        exp_fr = {
+            "Value": 5103.0
+        }
+        exp_lr = {
+            "Value": 6336.0
+        }
+
+        self.assertDictEqual(obs_fr, exp_fr)
+        self.assertDictEqual(obs_lr, exp_lr)
 
 
 if __name__ == "__main__":
