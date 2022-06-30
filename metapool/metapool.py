@@ -157,7 +157,12 @@ def sum_lanes(multi_lane_df, lanes_to_sum):
             cl = set(lane.index.values)
 
             for x in cl - rt:
-                total.loc[x] = [0] * len(multi_lane_df.columns)
+                # for each key in cl not found in the running total, create
+                # a new empty row in the running total so that this row of
+                # data does not disappear from the final result.
+
+                # one less column assuming that 'Lane' is present.
+                total.loc[x] = [0] * (len(multi_lane_df.columns) - 1)
 
             # now sum the values in current_lane to the running-total.
             total = total.add(lane, fill_value=0)
