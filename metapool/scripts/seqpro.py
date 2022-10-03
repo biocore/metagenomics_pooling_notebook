@@ -45,7 +45,7 @@ def format_preparation_files(run_dir, sample_sheet, output_dir, pipeline):
         # stats don't include well description which is the primary key to
         # merge with the preps in the loop below
         stats['sample_name'] = \
-            df_sheet.set_index('lane', append=True)['well_description']
+            df_sheet.set_index('lane', append=True)['sample_name']
 
     # returns a map of (run, project_name, lane) -> preparation frame
     preps = preparations_for_run(run_dir, df_sheet, pipeline=pipeline)
