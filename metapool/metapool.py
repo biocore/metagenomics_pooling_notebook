@@ -354,7 +354,7 @@ def calculate_norm_vol(dna_concs, ng=5, min_vol=2.5, max_vol=3500,
 
     sample_vols = np.round(sample_vols / resolution) * resolution
 
-    return(sample_vols)
+    return sample_vols
 
 
 def format_dna_norm_picklist(dna_vols, water_vols, wells, dest_wells=None,
@@ -441,7 +441,7 @@ def format_dna_norm_picklist(dna_vols, water_vols, wells, dest_wells=None,
                                       str(water_vols[index]),
                                       dest_plate_name, str(dest_wells[index])])
 
-    return(picklist)
+    return picklist
 
 
 def assign_index(samples, index_df, start_idx=0):
@@ -465,7 +465,7 @@ def assign_index(samples, index_df, start_idx=0):
 
     indices = index_df.iloc[start_idx:(start_idx + samples)]
 
-    return(indices)
+    return indices
 
 
 def format_index_picklist(sample_names, sample_wells, indices,
@@ -523,7 +523,7 @@ def format_index_picklist(sample_names, sample_wells, indices,
                                           indices.iloc[i]['index combo']),
                                       dest_plate_name, well])
 
-    return(picklist)
+    return picklist
 
 
 def compute_qpcr_concentration(cp_vals, m=-3.231, b=12.059, dil_factor=25000):
@@ -549,7 +549,7 @@ def compute_qpcr_concentration(cp_vals, m=-3.231, b=12.059, dil_factor=25000):
     """
     qpcr_concentration = np.power(10, ((cp_vals - b) / m)) * dil_factor / 1000
 
-    return(qpcr_concentration)
+    return qpcr_concentration
 
 
 def compute_shotgun_pooling_values_eqvol(sample_concs, total_vol=60.0):
@@ -573,7 +573,7 @@ def compute_shotgun_pooling_values_eqvol(sample_concs, total_vol=60.0):
 
     sample_vols = np.zeros(sample_concs.shape) + per_sample_vol
 
-    return(sample_vols)
+    return sample_vols
 
 
 def compute_shotgun_pooling_values_qpcr(sample_concs, sample_fracs=None,
@@ -637,7 +637,7 @@ def compute_shotgun_pooling_values_qpcr(sample_concs, sample_fracs=None,
     # convert L to nL
     sample_vols *= 10**9
 
-    return(sample_vols)
+    return sample_vols
 
 
 def compute_shotgun_pooling_values_qpcr_minvol(sample_concs, sample_fracs=None,
@@ -697,7 +697,7 @@ def compute_shotgun_pooling_values_qpcr_minvol(sample_concs, sample_fracs=None,
     # drop volumes for samples below floor concentration to floor_vol
     sample_vols[sample_concs < floor_conc] = floor_vol
 
-    return(sample_vols)
+    return sample_vols
 
 
 def estimate_pool_conc_vol(sample_vols, sample_concs):
@@ -730,7 +730,7 @@ def estimate_pool_conc_vol(sample_vols, sample_concs):
     # (total vol in nL * 1 L / 10^9 nL)
     pool_conc = total_pmols.sum() / (total_vol * nl_scalar)
 
-    return(pool_conc, total_vol)
+    return pool_conc, total_vol
 
 
 def format_pooling_echo_pick_list(vol_sample,
@@ -884,7 +884,7 @@ def make_2D_array(qpcr, data_col='Cp', well_col='Pos', rows=16, cols=24):
         col = int(record[1][well_col][1:]) - 1
         cp_array[row, col] = record[1][data_col]
 
-    return(cp_array)
+    return cp_array
 
 
 def combine_dfs(qpcr_df, dna_picklist, index_picklist):
@@ -938,7 +938,7 @@ def combine_dfs(qpcr_df, dna_picklist, index_picklist):
 
     combined_df.reset_index(inplace=True)
 
-    return(combined_df)
+    return combined_df
 
 
 def parse_dna_conc_csv(fp):
@@ -948,7 +948,8 @@ def parse_dna_conc_csv(fp):
 
     dna_df['pico_conc'] = pd.to_numeric(
         dna_df['[Concentration]'], errors='Coerce')
-    return(dna_df)
+
+    return dna_df
 
 
 def add_dna_conc(combined_df, dna_df):
@@ -958,7 +959,7 @@ def add_dna_conc(combined_df, dna_df):
 
     new_df.reset_index(inplace=True)
 
-    return(new_df)
+    return new_df
 
 
 def compute_pico_concentration(dna_vals, size=400):
@@ -981,7 +982,7 @@ def compute_pico_concentration(dna_vals, size=400):
     """
     lib_concentration = (dna_vals / (660 * float(size))) * 10**6
 
-    return(lib_concentration)
+    return lib_concentration
 
 
 def bcl_scrub_name(name):
@@ -1009,17 +1010,17 @@ def rc(seq):
 
     rev_seq = "".join(complement.get(base, base) for base in reversed(seq))
 
-    return(rev_seq)
+    return rev_seq
 
 
 def sequencer_i5_index(sequencer, indices):
 
     if sequencer in REVCOMP_SEQUENCERS:
         print('%s: i5 barcodes are output as reverse compliments' % sequencer)
-        return([rc(x) for x in indices])
+        return [rc(x) for x in indices]
     elif sequencer in OTHER_SEQUENCERS:
         print('%s: i5 barcodes are output in standard direction' % sequencer)
-        return(indices)
+        return indices
     else:
         raise ValueError(('Your indicated sequencer [%s] is not recognized.\n'
                           'Recognized sequencers are: \n %s') %
@@ -1081,4 +1082,4 @@ def reformat_interleaved_to_columns(wells):
 
         new_wells[i] = nwell
 
-    return(new_wells)
+    return new_wells
