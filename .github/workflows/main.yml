@@ -121,7 +121,7 @@ jobs:
         run: |
           conda create -q --yes -n metapool python=${{ matrix.python-version }} pandas numpy nose pep8 flake8 matplotlib jupyter notebook 'seaborn>=0.7.1' pip openpyxl
           conda activate metapool
-          pip install coveralls flake8
+          pip install -U coveralls flake8 scikit-learn
           pip install -e ".[all]"
 
           # create local Qiita connection
