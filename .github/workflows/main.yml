@@ -17,7 +17,7 @@ jobs:
     # we can add more versions of node.js in the future
     strategy:
       matrix:
-        python-version: ['3.8', '3.9']
+        python-version: ['3.9']
 
     services:
       postgres:
