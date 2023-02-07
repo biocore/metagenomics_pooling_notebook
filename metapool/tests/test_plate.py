@@ -194,6 +194,8 @@ class PlateValidationTests(TestCase):
                 'Extraction Kit Lot': '166032128',
                 'Extraction Robot': 'Carmen_HOWE_KF3',
                 'TM1000 8 Tool': '109379Z',
+                'TM300 8 Tool': 'NA',
+                'TM50 8 Tool': 'NA',
                 'Primer Date': '2021-08-17',
                 'MasterMix Lot': '978215',
                 'Water Lot': 'RNBJ0628',
@@ -209,6 +211,8 @@ class PlateValidationTests(TestCase):
                 'Extraction Kit Lot': '166032128',
                 'Extraction Robot': 'Carmen_HOWE_KF4',
                 'TM1000 8 Tool': '109379Z',
+                'TM300 8 Tool': 'NA',
+                'TM50 8 Tool': 'NA',
                 'Primer Date': '2021-08-17',
                 'MasterMix Lot': '978215',
                 'Water Lot': 'RNBJ0628',
@@ -224,6 +228,8 @@ class PlateValidationTests(TestCase):
                 'Extraction Kit Lot': '166032128',
                 'Extraction Robot': 'Carmen_HOWE_KF3',
                 'TM1000 8 Tool': '109379Z',
+                'TM300 8 Tool': 'NA',
+                'TM50 8 Tool': 'NA',
                 'Primer Date': '2021-08-17',
                 'MasterMix Lot': '978215',
                 'Water Lot': 'RNBJ0628',
@@ -239,6 +245,8 @@ class PlateValidationTests(TestCase):
                 'Extraction Kit Lot': '166032128',
                 'Extraction Robot': 'Carmen_HOWE_KF4',
                 'TM1000 8 Tool': '109379Z',
+                'TM300 8 Tool': 'NA',
+                'TM50 8 Tool': 'NA',
                 'Primer Date': '2021-08-17',
                 'MasterMix Lot': '978215',
                 'Water Lot': 'RNBJ0628',
@@ -261,6 +269,15 @@ class PlateValidationTests(TestCase):
         pd.testing.assert_frame_equal(validate_plate_metadata(self.metadata),
                                       expected)
 
+    def test_validate_plate_metadata_full_extra_column(self):
+        for item in self.metadata:
+            item['NewColumn'] = 'NewValue'
+
+        expected = pd.DataFrame(self.metadata)
+
+        pd.testing.assert_frame_equal(validate_plate_metadata(self.metadata),
+                                      expected)
+
     def test_validate_plate_metadata_returns_None(self):
         # add a repeated plate position
         self.metadata[1]['Plate Position'] = '1'
@@ -278,8 +295,8 @@ class PlateValidationTests(TestCase):
 
         self.assertTrue(len(messages) == 1)
         self.assertEqual(messages[0],
-                         ErrorMessage('The following columns are not needed: '
-                                      'New Value'))
+                         WarningMessage('The following columns are not needed:'
+                                      ' New Value'))
 
         expected = {'primers': ['1'], 'names': ['THDMI_UK_Plate_2'],
                     'positions': ['1']}
