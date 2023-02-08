@@ -295,8 +295,8 @@ class PlateValidationTests(TestCase):
 
         self.assertTrue(len(messages) == 1)
         self.assertEqual(messages[0],
-                         WarningMessage('The following columns are not needed:'
-                                      ' New Value'))
+                         WarningMessage('The following columns are not '
+                                        'needed: New Value'))
 
         expected = {'primers': ['1'], 'names': ['THDMI_UK_Plate_2'],
                     'positions': ['1']}
