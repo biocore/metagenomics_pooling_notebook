@@ -12,7 +12,7 @@ EXPECTED_COLUMNS = {
     'Plate Position', 'Primer Plate #', 'Plating', 'Extraction Kit Lot',
     'Extraction Robot', 'TM1000 8 Tool', 'Primer Date', 'MasterMix Lot',
     'Water Lot', 'Processing Robot', 'Sample Plate', 'Project_Name',
-    'Original Name'}
+    'Original Name', 'TM300 8 Tool', 'TM50 8 Tool'}
 
 
 class Message(object):
@@ -111,12 +111,12 @@ def _validate_plate(plate_metadata, context):
 
     observed = set(plate_metadata.keys())
 
-    # 2. All columns are exactly present, no more no less
+    # 2. All expected columns are present. additional columns are now okay.
     extra = observed - EXPECTED_COLUMNS
     if extra:
         messages.append(
-            ErrorMessage('The following columns are not needed: %s'
-                         % ', '.join(extra)))
+            WarningMessage('The following columns are not needed: %s'
+                           % ', '.join(extra)))
     missing = EXPECTED_COLUMNS - observed
     if missing:
         messages.append(ErrorMessage('The following columns are missing: %s' %
