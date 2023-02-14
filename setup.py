@@ -21,8 +21,6 @@ classifiers = [
     'Topic :: Scientific/Engineering :: Bio-Informatics',
     'Programming Language :: Python',
     'Programming Language :: Python :: 3',
-    'Programming Language :: Python :: 3.5',
-    'Programming Language :: Python :: 3.6',
     'Operating System :: Unix',
     'Operating System :: POSIX',
     'Operating System :: MacOS :: MacOS X',
@@ -38,7 +36,7 @@ keywords = 'microbiome wetlab bioinformatics',
 
 base = ['numpy', 'pandas', 'matplotlib >= 2.0', 'seaborn >= 0.7.1', 'click',
         'sample_sheet', 'openpyxl', 'qiita_client @ https://github.com/'
-        'qiita-spots/qiita_client/archive/master.zip', 'sklearn']
+        'qiita-spots/qiita_client/archive/master.zip', 'scikit-learn']
 test = ["nose", "pep8", "flake8"]
 coverage = ['coverage']
 notebook = ['jupyter', 'notebook', 'jupyter_contrib_nbextensions', 'watermark']
