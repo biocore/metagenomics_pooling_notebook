@@ -12,6 +12,19 @@ from string import ascii_letters, digits
 REQUIRED_COLUMNS = {'sample_plate', 'sample_well', 'i7_index_id', 'index',
                     'i5_index_id', 'index2', 'sample_name'}
 
+REQUIRED_MF_COLUMNS = {'sample_name', 'BARCODE', 'PRIMER', 'Primer_Plate',
+                       'Well_ID', 'Plating', 'ExtractionKit_lot',
+                       'Extraction_robot', 'TM1000_8_tool', 'Primer_date',
+                       'MasterMix_lot', 'Water_Lot', 'Processing_robot',
+                       'TM300_8_tool', 'TM50_8_tool', 'Sample_Plate',
+                       'Project_name', 'Orig_name', 'Well_description',
+                       'EXPERIMENT_DESIGN_DESCRIPTION',
+                       'LIBRARY_CONSTRUCTION_PROTOCOL', 'LINKER', 'PLATFORM',
+                       'RUN_CENTER', 'RUN_DATE', 'RUN_PREFIX', 'pcr_primers',
+                       'sequencing_meth', 'target_gene', 'target_subfragment',
+                       'center_name', 'center_project_name',
+                       'INSTRUMENT_MODEL', 'runid'}
+
 PREP_COLUMNS = ['experiment_design_description', 'well_description',
                 'library_construction_protocol', 'platform', 'run_center',
                 'run_date', 'run_prefix', 'sequencing_meth', 'center_name',
@@ -438,6 +451,110 @@ def preparations_for_run(run_path, sheet, pipeline='fastp-and-minimap2'):
                 row["well_description"] = '%s.%s.%s' % (sample.sample_plate,
                                                         sample.sample_name,
                                                         sample.sample_well)
+
+                data.append(row)
+
+            if not data:
+                warnings.warn('Project %s and Lane %s have no data' %
+                              (project, lane), UserWarning)
+
+            # the American Gut Project is a special case. We'll likely continue
+            # to grow this study with more and more runs. So we fill some of
+            # the blanks if we can verify the study id corresponds to the AGP.
+            # This was a request by Daniel McDonald and Gail
+
+            prep = agp_transform(pd.DataFrame(columns=PREP_COLUMNS,
+                                              data=data),
+                                 qiita_id)
+
+            _check_invalid_names(prep.sample_name)
+
+            output[(run_id, project, lane)] = prep
+
+    return output
+
+
+def preparations_for_run_mapping_file(run_path, mapping_file):
+    """Given a run's path and sample sheet generates preparation files
+
+        Parameters
+        ----------
+        run_path: str
+            Path to the run folder
+        mapping_file: pandas.DataFrame
+            mapping-file to convert
+
+        Returns
+        -------
+        dict
+            Dictionary keyed by run identifier, project name and lane. Values
+            are preparations represented as DataFrames.
+        """
+
+    # The mapping-file-based version of this function assumes that pipeline
+    # will always be pipeline='fastp-and-minimap2'.
+    _, run_id = os.path.split(os.path.normpath(run_path))
+
+    output = {}
+
+    not_present = REQUIRED_MF_COLUMNS - set(mapping_file.columns)
+
+    if not_present:
+        raise ValueError("Required columns are missing: %s" %
+                         ', '.join(not_present))
+
+    for project, project_sheet in mapping_file.groupby('Project_name'):
+        project_name = remove_qiita_id(project)
+        qiita_id = project.replace(project_name + '_', '')
+
+        # if the Qiita ID is not found then make for an easy find/replace
+        if qiita_id == project:
+            qiita_id = 'QIITA-ID'
+
+        # note that before this function is called, 'lane' was added as a
+        # column w/all rows set to '1'.
+        for lane, lane_sheet in project_sheet.groupby('lane'):
+            # this is the portion of the loop that creates the prep
+            data = []
+            for sample_id, sample in lane_sheet.iterrows():
+                run_prefix = get_run_prefix(run_path,
+                                            project,
+                                            sample_id,
+                                            lane,
+                                            'fastp-and-minimap2')
+
+                # we don't care about the sample if there's no file
+                if run_prefix is None:
+                    continue
+
+                row = {c: '' for c in PREP_COLUMNS}
+
+                row["sample_name"] = sample.sample_name
+                row["experiment_design_description"] = \
+                    sample.experiment_design_description
+                row["library_construction_protocol"] = \
+                    sample.library_construction_protocol
+                row["platform"] = sample.platform
+                row["run_center"] = sample.run_center
+                row["run_date"] = sample.run_date
+                row["run_prefix"] = sample.run_prefix
+                row["sequencing_meth"] = sample.sequencing_meth
+                row["center_name"] = sample.center_name
+                row["center_project_name"] = project_name
+                row["instrument_model"] = sample.instrument_model
+                row["runid"] = sample.run_id
+                row["sample_plate"] = sample.sample_plate
+
+                row["sample_well"] = ""
+                row["i7_index_id"] = ""
+                row["index"] = ""
+                row["i5_index_id"] = ""
+                row["index2"] = ""
+                row["lane"] = sample.lane
+                row["sample_project"] = project
+                row["well_description"] = '%s.%s.%s' % (sample.sample_plate,
+                                                        sample.sample_name,
+                                                        "NO_WELL_VALUE")
 
                 data.append(row)
 

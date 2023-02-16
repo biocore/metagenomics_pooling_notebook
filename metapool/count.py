@@ -205,11 +205,13 @@ def minimap2_counts(run_dir, sample_sheet):
 
 
 def run_counts(run_dir, sample_sheet):
+    # run_counts can currently accept a mapping-file for sample_sheet as
+    # well as sample_sheet as long as lane and sample_project have been
+    # added as columns. This is because the _counts() functions only use
+    # sample_sheet for the most basic of purposes, and do not modify it.
     out = bcl2fastq_counts(run_dir, sample_sheet).join([
             fastp_counts(run_dir, sample_sheet),
-            minimap2_counts(run_dir, sample_sheet),
-
-        ])
+            minimap2_counts(run_dir, sample_sheet)])
 
     # convenience columns to assess sample quality
     out['fraction_passing_quality_filter'] = (out['quality_filtered_reads'] /
