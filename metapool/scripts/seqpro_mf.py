@@ -39,7 +39,8 @@ def format_preparation_files(run_dir, mapping_file, output_dir):
     # count-related code will need to search run_directories based on
     # sample-id, not sample-name.
     # TODO: Note there may be more to change than just '.' to '_'.
-    df_mapping_file['Sample_ID'] = df_mapping_file['sample_name'].str.replace('.', '_')
+    df_mapping_file['Sample_ID'] = df_mapping_file['sample_name'].str.replace(
+        '.', '_')
 
     # add a faked column for 'Sample_Project' to preserve the original logic.
     df_mapping_file['Sample_Project'] = df_mapping_file.loc[:, 'Project_name']
