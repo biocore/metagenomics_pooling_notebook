@@ -87,12 +87,12 @@ def _parsefier(run_dir, metadata, subdir, suffix, name, funk):
                                          metapool.KLSampleSheet) else False
 
     if is_sample_sheet:
-        foo = {(s.Sample_Project, s.Lane) for s in metadata}
+        projects = {(s.Sample_Project, s.Lane) for s in metadata}
     else:
-        foo = metadata[["Project_name", "lane"]]
-        foo = set(foo.itertuples(index=False, name=None))
+        projects = metadata[["Project_name", "lane"]]
+        projects = set(projects.itertuples(index=False, name=None))
 
-    for project, lane in foo:
+    for project, lane in projects:
         lane = lane.zfill(3)
 
         # log files are named after the sequence files themselves,

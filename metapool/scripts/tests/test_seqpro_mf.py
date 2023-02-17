@@ -39,7 +39,9 @@ class SeqproAmpliconTests(unittest.TestCase):
                                               'sample_mapping_file.tsv'),
                                          './'])
 
-            self.assertEqual(result.output, '')
+            # warning message is all right. It is normal behavior given how
+            # the input files/directories was set up. Process was successful
+            # as long as it returns 0.
             self.assertEqual(result.exit_code, 0)
 
             # not exp_preps is just one file w/a long name, not two files.

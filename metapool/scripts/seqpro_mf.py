@@ -50,8 +50,8 @@ def format_preparation_files_mf(run_dir, mapping_file, output_dir):
     # sample_names to stats using Sample_IDs/stats's index as the key.
     # This will cause sample_names for all samples where a file wasn't found
     # to be 'NaN'.
-    x = df_mf[["Sample_ID", "sample_name"]].set_index('Sample_ID')
-    stats = stats.join(x)
+    stats = stats.join(
+        df_mf[["Sample_ID", "sample_name"]].set_index('Sample_ID'))
 
     # returns a map of (run, project_name, lane) -> preparation frame
     preps = preparations_for_run_mapping_file(run_dir, df_mf)
