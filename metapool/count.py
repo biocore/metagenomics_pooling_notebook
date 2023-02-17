@@ -83,14 +83,13 @@ def _parsefier(run_dir, metadata, subdir, suffix, name, funk):
     """
     out = []
 
-    is_sample_sheet = True if isinstance(metadata,
-                                         metapool.KLSampleSheet) else False
-
-    if is_sample_sheet:
+    if isinstance(metadata, metapool.KLSampleSheet):
         projects = {(s.Sample_Project, s.Lane) for s in metadata}
+        expected = {s.Sample_ID for s in metadata}
     else:
         projects = metadata[["Project_name", "lane"]]
         projects = set(projects.itertuples(index=False, name=None))
+        expected = set(metadata["Sample_ID"].values.tolist())
 
     for project, lane in projects:
         lane = lane.zfill(3)
@@ -108,20 +107,10 @@ def _parsefier(run_dir, metadata, subdir, suffix, name, funk):
                         project, log])
 
     out = pd.DataFrame(
-        # TODO: Should this be Sample_ID for mapping-files? It's using the
-        #  mapping-file's sample-name? Perhaps this column should be renamed
-        #  or the data-frame should use the correct column. Note 'lane' is
-        #  now 'Lane' and 'Project_name' is 'Sample_Project'.
         columns=['Sample_ID', 'Lane', 'Sample_Project', 'path'],
         data=out)
 
-    # note that expected uses our generated Sample_ID for amplicon and not
-    # sample_name as it should.
     found = set(out['Sample_ID'])
-    if is_sample_sheet:
-        expected = {s.Sample_ID for s in metadata}
-    else:
-        expected = set(metadata["Sample_ID"].values.tolist())
 
     # ignore the things not present in the sheet
     out = out[out['Sample_ID'].isin(expected)]
