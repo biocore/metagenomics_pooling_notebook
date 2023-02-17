@@ -139,7 +139,6 @@ def _parsefier(run_dir, metadata, subdir, suffix, name, funk):
                          ' the same lane, only one match is expected: %s' %
                          ', '.join(pairs))
 
-
     if expected > found:
         warnings.warn(f'No {name} log found for these samples: %s' %
                       ', '.join(expected - found))
