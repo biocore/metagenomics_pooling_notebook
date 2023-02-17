@@ -31,6 +31,13 @@ PREP_COLUMNS = ['experiment_design_description', 'well_description',
                 'center_project_name', 'instrument_model', 'runid',
                 'lane', 'sample_project'] + list(REQUIRED_COLUMNS)
 
+PREP_MF_COLUMNS = ['experiment_design_description',
+                   'library_construction_protocol',
+                   'platform', 'run_center', 'run_date', 'run_prefix',
+                   'sequencing_meth', 'center_name', 'center_project_name',
+                   'instrument_model', 'runid', 'lane', 'sample_project',
+                   'sample_plate', 'sample_name']
+
 AMPLICON_PREP_COLUMN_RENAMER = {
     'Sample': 'sample_name',
     'Golay Barcode': 'barcode',
@@ -511,11 +518,12 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
         if qiita_id == project:
             qiita_id = 'QIITA-ID'
 
-        # note that before this function is called, 'lane' was added as a
-        # column w/all rows set to '1'.
         for lane, lane_sheet in project_sheet.groupby('lane'):
+            lane_sheet = lane_sheet.set_index('sample_name')
+
             # this is the portion of the loop that creates the prep
             data = []
+
             for sample_id, sample in lane_sheet.iterrows():
                 run_prefix = get_run_prefix(run_path,
                                             project,
@@ -527,35 +535,27 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
                 if run_prefix is None:
                     continue
 
-                row = {c: '' for c in PREP_COLUMNS}
+                row = {c: '' for c in PREP_MF_COLUMNS}
 
-                row["sample_name"] = sample.sample_name
+                row["sample_name"] = sample.Sample_ID
                 row["experiment_design_description"] = \
-                    sample.experiment_design_description
+                    sample.EXPERIMENT_DESIGN_DESCRIPTION
                 row["library_construction_protocol"] = \
-                    sample.library_construction_protocol
-                row["platform"] = sample.platform
-                row["run_center"] = sample.run_center
-                row["run_date"] = sample.run_date
-                row["run_prefix"] = sample.run_prefix
+                    sample.LIBRARY_CONSTRUCTION_PROTOCOL
+                row["platform"] = sample.PLATFORM
+                row["run_center"] = sample.RUN_CENTER
+                row["run_date"] = sample.RUN_DATE
+                # run_prefix will be set to the value determined above,
+                # rather than what was in the mapping-file.
+                row["run_prefix"] = run_prefix
                 row["sequencing_meth"] = sample.sequencing_meth
                 row["center_name"] = sample.center_name
-                row["center_project_name"] = project_name
-                row["instrument_model"] = sample.instrument_model
-                row["runid"] = sample.run_id
-                row["sample_plate"] = sample.sample_plate
-
-                row["sample_well"] = ""
-                row["i7_index_id"] = ""
-                row["index"] = ""
-                row["i5_index_id"] = ""
-                row["index2"] = ""
-                row["lane"] = sample.lane
-                row["sample_project"] = project
-                row["well_description"] = '%s.%s.%s' % (sample.sample_plate,
-                                                        sample.sample_name,
-                                                        "NO_WELL_VALUE")
-
+                row["center_project_name"] = sample.center_project_name
+                row["instrument_model"] = sample.INSTRUMENT_MODEL
+                row["runid"] = run_id
+                row["sample_plate"] = sample.Sample_Plate
+                row["lane"] = lane
+                row["sample_project"] = project_name
                 data.append(row)
 
             if not data:
