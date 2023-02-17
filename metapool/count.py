@@ -10,6 +10,8 @@ import warnings
 # forward/reverse/index id.
 #
 # Here's a few examples for this regular expression: tinyurl.com/filenamepatt
+import metapool
+
 SAMPLE_PATTERN = re.compile(r'(.*)_(S\d{1,4})_(L\d{1,3})_([RI][12]).*')
 
 # first group is the number of sequences written to fwd and reverse files
@@ -56,14 +58,14 @@ def _parse_samtools_counts(path):
         return int(matches.groups()[0]) / 2.0
 
 
-def _parsefier(run_dir, sample_sheet, subdir, suffix, name, funk):
+def _parsefier(run_dir, metadata, subdir, suffix, name, funk):
     """High order helper to search through a run directory
 
     Parameters
     ----------
     run_dir: str
         Illumina's run directory.
-    sample_sheet: metapool.KLSampleSheet
+    metadata: metapool.KLSampleSheet or mapping-file (pd.DataFrame)
         Sample sheet for the samples to get counts for.
     subdir: str
         Name of the directory in the project folder.
@@ -81,14 +83,22 @@ def _parsefier(run_dir, sample_sheet, subdir, suffix, name, funk):
     """
     out = []
 
-    for project, lane in {(s.Sample_Project, s.Lane) for s in sample_sheet}:
+    if isinstance(metadata, metapool.KLSampleSheet):
+        projects = {(s.Sample_Project, s.Lane) for s in metadata}
+        expected = {s.Sample_ID for s in metadata}
+    else:
+        projects = metadata[["Project_name", "lane"]]
+        projects = set(projects.itertuples(index=False, name=None))
+        expected = set(metadata["Sample_ID"].values.tolist())
+
+    for project, lane in projects:
         lane = lane.zfill(3)
 
-        # log files are named after the sequence files themselves, specifically
-        # the forward sequences, so we just make sure we match the right lane,
-        # the forward file and the suffix. The suffix is something like ".log"
-        # or "*.json" if you expect to see other characters before the
-        # extension
+        # log files are named after the sequence files themselves,
+        # specifically the forward sequences, so we just make sure we
+        # match the right lane, the forward file and the suffix. The
+        # suffix is something like ".log" or "*.json" if you expect to see
+        # other characters before the extension.
         logs = glob.glob(os.path.join(run_dir, project, subdir,
                                       f'*_L{lane}_R1_001' + suffix))
 
@@ -96,11 +106,11 @@ def _parsefier(run_dir, sample_sheet, subdir, suffix, name, funk):
             out.append([*_extract_name_and_lane(os.path.basename(log)),
                         project, log])
 
-    out = pd.DataFrame(columns=['Sample_ID', 'Lane', 'Sample_Project', 'path'],
-                       data=out)
+    out = pd.DataFrame(
+        columns=['Sample_ID', 'Lane', 'Sample_Project', 'path'],
+        data=out)
 
     found = set(out['Sample_ID'])
-    expected = {s.Sample_ID for s in sample_sheet}
 
     # ignore the things not present in the sheet
     out = out[out['Sample_ID'].isin(expected)]
@@ -110,9 +120,10 @@ def _parsefier(run_dir, sample_sheet, subdir, suffix, name, funk):
         pairs = [f"{r['Sample_ID']} in lane {r['Lane']}"
                  for _, r in out[dups].iterrows()]
 
-        # when running bcl2fastq/bclconvert multiple times you can run into
-        # situations where the cell number is the only thing that changes. For
-        # those situations, make sure you flag this as a possible error
+        # when running bcl2fastq/bclconvert multiple times you can run
+        # into situations where the cell number is the only thing that
+        # changes. For those situations, make sure you flag this as a
+        # possible error
         raise ValueError('Multiple matches found for the same samples in'
                          ' the same lane, only one match is expected: %s' %
                          ', '.join(pairs))
@@ -121,10 +132,16 @@ def _parsefier(run_dir, sample_sheet, subdir, suffix, name, funk):
         warnings.warn(f'No {name} log found for these samples: %s' %
                       ', '.join(expected - found))
 
+    # quality_filtered_reads, non_host_reads, and the like are added as
+    # columns to the output dataframe here.
     out[name] = out.path.apply(funk).astype('float64')
 
+    # drop columns that are no longer needed from the output.
     out.drop(columns=['path', 'Sample_Project'], inplace=True)
-    out.set_index(['Sample_ID', 'Lane'], inplace=True, verify_integrity=True)
+
+    out.set_index(['Sample_ID', 'Lane'], inplace=True,
+                  verify_integrity=True)
+
     return out
 
 
@@ -193,23 +210,27 @@ def _bclconvert_counts(path):
     return df
 
 
-def fastp_counts(run_dir, sample_sheet):
-    return _parsefier(run_dir, sample_sheet, 'json', '.json',
+def fastp_counts(run_dir, metadata):
+    return _parsefier(run_dir, metadata, 'json', '.json',
                       'quality_filtered_reads',
                       _parse_fastp_counts)
 
 
-def minimap2_counts(run_dir, sample_sheet):
-    return _parsefier(run_dir, sample_sheet, 'samtools', '.log',
+def minimap2_counts(run_dir, metadata):
+    return _parsefier(run_dir, metadata, 'samtools', '.log',
                       'non_host_reads', _parse_samtools_counts)
 
 
-def run_counts(run_dir, sample_sheet):
-    out = bcl2fastq_counts(run_dir, sample_sheet).join([
-            fastp_counts(run_dir, sample_sheet),
-            minimap2_counts(run_dir, sample_sheet),
-
-        ])
+def run_counts(run_dir, metadata):
+    '''
+    Generate and aggregate run-counts from multiple sources
+    :param run_dir: A run-directory
+    :param metadata: A sample-sheet (metagenomic) or mapping-file (amplicon)
+    :return: pandas.DataFrame
+    '''
+    out = bcl2fastq_counts(run_dir, metadata).join([
+            fastp_counts(run_dir, metadata),
+            minimap2_counts(run_dir, metadata)])
 
     # convenience columns to assess sample quality
     out['fraction_passing_quality_filter'] = (out['quality_filtered_reads'] /
