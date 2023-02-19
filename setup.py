@@ -9,6 +9,8 @@
 # ----------------------------------------------------------------------------
 
 from setuptools import find_packages, setup
+from os import walk
+from os.path import join
 
 import versioneer
 
@@ -42,6 +44,11 @@ coverage = ['coverage']
 notebook = ['jupyter', 'notebook', 'jupyter_contrib_nbextensions', 'watermark']
 all_deps = base + test + coverage + notebook
 
+notebooks_fp = []
+for (path, directories, filenames) in walk('notebooks'):
+    for filename in filenames:
+        notebooks_fp.append(join('..', path, filename))
+
 setup(name='metapool',
       version=versioneer.get_version(),
       cmdclass=versioneer.get_cmdclass(),
@@ -56,7 +63,9 @@ setup(name='metapool',
       test_suite='nose.collector',
       packages=find_packages(),
       package_data={
-        'metapool': ['data/*.tsv', 'data/*.xlsx', 'tests/data/*.csv']},
+        'metapool': ['data/*.tsv', 'data/*.xlsx', 'tests/data/*.csv'],
+        # addingt all the notebooks fps
+        '': notebooks_fp},
       install_requires=base,
       extras_require={'test': test,
                       'coverage': coverage,
