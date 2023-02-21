@@ -691,6 +691,17 @@ def generate_qiita_prep_file(platedf, seqtype):
     else:
         raise ValueError(f'Unrecognized value "{seqtype}" for seqtype')
 
+    # Additional columns to add if not defined
+    extra_cols = ['tm300_8_tool', 'tm50_8_tool',
+                  'experiment_design_description', 'run_date', 'run_prefix',
+                  'center_project_name', 'instrument_model', 'runid',
+                  'tm300_8_tool', 'tm50_8_tool',
+                  'experiment_design_description', 'run_date', 'run_prefix',
+                  'center_project_name', 'instrument_model', 'runid']
+    for c in extra_cols:
+        if c not in prep.columns:
+            prep[c] = ''
+
     # the approved order of columns in the prep-file.
     column_order = ['sample_name', 'barcode', 'primer', 'primer_plate',
                     'well_id', 'plating', 'extractionkit_lot',
