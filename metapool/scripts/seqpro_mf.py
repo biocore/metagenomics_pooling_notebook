@@ -36,8 +36,6 @@ def format_preparation_files_mf(run_dir, mapping_file, output_dir):
 
     os.makedirs(output_dir, exist_ok=True)
 
-    pd.set_option('display.max_columns', None)
-
     for (run, project, lane), df in preps.items():
         filename = os.path.join(output_dir, f'{run}.{project}.{lane}.tsv')
 
