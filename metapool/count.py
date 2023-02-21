@@ -87,9 +87,7 @@ def _parsefier(run_dir, metadata, subdir, suffix, name, funk):
         projects = {(s.Sample_Project, s.Lane) for s in metadata}
         expected = {s.Sample_ID for s in metadata}
     else:
-        projects = metadata[["Project_name", "lane"]]
-        projects = set(projects.itertuples(index=False, name=None))
-        expected = set(metadata["Sample_ID"].values.tolist())
+        raise ValueError("counts not implemented for amplicon")
 
     for project, lane in projects:
         lane = lane.zfill(3)
