@@ -149,7 +149,7 @@ class TestPrep(TestCase):
 
         first_line = {
             "library_construction_protocol": ("Illumina EMP protocol 515fbc, "
-                                             "806r amplification of 16S rRNA "
+                                              "806r amplification of 16S rRNA "
                                               "V4"),
             "platform": "Illumina",
             "run_center": "UCSDMI",
@@ -165,7 +165,7 @@ class TestPrep(TestCase):
 
         last_line = {
             "library_construction_protocol": ("Illumina EMP protocol 515fbc, "
-                                             "806r amplification of 16S rRNA "
+                                              "806r amplification of 16S rRNA "
                                               "V4"),
             "platform": "Illumina",
             "run_center": "UCSDMI",

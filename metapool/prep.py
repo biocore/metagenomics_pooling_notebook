@@ -513,7 +513,6 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
         # importing bcl_scrub_name led to a circular import
         lambda x: re.sub(r'[^0-9a-zA-Z\-\_]+', '_', x['sample_name']), axis=1)
 
-
     # The mapping-file-based version of this function assumes that pipeline
     # will always be pipeline='fastp-and-minimap2'.
     _, run_id = os.path.split(os.path.normpath(run_path))
