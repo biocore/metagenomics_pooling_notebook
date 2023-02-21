@@ -71,7 +71,6 @@ setup(name='metapool',
                       'all': all_deps},
       entry_points={
           'console_scripts': [
-              'foo=package.module:func',
               'seqpro=metapool.scripts.seqpro:format_preparation_files',
               ('seqpro_mf=metapool.scripts.seqpro_mf:format_preparation_'
                'files_mf'),

@@ -39,9 +39,6 @@ def format_preparation_files_mf(run_dir, mapping_file, output_dir):
     for (run, project, lane), df in preps.items():
         filename = os.path.join(output_dir, f'{run}.{project}.{lane}.tsv')
 
-        df = df.drop(['index', 'index2', 'i5_index_id', 'i7_index_id',
-                      'sample_well', 'well_description'], axis=1)
-
         df.to_csv(filename,
                   sep='\t',
                   index=False,

@@ -1,4 +1,3 @@
-import math
 import os
 
 import pandas
@@ -142,55 +141,31 @@ class TestPrep(TestCase):
 
         self.assertEqual(set(columns), set(obs_df.columns))
 
-        nan_keys = ["experiment_design_description", "well_description",
-                    "run_date", "center_project_name", "instrument_model",
-                    "i7_index_id", "index2", "sample_well", "index",
-                    "i5_index_id"]
+        data = [['sample1', float("nan"),
+                 ('Illumina EMP protocol 515fbc, 806r amplification of 16S '
+                  'rRNA V4'),
+                 'Illumina', 'UCSDMI', float("nan"),
+                 '230207_M05314_0346_000000000-KVMGL',
+                 'Sequencing by synthesis', 'UCSDMI', float("nan"),
+                 float("nan"), '230207_M05314_0346_000000000-KVMGL',
+                 'ABTX_20230208_11052_Plate_238', float("nan"), float("nan"),
+                 float("nan"), float("nan"), float("nan"), '1',
+                 'ABTX_20230208_ABTX', float("nan")],
+                ['sample2', float("nan"),
+                 ('Illumina EMP protocol 515fbc, 806r amplification of 16S '
+                  'rRNA V4'),
+                 'Illumina', 'UCSDMI', float("nan"),
+                 '230207_M05314_0346_000000000-KVMGL',
+                 'Sequencing by synthesis', 'UCSDMI', float("nan"),
+                 float("nan"), '230207_M05314_0346_000000000-KVMGL',
+                 'ABTX_20230208_11052_Plate_238', float("nan"), float("nan"),
+                 float("nan"), float("nan"), float("nan"), '1',
+                 'ABTX_20230208_ABTX', float("nan")]]
 
-        first_line = {
-            "library_construction_protocol": ("Illumina EMP protocol 515fbc, "
-                                              "806r amplification of 16S rRNA "
-                                              "V4"),
-            "platform": "Illumina",
-            "run_center": "UCSDMI",
-            "run_prefix": "230207_M05314_0346_000000000-KVMGL",
-            "sequencing_meth": "Sequencing by synthesis",
-            "center_name": "UCSDMI",
-            "runid": "230207_M05314_0346_000000000-KVMGL",
-            "lane": '1',
-            "sample_project": "ABTX_20230208_ABTX",
-            "sample_plate": "ABTX_20230208_11052_Plate_238",
-            "sample_name": "sample1"
-        }
+        exp = pd.DataFrame(columns=columns, data=data)
+        obs_df = obs_df[exp.columns].copy()
 
-        last_line = {
-            "library_construction_protocol": ("Illumina EMP protocol 515fbc, "
-                                              "806r amplification of 16S rRNA "
-                                              "V4"),
-            "platform": "Illumina",
-            "run_center": "UCSDMI",
-            "run_prefix": "230207_M05314_0346_000000000-KVMGL",
-            "sequencing_meth": "Sequencing by synthesis",
-            "center_name": "UCSDMI",
-            "runid": "230207_M05314_0346_000000000-KVMGL",
-            "lane": '1',
-            "sample_project": "ABTX_20230208_ABTX",
-            "sample_plate": "ABTX_20230208_11052_Plate_238",
-            "sample_name": "sample2"
-        }
-
-        tmp = obs_df.to_dict(orient='records')
-
-        for k in nan_keys:
-            # assert that expected nan values in first line and second
-            # (last) line are nan.
-            self.assertTrue(math.isnan(tmp[0][k]))
-            self.assertTrue(math.isnan(tmp[1][k]))
-
-        for k in first_line:
-            # assert that expected non-nan values match observed values
-            self.assertEqual(first_line[k], tmp[0][k])
-            self.assertEqual(last_line[k], tmp[1][k])
+        pd.testing.assert_frame_equal(obs_df, exp)
 
     def test_preparations_for_run(self):
         ss = sample_sheet_to_dataframe(KLSampleSheet(self.ss))
@@ -227,10 +202,9 @@ class TestPrep(TestCase):
         self._check_run_191103_D32611_0365_G00DHB5YXX(obs)
 
     def test_preparations_for_run_mf(self):
+        # mf has a header w/mixed case. This will test whether mapping-file
+        # headers are properly converted to all lower-case.
         mf = pandas.read_csv(self.mf, delimiter='\t')
-
-        # self.mf has a header w/mixed case. This will test whether
-        # mapping-file headers are properly converted to all lower-case.
 
         # obs will be a dictionary of dataframes, with the keys being
         # a triplet of strings, rather than a single string.
