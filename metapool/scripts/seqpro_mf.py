@@ -4,8 +4,7 @@ import click
 import os
 import pandas as pd
 
-from metapool import preparations_for_run_mapping_file, run_counts
-from metapool.metapool import bcl_scrub_name
+from metapool import preparations_for_run_mapping_file
 
 
 @click.command()
@@ -30,45 +29,40 @@ def format_preparation_files_mf(run_dir, mapping_file, output_dir):
     """
     df_mf = pd.read_csv(mapping_file, delimiter='\t')
 
-    # add a faked value for 'lane' to preserve the original logic.
-    # lane will always be '1' for amplicon runs.
-    df_mf['lane'] = pd.Series(
-        ['1' for x in range(len(df_mf.index))])
-
-    # add a faked column for 'Sample_ID' to preserve the original logic.
-    # count-related code will need to search run_directories based on
-    # sample-id, not sample-name.
-    df_mf['Sample_ID'] = df_mf.apply(
-        lambda x: bcl_scrub_name(x['sample_name']), axis=1)
-
-    stats = run_counts(run_dir, df_mf)
-
-    # stats don't include sample_name which is the primary key to merge w/the
-    # preps in the loop below. Create a map of sample_names to our generated
-    # Sample_IDs. Assume the sample_ids in stats that were ripped from fastq
-    # filenames are a match for our Sample_IDs. Map a new column of
-    # sample_names to stats using Sample_IDs/stats's index as the key.
-    # This will cause sample_names for all samples where a file wasn't found
-    # to be 'NaN'.
-    stats = stats.join(
-        df_mf[["Sample_ID", "sample_name"]].set_index('Sample_ID'))
+    # run_counts cannot be determined for a single multiplexed file.
 
     # returns a map of (run, project_name, lane) -> preparation frame
     preps = preparations_for_run_mapping_file(run_dir, df_mf)
 
     os.makedirs(output_dir, exist_ok=True)
 
+    pd.set_option('display.max_columns', None)
+
     for (run, project, lane), df in preps.items():
         filename = os.path.join(output_dir, f'{run}.{project}.{lane}.tsv')
 
-        stats = stats.xs(lane, level=1)
+        df = df.drop(['index', 'index2', 'i5_index_id', 'i7_index_id',
+                      'sample_well', 'well_description'], axis=1)
 
-        # stats are indexed by sample name and lane, lane is the first
-        # level index. When merging, make sure to select the lane subset
-        # that we care about, otherwise we'll end up with repeated rows
-        df = df.merge(stats, how='left', on='sample_name')
-
-        df.to_csv(filename, sep='\t', index=False)
+        df.to_csv(filename,
+                  sep='\t',
+                  index=False,
+                  # finalize column order
+                  columns = ['sample_name',
+                             'experiment_design_description',
+                             'library_construction_protocol',
+                             'platform',
+                             'run_center',
+                             'run_date',
+                             'run_prefix',
+                             'sequencing_meth',
+                             'center_name',
+                             'center_project_name',
+                             'instrument_model',
+                             'runid',
+                             'lane',
+                             'sample_project',
+                             'sample_plate'])
 
 
 if __name__ == '__main__':

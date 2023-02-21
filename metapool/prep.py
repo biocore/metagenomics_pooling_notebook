@@ -12,18 +12,18 @@ from string import ascii_letters, digits
 REQUIRED_COLUMNS = {'sample_plate', 'sample_well', 'i7_index_id', 'index',
                     'i5_index_id', 'index2', 'sample_name'}
 
-REQUIRED_MF_COLUMNS = {'sample_name', 'BARCODE', 'PRIMER', 'Primer_Plate',
-                       'Well_ID', 'Plating', 'ExtractionKit_lot',
-                       'Extraction_robot', 'TM1000_8_tool', 'Primer_date',
-                       'MasterMix_lot', 'Water_Lot', 'Processing_robot',
-                       'TM300_8_tool', 'TM50_8_tool', 'Sample_Plate',
-                       'Project_name', 'Orig_name', 'Well_description',
-                       'EXPERIMENT_DESIGN_DESCRIPTION',
-                       'LIBRARY_CONSTRUCTION_PROTOCOL', 'LINKER', 'PLATFORM',
-                       'RUN_CENTER', 'RUN_DATE', 'RUN_PREFIX', 'pcr_primers',
+REQUIRED_MF_COLUMNS = {'sample_name', 'barcode', 'primer', 'primer_plate',
+                       'well_id', 'plating', 'extractionkit_lot',
+                       'extraction_robot', 'tm1000_8_tool', 'primer_date',
+                       'mastermix_lot', 'water_lot', 'processing_robot',
+                       'tm300_8_tool', 'tm50_8_tool', 'sample_plate',
+                       'project_name', 'orig_name', 'well_description',
+                       'experiment_design_description',
+                       'library_construction_protocol', 'linker', 'platform',
+                       'run_center', 'run_date', 'run_prefix', 'pcr_primers',
                        'sequencing_meth', 'target_gene', 'target_subfragment',
                        'center_name', 'center_project_name',
-                       'INSTRUMENT_MODEL', 'runid'}
+                       'instrument_model', 'runid'}
 
 PREP_COLUMNS = ['experiment_design_description', 'well_description',
                 'library_construction_protocol', 'platform', 'run_center',
@@ -482,7 +482,7 @@ def preparations_for_run(run_path, sheet, pipeline='fastp-and-minimap2'):
 
 
 def preparations_for_run_mapping_file(run_path, mapping_file):
-    """Given a run's path and sample sheet generates preparation files
+    """Given a run's path and mapping-file generates preparation files
 
         Parameters
         ----------
@@ -498,6 +498,22 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
             are preparations represented as DataFrames.
         """
 
+    # lowercase all columns
+    mapping_file.columns = mapping_file.columns.str.lower()
+
+    # add a faked value for 'lane' to preserve the original logic.
+    # lane will always be '1' for amplicon runs.
+    mapping_file['lane'] = pd.Series(
+        ['1' for x in range(len(mapping_file.index))])
+
+    # add a faked column for 'Sample_ID' to preserve the original logic.
+    # count-related code will need to search run_directories based on
+    # sample-id, not sample-name.
+    mapping_file['Sample_ID'] = mapping_file.apply(
+        # importing bcl_scrub_name led to a circular import
+        lambda x: re.sub(r'[^0-9a-zA-Z\-\_]+', '_', x['sample_name']), axis=1)
+
+
     # The mapping-file-based version of this function assumes that pipeline
     # will always be pipeline='fastp-and-minimap2'.
     _, run_id = os.path.split(os.path.normpath(run_path))
@@ -510,7 +526,7 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
         raise ValueError("Required columns are missing: %s" %
                          ', '.join(not_present))
 
-    for project, project_sheet in mapping_file.groupby('Project_name'):
+    for project, project_sheet in mapping_file.groupby('project_name'):
         project_name = remove_qiita_id(project)
         qiita_id = project.replace(project_name + '_', '')
 
@@ -525,11 +541,9 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
             data = []
 
             for sample_id, sample in lane_sheet.iterrows():
-                run_prefix = get_run_prefix(run_path,
-                                            project,
-                                            sample_id,
-                                            lane,
-                                            'fastp-and-minimap2')
+                # run_prefix taken from run_id located in
+                # filepath.
+                run_prefix = os.path.split(run_path)[1]
 
                 # we don't care about the sample if there's no file
                 if run_prefix is None:
@@ -539,21 +553,21 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
 
                 row["sample_name"] = sample.Sample_ID
                 row["experiment_design_description"] = \
-                    sample.EXPERIMENT_DESIGN_DESCRIPTION
+                    sample.experiment_design_description
                 row["library_construction_protocol"] = \
-                    sample.LIBRARY_CONSTRUCTION_PROTOCOL
-                row["platform"] = sample.PLATFORM
-                row["run_center"] = sample.RUN_CENTER
-                row["run_date"] = sample.RUN_DATE
+                    sample.library_construction_protocol
+                row["platform"] = sample.platform
+                row["run_center"] = sample.run_center
+                row["run_date"] = sample.run_date
                 # run_prefix will be set to the value determined above,
                 # rather than what was in the mapping-file.
                 row["run_prefix"] = run_prefix
                 row["sequencing_meth"] = sample.sequencing_meth
                 row["center_name"] = sample.center_name
                 row["center_project_name"] = sample.center_project_name
-                row["instrument_model"] = sample.INSTRUMENT_MODEL
+                row["instrument_model"] = sample.instrument_model
                 row["runid"] = run_id
-                row["sample_plate"] = sample.Sample_Plate
+                row["sample_plate"] = sample.sample_plate
                 row["lane"] = lane
                 row["sample_project"] = project_name
                 data.append(row)

@@ -29,7 +29,7 @@ class SeqproAmpliconTests(unittest.TestCase):
         copy(join(self.data_dir, 'Demultiplex_Stats.csv'),
              join(self.temp_copy, 'Reports', 'Demultiplex_Stats.csv'))
 
-    def test_fastp_run(self):
+    def test_run(self):
         runner = CliRunner()
 
         with runner.isolated_filesystem():

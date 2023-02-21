@@ -1,4 +1,7 @@
+import math
 import os
+
+import pandas
 import pandas as pd
 
 from unittest import TestCase, main
@@ -8,7 +11,8 @@ from metapool.prep import (preparations_for_run, remove_qiita_id,
                            get_machine_code, get_model_and_center,
                            parse_illumina_run_id,
                            _check_invalid_names, agp_transform, parse_prep,
-                           generate_qiita_prep_file, qiita_scrub_name)
+                           generate_qiita_prep_file, qiita_scrub_name,
+                           preparations_for_run_mapping_file)
 
 
 class TestPrep(TestCase):
@@ -21,8 +25,12 @@ class TestPrep(TestCase):
         self.OKish_run_new_version = os.path.join(
             data_dir, 'runs', '191104_D32611_0365_OK15HB5YXZ')
 
+        self.amplicon_run = os.path.join(data_dir, 'runs',
+                                         '230207_M05314_0346_000000000-KVMGL')
+
         self.ss = os.path.join(self.good_run, 'sample-sheet.csv')
         self.prep = os.path.join(data_dir, 'prep.tsv')
+        self.mf = os.path.join(self.amplicon_run, 'sample_mapping_file.tsv')
 
     def _check_run_191103_D32611_0365_G00DHB5YXX(self, obs):
         "Convenience method to check the output of a whole run"
@@ -116,6 +124,74 @@ class TestPrep(TestCase):
         obs_df = obs_df[exp.columns].copy()
         pd.testing.assert_frame_equal(obs_df, exp)
 
+    def _check_run_230207_M05314_0346_000000000_KVMGL(self, obs):
+        exp = {('230207_M05314_0346_000000000-KVMGL',
+                'ABTX_20230208_ABTX_11052', '1')}
+        self.assertEqual(set(obs.keys()), exp)
+
+        obs_df = obs[('230207_M05314_0346_000000000-KVMGL',
+                      'ABTX_20230208_ABTX_11052', '1')]
+
+        columns = ['sample_name', 'experiment_design_description',
+                   'library_construction_protocol', 'platform', 'run_center',
+                   'run_date', 'run_prefix', 'sequencing_meth', 'center_name',
+                   'center_project_name', 'instrument_model', 'runid',
+                   'sample_plate', 'sample_well', 'i7_index_id', 'index',
+                   'i5_index_id', 'index2', 'lane', 'sample_project',
+                   'well_description']
+
+        self.assertEqual(set(columns), set(obs_df.columns))
+
+        nan_keys = ["experiment_design_description", "well_description",
+                    "run_date", "center_project_name", "instrument_model",
+                    "i7_index_id", "index2", "sample_well", "index",
+                    "i5_index_id"]
+
+        first_line = {
+            "library_construction_protocol": ("Illumina EMP protocol 515fbc, "
+                                             "806r amplification of 16S rRNA "
+                                              "V4"),
+            "platform": "Illumina",
+            "run_center": "UCSDMI",
+            "run_prefix": "230207_M05314_0346_000000000-KVMGL",
+            "sequencing_meth": "Sequencing by synthesis",
+            "center_name": "UCSDMI",
+            "runid": "230207_M05314_0346_000000000-KVMGL",
+            "lane": '1',
+            "sample_project": "ABTX_20230208_ABTX",
+            "sample_plate": "ABTX_20230208_11052_Plate_238",
+            "sample_name": "sample1"
+        }
+
+        last_line = {
+            "library_construction_protocol": ("Illumina EMP protocol 515fbc, "
+                                             "806r amplification of 16S rRNA "
+                                              "V4"),
+            "platform": "Illumina",
+            "run_center": "UCSDMI",
+            "run_prefix": "230207_M05314_0346_000000000-KVMGL",
+            "sequencing_meth": "Sequencing by synthesis",
+            "center_name": "UCSDMI",
+            "runid": "230207_M05314_0346_000000000-KVMGL",
+            "lane": '1',
+            "sample_project": "ABTX_20230208_ABTX",
+            "sample_plate": "ABTX_20230208_11052_Plate_238",
+            "sample_name": "sample2"
+        }
+
+        tmp = obs_df.to_dict(orient='records')
+
+        for k in nan_keys:
+            # assert that expected nan values in first line and second
+            # (last) line are nan.
+            self.assertTrue(math.isnan(tmp[0][k]))
+            self.assertTrue(math.isnan(tmp[1][k]))
+
+        for k in first_line:
+            # assert that expected non-nan values match observed values
+            self.assertEqual(first_line[k], tmp[0][k])
+            self.assertEqual(last_line[k], tmp[1][k])
+
     def test_preparations_for_run(self):
         ss = sample_sheet_to_dataframe(KLSampleSheet(self.ss))
 
@@ -149,6 +225,27 @@ class TestPrep(TestCase):
                                                           "present")
 
         self._check_run_191103_D32611_0365_G00DHB5YXX(obs)
+
+    def test_preparations_for_run_mf(self):
+        mf = pandas.read_csv(self.mf, delimiter='\t')
+
+        # self.mf has a header w/mixed case. This will test whether
+        # mapping-file headers are properly converted to all lower-case.
+
+        # obs will be a dictionary of dataframes, with the keys being
+        # a triplet of strings, rather than a single string.
+        obs = preparations_for_run_mapping_file(self.amplicon_run, mf)
+
+        self._check_run_230207_M05314_0346_000000000_KVMGL(obs)
+
+        # remove a column, simulating reading in a file with a column
+        # missing.
+        mf = mf.drop('project_name', axis=1)
+
+        with self.assertRaisesRegex(ValueError,
+                                    'Required columns are missing: '
+                                    'project_name'):
+            preparations_for_run_mapping_file(self.amplicon_run, mf)
 
     def test_invalid_sample_names_show_warning(self):
         ss = sample_sheet_to_dataframe(KLSampleSheet(self.ss))
