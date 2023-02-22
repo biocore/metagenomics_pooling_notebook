@@ -56,7 +56,7 @@ class SeqproAmpliconTests(unittest.TestCase):
 
             # generate a list of sample-names that contain characters other
             # than alphanumerics + '.'
-            names = [x for x in names if not bool(re.match("^[\w\d.]*$", x))]
+            names = [x for x in names if not bool(re.match(r"^[\w\d.]*$", x))]
 
             # assert that all sample-names were of the proper form.
             self.assertEqual(names, [])
