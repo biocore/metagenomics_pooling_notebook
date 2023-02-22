@@ -45,14 +45,16 @@ class SeqproAmpliconTests(unittest.TestCase):
             # assert seqpro_mf returned successfully
             self.assertEqual(result.exit_code, 0)
 
-            exp_fp = ('./240207_M05314_0346_000000000-KVMGL.ABTX_20230208_'
+            obs_fp = ('./240207_M05314_0346_000000000-KVMGL.ABTX_20230208_'
                       'ABTX_11052.1.tsv')
 
             # assert prep-info-file output exists
-            self.assertTrue(exists(exp_fp))
+            self.assertTrue(exists(obs_fp))
+
+            obs_df = pd.read_csv(obs_fp, delimiter='\t')
 
             # assert sample_name does not contain any '_' characters
-            names = list(pd.read_csv(exp_fp, delimiter='\t')['sample_name'])
+            names = list(obs_df['sample_name'])
 
             # generate a list of sample-names that contain characters other
             # than alphanumerics + '.'
@@ -60,6 +62,18 @@ class SeqproAmpliconTests(unittest.TestCase):
 
             # assert that all sample-names were of the proper form.
             self.assertEqual(names, [])
+
+            # confirm correct header columns exist
+            self.assertEqual({'sample_name', 'center_name',
+                              'center_project_name',
+                              'experiment_design_description',
+                              'instrument_model', 'lane',
+                              'library_construction_protocol', 'platform',
+                              'run_center', 'run_date', 'run_prefix', 'runid',
+                              'sample_plate', 'sample_project',
+                              'sequencing_meth', 'barcode'},
+                             set(obs_df.columns))
+
 
     def tearDown(self):
         rmtree(self.temp_copy)

@@ -43,21 +43,13 @@ def format_preparation_files_mf(run_dir, mapping_file, output_dir):
                   sep='\t',
                   index=False,
                   # finalize column order
-                  columns=['sample_name',
-                           'experiment_design_description',
-                           'library_construction_protocol',
-                           'platform',
-                           'run_center',
-                           'run_date',
-                           'run_prefix',
-                           'sequencing_meth',
-                           'center_name',
-                           'center_project_name',
-                           'instrument_model',
-                           'runid',
-                           'lane',
-                           'sample_project',
-                           'sample_plate'])
+
+                  columns=['sample_name', 'center_name', 'center_project_name',
+                           'experiment_design_description', 'instrument_model',
+                           'lane', 'library_construction_protocol', 'platform',
+                           'run_center', 'run_date', 'run_prefix', 'runid',
+                           'sample_plate', 'sample_project',
+                           'sequencing_meth', 'barcode'])
 
 
 if __name__ == '__main__':

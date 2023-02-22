@@ -31,12 +31,13 @@ PREP_COLUMNS = ['experiment_design_description', 'well_description',
                 'center_project_name', 'instrument_model', 'runid',
                 'lane', 'sample_project'] + list(REQUIRED_COLUMNS)
 
-PREP_MF_COLUMNS = ['experiment_design_description',
-                   'library_construction_protocol',
-                   'platform', 'run_center', 'run_date', 'run_prefix',
-                   'sequencing_meth', 'center_name', 'center_project_name',
-                   'instrument_model', 'runid', 'lane', 'sample_project',
-                   'sample_plate', 'sample_name']
+PREP_MF_COLUMNS = ['sample_name', 'barcode', 'center_name',
+                   'center_project_name',
+                   'experiment_design_description', 'instrument_model',
+                   'lane', 'library_construction_protocol', 'platform',
+                   'run_center', 'run_date', 'run_prefix', 'runid',
+                   'sample_plate', 'sample_project',
+                   'sequencing_meth']
 
 AMPLICON_PREP_COLUMN_RENAMER = {
     'Sample': 'sample_name',
@@ -501,6 +502,7 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
     # lowercase all columns
     mapping_file.columns = mapping_file.columns.str.lower()
 
+
     # add a faked value for 'lane' to preserve the original logic.
     # lane will always be '1' for amplicon runs.
     mapping_file['lane'] = pd.Series(
@@ -569,6 +571,7 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
                 row["sample_plate"] = sample.sample_plate
                 row["lane"] = lane
                 row["sample_project"] = project_name
+                row["barcode"] = sample.barcode
                 data.append(row)
 
             if not data:
@@ -579,7 +582,7 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
             # to grow this study with more and more runs. So we fill some of
             # the blanks if we can verify the study id corresponds to the AGP.
             # This was a request by Daniel McDonald and Gail
-            prep = agp_transform(pd.DataFrame(columns=PREP_COLUMNS,
+            prep = agp_transform(pd.DataFrame(columns=PREP_MF_COLUMNS,
                                               data=data),
                                  qiita_id)
 
