@@ -666,7 +666,7 @@ def generate_qiita_prep_file(platedf, seqtype):
             'Reverse Primer Linker': 'linker'
         }
 
-    prep = platedf[column_renamer.keys()].copy()
+    prep = platedf.copy()
     prep.rename(column_renamer, inplace=True, axis=1)
 
     primers_16S = 'FWD:GTGYCAGCMGCCGCGGTAA; REV:GGACTACNVGGGTWTCTAAT'
@@ -703,16 +703,16 @@ def generate_qiita_prep_file(platedf, seqtype):
     else:
         raise ValueError(f'Unrecognized value "{seqtype}" for seqtype')
 
-    # Add eight additional columns to the prep-file that the user will fill in
-    # manually.
-    prep['tm300_8_tool'] = ''
-    prep['tm50_8_tool'] = ''
-    prep['experiment_design_description'] = ''
-    prep['run_date'] = ''
-    prep['run_prefix'] = ''
-    prep['center_project_name'] = ''
-    prep['instrument_model'] = ''
-    prep['runid'] = ''
+    # Additional columns to add if not defined
+    extra_cols = ['tm300_8_tool', 'tm50_8_tool',
+                  'experiment_design_description', 'run_date', 'run_prefix',
+                  'center_project_name', 'instrument_model', 'runid',
+                  'tm300_8_tool', 'tm50_8_tool',
+                  'experiment_design_description', 'run_date', 'run_prefix',
+                  'center_project_name', 'instrument_model', 'runid']
+    for c in extra_cols:
+        if c not in prep.columns:
+            prep[c] = ''
 
     # the approved order of columns in the prep-file.
     column_order = ['sample_name', 'barcode', 'primer', 'primer_plate',
