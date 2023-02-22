@@ -141,7 +141,7 @@ class TestPrep(TestCase):
 
         self.assertEqual(set(columns), set(obs_df.columns))
 
-        data = [['sample1', float("nan"),
+        data = [['sample.1', float("nan"),
                  ('Illumina EMP protocol 515fbc, 806r amplification of 16S '
                   'rRNA V4'),
                  'Illumina', 'UCSDMI', float("nan"),
@@ -151,7 +151,7 @@ class TestPrep(TestCase):
                  'ABTX_20230208_11052_Plate_238', float("nan"), float("nan"),
                  float("nan"), float("nan"), float("nan"), '1',
                  'ABTX_20230208_ABTX', float("nan")],
-                ['sample2', float("nan"),
+                ['sample.2', float("nan"),
                  ('Illumina EMP protocol 515fbc, 806r amplification of 16S '
                   'rRNA V4'),
                  'Illumina', 'UCSDMI', float("nan"),
