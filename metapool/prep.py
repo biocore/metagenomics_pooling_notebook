@@ -539,7 +539,7 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
             # this is the portion of the loop that creates the prep
             data = []
 
-            for sample_id, sample in lane_sheet.iterrows():
+            for sample_name, sample in lane_sheet.iterrows():
                 # run_prefix taken from run_id located in
                 # filepath.
                 run_prefix = os.path.split(run_path)[1]
@@ -550,7 +550,7 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
 
                 row = {c: '' for c in PREP_MF_COLUMNS}
 
-                row["sample_name"] = sample.Sample_ID
+                row["sample_name"] = sample_name
                 row["experiment_design_description"] = \
                     sample.experiment_design_description
                 row["library_construction_protocol"] = \
@@ -579,7 +579,6 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
             # to grow this study with more and more runs. So we fill some of
             # the blanks if we can verify the study id corresponds to the AGP.
             # This was a request by Daniel McDonald and Gail
-
             prep = agp_transform(pd.DataFrame(columns=PREP_COLUMNS,
                                               data=data),
                                  qiita_id)

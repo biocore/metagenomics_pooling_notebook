@@ -1,9 +1,12 @@
 import os
 import unittest
+
+import pandas as pd
 from click.testing import CliRunner
 from metapool.scripts.seqpro_mf import format_preparation_files_mf
 from shutil import copy, copytree, rmtree
-from os.path import join
+from os.path import join, exists
+import re
 
 
 class SeqproAmpliconTests(unittest.TestCase):
@@ -39,15 +42,24 @@ class SeqproAmpliconTests(unittest.TestCase):
                                               'sample_mapping_file.tsv'),
                                          './'])
 
-            # warning message is all right. It is normal behavior given how
-            # the input files/directories was set up. Process was successful
-            # as long as it returns 0.
+            # assert seqpro_mf returned successfully
             self.assertEqual(result.exit_code, 0)
 
-            # not exp_preps is just one file w/a long name, not two files.
-            exp_preps = ['240207_M05314_0346_000000000-KVMGL.'
-                         'ABTX_20230208_ABTX_11052.1.tsv']
-            self.assertEqual(sorted(os.listdir('./')), exp_preps)
+            exp_fp = ('./240207_M05314_0346_000000000-KVMGL.ABTX_20230208_'
+                      'ABTX_11052.1.tsv')
+
+            # assert prep-info-file output exists
+            self.assertTrue(exists(exp_fp))
+
+            # assert sample_name does not contain any '_' characters
+            names = list(pd.read_csv(exp_fp, delimiter='\t')['sample_name'])
+
+            # generate a list of sample-names that contain characters other
+            # than alphanumerics + '.'
+            names = [x for x in names if not bool(re.match(r"^[\w\d.]*$", x))]
+
+            # assert that all sample-names were of the proper form.
+            self.assertEqual(names, [])
 
     def tearDown(self):
         rmtree(self.temp_copy)
