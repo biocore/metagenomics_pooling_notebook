@@ -70,7 +70,8 @@ class SeqproAmpliconTests(unittest.TestCase):
                               'instrument_model', 'lane',
                               'library_construction_protocol', 'platform',
                               'run_center', 'run_date', 'run_prefix', 'runid',
-                              'sample_plate', 'sequencing_meth', 'barcode'},
+                              'sample_plate', 'sequencing_meth', 'barcode',
+                              'linker', 'primer'},
                              set(obs_df.columns))
 
     def tearDown(self):
