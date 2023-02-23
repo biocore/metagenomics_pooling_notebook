@@ -583,8 +583,6 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
             # this is the portion of the loop that creates the prep
             data = []
 
-            run_ids = []
-
             for sample_name, sample in lane_sheet.iterrows():
                 row = {c: '' for c in PREP_MF_COLUMNS}
 
@@ -602,7 +600,6 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
                 row["center_project_name"] = sample.center_project_name
                 row["instrument_model"] = sample.instrument_model
                 row["runid"] = run_id
-                run_ids.append(sample.runid)
                 row["sample_plate"] = sample.sample_plate
                 row["lane"] = lane
                 row["barcode"] = sample.barcode
@@ -624,13 +621,7 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
 
             _check_invalid_names(prep.sample_name)
 
-            run_ids = list(set(run_ids))
-
-            if len(run_ids) > 1:
-                raise ValueError('Project %s, Lane %s contains more than one '
-                                 'run-id: %s' % (project, lane, run_ids))
-
-            output[(run_ids[0], project, lane)] = prep
+            output[(run_id, project, lane)] = prep
 
     return output
 
