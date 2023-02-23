@@ -243,7 +243,8 @@ def get_run_prefix(run_path, project, sample_id, lane, pipeline):
 
 
 def get_run_prefix_mf(run_path, project):
-    search_path = os.path.join(run_path, project, 'amplicon', '*_SMPL1_S*R?_*.fastq.gz')
+    search_path = os.path.join(run_path, project, 'amplicon',
+                               '*_SMPL1_S*R?_*.fastq.gz')
     results = glob(search_path)
 
     # at this stage there should only be two files forward and reverse
@@ -565,8 +566,8 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
                              " Qiita Study ID.")
 
         # note that run_prefix and run_id columns are required columns in
-        # mapping-files. We expect these columns to be blank when seqpro is run,
-        # however.
+        # mapping-files. We expect these columns to be blank when seqpro is
+        # run, however.
         run_prefix = get_run_prefix_mf(run_path, project)
 
         run_id = run_prefix.split('_SMPL1')[0]
