@@ -31,12 +31,17 @@ PREP_COLUMNS = ['experiment_design_description', 'well_description',
                 'center_project_name', 'instrument_model', 'runid',
                 'lane', 'sample_project'] + list(REQUIRED_COLUMNS)
 
-PREP_MF_COLUMNS = ['experiment_design_description',
-                   'library_construction_protocol',
-                   'platform', 'run_center', 'run_date', 'run_prefix',
-                   'sequencing_meth', 'center_name', 'center_project_name',
-                   'instrument_model', 'runid', 'lane', 'sample_project',
-                   'sample_plate', 'sample_name']
+PREP_MF_COLUMNS = ['sample_name', 'barcode', 'center_name',
+                   'center_project_name', 'experiment_design_description',
+                   'instrument_model', 'lane', 'library_construction_protocol',
+                   'platform', 'run_center', 'run_date', 'run_prefix', 'runid',
+                   'sample_plate', 'sequencing_meth', 'linker', 'primer',
+                   'primer_plate', 'well_id', 'plating', 'extractionkit_lot',
+                   'extraction_robot', 'tm1000_8_tool', 'primer_date',
+                   'mastermix_lot', 'water_lot', 'processing_robot',
+                   'tm300_8_tool', 'tm50_8_tool', 'project_name', 'orig_name',
+                   'well_description', 'pcr_primers', 'target_gene',
+                   'target_subfragment']
 
 AMPLICON_PREP_COLUMN_RENAMER = {
     'Sample': 'sample_name',
@@ -239,6 +244,41 @@ def get_run_prefix(run_path, project, sample_id, lane, pipeline):
                        sample_id,
                        lane,
                        ', '.join(sorted(results))))
+    return None
+
+
+def get_run_prefix_mf(run_path, project):
+    search_path = os.path.join(run_path, project, 'amplicon',
+                               '*_SMPL1_S*R?_*.fastq.gz')
+    results = glob(search_path)
+
+    # at this stage there should only be two files forward and reverse
+    if len(results) == 2:
+        forward, reverse = sorted(results)
+        if is_nonempty_gz_file(forward) and is_nonempty_gz_file(reverse):
+            f, r = os.path.basename(forward), os.path.basename(reverse)
+            if len(f) != len(r):
+                raise ValueError("Forward and reverse sequences filenames "
+                                 "don't match f:%s r:%s" % (f, r))
+
+            # The first character that's different is the number in R1/R2. We
+            # find this position this way because sometimes filenames are
+            # written as _R1_.. or _R1.trimmed... and splitting on _R1 might
+            # catch some substrings not part of R1/R2.
+            for i in range(len(f)):
+                if f[i] != r[i]:
+                    i -= 2
+                    break
+
+            return f[:i]
+        else:
+            return None
+    elif len(results) > 2:
+        warnings.warn("%d possible matches found for determining run-prefix. "
+                      "Only two matches should be found (forward and "
+                      "reverse): %s" % (len(results),
+                                        ', '.join(sorted(results))))
+
     return None
 
 
@@ -481,6 +521,16 @@ def preparations_for_run(run_path, sheet, pipeline='fastp-and-minimap2'):
     return output
 
 
+def extract_run_date_from_run_id(run_id):
+    # assume first segment of run_id will always be a valid date.
+    tmp = run_id.split('_')[0]
+    year = tmp[0:2]
+    month = tmp[2:4]
+    date = tmp[4:6]
+
+    return ("20%s/%s/%s" % (year, month, date))
+
+
 def preparations_for_run_mapping_file(run_path, mapping_file):
     """Given a run's path and mapping-file generates preparation files
 
@@ -513,12 +563,10 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
         # importing bcl_scrub_name led to a circular import
         lambda x: re.sub(r'[^0-9a-zA-Z\-\_]+', '_', x['sample_name']), axis=1)
 
-    # The mapping-file-based version of this function assumes that pipeline
-    # will always be pipeline='fastp-and-minimap2'.
-    _, run_id = os.path.split(os.path.normpath(run_path))
-
     output = {}
 
+    # lane is also technically a required column but since we generate it,
+    # it's not included in REQUIRED_MF_COLUMNS.
     not_present = REQUIRED_MF_COLUMNS - set(mapping_file.columns)
 
     if not_present:
@@ -529,9 +577,23 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
         project_name = remove_qiita_id(project)
         qiita_id = project.replace(project_name + '_', '')
 
-        # if the Qiita ID is not found then make for an easy find/replace
+        # if the Qiita ID is not found then notify the user.
         if qiita_id == project:
-            qiita_id = 'QIITA-ID'
+            raise ValueError("Values in project_name must be appended with a"
+                             " Qiita Study ID.")
+
+        # note that run_prefix and run_id columns are required columns in
+        # mapping-files. We expect these columns to be blank when seqpro is
+        # run, however.
+        run_prefix = get_run_prefix_mf(run_path, project)
+
+        run_id = run_prefix.split('_SMPL1')[0]
+
+        # return an Error if run_prefix could not be determined,
+        # as it is vital for amplicon prep-info files. All projects will have
+        # the same run_prefix.
+        if run_prefix is None:
+            raise ValueError("A run-prefix could not be determined.")
 
         for lane, lane_sheet in project_sheet.groupby('lane'):
             lane_sheet = lane_sheet.set_index('sample_name')
@@ -540,14 +602,6 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
             data = []
 
             for sample_name, sample in lane_sheet.iterrows():
-                # run_prefix taken from run_id located in
-                # filepath.
-                run_prefix = os.path.split(run_path)[1]
-
-                # we don't care about the sample if there's no file
-                if run_prefix is None:
-                    continue
-
                 row = {c: '' for c in PREP_MF_COLUMNS}
 
                 row["sample_name"] = sample_name
@@ -557,9 +611,7 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
                     sample.library_construction_protocol
                 row["platform"] = sample.platform
                 row["run_center"] = sample.run_center
-                row["run_date"] = sample.run_date
-                # run_prefix will be set to the value determined above,
-                # rather than what was in the mapping-file.
+                row["run_date"] = extract_run_date_from_run_id(run_id)
                 row["run_prefix"] = run_prefix
                 row["sequencing_meth"] = sample.sequencing_meth
                 row["center_name"] = sample.center_name
@@ -568,7 +620,27 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
                 row["runid"] = run_id
                 row["sample_plate"] = sample.sample_plate
                 row["lane"] = lane
-                row["sample_project"] = project_name
+                row["barcode"] = sample.barcode
+                row["linker"] = sample.linker
+                row["primer"] = sample.primer
+                row['primer_plate'] = sample.primer_plate
+                row['well_id'] = sample.well_id
+                row['plating'] = sample.plating
+                row['extractionkit_lot'] = sample.extractionkit_lot
+                row['extraction_robot'] = sample.extraction_robot
+                row['tm1000_8_tool'] = sample.tm1000_8_tool
+                row['primer_date'] = sample.primer_date
+                row['mastermix_lot'] = sample.mastermix_lot
+                row['water_lot'] = sample.water_lot
+                row['processing_robot'] = sample.processing_robot
+                row['tm300_8_tool'] = sample.tm300_8_tool
+                row['tm50_8_tool'] = sample.tm50_8_tool
+                row['project_name'] = sample.project_name
+                row['orig_name'] = sample.orig_name
+                row['well_description'] = sample.well_description
+                row['pcr_primers'] = sample.pcr_primers
+                row['target_gene'] = sample.target_gene
+                row['target_subfragment'] = sample.target_subfragment
                 data.append(row)
 
             if not data:
@@ -579,7 +651,7 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
             # to grow this study with more and more runs. So we fill some of
             # the blanks if we can verify the study id corresponds to the AGP.
             # This was a request by Daniel McDonald and Gail
-            prep = agp_transform(pd.DataFrame(columns=PREP_COLUMNS,
+            prep = agp_transform(pd.DataFrame(columns=PREP_MF_COLUMNS,
                                               data=data),
                                  qiita_id)
 

@@ -124,48 +124,71 @@ class TestPrep(TestCase):
         pd.testing.assert_frame_equal(obs_df, exp)
 
     def _check_run_230207_M05314_0346_000000000_KVMGL(self, obs):
-        exp = {('230207_M05314_0346_000000000-KVMGL',
-                'ABTX_20230208_ABTX_11052', '1')}
-        self.assertEqual(set(obs.keys()), exp)
+        # confirm correct keys are present for the output prep
+        exp_keys = {('230207_M05314_0346_000000000-KVMGL',
+                     'ABTX_20230208_ABTX_11052', '1')}
 
+        self.assertEqual(set(obs.keys()), exp_keys)
+
+        # confirm the observed prep-info output contains the expected
+        # columns.
         obs_df = obs[('230207_M05314_0346_000000000-KVMGL',
                       'ABTX_20230208_ABTX_11052', '1')]
 
-        columns = ['sample_name', 'experiment_design_description',
-                   'library_construction_protocol', 'platform', 'run_center',
-                   'run_date', 'run_prefix', 'sequencing_meth', 'center_name',
-                   'center_project_name', 'instrument_model', 'runid',
-                   'sample_plate', 'sample_well', 'i7_index_id', 'index',
-                   'i5_index_id', 'index2', 'lane', 'sample_project',
-                   'well_description']
+        exp_columns = ['sample_name', 'barcode', 'center_name', 'platform',
+                       'center_project_name', 'experiment_design_description',
+                       'instrument_model', 'lane', 'run_center', 'run_date',
+                       'library_construction_protocol', 'run_prefix', 'runid',
+                       'sample_plate', 'sequencing_meth', 'linker', 'primer',
+                       'target_gene', 'pcr_primers', 'primer_plate',
+                       'processing_robot', 'well_description',
+                       'extraction_robot', 'tm300_8_tool', 'water_lot',
+                       'extractionkit_lot', 'target_subfragment', 'well_id',
+                       'project_name', 'tm1000_8_tool', 'orig_name', 'plating',
+                       'primer_date', 'mastermix_lot', 'tm50_8_tool']
 
-        self.assertEqual(set(columns), set(obs_df.columns))
+        self.assertEqual(set(exp_columns), set(obs_df.columns))
 
-        data = [['sample.1', float("nan"),
-                 ('Illumina EMP protocol 515fbc, 806r amplification of 16S '
-                  'rRNA V4'),
-                 'Illumina', 'UCSDMI', float("nan"),
-                 '230207_M05314_0346_000000000-KVMGL',
-                 'Sequencing by synthesis', 'UCSDMI', float("nan"),
-                 float("nan"), '230207_M05314_0346_000000000-KVMGL',
-                 'ABTX_20230208_11052_Plate_238', float("nan"), float("nan"),
-                 float("nan"), float("nan"), float("nan"), '1',
-                 'ABTX_20230208_ABTX', float("nan")],
-                ['sample.2', float("nan"),
-                 ('Illumina EMP protocol 515fbc, 806r amplification of 16S '
-                  'rRNA V4'),
-                 'Illumina', 'UCSDMI', float("nan"),
-                 '230207_M05314_0346_000000000-KVMGL',
-                 'Sequencing by synthesis', 'UCSDMI', float("nan"),
-                 float("nan"), '230207_M05314_0346_000000000-KVMGL',
-                 'ABTX_20230208_11052_Plate_238', float("nan"), float("nan"),
-                 float("nan"), float("nan"), float("nan"), '1',
-                 'ABTX_20230208_ABTX', float("nan")]]
+        exp_data = [
+            ['sample.1', 'AGCCTTCGTCGC', 'UCSDMI', 'Illumina',
+             'SOME_CENTER_PROJECT_NAME',
+             'This is a description of the experiment design.',
+             'SOME_INSTRUMENT_MODEL', '1', 'UCSDMI', '2023/02/07',
+             'Illumina EMP protocol 515fbc, 806r amplification of 16S rRNA V4',
+             '230207_M05314_0346_000000000-KVMGL_SMPL1_S1_L001',
+             '230207_M05314_0346_000000000-KVMGL',
+             'ABTX_20230208_11052_Plate_238', 'Sequencing by synthesis',
+             'GT', 'GTGTGYCAGCMGCCGCGGTAA', '16S rRNA',
+             'FWD:GTGYCAGCMGCCGCGGTAA; REV:GGACTACNVGGGTWTCTAAT',
+             1, 'Echo 550', 'ABTX_20230208_11052_Plate_238_11.8.21.RK.FH_A1',
+             float('nan'), float('nan'), 1317793, float('nan'), 'V4', 'A1',
+             'ABTX_20230208_ABTX_11052', '108379Z', 'sample.1', 'HT', 122822,
+             1331807, float('nan')],
+            ['sample.2', 'TCCATACCGGAA', 'UCSDMI', 'Illumina',
+             'SOME_CENTER_PROJECT_NAME',
+             'This is a description of the experiment design.',
+             'SOME_INSTRUMENT_MODEL', '1', 'UCSDMI', '2023/02/07',
+             'Illumina EMP protocol 515fbc, 806r amplification of 16S rRNA V4',
+             '230207_M05314_0346_000000000-KVMGL_SMPL1_S1_L001',
+             '230207_M05314_0346_000000000-KVMGL',
+             'ABTX_20230208_11052_Plate_238', 'Sequencing by synthesis',
+             'GT', 'GTGTGYCAGCMGCCGCGGTAA', '16S rRNA',
+             'FWD:GTGYCAGCMGCCGCGGTAA; REV:GGACTACNVGGGTWTCTAAT',
+             1, 'Echo 550', 'ABTX_20230208_11052_Plate_238_11.17.21.RK.FH_A2',
+             float('nan'), float('nan'), 1317793, float('nan'), 'V4', 'A2',
+             'ABTX_20230208_ABTX_11052', '108379Z', 'sample.2', 'HT', 122822,
+             1331807, float('nan')]]
 
-        exp = pd.DataFrame(columns=columns, data=data)
-        obs_df = obs_df[exp.columns].copy()
+        # confirm that the observed data in the prep-info output matches
+        # what's expected.
 
-        pd.testing.assert_frame_equal(obs_df, exp)
+        exp_df = pd.DataFrame(columns=exp_columns, data=exp_data)
+
+        # ensure the column order for the observed dataframe is the same as
+        # what's expected. (a canonical column ordering isn't required.)
+        obs_df = obs_df[exp_df.columns].copy()
+
+        pd.testing.assert_frame_equal(obs_df, exp_df)
 
     def test_preparations_for_run(self):
         ss = sample_sheet_to_dataframe(KLSampleSheet(self.ss))
