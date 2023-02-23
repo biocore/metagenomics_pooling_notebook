@@ -515,10 +515,6 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
         # importing bcl_scrub_name led to a circular import
         lambda x: re.sub(r'[^0-9a-zA-Z\-\_]+', '_', x['sample_name']), axis=1)
 
-    # The mapping-file-based version of this function assumes that pipeline
-    # will always be pipeline='fastp-and-minimap2'.
-    _, run_id = os.path.split(os.path.normpath(run_path))
-
     output = {}
 
     not_present = REQUIRED_MF_COLUMNS - set(mapping_file.columns)
@@ -541,15 +537,9 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
             # this is the portion of the loop that creates the prep
             data = []
 
+            run_ids = []
+
             for sample_name, sample in lane_sheet.iterrows():
-                # run_prefix taken from run_id located in
-                # filepath.
-                run_prefix = os.path.split(run_path)[1]
-
-                # we don't care about the sample if there's no file
-                if run_prefix is None:
-                    continue
-
                 row = {c: '' for c in PREP_MF_COLUMNS}
 
                 row["sample_name"] = sample_name
@@ -560,14 +550,13 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
                 row["platform"] = sample.platform
                 row["run_center"] = sample.run_center
                 row["run_date"] = sample.run_date
-                # run_prefix will be set to the value determined above,
-                # rather than what was in the mapping-file.
-                row["run_prefix"] = run_prefix
+                row["run_prefix"] = sample.run_prefix
                 row["sequencing_meth"] = sample.sequencing_meth
                 row["center_name"] = sample.center_name
                 row["center_project_name"] = sample.center_project_name
                 row["instrument_model"] = sample.instrument_model
-                row["runid"] = run_id
+                row["runid"] = sample.runid
+                run_ids.append(sample.runid)
                 row["sample_plate"] = sample.sample_plate
                 row["lane"] = lane
                 row["sample_project"] = project_name
@@ -588,7 +577,13 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
 
             _check_invalid_names(prep.sample_name)
 
-            output[(run_id, project, lane)] = prep
+            run_ids = list(set(run_ids))
+
+            if len(run_ids) > 1:
+                raise ValueError('Project %s, Lane %s contains more than one '
+                                 'run-id: %s' % (project, lane, run_ids))
+
+            output[(run_ids[0], project, lane)] = prep
 
     return output
 

@@ -124,48 +124,57 @@ class TestPrep(TestCase):
         pd.testing.assert_frame_equal(obs_df, exp)
 
     def _check_run_230207_M05314_0346_000000000_KVMGL(self, obs):
-        exp = {('230207_M05314_0346_000000000-KVMGL',
-                'ABTX_20230208_ABTX_11052', '1')}
-        self.assertEqual(set(obs.keys()), exp)
+        # confirm correct keys are present for the output prep
+        exp_keys = {('SOME_RUN_ID', 'ABTX_20230208_ABTX_11052', '1')}
 
-        obs_df = obs[('230207_M05314_0346_000000000-KVMGL',
-                      'ABTX_20230208_ABTX_11052', '1')]
+        self.assertEqual(set(obs.keys()), exp_keys)
 
-        columns = ['sample_name', 'experiment_design_description',
-                   'library_construction_protocol', 'platform', 'run_center',
-                   'run_date', 'run_prefix', 'sequencing_meth', 'center_name',
-                   'center_project_name', 'instrument_model', 'runid',
-                   'sample_plate', 'sample_well', 'i7_index_id', 'index',
-                   'i5_index_id', 'index2', 'lane', 'sample_project',
-                   'well_description']
+        # confirm the observed prep-info output contains the expected
+        # columns.
+        obs_df = obs[('SOME_RUN_ID', 'ABTX_20230208_ABTX_11052', '1')]
 
-        self.assertEqual(set(columns), set(obs_df.columns))
+        exp_columns = ['sample_name', 'barcode', 'center_name', 'platform',
+                       'center_project_name', 'experiment_design_description',
+                       'instrument_model', 'lane', 'run_center', 'run_date',
+                       'library_construction_protocol','run_prefix', 'runid',
+                       'sample_plate', 'sample_project', 'sequencing_meth']
 
-        data = [['sample.1', float("nan"),
-                 ('Illumina EMP protocol 515fbc, 806r amplification of 16S '
-                  'rRNA V4'),
-                 'Illumina', 'UCSDMI', float("nan"),
-                 '230207_M05314_0346_000000000-KVMGL',
-                 'Sequencing by synthesis', 'UCSDMI', float("nan"),
-                 float("nan"), '230207_M05314_0346_000000000-KVMGL',
-                 'ABTX_20230208_11052_Plate_238', float("nan"), float("nan"),
-                 float("nan"), float("nan"), float("nan"), '1',
-                 'ABTX_20230208_ABTX', float("nan")],
-                ['sample.2', float("nan"),
-                 ('Illumina EMP protocol 515fbc, 806r amplification of 16S '
-                  'rRNA V4'),
-                 'Illumina', 'UCSDMI', float("nan"),
-                 '230207_M05314_0346_000000000-KVMGL',
-                 'Sequencing by synthesis', 'UCSDMI', float("nan"),
-                 float("nan"), '230207_M05314_0346_000000000-KVMGL',
-                 'ABTX_20230208_11052_Plate_238', float("nan"), float("nan"),
-                 float("nan"), float("nan"), float("nan"), '1',
-                 'ABTX_20230208_ABTX', float("nan")]]
+        self.assertEqual(set(exp_columns), set(obs_df.columns))
 
-        exp = pd.DataFrame(columns=columns, data=data)
-        obs_df = obs_df[exp.columns].copy()
+        exp_data = [
+            ['sample.1', 'AGCCTTCGTCGC', 'UCSDMI', 'Illumina',
+             'SOME_CENTER_PROJECT_NAME',
+             'This is a description of the experiment design.',
+             'SOME_INSTRUMENT_MODEL', '1', 'UCSDMI', '12-01-1901',
+             'Illumina EMP protocol 515fbc, 806r amplification of 16S rRNA V4',
+             'A_RUN_PREFIX',
+             'SOME_RUN_ID',
+             'ABTX_20230208_11052_Plate_238', 'ABTX_20230208_ABTX',
+             'Sequencing by synthesis'],
+            ['sample.2', 'TCCATACCGGAA', 'UCSDMI', 'Illumina',
+             'SOME_CENTER_PROJECT_NAME',
+             'This is a description of the experiment design.',
+             'SOME_INSTRUMENT_MODEL', '1', 'UCSDMI', '12-01-1901',
+             'Illumina EMP protocol 515fbc, 806r amplification of 16S rRNA V4',
+             'A_RUN_PREFIX',
+             'SOME_RUN_ID',
+             'ABTX_20230208_11052_Plate_238', 'ABTX_20230208_ABTX',
+             'Sequencing by synthesis']]
 
-        pd.testing.assert_frame_equal(obs_df, exp)
+        # confirm that the observed data in the prep-info output matches
+        # what's expected.
+
+        exp_df = pd.DataFrame(columns=exp_columns, data=exp_data)
+
+        # ensure the column order for the observed dataframe is the same as
+        # what's expected. (a canonical column ordering isn't required.)
+        obs_df = obs_df[exp_df.columns].copy()
+
+        exp_df.to_csv('/tmp/exp.txt')
+        obs_df.to_csv('/tmp/obs.txt')
+
+        pd.testing.assert_frame_equal(obs_df, exp_df)
+
 
     def test_preparations_for_run(self):
         ss = sample_sheet_to_dataframe(KLSampleSheet(self.ss))
