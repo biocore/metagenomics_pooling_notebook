@@ -71,7 +71,14 @@ class SeqproAmpliconTests(unittest.TestCase):
                               'library_construction_protocol', 'platform',
                               'run_center', 'run_date', 'run_prefix', 'runid',
                               'sample_plate', 'sequencing_meth', 'barcode',
-                              'linker', 'primer'},
+                              'linker', 'primer', 'extraction_robot',
+                              'extractionkit_lot', 'mastermix_lot',
+                              'orig_name', 'pcr_primers', 'plating',
+                              'primer_date', 'primer_plate',
+                              'processing_robot', 'project_name',
+                              'target_gene', 'target_subfragment',
+                              'tm1000_8_tool', 'tm300_8_tool', 'tm50_8_tool',
+                              'water_lot', 'well_description', 'well_id'},
                              set(obs_df.columns))
 
     def tearDown(self):

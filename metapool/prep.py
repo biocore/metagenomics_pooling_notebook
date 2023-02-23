@@ -515,6 +515,16 @@ def preparations_for_run(run_path, sheet, pipeline='fastp-and-minimap2'):
     return output
 
 
+def extract_run_date_from_run_id(run_id):
+    # assume first segment of run_id will always be a valid date.
+    tmp = run_id.split('_')[0]
+    year = tmp[0:2]
+    month = tmp[2:4]
+    date = tmp[4:6]
+
+    return ("20%s/%s/%s" % (year, month, date))
+
+
 def preparations_for_run_mapping_file(run_path, mapping_file):
     """Given a run's path and mapping-file generates preparation files
 
@@ -549,6 +559,8 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
 
     output = {}
 
+    # lane is also technically a required column but since we generate it,
+    # it's not included in REQUIRED_MF_COLUMNS.
     not_present = REQUIRED_MF_COLUMNS - set(mapping_file.columns)
 
     if not_present:
@@ -593,7 +605,7 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
                     sample.library_construction_protocol
                 row["platform"] = sample.platform
                 row["run_center"] = sample.run_center
-                row["run_date"] = sample.run_date
+                row["run_date"] = extract_run_date_from_run_id(run_id)
                 row["run_prefix"] = run_prefix
                 row["sequencing_meth"] = sample.sequencing_meth
                 row["center_name"] = sample.center_name
@@ -605,7 +617,27 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
                 row["barcode"] = sample.barcode
                 row["linker"] = sample.linker
                 row["primer"] = sample.primer
+                row['primer_plate'] = sample.primer_plate
+                row['well_id'] = sample.well_id
+                row['plating'] = sample.plating
+                row['extractionkit_lot'] = sample.extractionkit_lot
+                row['extraction_robot'] = sample.extraction_robot
+                row['tm1000_8_tool'] = sample.tm1000_8_tool
+                row['primer_date'] = sample.primer_date
+                row['mastermix_lot'] = sample.mastermix_lot
+                row['water_lot'] = sample.water_lot
+                row['processing_robot'] = sample.processing_robot
+                row['tm300_8_tool'] = sample.tm300_8_tool
+                row['tm50_8_tool'] = sample.tm50_8_tool
+                row['project_name'] = sample.project_name
+                row['orig_name'] = sample.orig_name
+                row['well_description'] = sample.well_description
+                row['pcr_primers'] = sample.pcr_primers
+                row['target_gene'] = sample.target_gene
+                row['target_subfragment'] = sample.target_subfragment
                 data.append(row)
+
+
 
             if not data:
                 warnings.warn('Project %s and Lane %s have no data' %
