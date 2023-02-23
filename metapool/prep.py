@@ -447,10 +447,9 @@ def preparations_for_run(run_path, sheet, pipeline='fastp-and-minimap2'):
         project_name = remove_qiita_id(project)
         qiita_id = project.replace(project_name + '_', '')
 
-        # if the Qiita ID is not found then notify the user.
+        # if the Qiita ID is not found then make for an easy find/replace
         if qiita_id == project:
-            raise ValueError("Values in project_name must be appended with a"
-                             " Qiita Study ID.")
+            qiita_id = 'QIITA-ID'
 
         for lane, lane_sheet in project_sheet.groupby('lane'):
             # this is the portion of the loop that creates the prep
