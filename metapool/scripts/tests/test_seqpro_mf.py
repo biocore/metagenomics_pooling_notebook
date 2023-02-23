@@ -45,7 +45,7 @@ class SeqproAmpliconTests(unittest.TestCase):
             # assert seqpro_mf returned successfully
             self.assertEqual(result.exit_code, 0)
 
-            obs_fp = ('./240207_M05314_0346_000000000-KVMGL.ABTX_20230208_'
+            obs_fp = ('./230207_M05314_0346_000000000-KVMGL.ABTX_20230208_'
                       'ABTX_11052.1.tsv')
 
             # assert prep-info-file output exists
@@ -70,8 +70,7 @@ class SeqproAmpliconTests(unittest.TestCase):
                               'instrument_model', 'lane',
                               'library_construction_protocol', 'platform',
                               'run_center', 'run_date', 'run_prefix', 'runid',
-                              'sample_plate', 'sample_project',
-                              'sequencing_meth', 'barcode'},
+                              'sample_plate', 'sequencing_meth', 'barcode'},
                              set(obs_df.columns))
 
     def tearDown(self):
