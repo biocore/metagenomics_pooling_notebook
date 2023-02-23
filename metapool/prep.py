@@ -35,7 +35,13 @@ PREP_MF_COLUMNS = ['sample_name', 'barcode', 'center_name',
                    'center_project_name', 'experiment_design_description',
                    'instrument_model', 'lane', 'library_construction_protocol',
                    'platform', 'run_center', 'run_date', 'run_prefix', 'runid',
-                   'sample_plate', 'sequencing_meth', 'linker', 'primer']
+                   'sample_plate', 'sequencing_meth', 'linker', 'primer',
+                   'primer_plate', 'well_id', 'plating', 'extractionkit_lot',
+                   'extraction_robot', 'tm1000_8_tool', 'primer_date',
+                   'mastermix_lot', 'water_lot', 'processing_robot',
+                   'tm300_8_tool', 'tm50_8_tool', 'project_name', 'orig_name',
+                   'well_description', 'pcr_primers', 'target_gene',
+                   'target_subfragment']
 
 AMPLICON_PREP_COLUMN_RENAMER = {
     'Sample': 'sample_name',
@@ -636,8 +642,6 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
                 row['target_gene'] = sample.target_gene
                 row['target_subfragment'] = sample.target_subfragment
                 data.append(row)
-
-
 
             if not data:
                 warnings.warn('Project %s and Lane %s have no data' %
