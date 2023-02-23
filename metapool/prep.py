@@ -242,6 +242,40 @@ def get_run_prefix(run_path, project, sample_id, lane, pipeline):
     return None
 
 
+def get_run_prefix_mf(run_path):
+    search_path = os.path.join(run_path, '*_SMPL1_S*R?_*.fastq.gz')
+    results = glob(search_path)
+
+    # at this stage there should only be two files forward and reverse
+    if len(results) == 2:
+        forward, reverse = sorted(results)
+        if is_nonempty_gz_file(forward) and is_nonempty_gz_file(reverse):
+            f, r = os.path.basename(forward), os.path.basename(reverse)
+            if len(f) != len(r):
+                raise ValueError("Forward and reverse sequences filenames "
+                                 "don't match f:%s r:%s" % (f, r))
+
+            # The first character that's different is the number in R1/R2. We
+            # find this position this way because sometimes filenames are
+            # written as _R1_.. or _R1.trimmed... and splitting on _R1 might
+            # catch some substrings not part of R1/R2.
+            for i in range(len(f)):
+                if f[i] != r[i]:
+                    i -= 2
+                    break
+
+            return f[:i]
+        else:
+            return None
+    elif len(results) > 2:
+        warnings.warn("%d possible matches found for determining run-prefix. "
+                      "Only two matches should be found (forward and "
+                      "reverse): %s" % (len(results),
+                                        ', '.join(sorted(results))))
+
+    return None
+
+
 def _file_list(path):
     return [f for f in os.listdir(path)
             if not os.path.isdir(os.path.join(path, f))]
@@ -413,9 +447,10 @@ def preparations_for_run(run_path, sheet, pipeline='fastp-and-minimap2'):
         project_name = remove_qiita_id(project)
         qiita_id = project.replace(project_name + '_', '')
 
-        # if the Qiita ID is not found then make for an easy find/replace
+        # if the Qiita ID is not found then notify the user.
         if qiita_id == project:
-            qiita_id = 'QIITA-ID'
+            raise ValueError("Values in project_name must be appended with a"
+                             " Qiita Study ID.")
 
         for lane, lane_sheet in project_sheet.groupby('lane'):
             # this is the portion of the loop that creates the prep
@@ -501,7 +536,6 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
     # lowercase all columns
     mapping_file.columns = mapping_file.columns.str.lower()
 
-
     # add a faked value for 'lane' to preserve the original logic.
     # lane will always be '1' for amplicon runs.
     mapping_file['lane'] = pd.Series(
@@ -522,13 +556,26 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
         raise ValueError("Required columns are missing: %s" %
                          ', '.join(not_present))
 
+    # note that run_prefix and run_id columns are required columns in
+    # mapping-files. We expect these columns to be blank when seqpro is run,
+    # however.
+    run_prefix = get_run_prefix_mf(run_path)
+    run_id = run_prefix.split('_SMPL1')[0]
+
+    # return an Error if run_prefix could not be determined,
+    # as it is vital for amplicon prep-info files. All projects will have
+    # the same run_prefix.
+    if run_prefix is None:
+        raise ValueError("A run-prefix could not be determined.")
+
     for project, project_sheet in mapping_file.groupby('project_name'):
         project_name = remove_qiita_id(project)
         qiita_id = project.replace(project_name + '_', '')
 
-        # if the Qiita ID is not found then make for an easy find/replace
+        # if the Qiita ID is not found then notify the user.
         if qiita_id == project:
-            qiita_id = 'QIITA-ID'
+            raise ValueError("Values in project_name must be appended with a"
+                             " Qiita Study ID.")
 
         for lane, lane_sheet in project_sheet.groupby('lane'):
             lane_sheet = lane_sheet.set_index('sample_name')
@@ -549,12 +596,12 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
                 row["platform"] = sample.platform
                 row["run_center"] = sample.run_center
                 row["run_date"] = sample.run_date
-                row["run_prefix"] = sample.run_prefix
+                row["run_prefix"] = run_prefix
                 row["sequencing_meth"] = sample.sequencing_meth
                 row["center_name"] = sample.center_name
                 row["center_project_name"] = sample.center_project_name
                 row["instrument_model"] = sample.instrument_model
-                row["runid"] = sample.runid
+                row["runid"] = run_id
                 run_ids.append(sample.runid)
                 row["sample_plate"] = sample.sample_plate
                 row["lane"] = lane

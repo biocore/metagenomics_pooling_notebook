@@ -74,7 +74,6 @@ class SeqproAmpliconTests(unittest.TestCase):
                               'sequencing_meth', 'barcode'},
                              set(obs_df.columns))
 
-
     def tearDown(self):
         rmtree(self.temp_copy)
 

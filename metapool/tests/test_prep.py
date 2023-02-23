@@ -125,18 +125,20 @@ class TestPrep(TestCase):
 
     def _check_run_230207_M05314_0346_000000000_KVMGL(self, obs):
         # confirm correct keys are present for the output prep
-        exp_keys = {('SOME_RUN_ID', 'ABTX_20230208_ABTX_11052', '1')}
+        exp_keys = {('230207_M05314_0346_000000000-KVMGL',
+                     'ABTX_20230208_ABTX_11052', '1')}
 
         self.assertEqual(set(obs.keys()), exp_keys)
 
         # confirm the observed prep-info output contains the expected
         # columns.
-        obs_df = obs[('SOME_RUN_ID', 'ABTX_20230208_ABTX_11052', '1')]
+        obs_df = obs[('230207_M05314_0346_000000000-KVMGL',
+                      'ABTX_20230208_ABTX_11052', '1')]
 
         exp_columns = ['sample_name', 'barcode', 'center_name', 'platform',
                        'center_project_name', 'experiment_design_description',
                        'instrument_model', 'lane', 'run_center', 'run_date',
-                       'library_construction_protocol','run_prefix', 'runid',
+                       'library_construction_protocol', 'run_prefix', 'runid',
                        'sample_plate', 'sequencing_meth']
 
         self.assertEqual(set(exp_columns), set(obs_df.columns))
@@ -147,16 +149,16 @@ class TestPrep(TestCase):
              'This is a description of the experiment design.',
              'SOME_INSTRUMENT_MODEL', '1', 'UCSDMI', '12-01-1901',
              'Illumina EMP protocol 515fbc, 806r amplification of 16S rRNA V4',
-             'A_RUN_PREFIX',
-             'SOME_RUN_ID',
+             '230207_M05314_0346_000000000-KVMGL_SMPL1_S1_L001',
+             '230207_M05314_0346_000000000-KVMGL',
              'ABTX_20230208_11052_Plate_238', 'Sequencing by synthesis'],
             ['sample.2', 'TCCATACCGGAA', 'UCSDMI', 'Illumina',
              'SOME_CENTER_PROJECT_NAME',
              'This is a description of the experiment design.',
              'SOME_INSTRUMENT_MODEL', '1', 'UCSDMI', '12-01-1901',
              'Illumina EMP protocol 515fbc, 806r amplification of 16S rRNA V4',
-             'A_RUN_PREFIX',
-             'SOME_RUN_ID',
+             '230207_M05314_0346_000000000-KVMGL_SMPL1_S1_L001',
+             '230207_M05314_0346_000000000-KVMGL',
              'ABTX_20230208_11052_Plate_238', 'Sequencing by synthesis']]
 
         # confirm that the observed data in the prep-info output matches
@@ -169,7 +171,6 @@ class TestPrep(TestCase):
         obs_df = obs_df[exp_df.columns].copy()
 
         pd.testing.assert_frame_equal(obs_df, exp_df)
-
 
     def test_preparations_for_run(self):
         ss = sample_sheet_to_dataframe(KLSampleSheet(self.ss))
