@@ -36,8 +36,7 @@ PREP_MF_COLUMNS = ['sample_name', 'barcode', 'center_name',
                    'experiment_design_description', 'instrument_model',
                    'lane', 'library_construction_protocol', 'platform',
                    'run_center', 'run_date', 'run_prefix', 'runid',
-                   'sample_plate', 'sample_project',
-                   'sequencing_meth']
+                   'sample_plate', 'sequencing_meth']
 
 AMPLICON_PREP_COLUMN_RENAMER = {
     'Sample': 'sample_name',
@@ -559,7 +558,6 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
                 run_ids.append(sample.runid)
                 row["sample_plate"] = sample.sample_plate
                 row["lane"] = lane
-                row["sample_project"] = project_name
                 row["barcode"] = sample.barcode
                 data.append(row)
 

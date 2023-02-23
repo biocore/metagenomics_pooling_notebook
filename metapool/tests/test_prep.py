@@ -137,7 +137,7 @@ class TestPrep(TestCase):
                        'center_project_name', 'experiment_design_description',
                        'instrument_model', 'lane', 'run_center', 'run_date',
                        'library_construction_protocol','run_prefix', 'runid',
-                       'sample_plate', 'sample_project', 'sequencing_meth']
+                       'sample_plate', 'sequencing_meth']
 
         self.assertEqual(set(exp_columns), set(obs_df.columns))
 
@@ -149,8 +149,7 @@ class TestPrep(TestCase):
              'Illumina EMP protocol 515fbc, 806r amplification of 16S rRNA V4',
              'A_RUN_PREFIX',
              'SOME_RUN_ID',
-             'ABTX_20230208_11052_Plate_238', 'ABTX_20230208_ABTX',
-             'Sequencing by synthesis'],
+             'ABTX_20230208_11052_Plate_238', 'Sequencing by synthesis'],
             ['sample.2', 'TCCATACCGGAA', 'UCSDMI', 'Illumina',
              'SOME_CENTER_PROJECT_NAME',
              'This is a description of the experiment design.',
@@ -158,8 +157,7 @@ class TestPrep(TestCase):
              'Illumina EMP protocol 515fbc, 806r amplification of 16S rRNA V4',
              'A_RUN_PREFIX',
              'SOME_RUN_ID',
-             'ABTX_20230208_11052_Plate_238', 'ABTX_20230208_ABTX',
-             'Sequencing by synthesis']]
+             'ABTX_20230208_11052_Plate_238', 'Sequencing by synthesis']]
 
         # confirm that the observed data in the prep-info output matches
         # what's expected.
@@ -169,9 +167,6 @@ class TestPrep(TestCase):
         # ensure the column order for the observed dataframe is the same as
         # what's expected. (a canonical column ordering isn't required.)
         obs_df = obs_df[exp_df.columns].copy()
-
-        exp_df.to_csv('/tmp/exp.txt')
-        obs_df.to_csv('/tmp/obs.txt')
 
         pd.testing.assert_frame_equal(obs_df, exp_df)
 
