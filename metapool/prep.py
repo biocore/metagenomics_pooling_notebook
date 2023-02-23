@@ -242,8 +242,8 @@ def get_run_prefix(run_path, project, sample_id, lane, pipeline):
     return None
 
 
-def get_run_prefix_mf(run_path):
-    search_path = os.path.join(run_path, '*_SMPL1_S*R?_*.fastq.gz')
+def get_run_prefix_mf(run_path, project):
+    search_path = os.path.join(run_path, project, 'amplicon', '*_SMPL1_S*R?_*.fastq.gz')
     results = glob(search_path)
 
     # at this stage there should only be two files forward and reverse
@@ -555,18 +555,6 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
         raise ValueError("Required columns are missing: %s" %
                          ', '.join(not_present))
 
-    # note that run_prefix and run_id columns are required columns in
-    # mapping-files. We expect these columns to be blank when seqpro is run,
-    # however.
-    run_prefix = get_run_prefix_mf(run_path)
-    run_id = run_prefix.split('_SMPL1')[0]
-
-    # return an Error if run_prefix could not be determined,
-    # as it is vital for amplicon prep-info files. All projects will have
-    # the same run_prefix.
-    if run_prefix is None:
-        raise ValueError("A run-prefix could not be determined.")
-
     for project, project_sheet in mapping_file.groupby('project_name'):
         project_name = remove_qiita_id(project)
         qiita_id = project.replace(project_name + '_', '')
@@ -575,6 +563,19 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
         if qiita_id == project:
             raise ValueError("Values in project_name must be appended with a"
                              " Qiita Study ID.")
+
+        # note that run_prefix and run_id columns are required columns in
+        # mapping-files. We expect these columns to be blank when seqpro is run,
+        # however.
+        run_prefix = get_run_prefix_mf(run_path, project)
+
+        run_id = run_prefix.split('_SMPL1')[0]
+
+        # return an Error if run_prefix could not be determined,
+        # as it is vital for amplicon prep-info files. All projects will have
+        # the same run_prefix.
+        if run_prefix is None:
+            raise ValueError("A run-prefix could not be determined.")
 
         for lane, lane_sheet in project_sheet.groupby('lane'):
             lane_sheet = lane_sheet.set_index('sample_name')
