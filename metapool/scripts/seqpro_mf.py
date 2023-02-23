@@ -48,7 +48,8 @@ def format_preparation_files_mf(run_dir, mapping_file, output_dir):
                            'experiment_design_description', 'instrument_model',
                            'lane', 'library_construction_protocol', 'platform',
                            'run_center', 'run_date', 'run_prefix', 'runid',
-                           'sample_plate', 'sequencing_meth', 'barcode'])
+                           'sample_plate', 'sequencing_meth', 'barcode',
+                           'linker', 'primer'])
 
 
 if __name__ == '__main__':

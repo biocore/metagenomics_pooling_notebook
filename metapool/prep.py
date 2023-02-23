@@ -32,11 +32,10 @@ PREP_COLUMNS = ['experiment_design_description', 'well_description',
                 'lane', 'sample_project'] + list(REQUIRED_COLUMNS)
 
 PREP_MF_COLUMNS = ['sample_name', 'barcode', 'center_name',
-                   'center_project_name',
-                   'experiment_design_description', 'instrument_model',
-                   'lane', 'library_construction_protocol', 'platform',
-                   'run_center', 'run_date', 'run_prefix', 'runid',
-                   'sample_plate', 'sequencing_meth']
+                   'center_project_name', 'experiment_design_description',
+                   'instrument_model', 'lane', 'library_construction_protocol',
+                   'platform', 'run_center', 'run_date', 'run_prefix', 'runid',
+                   'sample_plate', 'sequencing_meth', 'linker', 'primer']
 
 AMPLICON_PREP_COLUMN_RENAMER = {
     'Sample': 'sample_name',
@@ -607,6 +606,8 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
                 row["sample_plate"] = sample.sample_plate
                 row["lane"] = lane
                 row["barcode"] = sample.barcode
+                row["linker"] = sample.linker
+                row["primer"] = sample.primer
                 data.append(row)
 
             if not data:

@@ -139,7 +139,7 @@ class TestPrep(TestCase):
                        'center_project_name', 'experiment_design_description',
                        'instrument_model', 'lane', 'run_center', 'run_date',
                        'library_construction_protocol', 'run_prefix', 'runid',
-                       'sample_plate', 'sequencing_meth']
+                       'sample_plate', 'sequencing_meth', 'linker', 'primer']
 
         self.assertEqual(set(exp_columns), set(obs_df.columns))
 
@@ -151,7 +151,8 @@ class TestPrep(TestCase):
              'Illumina EMP protocol 515fbc, 806r amplification of 16S rRNA V4',
              '230207_M05314_0346_000000000-KVMGL_SMPL1_S1_L001',
              '230207_M05314_0346_000000000-KVMGL',
-             'ABTX_20230208_11052_Plate_238', 'Sequencing by synthesis'],
+             'ABTX_20230208_11052_Plate_238', 'Sequencing by synthesis',
+             'GT', 'GTGTGYCAGCMGCCGCGGTAA'],
             ['sample.2', 'TCCATACCGGAA', 'UCSDMI', 'Illumina',
              'SOME_CENTER_PROJECT_NAME',
              'This is a description of the experiment design.',
@@ -159,7 +160,8 @@ class TestPrep(TestCase):
              'Illumina EMP protocol 515fbc, 806r amplification of 16S rRNA V4',
              '230207_M05314_0346_000000000-KVMGL_SMPL1_S1_L001',
              '230207_M05314_0346_000000000-KVMGL',
-             'ABTX_20230208_11052_Plate_238', 'Sequencing by synthesis']]
+             'ABTX_20230208_11052_Plate_238', 'Sequencing by synthesis',
+             'GT', 'GTGTGYCAGCMGCCGCGGTAA']]
 
         # confirm that the observed data in the prep-info output matches
         # what's expected.
