@@ -12,8 +12,8 @@ class TestRescaleCounts(unittest.TestCase):
 
     def test_read_count_to_cell_count(self):
         # Load required data
-        table_community = pd.read_csv("data/spike_in/table_community_hits.txt", sep="\t", index_col="OTUID")
-        metadata_features = pd.read_csv("data/spike_in/metadata_features.tsv", sep="\t", index_col="OTUID")
+        table_community = pd.read_csv("metapool/tests/data/spike_in/table_community_hits.txt", sep="\t", index_col="OTUID")
+        metadata_features = pd.read_csv("metapool/tests/data/spike_in/metadata_features.tsv", sep="\t", index_col="OTUID")
 
         df1 = convert_read_count_to_cell_count(table_community, metadata_features)
         spot_check_gotus = ["G000006785", "G900156305", "G000006725", "G900156885"]
@@ -32,9 +32,9 @@ class TestRescaleCounts(unittest.TestCase):
 
     def test_abundance_read_count(self):
         # Load required data
-        table_community = pd.read_csv("data/spike_in/table_community_hits.txt", sep="\t", index_col="OTUID")
-        linear_models = pd.read_csv("data/spike_in/results_synDNA_linear_model_variables.txt", sep="\t")
-        metadata_features = pd.read_csv("data/spike_in/metadata_features.tsv", sep="\t", index_col="OTUID")
+        table_community = pd.read_csv("metapool/tests/data/spike_in/table_community_hits.txt", sep="\t", index_col="OTUID")
+        linear_models = pd.read_csv("metapool/tests/data/spike_in/results_synDNA_linear_model_variables.txt", sep="\t")
+        metadata_features = pd.read_csv("metapool/tests/data/spike_in/metadata_features.tsv", sep="\t", index_col="OTUID")
 
         # Clean sample names (Trims everything after last underscore)
         linear_models["sample_name"] = linear_models["sample_name_pool"].replace("_[^_]+$", "", regex=True)
@@ -56,9 +56,9 @@ class TestRescaleCounts(unittest.TestCase):
 
     def test_same_as_R(self):
         # Load required data
-        table_community = pd.read_csv("data/spike_in/table_community_hits.txt", sep="\t", index_col="OTUID")
-        linear_models = pd.read_csv("data/spike_in/results_synDNA_linear_model_variables.txt", sep="\t")
-        metadata_features = pd.read_csv("data/spike_in/metadata_features.tsv", sep="\t", index_col="OTUID")
+        table_community = pd.read_csv("metapool/tests/data/spike_in/table_community_hits.txt", sep="\t", index_col="OTUID")
+        linear_models = pd.read_csv("metapool/tests/data/spike_in/results_synDNA_linear_model_variables.txt", sep="\t")
+        metadata_features = pd.read_csv("metapool/tests/data/spike_in/metadata_features.tsv", sep="\t", index_col="OTUID")
 
         # Clean sample names (Trims everything after last underscore)
         linear_models["sample_name"] = linear_models["sample_name_pool"].replace("_[^_]+$", "", regex=True)
@@ -69,13 +69,13 @@ class TestRescaleCounts(unittest.TestCase):
         print("WARNING: The following samples don't have applicable linear models:", failed_samples)
         # If you want to check with external tools:
         # df.to_csv("feature_table_cell_counts.txt", sep="\t")
-        df_R = pd.read_csv("data/spike_in/feature_table_cell_counts_R.txt", sep="\t", index_col="sample_name")
+        df_R = pd.read_csv("metapool/tests/data/spike_in/feature_table_cell_counts_R.txt", sep="\t", index_col="sample_name")
         self.assertTrue(dataframes_are_equal(df, df_R, verbose=False))
 
         df_cell_normalized = _to_row_percentage(df)
         # If you want to check with external tools:
         # df_cell_normalized.to_csv("feature_table_cell_counts_normalized.txt", sep="\t")
-        df_cell_normalized_R = pd.read_csv("data/spike_in/feature_table_cell_counts_normalized_R.txt", sep="\t", index_col="sample_name")
+        df_cell_normalized_R = pd.read_csv("metapool/tests/data/spike_in/feature_table_cell_counts_normalized_R.txt", sep="\t", index_col="sample_name")
         self.assertTrue(dataframes_are_equal(df_cell_normalized, df_cell_normalized_R, verbose=False))
 
         # TODO FIXME HACK:  We would like to normalize cell counts to cell per gram

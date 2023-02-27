@@ -5,7 +5,7 @@ import seaborn as sns
 import pandas as pd
 import numpy as np
 import matplotlib
-matplotlib.use("TkAgg")
+# matplotlib.use("TkAgg")
 
 
 def plot_with_fit(xcol, ycol, groups, xmax=4, ymax=4,
