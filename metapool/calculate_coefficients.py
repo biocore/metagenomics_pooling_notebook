@@ -67,12 +67,12 @@ def calculate_coefficients(table_synthetic_hits, metadata_pools, dilutions,
                                                           "count"]
     table_synthetic_hits_long_with_totals = \
         table_synthetic_hits_long_with_totals_beta.merge(
-        table_synthetic_hit_totals, on="sample_name_r")
+            table_synthetic_hit_totals, on="sample_name_r")
 
     # Merge updated feature-table with sample-pool information
     table_synthetic_hits_long_with_totals_and_pools = \
         table_synthetic_hits_long_with_totals.merge(
-        metadata_pools, on="sample_name_r")
+            metadata_pools, on="sample_name_r")
 
     # Aggregate across lanes (not needed)
     table_synthetic_hits_long_with_totals_and_pools_all_lanes = \

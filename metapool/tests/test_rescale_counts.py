@@ -98,8 +98,10 @@ class TestRescaleCounts(unittest.TestCase):
 
         # Clean sample names (Trims everything after last underscore)
         linear_models["sample_name"] = \
-            linear_models["sample_name_pool"].replace("_[^_]+$",
-            "", regex=True)
+            linear_models["sample_name_pool"].replace(
+                "_[^_]+$",
+                "",
+                regex=True)
 
         df, failed_samples = to_absolute_abundance_cell_count(
             table_community, linear_models, metadata_features)

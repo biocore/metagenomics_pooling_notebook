@@ -27,7 +27,7 @@ def _apply_model(df_log10_cpm, linear_models):
             failed_colnames.append(c)
             continue
         converted = r["a_intercept"].iloc[0] + df_log10_cpm[c] * \
-                    r["b_slope"].iloc[0]
+            r["b_slope"].iloc[0]
         converted = np.power(10, -converted)
         cols.append(converted)
 
