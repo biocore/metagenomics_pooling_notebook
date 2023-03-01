@@ -14,7 +14,6 @@ def plot_with_fit(xcol, ycol, groups, xmax=4, ymax=4,
     fig, axes = plt.subplots(xmax, ymax, sharex=True, sharey=True)
     for name, group in groups:
         ax = axes[y, x]
-        # ax.scatter(group["CPMlog"], group["Dilution2"])
 
         # TODO FIXME HACK: Unclear what R^2 value is being printed by ggplot
         #  but it definitely isn't a pearson computed per group.  *shrug*
@@ -44,16 +43,12 @@ def plot_with_fit(xcol, ycol, groups, xmax=4, ymax=4,
 
 def calculate_coefficients(table_synthetic_hits, metadata_pools, dilutions,
                            plot_fit=False):
-    # Strip leading X in sample names which are automatically removed by R
-    # table reading.
-    metadata_pools["sample_name_r"] = metadata_pools["sample_name_r"].str[1:]
-
     # Parsing the files
     # Calculate the total number of reads aligned
     # to the plasmid sequences for each sample
     table_synthetic_hit_totals = table_synthetic_hits.sum()
     table_synthetic_hit_totals = pd.DataFrame(
-        data={"sample_name_r": table_synthetic_hit_totals.index.to_list(),
+        data={"sample_name": table_synthetic_hit_totals.index.to_list(),
               "table_synthetic_hit_totals":
                   table_synthetic_hit_totals.values.tolist()},
         index=None)
@@ -63,16 +58,16 @@ def calculate_coefficients(table_synthetic_hits, metadata_pools, dilutions,
     table_synthetic_hits_long_with_totals_beta = pd.melt(
         table_synthetic_hits.reset_index(), id_vars="OTUID")
     table_synthetic_hits_long_with_totals_beta.columns = ["plasmid_id",
-                                                          "sample_name_r",
+                                                          "sample_name",
                                                           "count"]
     table_synthetic_hits_long_with_totals = \
         table_synthetic_hits_long_with_totals_beta.merge(
-            table_synthetic_hit_totals, on="sample_name_r")
+            table_synthetic_hit_totals, on="sample_name")
 
     # Merge updated feature-table with sample-pool information
     table_synthetic_hits_long_with_totals_and_pools = \
         table_synthetic_hits_long_with_totals.merge(
-            metadata_pools, on="sample_name_r")
+            metadata_pools, on="sample_name")
 
     # Aggregate across lanes (not needed)
     table_synthetic_hits_long_with_totals_and_pools_all_lanes = \
@@ -86,14 +81,6 @@ def calculate_coefficients(table_synthetic_hits, metadata_pools, dilutions,
             table_synthetic_hits_long_with_totals_and_pools_all_lanes[
                 "read_count_total"]
         ) * 1000000
-
-    # Calculate percentages
-    table_synthetic_hits_long_with_totals_and_pools_all_lanes["percentage"] = (
-       table_synthetic_hits_long_with_totals_and_pools_all_lanes[
-          "count"] /
-       table_synthetic_hits_long_with_totals_and_pools_all_lanes[
-          "read_count_total"]
-    ) / 100
 
     # Calculate log10 of counts per million
     table_synthetic_hits_long_with_totals_and_pools_all_lanes[
