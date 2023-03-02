@@ -711,6 +711,8 @@ def generate_qiita_prep_file(platedf, seqtype):
             'Extraction Kit Lot': 'extractionkit_lot',
             'Extraction Robot': 'extraction_robot',
             'TM1000 8 Tool': 'tm1000_8_tool',
+            'TM300 8 Tool': 'tm300_8_tool',
+            'TM50 8 Tool': 'tm50_8_tool',
             'Primer Date': 'primer_date',
             'MasterMix Lot': 'mastermix_lot',
             'Water Lot': 'water_lot',
@@ -730,6 +732,8 @@ def generate_qiita_prep_file(platedf, seqtype):
             'Extraction Kit Lot': 'extractionkit_lot',
             'Extraction Robot': 'extraction_robot',
             'TM1000 8 Tool': 'tm1000_8_tool',
+            'TM300 8 Tool': 'tm300_8_tool',
+            'TM50 8 Tool': 'tm50_8_tool',
             'Primer Date': 'primer_date',
             'MasterMix Lot': 'mastermix_lot',
             'Water Lot': 'water_lot',
@@ -802,6 +806,8 @@ def generate_qiita_prep_file(platedf, seqtype):
                     'runid']
 
     # reorder the dataframe's columns according to the order in the list above.
+    # Note: This will implicitly remove all columns that are not in
+    # column_order.
     return prep[column_order]
 
 
