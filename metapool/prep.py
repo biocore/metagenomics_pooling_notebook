@@ -713,6 +713,7 @@ def generate_qiita_prep_file(platedf, seqtype):
             'TM1000 8 Tool': 'tm1000_8_tool',
             'TM300 8 Tool': 'tm300_8_tool',
             'TM50 8 Tool': 'tm50_8_tool',
+            'TM10 8 Tool': 'tm10_8_tool',
             'Primer Date': 'primer_date',
             'MasterMix Lot': 'mastermix_lot',
             'Water Lot': 'water_lot',
@@ -734,6 +735,7 @@ def generate_qiita_prep_file(platedf, seqtype):
             'TM1000 8 Tool': 'tm1000_8_tool',
             'TM300 8 Tool': 'tm300_8_tool',
             'TM50 8 Tool': 'tm50_8_tool',
+            'TM10 8 Tool': 'tm10_8_tool',
             'Primer Date': 'primer_date',
             'MasterMix Lot': 'mastermix_lot',
             'Water Lot': 'water_lot',
@@ -780,12 +782,10 @@ def generate_qiita_prep_file(platedf, seqtype):
         raise ValueError(f'Unrecognized value "{seqtype}" for seqtype')
 
     # Additional columns to add if not defined
-    extra_cols = ['tm300_8_tool', 'tm50_8_tool',
-                  'experiment_design_description', 'run_date', 'run_prefix',
-                  'center_project_name', 'instrument_model', 'runid',
-                  'tm300_8_tool', 'tm50_8_tool',
-                  'experiment_design_description', 'run_date', 'run_prefix',
-                  'center_project_name', 'instrument_model', 'runid']
+    extra_cols = ['center_project_name', 'experiment_design_description',
+                  'instrument_model', 'run_date', 'run_prefix', 'runid',
+                  'tm10_8_tool', 'tm300_8_tool', 'tm50_8_tool']
+
     for c in extra_cols:
         if c not in prep.columns:
             prep[c] = ''
@@ -794,20 +794,21 @@ def generate_qiita_prep_file(platedf, seqtype):
     column_order = ['sample_name', 'barcode', 'primer', 'primer_plate',
                     'well_id', 'plating', 'extractionkit_lot',
                     'extraction_robot', 'tm1000_8_tool', 'primer_date',
-                    'mastermix_lot', 'water_lot',
-                    'processing_robot', 'tm300_8_tool', 'tm50_8_tool',
+                    'mastermix_lot', 'water_lot', 'processing_robot',
+                    'tm300_8_tool', 'tm50_8_tool', 'tm10_8_tool',
                     'sample_plate', 'project_name', 'orig_name',
                     'well_description', 'experiment_design_description',
-                    'library_construction_protocol', 'linker',
-                    'platform', 'run_center', 'run_date', 'run_prefix',
-                    'pcr_primers', 'sequencing_meth',
-                    'target_gene', 'target_subfragment', 'center_name',
-                    'center_project_name', 'instrument_model',
+                    'library_construction_protocol', 'linker', 'platform',
+                    'run_center', 'run_date', 'run_prefix', 'pcr_primers',
+                    'sequencing_meth', 'target_gene', 'target_subfragment',
+                    'center_name', 'center_project_name', 'instrument_model',
                     'runid']
 
     # reorder the dataframe's columns according to the order in the list above.
-    # Note: This will implicitly remove all columns that are not in
-    # column_order.
+    # Unrecognized columns in the input will become the right-most columns in
+    # the output, sorted in alphabetical order.
+    column_order += sorted(list(set(prep.columns) - set(column_order)))
+
     return prep[column_order]
 
 
