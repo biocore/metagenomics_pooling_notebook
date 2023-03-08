@@ -12,7 +12,8 @@ EXPECTED_COLUMNS = {
     'Plate Position', 'Primer Plate #', 'Plating', 'Extraction Kit Lot',
     'Extraction Robot', 'TM1000 8 Tool', 'Primer Date', 'MasterMix Lot',
     'Water Lot', 'Processing Robot', 'Sample Plate', 'Project_Name',
-    'Original Name', 'TM300 8 Tool', 'TM50 8 Tool'}
+    'Original Name', 'TM300 8 Tool', 'TM50 8 Tool', 'TM10 8 Tool', 'run_date',
+    'instrument_model', 'center_project_name', 'experiment_design_description'}
 
 
 class Message(object):
@@ -115,7 +116,8 @@ def _validate_plate(plate_metadata, context):
     extra = observed - EXPECTED_COLUMNS
     if extra:
         messages.append(
-            WarningMessage('The following columns are not needed: %s'
+            WarningMessage('The following columns are not recognized and may '
+                           'be misspelled column names: %s'
                            % ', '.join(extra)))
     missing = EXPECTED_COLUMNS - observed
     if missing:
