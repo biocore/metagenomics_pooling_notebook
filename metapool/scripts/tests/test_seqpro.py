@@ -1,4 +1,5 @@
 import os
+import re
 import unittest
 from click.testing import CliRunner
 from metapool.scripts.seqpro import format_preparation_files
@@ -15,6 +16,7 @@ class SeqproTests(unittest.TestCase):
         tests_dir = os.path.dirname(os.path.dirname(tests_dir))
         self.test_dir = os.path.join(tests_dir, 'tests')
         data_dir = os.path.join(self.test_dir, 'data')
+        self.vf_test_dir = os.path.join(tests_dir, 'tests', 'VFTEST')
 
         self.run = os.path.join(data_dir, 'runs',
                                 '191103_D32611_0365_G00DHB5YXX')
@@ -23,6 +25,9 @@ class SeqproTests(unittest.TestCase):
         self.fastp_run = os.path.join(data_dir, 'runs',
                                       '200318_A00953_0082_AH5TWYDSXY')
         self.fastp_sheet = os.path.join(self.fastp_run, 'sample-sheet.csv')
+
+    def tearDown(self):
+        rmtree(self.vf_test_dir, ignore_errors=True)
 
     def test_atropos_run(self):
         runner = CliRunner()
@@ -78,33 +83,35 @@ class SeqproTests(unittest.TestCase):
     def test_verbose_flag(self):
         self.maxDiff = None
         sample_dir = 'metapool/tests/data/runs/200318_A00953_0082_AH5TWYDSXY'
-        output_dir = os.path.join(self.test_dir, 'VFTEST')
 
         cmd = ['seqpro', '--verbose',
                sample_dir,
                join(sample_dir, 'sample-sheet.csv'),
-               output_dir]
+               self.vf_test_dir]
 
         proc = Popen(' '.join(cmd), universal_newlines=True, shell=True,
                      stdout=PIPE, stderr=PIPE)
 
         stdout, stderr = proc.communicate()
         return_code = proc.returncode
-        self.assertEqual(('/Users/ccowart/Development/Pipeline/metagenomics_'
-                          'pooling_notebook/metapool/tests/VFTEST/200318_A00'
-                          '953_0082_AH5TWYDSXY.Project_1111.1.tsv (1111)\n/U'
-                          'sers/ccowart/Development/Pipeline/metagenomics_po'
-                          'oling_notebook/metapool/tests/VFTEST/200318_A0095'
-                          '3_0082_AH5TWYDSXY.Project_1111.3.tsv (1111)\n/Use'
-                          'rs/ccowart/Development/Pipeline/metagenomics_pool'
-                          'ing_notebook/metapool/tests/VFTEST/200318_A00953_'
-                          '0082_AH5TWYDSXY.Trojecp_666.3.tsv (666)\n'),
+
+        # truncate full-path output to be file-system agnostic.
+        tmp = stdout.split('\n')
+        tmp = [re.sub('^.*metagenomics_pooling_notebook/',
+                      'metagenomics_pooling_notebook/', x) for x in tmp]
+        stdout = '\n'.join(tmp)
+
+        self.assertEqual(('metagenomics_pooling_notebook/metapool/tests/VFTEST'
+                          '/200318_A00953_0082_AH5TWYDSXY.Project_1111.1.tsv '
+                          '(1111)\nmetagenomics_pooling_notebook/metapool/'
+                          'tests/VFTEST/200318_A00953_0082_AH5TWYDSXY.Project'
+                          '_1111.3.tsv (1111)\nmetagenomics_pooling_notebook/'
+                          'metapool/tests/VFTEST/200318_A00953_0082_AH5TWYDSXY'
+                          '.Trojecp_666.3.tsv (666)\n'),
                          stdout)
 
         self.assertEqual('', stderr)
         self.assertEqual(0, return_code)
-
-        rmtree(output_dir)
 
 
 class SeqproBCLConvertTests(unittest.TestCase):

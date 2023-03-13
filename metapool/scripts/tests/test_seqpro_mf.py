@@ -18,6 +18,7 @@ class SeqproAmpliconTests(unittest.TestCase):
         tests_dir = os.path.dirname(os.path.dirname(tests_dir))
         self.test_dir = os.path.join(tests_dir, 'tests')
         self.data_dir = os.path.join(self.test_dir, 'data')
+        self.vf_test_dir = os.path.join(self.test_dir, 'VFTEST')
 
         self.fastp_run = os.path.join(self.data_dir, 'runs',
                                       '230207_M05314_0346_000000000-KVMGL')
@@ -36,6 +37,9 @@ class SeqproAmpliconTests(unittest.TestCase):
 
     def tearDown(self):
         rmtree(self.temp_copy)
+        # this output-path isn't created for all tests. ignore error if it
+        # does not exist.
+        rmtree(self.vf_test_dir, ignore_errors=True)
 
     def test_run(self):
         runner = CliRunner()
@@ -90,12 +94,11 @@ class SeqproAmpliconTests(unittest.TestCase):
         self.maxDiff = None
         sample_dir = ('metapool/tests/data/runs/230207_M05314_0346_000000000'
                       '-KVMGL')
-        output_dir = os.path.join(self.test_dir, 'VFTEST2')
 
         cmd = ['seqpro_mf', '--verbose',
                sample_dir,
                join(sample_dir, 'sample_mapping_file.tsv'),
-               output_dir]
+               self.vf_test_dir]
 
         proc = Popen(' '.join(cmd), universal_newlines=True, shell=True,
                      stdout=PIPE, stderr=PIPE)
@@ -103,16 +106,17 @@ class SeqproAmpliconTests(unittest.TestCase):
         stdout, stderr = proc.communicate()
         return_code = proc.returncode
 
-        self.assertEqual(('/Users/ccowart/Development/Pipeline/metagenomics_'
-                          'pooling_notebook/metapool/tests/VFTEST2/230207_M0'
-                          '5314_0346_000000000-KVMGL.ABTX_20230208_ABTX_1105'
-                          '2.1.tsv (11052)\n'),
+        # truncate full-path output to be file-system agnostic.
+        stdout = re.sub('^.*metagenomics_pooling_notebook/',
+                        'metagenomics_pooling_notebook/', stdout)
+
+        self.assertEqual(('metagenomics_pooling_notebook/metapool/tests/'
+                          'VFTEST/230207_M05314_0346_000000000-KVMGL.ABTX_'
+                          '20230208_ABTX_11052.1.tsv (11052)\n'),
                          stdout)
 
         self.assertEqual('', stderr)
         self.assertEqual(0, return_code)
-
-        rmtree(output_dir)
 
 
 if __name__ == '__main__':
