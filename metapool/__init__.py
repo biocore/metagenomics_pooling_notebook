@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from .prep import (preparations_for_run, parse_prep, generate_qiita_prep_file,
-                   preparations_for_run_mapping_file)
+                   preparations_for_run_mapping_file, remove_qiita_id)
 from .sample_sheet import (sample_sheet_to_dataframe, KLSampleSheet,
                            validate_and_scrub_sample_sheet, make_sample_sheet,
                            quiet_validate_and_scrub_sample_sheet)
@@ -20,7 +20,7 @@ __all__ = ['preparations_for_run', 'parse_prep', 'generate_qiita_prep_file',
            'assign_emp_index', 'IGMManifest', 'run_counts',
            'requires_dilution', 'dilute_gDNA', 'autopool', 'find_threshold',
            'extract_stats_metadata', 'sum_lanes',
-           'preparations_for_run_mapping_file']
+           'preparations_for_run_mapping_file', 'remove_qiita_id']
 
 from . import _version
 
