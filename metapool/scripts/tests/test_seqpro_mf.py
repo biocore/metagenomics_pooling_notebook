@@ -7,6 +7,7 @@ from metapool.scripts.seqpro_mf import format_preparation_files_mf
 from shutil import copy, copytree, rmtree
 from os.path import join, exists
 import re
+from subprocess import Popen, PIPE
 
 
 class SeqproAmpliconTests(unittest.TestCase):
@@ -15,7 +16,8 @@ class SeqproAmpliconTests(unittest.TestCase):
         # important to use abspath because we use CliRunner.isolated_filesystem
         tests_dir = os.path.abspath(os.path.dirname(__file__))
         tests_dir = os.path.dirname(os.path.dirname(tests_dir))
-        self.data_dir = os.path.join(tests_dir, 'tests', 'data')
+        self.test_dir = os.path.join(tests_dir, 'tests')
+        self.data_dir = os.path.join(self.test_dir, 'data')
 
         self.fastp_run = os.path.join(self.data_dir, 'runs',
                                       '230207_M05314_0346_000000000-KVMGL')
@@ -31,6 +33,9 @@ class SeqproAmpliconTests(unittest.TestCase):
         os.makedirs(join(self.temp_copy, 'Reports'))
         copy(join(self.data_dir, 'Demultiplex_Stats.csv'),
              join(self.temp_copy, 'Reports', 'Demultiplex_Stats.csv'))
+
+    def tearDown(self):
+        rmtree(self.temp_copy)
 
     def test_run(self):
         runner = CliRunner()
@@ -81,8 +86,33 @@ class SeqproAmpliconTests(unittest.TestCase):
                               'water_lot', 'well_description', 'well_id'},
                              set(obs_df.columns))
 
-    def tearDown(self):
-        rmtree(self.temp_copy)
+    def test_verbose_flag(self):
+        self.maxDiff = None
+        sample_dir = ('metapool/tests/data/runs/230207_M05314_0346_000000000'
+                      '-KVMGL')
+        output_dir = os.path.join(self.test_dir, 'VFTEST2')
+
+        cmd = ['seqpro_mf', '--verbose',
+               sample_dir,
+               join(sample_dir, 'sample_mapping_file.tsv'),
+               output_dir]
+
+        proc = Popen(' '.join(cmd), universal_newlines=True, shell=True,
+                     stdout=PIPE, stderr=PIPE)
+
+        stdout, stderr = proc.communicate()
+        return_code = proc.returncode
+
+        self.assertEqual(('/Users/ccowart/Development/Pipeline/metagenomics_'
+                          'pooling_notebook/metapool/tests/VFTEST2/230207_M0'
+                          '5314_0346_000000000-KVMGL.ABTX_20230208_ABTX_1105'
+                          '2.1.tsv (11052)\n'),
+                         stdout)
+
+        self.assertEqual('', stderr)
+        self.assertEqual(0, return_code)
+
+        rmtree(output_dir)
 
 
 if __name__ == '__main__':
