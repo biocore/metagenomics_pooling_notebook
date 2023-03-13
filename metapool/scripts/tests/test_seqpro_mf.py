@@ -7,6 +7,7 @@ from metapool.scripts.seqpro_mf import format_preparation_files_mf
 from shutil import copy, copytree, rmtree
 from os.path import join, exists
 import re
+from subprocess import Popen, PIPE
 
 
 class SeqproAmpliconTests(unittest.TestCase):
@@ -15,7 +16,9 @@ class SeqproAmpliconTests(unittest.TestCase):
         # important to use abspath because we use CliRunner.isolated_filesystem
         tests_dir = os.path.abspath(os.path.dirname(__file__))
         tests_dir = os.path.dirname(os.path.dirname(tests_dir))
-        self.data_dir = os.path.join(tests_dir, 'tests', 'data')
+        self.test_dir = os.path.join(tests_dir, 'tests')
+        self.data_dir = os.path.join(self.test_dir, 'data')
+        self.vf_test_dir = os.path.join(self.test_dir, 'VFTEST')
 
         self.fastp_run = os.path.join(self.data_dir, 'runs',
                                       '230207_M05314_0346_000000000-KVMGL')
@@ -31,6 +34,12 @@ class SeqproAmpliconTests(unittest.TestCase):
         os.makedirs(join(self.temp_copy, 'Reports'))
         copy(join(self.data_dir, 'Demultiplex_Stats.csv'),
              join(self.temp_copy, 'Reports', 'Demultiplex_Stats.csv'))
+
+    def tearDown(self):
+        rmtree(self.temp_copy)
+        # this output-path isn't created for all tests. ignore error if it
+        # does not exist.
+        rmtree(self.vf_test_dir, ignore_errors=True)
 
     def test_run(self):
         runner = CliRunner()
@@ -81,8 +90,39 @@ class SeqproAmpliconTests(unittest.TestCase):
                               'water_lot', 'well_description', 'well_id'},
                              set(obs_df.columns))
 
-    def tearDown(self):
-        rmtree(self.temp_copy)
+    def test_verbose_flag(self):
+        self.maxDiff = None
+        sample_dir = ('metapool/tests/data/runs/230207_M05314_0346_000000000'
+                      '-KVMGL')
+
+        cmd = ['seqpro_mf', '--verbose',
+               sample_dir,
+               join(sample_dir, 'sample_mapping_file.tsv'),
+               self.vf_test_dir]
+
+        proc = Popen(' '.join(cmd), universal_newlines=True, shell=True,
+                     stdout=PIPE, stderr=PIPE)
+
+        stdout, stderr = proc.communicate()
+        return_code = proc.returncode
+
+        tmp = []
+
+        # remove trailing whitespace before splitting each line into pairs.
+        for line in stdout.strip().split('\n'):
+            qiita_id, file_path = line.split('\t')
+            # truncate full-path output to be file-system agnostic.
+            file_path = re.sub('^.*metagenomics_pooling_notebook/',
+                               'metagenomics_pooling_notebook/', file_path)
+            tmp.append(f'{qiita_id}\t{file_path}')
+
+        stdout = '\n'.join(tmp)
+
+        self.assertEqual(('11052\tmetagenomics_pooling_notebook/metapool/tests'
+                          '/VFTEST/230207_M05314_0346_000000000-KVMGL.ABTX_202'
+                          '30208_ABTX_11052.1.tsv'), stdout)
+        self.assertEqual('', stderr)
+        self.assertEqual(0, return_code)
 
 
 if __name__ == '__main__':

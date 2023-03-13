@@ -3,8 +3,9 @@
 import click
 import os
 import pandas as pd
+from os.path import abspath
 
-from metapool import preparations_for_run_mapping_file
+from metapool import preparations_for_run_mapping_file, remove_qiita_id
 
 
 @click.command()
@@ -13,7 +14,9 @@ from metapool import preparations_for_run_mapping_file
 @click.argument('mapping_file', type=click.Path(exists=True, dir_okay=False,
                                                 file_okay=True))
 @click.argument('output_dir', type=click.Path(writable=True))
-def format_preparation_files_mf(run_dir, mapping_file, output_dir):
+@click.option('--verbose', help='list prep-file output paths, study_ids',
+              is_flag=True)
+def format_preparation_files_mf(run_dir, mapping_file, output_dir, verbose):
     """Generate the preparation files for the projects in a run
 
     RUN_DIR: should be the directory where the results of running bcl2fastq are
@@ -37,9 +40,9 @@ def format_preparation_files_mf(run_dir, mapping_file, output_dir):
     os.makedirs(output_dir, exist_ok=True)
 
     for (run, project, lane), df in preps.items():
-        filename = os.path.join(output_dir, f'{run}.{project}.{lane}.tsv')
+        fp = os.path.join(output_dir, f'{run}.{project}.{lane}.tsv')
 
-        df.to_csv(filename,
+        df.to_csv(fp,
                   sep='\t',
                   index=False,
                   # finalize column order
@@ -56,6 +59,13 @@ def format_preparation_files_mf(run_dir, mapping_file, output_dir):
                            'target_gene', 'target_subfragment',
                            'tm1000_8_tool', 'tm300_8_tool', 'tm50_8_tool',
                            'water_lot', 'well_description', 'well_id'])
+
+        if verbose:
+            project_name = remove_qiita_id(project)
+            # assume qiita_id is extractable and is an integer, given that
+            # we have already passed error-checking.
+            qiita_id = project.replace(project_name + '_', '')
+            print("%s\t%s" % (qiita_id, abspath(fp)))
 
 
 if __name__ == '__main__':
