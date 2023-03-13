@@ -82,7 +82,7 @@ def format_preparation_files(run_dir, sample_sheet, output_dir, pipeline,
             # assume qiita_id is extractable and is an integer, given that
             # we have already passed error-checking.
             qiita_id = project.replace(project_name + '_', '')
-            print("%s (%s)" % (abspath(fp), qiita_id))
+            print("%s\t%s" % (qiita_id, abspath(fp)))
 
 
 if __name__ == '__main__':

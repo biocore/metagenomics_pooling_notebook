@@ -65,7 +65,7 @@ def format_preparation_files_mf(run_dir, mapping_file, output_dir, verbose):
             # assume qiita_id is extractable and is an integer, given that
             # we have already passed error-checking.
             qiita_id = project.replace(project_name + '_', '')
-            print("%s (%s)" % (abspath(fp), qiita_id))
+            print("%s\t%s" % (qiita_id, abspath(fp)))
 
 
 if __name__ == '__main__':

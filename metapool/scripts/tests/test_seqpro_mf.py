@@ -106,15 +106,21 @@ class SeqproAmpliconTests(unittest.TestCase):
         stdout, stderr = proc.communicate()
         return_code = proc.returncode
 
-        # truncate full-path output to be file-system agnostic.
-        stdout = re.sub('^.*metagenomics_pooling_notebook/',
-                        'metagenomics_pooling_notebook/', stdout)
+        tmp = []
 
-        self.assertEqual(('metagenomics_pooling_notebook/metapool/tests/'
-                          'VFTEST/230207_M05314_0346_000000000-KVMGL.ABTX_'
-                          '20230208_ABTX_11052.1.tsv (11052)\n'),
-                         stdout)
+        # remove trailing whitespace before splitting each line into pairs.
+        for line in stdout.strip().split('\n'):
+            qiita_id, file_path = line.split('\t')
+            # truncate full-path output to be file-system agnostic.
+            file_path = re.sub('^.*metagenomics_pooling_notebook/',
+                               'metagenomics_pooling_notebook/', file_path)
+            tmp.append(f'{qiita_id}\t{file_path}')
 
+        stdout = '\n'.join(tmp)
+
+        self.assertEqual(('11052\tmetagenomics_pooling_notebook/metapool/tests'
+                          '/VFTEST/230207_M05314_0346_000000000-KVMGL.ABTX_202'
+                          '30208_ABTX_11052.1.tsv'), stdout)
         self.assertEqual('', stderr)
         self.assertEqual(0, return_code)
 

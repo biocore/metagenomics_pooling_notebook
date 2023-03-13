@@ -95,21 +95,25 @@ class SeqproTests(unittest.TestCase):
         stdout, stderr = proc.communicate()
         return_code = proc.returncode
 
-        # truncate full-path output to be file-system agnostic.
-        tmp = stdout.split('\n')
-        tmp = [re.sub('^.*metagenomics_pooling_notebook/',
-                      'metagenomics_pooling_notebook/', x) for x in tmp]
+        tmp = []
+
+        # remove trailing whitespace before splitting each line into pairs.
+        for line in stdout.strip().split('\n'):
+            qiita_id, file_path = line.split('\t')
+            # truncate full-path output to be file-system agnostic.
+            file_path = re.sub('^.*metagenomics_pooling_notebook/',
+                               'metagenomics_pooling_notebook/', file_path)
+            tmp.append(f'{qiita_id}\t{file_path}')
+
         stdout = '\n'.join(tmp)
 
-        self.assertEqual(('metagenomics_pooling_notebook/metapool/tests/VFTEST'
-                          '/200318_A00953_0082_AH5TWYDSXY.Project_1111.1.tsv '
-                          '(1111)\nmetagenomics_pooling_notebook/metapool/'
-                          'tests/VFTEST/200318_A00953_0082_AH5TWYDSXY.Project'
-                          '_1111.3.tsv (1111)\nmetagenomics_pooling_notebook/'
-                          'metapool/tests/VFTEST/200318_A00953_0082_AH5TWYDSXY'
-                          '.Trojecp_666.3.tsv (666)\n'),
-                         stdout)
-
+        self.assertEqual(('1111\tmetagenomics_pooling_notebook/metapool/tests'
+                          '/VFTEST/200318_A00953_0082_AH5TWYDSXY.Project_1111'
+                          '.1.tsv\n1111\tmetagenomics_pooling_notebook/metapo'
+                          'ol/tests/VFTEST/200318_A00953_0082_AH5TWYDSXY.Proj'
+                          'ect_1111.3.tsv\n666\tmetagenomics_pooling_notebook'
+                          '/metapool/tests/VFTEST/200318_A00953_0082_AH5TWYDS'
+                          'XY.Trojecp_666.3.tsv'), stdout)
         self.assertEqual('', stderr)
         self.assertEqual(0, return_code)
 
