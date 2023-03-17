@@ -680,54 +680,41 @@ class TestPrep(TestCase):
                         'extraction_robot', 'tm1000_8_tool', 'primer_date',
                         'mastermix_lot', 'water_lot', 'processing_robot',
                         'tm300_8_tool', 'tm50_8_tool', 'tm10_8_tool',
-                        'sample_plate', 'project_name', 'orig_name',
+                        'sample_plate', 'Project_Name', 'orig_name',
                         'well_description', 'experiment_design_description',
                         'library_construction_protocol', 'linker', 'platform',
                         'run_center', 'run_date', 'run_prefix', 'pcr_primers',
                         'sequencing_meth', 'target_gene', 'target_subfragment',
                         'center_name', 'center_project_name',
-                        'instrument_model', 'runid', 'Blank', 'Col',
-                        'Compressed Plate Name', 'EMP Primer Plate Well',
-                        'Forward Primer Pad', 'Illumina 5prime Adapter',
-                        'Name', 'Original Name', 'Plate', 'Plate Position',
-                        'Primer For PCR', 'Project Plate', 'Project_Name',
-                        'Row', 'sample sheet Sample_ID']
+                        'instrument_model', 'runid', 'sample sheet Sample_ID']
 
         exp_columns2 = ['sample_name', 'barcode', 'primer', 'primer_plate',
                         'well_id', 'plating', 'extractionkit_lot',
                         'extraction_robot', 'tm1000_8_tool', 'primer_date',
                         'mastermix_lot', 'water_lot', 'processing_robot',
                         'tm300_8_tool', 'tm50_8_tool', 'tm10_8_tool',
-                        'sample_plate', 'project_name', 'orig_name',
+                        'sample_plate', 'Project_Name', 'orig_name',
                         'well_description', 'experiment_design_description',
                         'library_construction_protocol', 'linker', 'platform',
                         'run_center', 'run_date', 'run_prefix', 'pcr_primers',
                         'sequencing_meth', 'target_gene', 'target_subfragment',
                         'center_name', 'center_project_name',
-                        'instrument_model', 'runid', 'Blank', 'Col',
-                        'Compressed Plate Name', 'EMP Primer Plate Well',
-                        'Name', 'Original Name', 'Plate', 'Plate Position',
-                        'Primer For PCR', 'Project Plate', 'Project_Name',
-                        'Reverse Primer Pad', 'Reverse primer (EukBr)', 'Row',
-                        'sample sheet Sample_ID']
+                        'instrument_model', 'runid', 'Reverse Primer Pad',
+                        'Reverse primer (EukBr)', 'sample sheet Sample_ID']
 
         exp_columns3 = ['sample_name', 'barcode', 'primer', 'primer_plate',
                         'well_id', 'plating', 'extractionkit_lot',
                         'extraction_robot', 'tm1000_8_tool', 'primer_date',
                         'mastermix_lot', 'water_lot', 'processing_robot',
                         'tm300_8_tool', 'tm50_8_tool', 'tm10_8_tool',
-                        'sample_plate', 'project_name', 'orig_name',
+                        'sample_plate', 'Project_Name', 'orig_name',
                         'well_description', 'experiment_design_description',
-                        'library_construction_protocol', 'linker',
-                        'platform', 'run_center', 'run_date', 'run_prefix',
-                        'pcr_primers', 'sequencing_meth', 'target_gene',
-                        'target_subfragment', 'center_name',
-                        'center_project_name', 'instrument_model', 'runid',
-                        'Blank', 'Col', 'Compressed Plate Name',
-                        'EMP Primer Plate Well', 'ITS2 Reverse Primer',
-                        'Name', 'Original Name', 'Plate', 'Plate Position',
-                        'Primer For PCR', 'Project Plate', 'Project_Name',
-                        'Reverse Primer Pad', 'Row', 'sample sheet Sample_ID']
+                        'library_construction_protocol', 'linker', 'platform',
+                        'run_center', 'run_date', 'run_prefix', 'pcr_primers',
+                        'sequencing_meth', 'target_gene', 'target_subfragment',
+                        'center_name', 'center_project_name',
+                        'instrument_model', 'runid', 'ITS2 Reverse Primer',
+                        'Reverse Primer Pad', 'sample sheet Sample_ID']
 
         exp1 = pd.DataFrame(columns=exp_columns1,
                             data=[['X00180471', 'AGCCTTCGTCGC',
@@ -738,19 +725,12 @@ class TestPrep(TestCase):
                                    'THDMI_10317', 'X00180471',
                                    'THDMI_UK_Plate_2.X00180471.A1', '',
                                    ('Illumina EMP protocol 515fbc, 806r '
-                                    'amplification of 16S rRNA V4'), 'GT',
-                                   'Illumina', 'UCSDMI', '', '',
+                                    'amplification of 16S rRNA V4'),
+                                   'GT', 'Illumina', 'UCSDMI', '', '',
                                    ('FWD:GTGYCAGCMGCCGCGGTAA; '
                                     'REV:GGACTACNVGGGTWTCTAAT'),
                                    'Sequencing by synthesis', '16S rRNA', 'V4',
-                                   'UCSDMI', '', '', '', False, 1,
-                                   'THDMI_10317_UK2-US6', 'A1', 'TATGGTAATT',
-                                   'AATGATACGGCGACCACCGAGATCTACACGCT',
-                                   '515rcbc0', '', '1', '1',
-                                   ('AATGATACGGCGACCACCGAGATCTACACGCTAGCCTTC'
-                                    'GTCGCTATGGTAATTGTGTGYCAGCMGCCGCGGTAA'),
-                                   'THDMI_10317_PUK2', 'THDMI UK', 'A',
-                                   'X00180471'],
+                                   'UCSDMI', '', '', '', 'X00180471'],
                                   ['X00180199', 'CGTATAAATGCG',
                                    'GTGYCAGCMGCCGCGGTAA', '1', 'C1', 'SF',
                                    '166032128', 'Carmen_HOWE_KF3', '109379Z',
@@ -758,20 +738,13 @@ class TestPrep(TestCase):
                                    'Echo550', '', '', '', 'THDMI_UK_Plate_2',
                                    'THDMI_10317', 'X00180199',
                                    'THDMI_UK_Plate_2.X00180199.C1', '',
-                                   ('Illumina EMP protocol 515fbc, 806r '
-                                    'amplification of 16S rRNA V4'),
+                                   ('Illumina EMP protocol 515fbc, '
+                                    '806r amplification of 16S rRNA V4'),
                                    'GT', 'Illumina', 'UCSDMI', '', '',
                                    ('FWD:GTGYCAGCMGCCGCGGTAA; '
                                     'REV:GGACTACNVGGGTWTCTAAT'),
                                    'Sequencing by synthesis', '16S rRNA', 'V4',
-                                   'UCSDMI', '', '', '', False, 1,
-                                   'THDMI_10317_UK2-US6', 'B1', 'TATGGTAATT',
-                                   'AATGATACGGCGACCACCGAGATCTACACGCT',
-                                   '515rcbc12', '', '1', '1',
-                                   ('AATGATACGGCGACCACCGAGATCTACACGCTCGTATAA'
-                                    'ATGCGTATGGTAATTGTGTGYCAGCMGCCGCGGTAA'),
-                                   'THDMI_10317_PUK2', 'THDMI UK', 'C',
-                                   'X00180199']])
+                                   'UCSDMI', '', '', '', 'X00180199']])
 
         exp2 = pd.DataFrame(columns=exp_columns2,
                             data=[['X00180471', 'ACGAGACTGATT',
@@ -786,14 +759,8 @@ class TestPrep(TestCase):
                                    ('FWD:GTACACACCGCCCGTC; '
                                     'REV:TGATCCTTCTGCAGGTTCACCTAC'),
                                    'Sequencing by synthesis', '18S rRNA', 'V9',
-                                   'UCSDMI', '', '', '', False, 1,
-                                   'THDMI_10317_UK2-US6', 'A1',
-                                   'EukBr_Hiseq_0017', '', '1', '1',
-                                   ('CAAGCAGAAGACGGCATACGAGATACGAGACTGATTAGT'
-                                    'CAGTCAGCATGATCCTTCTGCAGGTTCACCTAC'),
-                                   'THDMI_10317_PUK2', 'THDMI UK',
-                                   'AGTCAGTCAG', 'TGATCCTTCTGCAGGTTCACCTAC',
-                                   'A', 'X00180471'],
+                                   'UCSDMI', '', '', '', 'AGTCAGTCAG',
+                                   'TGATCCTTCTGCAGGTTCACCTAC', 'X00180471'],
                                   ['X00180199', 'GAATACCAAGTC',
                                    'CAAGCAGAAGACGGCATACGAGAT', '1', 'C1', 'SF',
                                    '166032128', 'Carmen_HOWE_KF3', '109379Z',
@@ -801,19 +768,13 @@ class TestPrep(TestCase):
                                    'Echo550', '', '', '', 'THDMI_UK_Plate_2',
                                    'THDMI_10317', 'X00180199',
                                    'THDMI_UK_Plate_2.X00180199.C1', '',
-                                   'Illumina EMP 18S rRNA 1391f EukBr',
-                                   'CA', 'Illumina', 'UCSDMI', '', '',
+                                   'Illumina EMP 18S rRNA 1391f EukBr', 'CA',
+                                   'Illumina', 'UCSDMI', '', '',
                                    ('FWD:GTACACACCGCCCGTC; '
                                     'REV:TGATCCTTCTGCAGGTTCACCTAC'),
                                    'Sequencing by synthesis', '18S rRNA', 'V9',
-                                   'UCSDMI', '', '', '', False, 1,
-                                   'THDMI_10317_UK2-US6', 'B1',
-                                   'EukBr_Hiseq_0029', '', '1', '1',
-                                   ('CAAGCAGAAGACGGCATACGAGATGAATACCAAGTCAGT'
-                                    'CAGTCAGCATGATCCTTCTGCAGGTTCACCTAC'),
-                                   'THDMI_10317_PUK2', 'THDMI UK',
-                                   'AGTCAGTCAG', 'TGATCCTTCTGCAGGTTCACCTAC',
-                                   'C', 'X00180199']])
+                                   'UCSDMI', '', '', '', 'AGTCAGTCAG',
+                                   'TGATCCTTCTGCAGGTTCACCTAC', 'X00180199']])
 
         exp3 = pd.DataFrame(columns=exp_columns3,
                             data=[['X00180471', 'TCCCTTGTCTCC',
@@ -829,13 +790,8 @@ class TestPrep(TestCase):
                                    ('FWD:CTTGGTCATTTAGAGGAAGTAA; '
                                     'REV:GCTGCGTTCTTCATCGATGC'),
                                    'Sequencing by synthesis', 'ITS', 'ITS_1_2',
-                                   'UCSDMI', '', '', '', False, 1,
-                                   'THDMI_10317_UK2-US6', 'A1',
-                                   'GCTGCGTTCTTCATCGATGC', 'kabir_ITS2rcbc0',
-                                   '', '1', '1',
-                                   ('CAAGCAGAAGACGGCATACGAGATTCCCTTGTCTCCCGG'
-                                    'CTGCGTTCTTCATCGATGC'), 'THDMI_10317_PUK2',
-                                   'THDMI UK', '', 'A', 'X00180471'],
+                                   'UCSDMI', '', '', '',
+                                   'GCTGCGTTCTTCATCGATGC', '', 'X00180471'],
                                   ['X00180199', 'TGCATACACTGG',
                                    'CAAGCAGAAGACGGCATACGAGAT', '1', 'C1', 'SF',
                                    '166032128', 'Carmen_HOWE_KF3', '109379Z',
@@ -849,13 +805,8 @@ class TestPrep(TestCase):
                                    ('FWD:CTTGGTCATTTAGAGGAAGTAA; '
                                     'REV:GCTGCGTTCTTCATCGATGC'),
                                    'Sequencing by synthesis', 'ITS', 'ITS_1_2',
-                                   'UCSDMI', '', '', '', False, 1,
-                                   'THDMI_10317_UK2-US6', 'B1',
-                                   'GCTGCGTTCTTCATCGATGC', 'kabir_ITS2rcbc12',
-                                   '', '1', '1',
-                                   ('CAAGCAGAAGACGGCATACGAGATTGCATACACTGGCGG'
-                                    'CTGCGTTCTTCATCGATGC'), 'THDMI_10317_PUK2',
-                                   'THDMI UK', '', 'C', 'X00180199']])
+                                   'UCSDMI', '', '', '',
+                                   'GCTGCGTTCTTCATCGATGC', '', 'X00180199']])
 
         pd.testing.assert_frame_equal(obs1, exp1)
         pd.testing.assert_frame_equal(obs2, exp2)

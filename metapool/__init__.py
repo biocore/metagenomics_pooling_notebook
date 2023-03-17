@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-from .prep import (preparations_for_run, parse_prep, generate_qiita_prep_file,
+from .prep import (preparations_for_run, parse_prep,
+                   generate_qiita_prep_file,
                    preparations_for_run_mapping_file, remove_qiita_id)
 from .sample_sheet import (sample_sheet_to_dataframe, KLSampleSheet,
                            validate_and_scrub_sample_sheet, make_sample_sheet,
@@ -13,7 +14,8 @@ from .metapool import extract_stats_metadata, sum_lanes
 
 __credits__ = ("https://github.com/biocore/metagenomics_pooling_notebook/"
                "graphs/contributors")
-__all__ = ['preparations_for_run', 'parse_prep', 'generate_qiita_prep_file',
+__all__ = ['preparations_for_run', 'parse_prep',
+           'generate_qiita_prep_file',
            'sample_sheet_to_dataframe', 'KLSampleSheet',
            'validate_and_scrub_sample_sheet', 'make_sample_sheet',
            'quiet_validate_and_scrub_sample_sheet', 'validate_plate_metadata',
