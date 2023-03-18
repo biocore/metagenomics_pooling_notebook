@@ -796,7 +796,7 @@ def generate_qiita_prep_file(platedf, seqtype):
                     'extraction_robot', 'tm1000_8_tool', 'primer_date',
                     'mastermix_lot', 'water_lot', 'processing_robot',
                     'tm300_8_tool', 'tm50_8_tool', 'tm10_8_tool',
-                    'sample_plate', 'Project_Name', 'orig_name',
+                    'sample_plate', 'project_name', 'orig_name',
                     'well_description', 'experiment_design_description',
                     'library_construction_protocol', 'linker', 'platform',
                     'run_center', 'run_date', 'run_prefix', 'pcr_primers',
@@ -816,13 +816,6 @@ def generate_qiita_prep_file(platedf, seqtype):
     # only remove the columns from the above set that are actually present in
     # the prep dataframe to avoid possible errors.
     prep.drop(list(set(prep.columns) & remove_these), axis=1, inplace=True)
-
-    # There should be both 'Project_Name' and 'project_name' columns present.
-    # The former is from the pre-prep (aka mapping) file and the latter is
-    # from the plate-metadata. Only the latter is required for output, but it
-    # should be renamed as the former.
-
-    prep.rename(columns={"project_name": "Project_Name"}, inplace=True)
 
     # reorder the dataframe's columns according to the order in the list above.
     # Unrecognized columns in the input will become the right-most columns in
