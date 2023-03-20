@@ -804,6 +804,19 @@ def generate_qiita_prep_file(platedf, seqtype):
                     'center_name', 'center_project_name', 'instrument_model',
                     'runid']
 
+    # although some columns should be allowed to pass through, there are some
+    # columns currently passed into metapool through the pre-prep file that
+    # should definitely _not_ appear in the output. These include the
+    # following:
+    remove_these = {'Blank', 'Col', 'Compressed Plate Name', 'Plate Position',
+                    'EMP Primer Plate Well', 'Forward Primer Pad', 'Name',
+                    'Illumina 5prime Adapter', 'Original Name', 'Plate', 'Row',
+                    'Primer For PCR', 'Project Plate', 'index', 'Project_Name'}
+
+    # only remove the columns from the above set that are actually present in
+    # the prep dataframe to avoid possible errors.
+    prep.drop(list(set(prep.columns) & remove_these), axis=1, inplace=True)
+
     # reorder the dataframe's columns according to the order in the list above.
     # Unrecognized columns in the input will become the right-most columns in
     # the output, sorted in alphabetical order.
