@@ -11,6 +11,7 @@ from .amplipool import assign_emp_index
 from .igm import IGMManifest
 from .count import run_counts
 from .metapool import extract_stats_metadata, sum_lanes
+from .metadata import get_platemap_data
 
 __credits__ = ("https://github.com/biocore/metagenomics_pooling_notebook/"
                "graphs/contributors")
@@ -22,7 +23,7 @@ __all__ = ['preparations_for_run', 'parse_prep',
            'assign_emp_index', 'IGMManifest', 'run_counts',
            'requires_dilution', 'dilute_gDNA', 'autopool', 'find_threshold',
            'extract_stats_metadata', 'sum_lanes',
-           'preparations_for_run_mapping_file', 'remove_qiita_id']
+           'preparations_for_run_mapping_file', 'remove_qiita_id', 'get_platemap_data']
 
 from . import _version
 
