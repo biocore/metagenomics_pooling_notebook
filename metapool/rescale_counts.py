@@ -44,6 +44,12 @@ def convert_read_count_to_cell_count_per_g_input(df, metadata_features, prep_inf
     df = df.mul(mult_row, axis=0)
     return df
 
+def to_absolute_abundance_read_count(df, linear_models):
+     df = _to_log10_cpm(df)
+     df, failed_cols = _apply_model(df, linear_models)
+     df.index.name = "sample_name"
+     return df, failed_cols
+
 def to_absolute_abundance_cell_count(df, linear_models, metadata_features):
     df = _to_log10_cpm(df)
     df, failed_cols = _apply_model(df, linear_models)
