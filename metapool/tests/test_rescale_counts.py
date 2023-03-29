@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 
 from diff_dataframes import dataframes_are_equal
-from metapool.rescale_counts import convert_read_count_to_cell_count, \
+from metapool.rescale_counts import convert_read_count_to_cell_count_per_g_input, \
     to_absolute_abundance_read_count, to_absolute_abundance_cell_count, \
     _to_row_percentage, _to_column_percentage
 
@@ -20,9 +20,12 @@ class TestRescaleCounts(unittest.TestCase):
         metadata_features = pd.read_csv(
             _folder + "metadata_features.tsv",
             sep="\t", index_col="OTUID")
+        prep_info_samples = pd.read_csv(
+            _folder + "metadata_samples_plasmid_sequences.txt,
+            sep="\t", index_col="sample_name")
 
-        df1 = convert_read_count_to_cell_count(table_community,
-                                               metadata_features)
+        df1 = convert_read_count_to_cell_count_per_g_input(table_community,
+                                               metadata_features, prep_info_samples)
         spot_check_gotus = [
             "G000006785",
             "G900156305",
@@ -63,8 +66,8 @@ class TestRescaleCounts(unittest.TestCase):
 
         df1, failed_cols = to_absolute_abundance_read_count(
             table_community, linear_models)
-        df1_cell_count = convert_read_count_to_cell_count(
-            df1, metadata_features)
+        df1_cell_count = convert_read_count_to_cell_count_per_g_input(
+            df1, metadata_features, prep_info_samples)
         df2, failed_cols = to_absolute_abundance_cell_count(
             table_community, linear_models, metadata_features)
 
