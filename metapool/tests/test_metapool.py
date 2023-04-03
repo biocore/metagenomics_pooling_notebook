@@ -242,7 +242,7 @@ class Tests(TestCase):
 
     def test_read_pico_csv_spectramax_negfix(self):
         # Tests that Concentration values are clipped
-        # to a range of (0,60), eliminating possible
+        # to a range of (0,150), eliminating possible
         # negative concentration values.
         fp_spectramax = os.path.join(os.path.dirname(__file__), 'data',
                                      'pico_spectramax.txt')
