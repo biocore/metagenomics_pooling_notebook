@@ -1,0 +1,6 @@
+Sample	Row	Col	Blank	Project Plate	Project Name	Compressed Plate Name	Filtered Reads	Raw Reads	proportion	LoadingFactor	iSeq normpool volume	projected_reads	projected_proportion	projected_HO_reads	on_target_proportion	projected_off_target_reads	projected_on_target_reads
+s1	A	1	False	testplate1	test	cpn	60	70	0.115385	2.333333	1000.000000	163.333333	0.209885	125.930807	0.857143	17.990115	107.940692
+s2	C	1	False	testplate1	test	cpn	60	70	0.115385	2.333333	1000.000000	163.333333	0.209885	125.930807	0.857143	17.990115	107.940692
+s3	E	1	False	testplate1	test	cpn	130	140	0.250000	1.076923	151.923077	150.769231	0.193740	116.243822	0.928571	8.303130	107.940692
+s4	G	1	False	testplate1	test	cpn	130	140	0.250000	1.076923	151.923077	150.769231	0.193740	116.243822	0.928571	8.303130	107.940692
+s5	I	1	False	testplate1	test	cpn	140	150	0.269231	1.000000	100.000000	150.000000	0.192751	115.650741	0.933333	7.710049	107.940692
