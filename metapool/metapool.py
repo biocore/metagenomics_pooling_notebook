@@ -1108,6 +1108,9 @@ def merge_read_counts(plate_df, counts_df, reads_column_name='Filtered Reads'):
     with the reads_column_name.
     """
 
+    # Map unwanted characters to other characters
+    plate_df['sample sheet Sample_ID'] = plate_df['Sample'].map(bcl_scrub_name)
+
     # Logic for multiple input_file format support
     if 'Category' in counts_df.columns:
         sample_column = 'Category'
@@ -1138,7 +1141,8 @@ def merge_read_counts(plate_df, counts_df, reads_column_name='Filtered Reads'):
 
     # Merge reads with plate_df
     to_merge = counts_df[[reads_column_name]]
-    plate_df_w_reads = plate_df.merge(to_merge, left_on='Sample',
+    plate_df_w_reads = plate_df.merge(to_merge,
+                                      left_on='sample sheet Sample_ID',
                                       right_on='Sample', how='left')
 
     return(plate_df_w_reads)
