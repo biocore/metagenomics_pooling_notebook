@@ -1,0 +1,7 @@
+Sample	Row	Col	Blank	Project Plate	Project Name	Compressed Plate Name	Filtered Reads
+s1	A	1	False	testplate1	test	cpn	100
+s2	C	1	False	testplate1	test	cpn	350
+s3	E	1	False	testplate1	test	cpn	250
+s4	G	1	False	testplate1	test	cpn	100
+s5	I	1	False	testplate1	test	cpn	200
+s6	B	1	True	testplate1	test	cpn	NaN
