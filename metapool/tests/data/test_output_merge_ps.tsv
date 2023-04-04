@@ -1,6 +1,6 @@
-Sample	Row	Col	Blank	Project Plate	Project Name	Compressed Plate Name	Filtered Reads
-s1	A	1	False	testplate1	test	cpn	30
-s2	C	1	False	testplate1	test	cpn	40
-s3	E	1	False	testplate1	test	cpn	40
-s4	G	1	False	testplate1	test	cpn	40
-s5	I	1	False	testplate1	test	cpn	40
+Sample	Row	Col	Blank	Project Plate	Project Name	Compressed Plate Name	sample sheet Sample_ID	Filtered Reads
+s1	A	1	False	testplate1	test	cpn	s1	30
+s2	C	1	False	testplate1	test	cpn	s2	40
+s3	E	1	False	testplate1	test	cpn	s3	40
+s4	G	1	False	testplate1	test	cpn	s4	40
+s5	I	1	False	testplate1	test	cpn	s5	40
