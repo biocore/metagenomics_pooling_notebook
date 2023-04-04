@@ -288,7 +288,8 @@ def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
 
 
 # method to read minipico output
-def read_pico_csv(f, sep='\t', plate_reader='Synergy_HT',
+def read_pico_csv(f, sep='\t', plate_reader='SpectraMax_i3x',
+                  min_conc = 0, max_conc = 150,
                   conc_col_name='Sample DNA Concentration'):
     """
     reads tab-delimited pico quant
@@ -302,6 +303,12 @@ def read_pico_csv(f, sep='\t', plate_reader='Synergy_HT',
     plate_reader: str
         plate reader used to generate quant file ['Synergy_HT',
         'SpectraMax_i3x']
+    min_conc: int
+        minimum concentration allowed. Values lower than this
+        will be clipped
+    max_conc: int
+        maximum concentration allowed. Values higher than
+        this will be clipped
     conc_col_name: str
         name to use for concentration column output
 
@@ -335,8 +342,9 @@ def read_pico_csv(f, sep='\t', plate_reader='Synergy_HT',
     pico_df[conc_col_name] = \
         pd.to_numeric(pico_df[conc_col_name], errors='coerce')
     if plate_reader == 'SpectraMax_i3x':
-        # limit concentration range (0 - 60 )
-        pico_df[conc_col_name] = np.clip(pico_df[conc_col_name], 0, 60)
+        # limit concentration range (min_conc - max_conc )
+        pico_df[conc_col_name] = np.clip(pico_df[conc_col_name], min_conc,
+                                         max_conc)
 
     return pico_df
 
@@ -1220,8 +1228,8 @@ def calculate_iseqnorm_pooling_volumes(plate_df,
     """
     try:
         norm = plate_df[normalization_column]
-        prop = plate_df['proportion']
         plate_df['proportion'] = norm / (norm.sum())
+        prop = plate_df['proportion']
         plate_df['LoadingFactor'] = max(prop) / prop
         plate_df.loc[plate_df['LoadingFactor'].isnull(),
                      'LoadingFactor'] = plate_df['LoadingFactor'].max()
