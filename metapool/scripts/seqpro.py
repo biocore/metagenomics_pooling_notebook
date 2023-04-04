@@ -3,9 +3,11 @@
 import click
 import os
 import re
+from os.path import abspath
 
 from metapool import (preparations_for_run, KLSampleSheet,
-                      sample_sheet_to_dataframe, run_counts)
+                      sample_sheet_to_dataframe, run_counts,
+                      remove_qiita_id)
 
 
 @click.command()
@@ -17,7 +19,10 @@ from metapool import (preparations_for_run, KLSampleSheet,
 @click.option('--pipeline', help='Which pipeline generated the data',
               show_default=True, default='fastp-and-minimap2',
               type=click.Choice(['atropos-and-bowtie2', 'fastp-and-minimap2']))
-def format_preparation_files(run_dir, sample_sheet, output_dir, pipeline):
+@click.option('--verbose', help='list prep-file output paths, study_ids',
+              is_flag=True)
+def format_preparation_files(run_dir, sample_sheet, output_dir, pipeline,
+                             verbose):
     """Generate the preparation files for the projects in a run
 
     RUN_DIR: should be the directory where the results of running bcl2fastq are
@@ -53,7 +58,7 @@ def format_preparation_files(run_dir, sample_sheet, output_dir, pipeline):
     os.makedirs(output_dir, exist_ok=True)
 
     for (run, project, lane), df in preps.items():
-        filename = os.path.join(output_dir, f'{run}.{project}.{lane}.tsv')
+        fp = os.path.join(output_dir, f'{run}.{project}.{lane}.tsv')
 
         if pipeline == 'fastp-and-minimap2':
             # stats are indexed by sample name and lane, lane is the first
@@ -70,7 +75,14 @@ def format_preparation_files(run_dir, sample_sheet, output_dir, pipeline):
         # the values for sample_project.
         df['center_project_name'] = df['sample_project']
 
-        df.to_csv(filename, sep='\t', index=False)
+        df.to_csv(fp, sep='\t', index=False)
+
+        if verbose:
+            project_name = remove_qiita_id(project)
+            # assume qiita_id is extractable and is an integer, given that
+            # we have already passed error-checking.
+            qiita_id = project.replace(project_name + '_', '')
+            print("%s\t%s" % (qiita_id, abspath(fp)))
 
 
 if __name__ == '__main__':

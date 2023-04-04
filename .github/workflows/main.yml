@@ -17,7 +17,7 @@ jobs:
     # we can add more versions of node.js in the future
     strategy:
       matrix:
-        python-version: ['3.8', '3.9']
+        python-version: ['3.9']
 
     services:
       postgres:
@@ -119,7 +119,7 @@ jobs:
       - name: Install metapool
         shell: bash -l {0}
         run: |
-          conda create -q --yes -n metapool python=${{ matrix.python-version }} pandas numpy nose pep8 flake8 matplotlib jupyter notebook 'seaborn>=0.7.1' pip openpyxl
+          conda create -q --yes -n metapool python=${{ matrix.python-version }} scikit-learn pandas numpy nose pep8 flake8 matplotlib jupyter notebook 'seaborn>=0.7.1' pip openpyxl
           conda activate metapool
           pip install coveralls flake8
           pip install -e ".[all]"

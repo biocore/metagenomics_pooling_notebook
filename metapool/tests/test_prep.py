@@ -1,4 +1,6 @@
 import os
+
+import pandas
 import pandas as pd
 
 from unittest import TestCase, main
@@ -8,7 +10,8 @@ from metapool.prep import (preparations_for_run, remove_qiita_id,
                            get_machine_code, get_model_and_center,
                            parse_illumina_run_id,
                            _check_invalid_names, agp_transform, parse_prep,
-                           generate_qiita_prep_file, qiita_scrub_name)
+                           generate_qiita_prep_file, qiita_scrub_name,
+                           preparations_for_run_mapping_file)
 
 
 class TestPrep(TestCase):
@@ -21,8 +24,12 @@ class TestPrep(TestCase):
         self.OKish_run_new_version = os.path.join(
             data_dir, 'runs', '191104_D32611_0365_OK15HB5YXZ')
 
+        self.amplicon_run = os.path.join(data_dir, 'runs',
+                                         '230207_M05314_0346_000000000-KVMGL')
+
         self.ss = os.path.join(self.good_run, 'sample-sheet.csv')
         self.prep = os.path.join(data_dir, 'prep.tsv')
+        self.mf = os.path.join(self.amplicon_run, 'sample_mapping_file.tsv')
 
     def _check_run_191103_D32611_0365_G00DHB5YXX(self, obs):
         "Convenience method to check the output of a whole run"
@@ -116,6 +123,73 @@ class TestPrep(TestCase):
         obs_df = obs_df[exp.columns].copy()
         pd.testing.assert_frame_equal(obs_df, exp)
 
+    def _check_run_230207_M05314_0346_000000000_KVMGL(self, obs):
+        # confirm correct keys are present for the output prep
+        exp_keys = {('230207_M05314_0346_000000000-KVMGL',
+                     'ABTX_20230208_ABTX_11052', '1')}
+
+        self.assertEqual(set(obs.keys()), exp_keys)
+
+        # confirm the observed prep-info output contains the expected
+        # columns.
+        obs_df = obs[('230207_M05314_0346_000000000-KVMGL',
+                      'ABTX_20230208_ABTX_11052', '1')]
+
+        exp_columns = ['sample_name', 'barcode', 'center_name', 'platform',
+                       'center_project_name', 'experiment_design_description',
+                       'instrument_model', 'lane', 'run_center', 'run_date',
+                       'library_construction_protocol', 'run_prefix', 'runid',
+                       'sample_plate', 'sequencing_meth', 'linker', 'primer',
+                       'target_gene', 'pcr_primers', 'primer_plate',
+                       'processing_robot', 'well_description',
+                       'extraction_robot', 'tm300_8_tool', 'water_lot',
+                       'extractionkit_lot', 'target_subfragment', 'well_id',
+                       'project_name', 'tm1000_8_tool', 'orig_name', 'plating',
+                       'primer_date', 'mastermix_lot', 'tm50_8_tool']
+
+        self.assertEqual(set(exp_columns), set(obs_df.columns))
+
+        exp_data = [
+            ['sample.1', 'AGCCTTCGTCGC', 'UCSDMI', 'Illumina',
+             'SOME_CENTER_PROJECT_NAME',
+             'This is a description of the experiment design.',
+             'SOME_INSTRUMENT_MODEL', '1', 'UCSDMI', '2023/02/07',
+             'Illumina EMP protocol 515fbc, 806r amplification of 16S rRNA V4',
+             '230207_M05314_0346_000000000-KVMGL_SMPL1_S1_L001',
+             '230207_M05314_0346_000000000-KVMGL',
+             'ABTX_20230208_11052_Plate_238', 'Sequencing by synthesis',
+             'GT', 'GTGTGYCAGCMGCCGCGGTAA', '16S rRNA',
+             'FWD:GTGYCAGCMGCCGCGGTAA; REV:GGACTACNVGGGTWTCTAAT',
+             1, 'Echo 550', 'ABTX_20230208_11052_Plate_238_11.8.21.RK.FH_A1',
+             float('nan'), float('nan'), 1317793, float('nan'), 'V4', 'A1',
+             'ABTX_20230208_ABTX_11052', '108379Z', 'sample.1', 'HT', 122822,
+             1331807, float('nan')],
+            ['sample.2', 'TCCATACCGGAA', 'UCSDMI', 'Illumina',
+             'SOME_CENTER_PROJECT_NAME',
+             'This is a description of the experiment design.',
+             'SOME_INSTRUMENT_MODEL', '1', 'UCSDMI', '2023/02/07',
+             'Illumina EMP protocol 515fbc, 806r amplification of 16S rRNA V4',
+             '230207_M05314_0346_000000000-KVMGL_SMPL1_S1_L001',
+             '230207_M05314_0346_000000000-KVMGL',
+             'ABTX_20230208_11052_Plate_238', 'Sequencing by synthesis',
+             'GT', 'GTGTGYCAGCMGCCGCGGTAA', '16S rRNA',
+             'FWD:GTGYCAGCMGCCGCGGTAA; REV:GGACTACNVGGGTWTCTAAT',
+             1, 'Echo 550', 'ABTX_20230208_11052_Plate_238_11.17.21.RK.FH_A2',
+             float('nan'), float('nan'), 1317793, float('nan'), 'V4', 'A2',
+             'ABTX_20230208_ABTX_11052', '108379Z', 'sample.2', 'HT', 122822,
+             1331807, float('nan')]]
+
+        # confirm that the observed data in the prep-info output matches
+        # what's expected.
+
+        exp_df = pd.DataFrame(columns=exp_columns, data=exp_data)
+
+        # ensure the column order for the observed dataframe is the same as
+        # what's expected. (a canonical column ordering isn't required.)
+        obs_df = obs_df[exp_df.columns].copy()
+
+        pd.testing.assert_frame_equal(obs_df, exp_df)
+
     def test_preparations_for_run(self):
         ss = sample_sheet_to_dataframe(KLSampleSheet(self.ss))
 
@@ -149,6 +223,26 @@ class TestPrep(TestCase):
                                                           "present")
 
         self._check_run_191103_D32611_0365_G00DHB5YXX(obs)
+
+    def test_preparations_for_run_mf(self):
+        # mf has a header w/mixed case. This will test whether mapping-file
+        # headers are properly converted to all lower-case.
+        mf = pandas.read_csv(self.mf, delimiter='\t')
+
+        # obs will be a dictionary of dataframes, with the keys being
+        # a triplet of strings, rather than a single string.
+        obs = preparations_for_run_mapping_file(self.amplicon_run, mf)
+
+        self._check_run_230207_M05314_0346_000000000_KVMGL(obs)
+
+        # remove a column, simulating reading in a file with a column
+        # missing.
+        mf = mf.drop('project_name', axis=1)
+
+        with self.assertRaisesRegex(ValueError,
+                                    'Required columns are missing: '
+                                    'project_name'):
+            preparations_for_run_mapping_file(self.amplicon_run, mf)
 
     def test_invalid_sample_names_show_warning(self):
         ss = sample_sheet_to_dataframe(KLSampleSheet(self.ss))
@@ -515,6 +609,7 @@ class TestPrep(TestCase):
                     'Golay Barcode', 'Reverse Primer Pad',
                     'Reverse Primer Linker', 'ITS2 Reverse Primer',
                     'Primer For PCR', 'sample sheet Sample_ID']
+
         data1 = [['X00180471', 'A', 1, False, 'THDMI_10317_PUK2',
                   'THDMI_10317', 'THDMI_10317_UK2-US6', 'A1', '1', '1',
                   'THDMI_UK_Plate_2', 'THDMI UK', 'SF', '166032128',
@@ -533,6 +628,7 @@ class TestPrep(TestCase):
                   'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
                   ('AATGATACGGCGACCACCGAGATCTACACGCTCGTATAAATGCG'
                    'TATGGTAATTGTGTGYCAGCMGCCGCGGTAA'), 'X00180199']]
+
         data2 = [['X00180471', 'A', 1, False, 'THDMI_10317_PUK2',
                   'THDMI_10317', 'THDMI_10317_UK2-US6', 'A1', '1', '1',
                   'THDMI_UK_Plate_2', 'THDMI UK', 'SF', '166032128',
@@ -551,6 +647,7 @@ class TestPrep(TestCase):
                   'CA', 'TGATCCTTCTGCAGGTTCACCTAC',
                   ('CAAGCAGAAGACGGCATACGAGATGAATACCAAGTCAGTCAGTCAGCAT'
                    'GATCCTTCTGCAGGTTCACCTAC'), 'X00180199']]
+
         data3 = [['X00180471', 'A', 1, False, 'THDMI_10317_PUK2',
                   'THDMI_10317', 'THDMI_10317_UK2-US6', 'A1', '1', '1',
                   'THDMI_UK_Plate_2', 'THDMI UK', 'SF', '166032128',
@@ -578,99 +675,138 @@ class TestPrep(TestCase):
         obs2 = generate_qiita_prep_file(self.platedf2, '18S')
         obs3 = generate_qiita_prep_file(self.platedf3, 'ITS')
 
-        common_col = ['sample_name', 'barcode', 'primer', 'primer_plate',
-                      'well_id', 'plating', 'extractionkit_lot',
-                      'extraction_robot', 'tm1000_8_tool', 'primer_date',
-                      'mastermix_lot', 'water_lot', 'processing_robot',
-                      'tm300_8_tool', 'tm50_8_tool', 'sample_plate',
-                      'project_name', 'orig_name', 'well_description',
-                      'experiment_design_description',
-                      'library_construction_protocol', 'linker', 'platform',
-                      'run_center', 'run_date', 'run_prefix', 'pcr_primers',
-                      'sequencing_meth', 'target_gene', 'target_subfragment',
-                      'center_name', 'center_project_name', 'instrument_model',
-                      'runid']
+        exp_columns1 = ['sample_name', 'barcode', 'primer', 'primer_plate',
+                        'well_id', 'plating', 'extractionkit_lot',
+                        'extraction_robot', 'tm1000_8_tool', 'primer_date',
+                        'mastermix_lot', 'water_lot', 'processing_robot',
+                        'tm300_8_tool', 'tm50_8_tool', 'tm10_8_tool',
+                        'sample_plate', 'project_name', 'orig_name',
+                        'well_description', 'experiment_design_description',
+                        'library_construction_protocol', 'linker', 'platform',
+                        'run_center', 'run_date', 'run_prefix', 'pcr_primers',
+                        'sequencing_meth', 'target_gene', 'target_subfragment',
+                        'center_name', 'center_project_name',
+                        'instrument_model', 'runid', 'sample sheet Sample_ID']
 
-        exp1 = pd.DataFrame(columns=common_col,
+        exp_columns2 = ['sample_name', 'barcode', 'primer', 'primer_plate',
+                        'well_id', 'plating', 'extractionkit_lot',
+                        'extraction_robot', 'tm1000_8_tool', 'primer_date',
+                        'mastermix_lot', 'water_lot', 'processing_robot',
+                        'tm300_8_tool', 'tm50_8_tool', 'tm10_8_tool',
+                        'sample_plate', 'project_name', 'orig_name',
+                        'well_description', 'experiment_design_description',
+                        'library_construction_protocol', 'linker', 'platform',
+                        'run_center', 'run_date', 'run_prefix', 'pcr_primers',
+                        'sequencing_meth', 'target_gene', 'target_subfragment',
+                        'center_name', 'center_project_name',
+                        'instrument_model', 'runid', 'Reverse Primer Pad',
+                        'Reverse primer (EukBr)', 'sample sheet Sample_ID']
+
+        exp_columns3 = ['sample_name', 'barcode', 'primer', 'primer_plate',
+                        'well_id', 'plating', 'extractionkit_lot',
+                        'extraction_robot', 'tm1000_8_tool', 'primer_date',
+                        'mastermix_lot', 'water_lot', 'processing_robot',
+                        'tm300_8_tool', 'tm50_8_tool', 'tm10_8_tool',
+                        'sample_plate', 'project_name', 'orig_name',
+                        'well_description', 'experiment_design_description',
+                        'library_construction_protocol', 'linker', 'platform',
+                        'run_center', 'run_date', 'run_prefix', 'pcr_primers',
+                        'sequencing_meth', 'target_gene', 'target_subfragment',
+                        'center_name', 'center_project_name',
+                        'instrument_model', 'runid', 'ITS2 Reverse Primer',
+                        'Reverse Primer Pad', 'sample sheet Sample_ID']
+
+        exp1 = pd.DataFrame(columns=exp_columns1,
                             data=[['X00180471', 'AGCCTTCGTCGC',
                                    'GTGYCAGCMGCCGCGGTAA', '1', 'A1', 'SF',
                                    '166032128', 'Carmen_HOWE_KF3', '109379Z',
                                    '2021-08-17', '978215', 'RNBJ0628',
-                                   'Echo550', '', '', 'THDMI_UK_Plate_2',
+                                   'Echo550', '', '', '', 'THDMI_UK_Plate_2',
                                    'THDMI_10317', 'X00180471',
                                    'THDMI_UK_Plate_2.X00180471.A1', '',
-                                   'Illumina EMP protocol 515fbc, 806r amplifi'
-                                   'cation of 16S rRNA V4', 'GT', 'Illumina',
-                                   'UCSDMI', '', '', 'FWD:GTGYCAGCMGCCGCGGTAA;'
-                                   ' REV:GGACTACNVGGGTWTCTAAT',
+                                   ('Illumina EMP protocol 515fbc, 806r '
+                                    'amplification of 16S rRNA V4'),
+                                   'GT', 'Illumina', 'UCSDMI', '', '',
+                                   ('FWD:GTGYCAGCMGCCGCGGTAA; '
+                                    'REV:GGACTACNVGGGTWTCTAAT'),
                                    'Sequencing by synthesis', '16S rRNA', 'V4',
-                                   'UCSDMI', '', '', ''],
+                                   'UCSDMI', '', '', '', 'X00180471'],
                                   ['X00180199', 'CGTATAAATGCG',
                                    'GTGYCAGCMGCCGCGGTAA', '1', 'C1', 'SF',
                                    '166032128', 'Carmen_HOWE_KF3', '109379Z',
                                    '2021-08-17', '978215', 'RNBJ0628',
-                                   'Echo550', '', '', 'THDMI_UK_Plate_2',
+                                   'Echo550', '', '', '', 'THDMI_UK_Plate_2',
                                    'THDMI_10317', 'X00180199',
                                    'THDMI_UK_Plate_2.X00180199.C1', '',
-                                   'Illumina EMP protocol 515fbc, 806r amplifi'
-                                   'cation of 16S rRNA V4', 'GT', 'Illumina',
-                                   'UCSDMI', '', '', 'FWD:GTGYCAGCMGCCGCGGTAA;'
-                                   ' REV:GGACTACNVGGGTWTCTAAT',
+                                   ('Illumina EMP protocol 515fbc, '
+                                    '806r amplification of 16S rRNA V4'),
+                                   'GT', 'Illumina', 'UCSDMI', '', '',
+                                   ('FWD:GTGYCAGCMGCCGCGGTAA; '
+                                    'REV:GGACTACNVGGGTWTCTAAT'),
                                    'Sequencing by synthesis', '16S rRNA', 'V4',
-                                   'UCSDMI', '', '', '']])
-        exp2 = pd.DataFrame(columns=common_col,
+                                   'UCSDMI', '', '', '', 'X00180199']])
+
+        exp2 = pd.DataFrame(columns=exp_columns2,
                             data=[['X00180471', 'ACGAGACTGATT',
                                    'CAAGCAGAAGACGGCATACGAGAT', '1', 'A1', 'SF',
                                    '166032128', 'Carmen_HOWE_KF3', '109379Z',
                                    '2021-08-17', '978215', 'RNBJ0628',
-                                   'Echo550', '', '', 'THDMI_UK_Plate_2',
+                                   'Echo550', '', '', '', 'THDMI_UK_Plate_2',
                                    'THDMI_10317', 'X00180471',
                                    'THDMI_UK_Plate_2.X00180471.A1', '',
                                    'Illumina EMP 18S rRNA 1391f EukBr', 'CA',
-                                   'Illumina', 'UCSDMI', '', '', 'FWD:GTACACAC'
-                                   'CGCCCGTC; REV:TGATCCTTCTGCAGGTTCACCTAC',
+                                   'Illumina', 'UCSDMI', '', '',
+                                   ('FWD:GTACACACCGCCCGTC; '
+                                    'REV:TGATCCTTCTGCAGGTTCACCTAC'),
                                    'Sequencing by synthesis', '18S rRNA', 'V9',
-                                   'UCSDMI', '', '', ''],
+                                   'UCSDMI', '', '', '', 'AGTCAGTCAG',
+                                   'TGATCCTTCTGCAGGTTCACCTAC', 'X00180471'],
                                   ['X00180199', 'GAATACCAAGTC',
                                    'CAAGCAGAAGACGGCATACGAGAT', '1', 'C1', 'SF',
                                    '166032128', 'Carmen_HOWE_KF3', '109379Z',
                                    '2021-08-17', '978215', 'RNBJ0628',
-                                   'Echo550', '', '', 'THDMI_UK_Plate_2',
+                                   'Echo550', '', '', '', 'THDMI_UK_Plate_2',
                                    'THDMI_10317', 'X00180199',
                                    'THDMI_UK_Plate_2.X00180199.C1', '',
                                    'Illumina EMP 18S rRNA 1391f EukBr', 'CA',
-                                   'Illumina', 'UCSDMI', '', '', 'FWD:GTACACAC'
-                                   'CGCCCGTC; REV:TGATCCTTCTGCAGGTTCACCTAC',
+                                   'Illumina', 'UCSDMI', '', '',
+                                   ('FWD:GTACACACCGCCCGTC; '
+                                    'REV:TGATCCTTCTGCAGGTTCACCTAC'),
                                    'Sequencing by synthesis', '18S rRNA', 'V9',
-                                   'UCSDMI', '', '', '']]
-                            )
-        exp3 = pd.DataFrame(columns=common_col,
+                                   'UCSDMI', '', '', '', 'AGTCAGTCAG',
+                                   'TGATCCTTCTGCAGGTTCACCTAC', 'X00180199']])
+
+        exp3 = pd.DataFrame(columns=exp_columns3,
                             data=[['X00180471', 'TCCCTTGTCTCC',
                                    'CAAGCAGAAGACGGCATACGAGAT', '1', 'A1', 'SF',
                                    '166032128', 'Carmen_HOWE_KF3', '109379Z',
                                    '2021-08-17', '978215', 'RNBJ0628',
-                                   'Echo550', '', '', 'THDMI_UK_Plate_2',
+                                   'Echo550', '', '', '', 'THDMI_UK_Plate_2',
                                    'THDMI_10317', 'X00180471',
                                    'THDMI_UK_Plate_2.X00180471.A1', '',
-                                   'Illumina  EMP protocol amplification of IT'
-                                   'S1fbc, ITS2r', 'CG', 'Illumina', 'UCSDMI',
-                                   '', '', 'FWD:CTTGGTCATTTAGAGGAAGTAA; REV:GC'
-                                   'TGCGTTCTTCATCGATGC', 'Sequencing by synthe'
-                                   'sis', 'ITS', 'ITS_1_2', 'UCSDMI', '', '',
-                                   ''],
+                                   ('Illumina  EMP protocol amplification of '
+                                    'ITS1fbc, ITS2r'), 'CG', 'Illumina',
+                                   'UCSDMI', '', '',
+                                   ('FWD:CTTGGTCATTTAGAGGAAGTAA; '
+                                    'REV:GCTGCGTTCTTCATCGATGC'),
+                                   'Sequencing by synthesis', 'ITS', 'ITS_1_2',
+                                   'UCSDMI', '', '', '',
+                                   'GCTGCGTTCTTCATCGATGC', '', 'X00180471'],
                                   ['X00180199', 'TGCATACACTGG',
                                    'CAAGCAGAAGACGGCATACGAGAT', '1', 'C1', 'SF',
                                    '166032128', 'Carmen_HOWE_KF3', '109379Z',
                                    '2021-08-17', '978215', 'RNBJ0628',
-                                   'Echo550', '', '', 'THDMI_UK_Plate_2',
+                                   'Echo550', '', '', '', 'THDMI_UK_Plate_2',
                                    'THDMI_10317', 'X00180199',
                                    'THDMI_UK_Plate_2.X00180199.C1', '',
-                                   'Illumina  EMP protocol amplification of IT'
-                                   'S1fbc, ITS2r', 'CG', 'Illumina', 'UCSDMI',
-                                   '', '', 'FWD:CTTGGTCATTTAGAGGAAGTAA; REV:GC'
-                                   'TGCGTTCTTCATCGATGC', 'Sequencing by synthe'
-                                   'sis', 'ITS', 'ITS_1_2', 'UCSDMI', '', '',
-                                   '']])
+                                   ('Illumina  EMP protocol amplification of '
+                                    'ITS1fbc, ITS2r'), 'CG', 'Illumina',
+                                   'UCSDMI', '', '',
+                                   ('FWD:CTTGGTCATTTAGAGGAAGTAA; '
+                                    'REV:GCTGCGTTCTTCATCGATGC'),
+                                   'Sequencing by synthesis', 'ITS', 'ITS_1_2',
+                                   'UCSDMI', '', '', '',
+                                   'GCTGCGTTCTTCATCGATGC', '', 'X00180199']])
 
         pd.testing.assert_frame_equal(obs1, exp1)
         pd.testing.assert_frame_equal(obs2, exp2)
