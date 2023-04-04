@@ -60,7 +60,9 @@ class DilutionTests(TestCase):
         plate_df = read_plate_map_csv(plate_map_fp)
         sample_concs_fp = ('notebooks/test_data/Quant/MiniPico/'
                            'FinRisk_33-36_gDNA_quant.tsv')
-        sample_concs = read_pico_csv(open(sample_concs_fp, 'r'))
+        sample_concs = read_pico_csv(open(sample_concs_fp, 'r'),
+                                     plate_reader='Synergy_HT',
+                                     max_conc=60)
         plate_df = pd.merge(plate_df, sample_concs, on='Well')
         total_vol = 3500
         dna_vols = calculate_norm_vol(plate_df['Sample DNA Concentration'],
@@ -79,6 +81,7 @@ class DilutionTests(TestCase):
                         '10-13-17_FinRisk_33-36_library_quant.txt')
         col_name = 'MiniPico Library DNA Concentration'
         lib_concs = read_pico_csv(open(lib_concs_fp, 'r'),
+                                  plate_reader='Synergy_HT',
                                   conc_col_name=col_name)
         plate_df = pd.merge(plate_df, lib_concs, on='Well')
         result = compute_pico_concentration(plate_df[col_name], size=500)
