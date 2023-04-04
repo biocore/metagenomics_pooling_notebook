@@ -81,6 +81,7 @@ class DilutionTests(TestCase):
                         '10-13-17_FinRisk_33-36_library_quant.txt')
         col_name = 'MiniPico Library DNA Concentration'
         lib_concs = read_pico_csv(open(lib_concs_fp, 'r'),
+                                  plate_reader='Synergy_HT',
                                   conc_col_name=col_name)
         plate_df = pd.merge(plate_df, lib_concs, on='Well')
         result = compute_pico_concentration(plate_df[col_name], size=500)
