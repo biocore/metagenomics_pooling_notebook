@@ -237,13 +237,9 @@ def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
     if qiita_validate:
         errors = []
         for project, _df in plate_df.groupby(['Project Name']):
-
             # if project is a tuple, force to string
             if isinstance(project, tuple):
                 project = project[0]
-
-            print("PROJECT: %s" % project)
-            print("TYPE: %s" % type(project))
 
             project_name = remove_qiita_id(project)
             qiita_id = project.replace(f'{project_name}_', '')
@@ -1112,6 +1108,7 @@ def reformat_interleaved_to_columns(wells):
 
     return new_wells
 
+
 def merge_read_counts(plate_df, counts_df, reads_column_name='Filtered Reads'):
     """ Merges reads counts from FASTQC report or per_sample_FASTQ summary
     :param plate_df: A DataFrame containing the growing plate dataframe.
@@ -1160,7 +1157,7 @@ def merge_read_counts(plate_df, counts_df, reads_column_name='Filtered Reads'):
                                       left_on='sample sheet Sample_ID',
                                       right_on='Sample', how='left')
 
-    return(plate_df_w_reads)
+    return plate_df_w_reads
 
 
 def read_survival(reads, label='Remaining', rmin=0, rmax=10 ** 6, rsteps=100):
@@ -1207,7 +1204,7 @@ def linear_transform(input_values, output_min=100, output_max=1000):
     diff1 = input_values - input_min
     diff2 = output_max - output_min
     transformed_values = (((diff1))*(diff2)/input_range) + output_min
-    return(transformed_values)
+    return transformed_values
 
 
 def calculate_iseqnorm_pooling_volumes(plate_df,
@@ -1278,7 +1275,7 @@ def calculate_iseqnorm_pooling_volumes(plate_df,
     sns.histplot(plate_df[normalization_column], ax=ax2)
     plt.tight_layout()
 
-    return(plate_df)
+    return plate_df
 
 
 def estimate_read_depth(plate_df,
@@ -1335,4 +1332,4 @@ def estimate_read_depth(plate_df,
               "{:,}".format(int(plate_df['projected_on_target_reads'].mean())))
     plt.show()
 
-    return(plate_df)
+    return plate_df
