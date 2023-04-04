@@ -289,7 +289,7 @@ def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
 
 # method to read minipico output
 def read_pico_csv(f, sep='\t', plate_reader='SpectraMax_i3x',
-                  min_conc = 0, max_conc = 150,
+                  min_conc=0, max_conc=150,
                   conc_col_name='Sample DNA Concentration'):
     """
     reads tab-delimited pico quant
