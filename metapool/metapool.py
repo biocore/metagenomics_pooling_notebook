@@ -237,6 +237,8 @@ def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
     if qiita_validate:
         errors = []
         for project, _df in plate_df.groupby(['Project Name']):
+            print("PROJECT: %s" % project)
+            print("TYPE: %s" % type(project))
             project_name = remove_qiita_id(project)
             qiita_id = project.replace(f'{project_name}_', '')
             qurl = f'/api/v1/study/{qiita_id}/samples'
