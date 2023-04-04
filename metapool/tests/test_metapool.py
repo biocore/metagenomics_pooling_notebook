@@ -45,11 +45,11 @@ class Tests(TestCase):
                       [46.5530303, 28.9393939, 27.7272727, 52.0454545]])
 
         path = os.path.dirname(__file__)
-        plate_fp = join(path, 'data/test_plate_map.tsv')
-        counts_fp = join(path, 'data/test_filtered_counts.tsv')
-        counts_ps_fp = join(path, 'data/test_per_sample_fastq.tsv')
-        no_blanks_fp = join(path, 'data/test_no_blanks.tsv')
-        blanks_fp = join(path, 'data/test_blanks.tsv')
+        plate_fp = os.path.join(path, 'data/test_plate_map.tsv')
+        counts_fp = os.path.join(path, 'data/test_filtered_counts.tsv')
+        counts_ps_fp = os.path.join(path, 'data/test_per_sample_fastq.tsv')
+        no_blanks_fp = os.path.join(path, 'data/test_no_blanks.tsv')
+        blanks_fp = os.path.join(path, 'data/test_blanks.tsv')
 
         self.plate_df = pd.read_csv(plate_fp, sep=',')
         self.counts_df = pd.read_csv(counts_fp, sep=',')
@@ -877,13 +877,13 @@ class Tests(TestCase):
                               reads_column_name='Filtered Reads')
 
         # TEST CORRECT OUTPUT WITH FastQC
-        exp_fp = join(self.fp, 'data/test_output_merge.tsv')
+        exp_fp = os.path.join(self.fp, 'data/test_output_merge.tsv')
         exp = pd.read_csv(exp_fp, sep='\t')
         obs = merge_read_counts(self.plate_df, self.counts_df)
         pd.testing.assert_frame_equal(exp, obs)
 
         # TEST CORRECT OUTPUT WITH per_sample_FASTQ
-        exp_fp = join(self.fp, 'data/test_output_merge_ps.tsv')
+        exp_fp = os.path.join(self.fp, 'data/test_output_merge_ps.tsv')
         exp = pd.read_csv(exp_fp, sep='\t')
         obs = merge_read_counts(self.plate_df, self.counts_df_ps)
         pd.testing.assert_frame_equal(exp, obs)
@@ -916,19 +916,19 @@ class Tests(TestCase):
         with self.assertWarnsRegex(UserWarning,
                                    'There are no BLANKS in this plate'):
             obs = calculate_iseqnorm_pooling_volumes(self.no_blanks)
-        exp_fp = join(self.fp, 'data/test_no_blanks_output.tsv')
+        exp_fp = os.path.join(self.fp, 'data/test_no_blanks_output.tsv')
         exp = pd.read_csv(exp_fp, sep='\t')
         pd.testing.assert_frame_equal(obs, exp)
 
         # TEST BLANKS ARE HANDLED CORRECTLY
         obs = calculate_iseqnorm_pooling_volumes(self.blanks)
-        exp_fp = join(self.fp, 'data/test_blanks_output.tsv')
+        exp_fp = os.path.join(self.fp, 'data/test_blanks_output.tsv')
         exp = pd.read_csv(exp_fp, sep=',')
         pd.testing.assert_frame_equal(obs, exp)
 
     def test_estimate_read_depth(self):
 
-        raw_fp = join(self.fp, 'data/test_raw_counts.tsv')
+        raw_fp = os.path.join(self.fp, 'data/test_raw_counts.tsv')
         rawcts_df = pd.read_csv(raw_fp, sep=',')
 
         frame = merge_read_counts(self.plate_df, self.counts_df)
@@ -937,7 +937,7 @@ class Tests(TestCase):
         frame = calculate_iseqnorm_pooling_volumes(frame)
 
         obs = estimate_read_depth(frame, estimated_total_output=600)
-        exp_fp = join(self.fp, 'data/test_read_depth_output.tsv')
+        exp_fp = os.path.join(self.fp, 'data/test_read_depth_output.tsv')
         exp = pd.read_csv(exp_fp, sep='\t')
         pd.testing.assert_frame_equal(exp, obs)
 
