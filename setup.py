@@ -9,6 +9,8 @@
 # ----------------------------------------------------------------------------
 
 from setuptools import find_packages, setup
+from glob import glob
+from os.path import dirname
 
 import versioneer
 
@@ -21,8 +23,6 @@ classifiers = [
     'Topic :: Scientific/Engineering :: Bio-Informatics',
     'Programming Language :: Python',
     'Programming Language :: Python :: 3',
-    'Programming Language :: Python :: 3.5',
-    'Programming Language :: Python :: 3.6',
     'Operating System :: Unix',
     'Operating System :: POSIX',
     'Operating System :: MacOS :: MacOS X',
@@ -44,6 +44,10 @@ coverage = ['coverage']
 notebook = ['jupyter', 'notebook', 'jupyter_contrib_nbextensions', 'watermark']
 all_deps = base + test + coverage + notebook
 
+notebooks_fp = []
+for fp in glob('notebooks/*.ipynb'):
+    notebooks_fp.append((dirname(fp), [fp]))
+
 setup(name='metapool',
       version=versioneer.get_version(),
       cmdclass=versioneer.get_cmdclass(),
@@ -58,12 +62,18 @@ setup(name='metapool',
       test_suite='nose.collector',
       packages=find_packages(),
       package_data={
-        'metapool': ['data/*.tsv', 'data/*.xlsx', 'tests/data/*.csv']},
+          'metapool': ['data/*.tsv', 'data/*.xlsx', 'tests/data/*.csv']},
+      # addingt all the notebooks fps
+      data_files=notebooks_fp,
       install_requires=base,
       extras_require={'test': test,
                       'coverage': coverage,
                       'all': all_deps},
-      entry_points='''
-          [console_scripts]
-          seqpro=metapool.scripts.seqpro:format_preparation_files
-      ''')
+      entry_points={
+          'console_scripts': [
+              'seqpro=metapool.scripts.seqpro:format_preparation_files',
+              ('seqpro_mf=metapool.scripts.seqpro_mf:format_preparation_'
+               'files_mf'),
+          ],
+
+      })

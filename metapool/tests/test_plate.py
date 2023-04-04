@@ -194,13 +194,21 @@ class PlateValidationTests(TestCase):
                 'Extraction Kit Lot': '166032128',
                 'Extraction Robot': 'Carmen_HOWE_KF3',
                 'TM1000 8 Tool': '109379Z',
+                'TM300 8 Tool': 'NA',
+                'TM50 8 Tool': 'NA',
                 'Primer Date': '2021-08-17',
                 'MasterMix Lot': '978215',
                 'Water Lot': 'RNBJ0628',
                 'Processing Robot': 'Echo550',
                 'Sample Plate': 'THDMI_UK_Plate_2',
                 'Project_Name': 'THDMI UK',
-                'Original Name': ''
+                'Original Name': '',    # leave empty
+                'TM10 8 Tool': '865HS8',
+                'run_date': '2023-03-02',
+                'instrument_model': 'Illumina MiSeq',
+                'center_project_name': 'Rob ABTX',
+                'experiment_design_description': ('### sequencing of anti'
+                                                  'biotic time series')
             },
             {
                 'Plate Position': '2',
@@ -209,13 +217,21 @@ class PlateValidationTests(TestCase):
                 'Extraction Kit Lot': '166032128',
                 'Extraction Robot': 'Carmen_HOWE_KF4',
                 'TM1000 8 Tool': '109379Z',
+                'TM300 8 Tool': 'NA',
+                'TM50 8 Tool': 'NA',
                 'Primer Date': '2021-08-17',
                 'MasterMix Lot': '978215',
                 'Water Lot': 'RNBJ0628',
                 'Processing Robot': 'Echo550',
                 'Sample Plate': 'THDMI_UK_Plate_3',
                 'Project_Name': 'THDMI UK',
-                'Original Name': ''
+                'Original Name': '',
+                'TM10 8 Tool': '865HS8',
+                'run_date': '2023-03-02',
+                'instrument_model': 'Illumina MiSeq',
+                'center_project_name': 'Rob ABTX',
+                'experiment_design_description': ('### sequencing of anti'
+                                                  'biotic time series')
             },
             {
                 'Plate Position': '3',
@@ -224,13 +240,21 @@ class PlateValidationTests(TestCase):
                 'Extraction Kit Lot': '166032128',
                 'Extraction Robot': 'Carmen_HOWE_KF3',
                 'TM1000 8 Tool': '109379Z',
+                'TM300 8 Tool': 'NA',
+                'TM50 8 Tool': 'NA',
                 'Primer Date': '2021-08-17',
                 'MasterMix Lot': '978215',
                 'Water Lot': 'RNBJ0628',
                 'Processing Robot': 'Echo550',
                 'Sample Plate': 'THDMI_UK_Plate_4',
                 'Project_Name': 'THDMI UK',
-                'Original Name': ''
+                'Original Name': '',
+                'TM10 8 Tool': '865HS8',
+                'run_date': '2023-03-02',
+                'instrument_model': 'Illumina MiSeq',
+                'center_project_name': 'Rob ABTX',
+                'experiment_design_description': ('### sequencing of anti'
+                                                  'biotic time series')
             },
             {
                 'Plate Position': '4',
@@ -239,13 +263,21 @@ class PlateValidationTests(TestCase):
                 'Extraction Kit Lot': '166032128',
                 'Extraction Robot': 'Carmen_HOWE_KF4',
                 'TM1000 8 Tool': '109379Z',
+                'TM300 8 Tool': 'NA',
+                'TM50 8 Tool': 'NA',
                 'Primer Date': '2021-08-17',
                 'MasterMix Lot': '978215',
                 'Water Lot': 'RNBJ0628',
                 'Processing Robot': 'Echo550',
                 'Sample Plate': 'THDMI_US_Plate_6',
                 'Project_Name': 'THDMI US',
-                'Original Name': ''
+                'Original Name': '',
+                'TM10 8 Tool': '865HS8',
+                'run_date': '2023-03-02',
+                'instrument_model': 'Illumina MiSeq',
+                'center_project_name': 'Rob ABTX',
+                'experiment_design_description': ('### sequencing of anti'
+                                                  'biotic time series')
             },
         ]
 
@@ -256,6 +288,15 @@ class PlateValidationTests(TestCase):
         }
 
     def test_validate_plate_metadata_full(self):
+        expected = pd.DataFrame(self.metadata)
+
+        pd.testing.assert_frame_equal(validate_plate_metadata(self.metadata),
+                                      expected)
+
+    def test_validate_plate_metadata_full_extra_column(self):
+        for item in self.metadata:
+            item['NewColumn'] = 'NewValue'
+
         expected = pd.DataFrame(self.metadata)
 
         pd.testing.assert_frame_equal(validate_plate_metadata(self.metadata),
@@ -278,8 +319,9 @@ class PlateValidationTests(TestCase):
 
         self.assertTrue(len(messages) == 1)
         self.assertEqual(messages[0],
-                         ErrorMessage('The following columns are not needed: '
-                                      'New Value'))
+                         WarningMessage('The following columns are not '
+                                        'recognized and may be misspelled '
+                                        'column names: New Value'))
 
         expected = {'primers': ['1'], 'names': ['THDMI_UK_Plate_2'],
                     'positions': ['1']}

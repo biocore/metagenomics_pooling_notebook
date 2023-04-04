@@ -1104,7 +1104,6 @@ def reformat_interleaved_to_columns(wells):
 
     return new_wells
 
-
 def merge_read_counts(plate_df, counts_df, reads_column_name='Filtered Reads'):
     """ Merges reads counts from FASTQC report or per_sample_FASTQ summary
     :param plate_df: A DataFrame containing the growing plate dataframe.
