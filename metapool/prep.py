@@ -146,13 +146,13 @@ def is_nonempty_gz_file(name):
 
 
 def remove_qiita_id(project_name):
-    print("PROJECT NAME: %s" % project_name)
     # project identifiers are digit groups at the end of the project name
     # preceded by an underscore CaporasoIllumina_550
-    qiita_id_re = re.compile(r'(.+)_(\d+)$')
+    if project_name is None or project_name == '':
+        raise ValueError("project_name cannot be None or empty string")
 
     # no matches
-    matches = re.search(qiita_id_re, project_name)
+    matches = re.search(r'(.+)_(\d+)$', project_name)
     if matches is None:
         return project_name
     else:
