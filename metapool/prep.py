@@ -152,7 +152,7 @@ def remove_qiita_id(project_name):
         raise ValueError("project_name cannot be None or empty string")
 
     # no matches
-    matches = re.search(r'(.+)_(\d+)$', project_name)
+    matches = re.search(r'(.+)_(\d+)$', str(project_name))
     if matches is None:
         return project_name
     else:
