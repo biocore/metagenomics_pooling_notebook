@@ -213,7 +213,8 @@ class Tests(TestCase):
 
         pico_csv_f = StringIO(pico_csv)
 
-        obs_pico_df = read_pico_csv(pico_csv_f)
+        obs_pico_df = read_pico_csv(pico_csv_f,
+                                    plate_reader='Synergy_HT')
 
         pd.testing.assert_frame_equal(
             obs_pico_df, exp_pico_df, check_like=True)
@@ -238,7 +239,8 @@ class Tests(TestCase):
 
         pico_csv_f = StringIO(pico_csv)
 
-        obs_pico_df = read_pico_csv(pico_csv_f)
+        obs_pico_df = read_pico_csv(pico_csv_f,
+                                    plate_reader='Synergy_HT')
 
         pd.testing.assert_frame_equal(
             obs_pico_df, exp_pico_df, check_like=True)
