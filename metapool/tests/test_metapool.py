@@ -17,7 +17,10 @@ from metapool.metapool import (read_plate_map_csv, read_pico_csv,
                                add_dna_conc, compute_pico_concentration,
                                bcl_scrub_name, rc, sequencer_i5_index,
                                reformat_interleaved_to_columns,
-                               extract_stats_metadata, sum_lanes)
+                               extract_stats_metadata, sum_lanes,
+                               merge_read_counts, read_survival,
+                               linear_transform, estimate_read_depth,
+                               calculate_iseqnorm_pooling_volumes)
 
 
 class Tests(TestCase):
@@ -40,6 +43,20 @@ class Tests(TestCase):
             np.array([[38.4090909, 29.8863636, 29.9242424, 58.6363636],
                       [29.7727273, 30.5681818, 30.9090909, 36.5151515],
                       [46.5530303, 28.9393939, 27.7272727, 52.0454545]])
+
+        path = os.path.dirname(__file__)
+        plate_fp = os.path.join(path, 'data/test_plate_map.tsv')
+        counts_fp = os.path.join(path, 'data/test_filtered_counts.tsv')
+        counts_ps_fp = os.path.join(path, 'data/test_per_sample_fastq.tsv')
+        no_blanks_fp = os.path.join(path, 'data/test_no_blanks.tsv')
+        blanks_fp = os.path.join(path, 'data/test_blanks.tsv')
+
+        self.plate_df = pd.read_csv(plate_fp, sep=',')
+        self.counts_df = pd.read_csv(counts_fp, sep=',')
+        self.counts_df_ps = pd.read_csv(counts_ps_fp, sep=',')
+        self.no_blanks = pd.read_csv(no_blanks_fp, sep='\t')
+        self.blanks = pd.read_csv(blanks_fp, sep='\t')
+        self.fp = path
 
     # def test_compute_shotgun_normalization_values(self):
     #     input_vol = 3.5
@@ -196,7 +213,8 @@ class Tests(TestCase):
 
         pico_csv_f = StringIO(pico_csv)
 
-        obs_pico_df = read_pico_csv(pico_csv_f)
+        obs_pico_df = read_pico_csv(pico_csv_f,
+                                    plate_reader='Synergy_HT')
 
         pd.testing.assert_frame_equal(
             obs_pico_df, exp_pico_df, check_like=True)
@@ -221,7 +239,8 @@ class Tests(TestCase):
 
         pico_csv_f = StringIO(pico_csv)
 
-        obs_pico_df = read_pico_csv(pico_csv_f)
+        obs_pico_df = read_pico_csv(pico_csv_f,
+                                    plate_reader='Synergy_HT')
 
         pd.testing.assert_frame_equal(
             obs_pico_df, exp_pico_df, check_like=True)
@@ -242,7 +261,7 @@ class Tests(TestCase):
 
     def test_read_pico_csv_spectramax_negfix(self):
         # Tests that Concentration values are clipped
-        # to a range of (0,60), eliminating possible
+        # to a range of (0,150), eliminating possible
         # negative concentration values.
         fp_spectramax = os.path.join(os.path.dirname(__file__), 'data',
                                      'pico_spectramax.txt')
@@ -833,6 +852,92 @@ class Tests(TestCase):
 
         self.assertDictEqual(obs_fr, exp_fr)
         self.assertDictEqual(obs_lr, exp_lr)
+
+    def test_merge_read_counts(self):
+
+        # TEST EXCEPTION UNSUPPORTED FILE TYPE
+        counts_df = self.counts_df.copy()
+        counts_df.rename(columns={'Category': 'nope'}, inplace=True)
+        with self.assertRaisesRegex(Exception,
+                                    'Unsupported input file type.'):
+            merge_read_counts(self.plate_df,
+                              counts_df,
+                              reads_column_name='Filtered Reads')
+
+        # TEST ID NOT FOUND
+        counts_df = self.counts_df.copy()
+        n = len(counts_df)
+        counts_df['Category'] = ['a' for i in range(n)]
+        with self.assertRaisesRegex(LookupError,
+                                    'id not found in a'):
+            merge_read_counts(self.plate_df,
+                              counts_df,
+                              reads_column_name='Filtered Reads')
+
+        # TEST CORRECT OUTPUT WITH FastQC
+        exp_fp = os.path.join(self.fp, 'data/test_output_merge.tsv')
+        exp = pd.read_csv(exp_fp, sep='\t')
+        obs = merge_read_counts(self.plate_df, self.counts_df)
+        pd.testing.assert_frame_equal(exp, obs)
+
+        # TEST CORRECT OUTPUT WITH per_sample_FASTQ
+        exp_fp = os.path.join(self.fp, 'data/test_output_merge_ps.tsv')
+        exp = pd.read_csv(exp_fp, sep='\t')
+        obs = merge_read_counts(self.plate_df, self.counts_df_ps)
+        pd.testing.assert_frame_equal(exp, obs)
+
+    def test_read_survival(self):
+
+        reads = [10 + i for i in range(11)]
+        reads = pd.DataFrame({'reads': reads})
+
+        counts = [11.0, 11.0, 11.0, 9.0, 5.0]
+        index = [0, 4, 8, 12, 16]
+        exp = pd.DataFrame({'Remaining': counts}, index=index)
+        obs = read_survival(reads, label='Remaining',
+                            rmin=0, rmax=20, rsteps=5)
+        pd.testing.assert_frame_equal(exp, obs)
+
+    def test_linear_transform(self):
+
+        counts = range(5)
+        index = range(5)
+        counts = pd.Series(counts, index=index)
+        obs = linear_transform(counts, output_min=0, output_max=40)
+        exp = [float(i) for i in range(0, 50, 10)]
+        exp = pd.Series(exp, index=index)
+        pd.testing.assert_series_equal(obs, exp)
+
+    def test_calculate_iseqnorm_pooling_volumes(self):
+
+        # TEST MATH IS CORRECT & WARNS NO BLANKS
+        with self.assertWarnsRegex(UserWarning,
+                                   'There are no BLANKS in this plate'):
+            obs = calculate_iseqnorm_pooling_volumes(self.no_blanks)
+        exp_fp = os.path.join(self.fp, 'data/test_no_blanks_output.tsv')
+        exp = pd.read_csv(exp_fp, sep='\t')
+        pd.testing.assert_frame_equal(obs, exp)
+
+        # TEST BLANKS ARE HANDLED CORRECTLY
+        obs = calculate_iseqnorm_pooling_volumes(self.blanks)
+        exp_fp = os.path.join(self.fp, 'data/test_blanks_output.tsv')
+        exp = pd.read_csv(exp_fp, sep=',')
+        pd.testing.assert_frame_equal(obs, exp)
+
+    def test_estimate_read_depth(self):
+
+        raw_fp = os.path.join(self.fp, 'data/test_raw_counts.tsv')
+        rawcts_df = pd.read_csv(raw_fp, sep=',')
+
+        frame = merge_read_counts(self.plate_df, self.counts_df)
+        frame = merge_read_counts(frame, rawcts_df,
+                                  reads_column_name='Raw Reads')
+        frame = calculate_iseqnorm_pooling_volumes(frame)
+
+        obs = estimate_read_depth(frame, estimated_total_output=600)
+        exp_fp = os.path.join(self.fp, 'data/test_read_depth_output.tsv')
+        exp = pd.read_csv(exp_fp, sep='\t')
+        pd.testing.assert_frame_equal(exp, obs)
 
 
 if __name__ == "__main__":
