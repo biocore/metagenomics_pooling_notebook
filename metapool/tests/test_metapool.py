@@ -295,25 +295,24 @@ class Tests(TestCase):
     def test_format_dna_norm_picklist(self):
 
         exp_picklist = (
-            'Sample\tSource Plate Name\tSource Plate Type\tSource Well\t'
-            'Concentration\tTransfer Volume\tDestination Plate Name\t'
-            'Destination Well\n'
-            'sam1\tWater\t384PP_AQ_BP2_HT\tA1\t2.0\t1000.0\tNormalizedDNA\t'
-            'A1\n'
-            'sam2\tWater\t384PP_AQ_BP2_HT\tA2\t7.89\t2867.5\tNormalizedDNA\t'
-            'A2\n'
-            'blank1\tWater\t384PP_AQ_BP2_HT\tB1\tnan\t0.0\tNormalizedDNA\t'
-            'B1\n'
-            'sam3\tWater\t384PP_AQ_BP2_HT\tB2\t0.0\t0.0\tNormalizedDNA\t'
-            'B2\n'
-            'sam1\tSample\t384PP_AQ_BP2_HT\tA1\t2.0\t2500.0\tNormalizedDNA\t'
-            'A1\n'
-            'sam2\tSample\t384PP_AQ_BP2_HT\tA2\t7.89\t632.5\tNormalizedDNA\t'
-            'A2\n'
-            'blank1\tSample\t384PP_AQ_BP2_HT\tB1\tnan\t3500.0\t'
-            'NormalizedDNA\tB1\n'
-            'sam3\tSample\t384PP_AQ_BP2_HT\tB2\t0.0\t3500.0\tNormalizedDNA\t'
-            'B2')
+             "Sample\tSource Plate Name\tSource Plate Type\tSource Well\t"
+             "Concentration\tTransfer Volume\tDestination Plate Name\t"
+             "Destination Well\n"
+             "sam1\tSample\t384PP_AQ_BP2_HT\tA1\t2.0\t2500.0\tNormalizedDNA\t"
+             "A1\n"
+             "sam2\tSample\t384PP_AQ_BP2_HT\tA2\t7.89\t632.5\tNormalizedDNA\t"
+             "A2\n"
+             "blank1\tSample\t384PP_AQ_BP2_HT\tB1\tnan\t3500.0\t"
+             "NormalizedDNA\tB1\n"
+             "sam3\tSample\t384PP_AQ_BP2_HT\tB2\t0.0\t3500.0\tNormalizedDNA\t"
+             "B2\n"
+             "sam1\tWater\t384PP_AQ_BP2_HT\tA1\t2.0\t1000.0\tNormalizedDNA\t"
+             "A1\n"
+             "sam2\tWater\t384PP_AQ_BP2_HT\tA2\t7.89\t2867.5\tNormalizedDNA\t"
+             "A2\n"
+             "blank1\tWater\t384PP_AQ_BP2_HT\tB1\tnan\t0.0\tNormalizedDNA\t"
+             "B1\n"
+             "sam3\tWater\t384PP_AQ_BP2_HT\tB2\t0.0\t0.0\tNormalizedDNA\tB2")
 
         dna_vols = np.array([[2500., 632.5],
                              [3500., 3500.]])
@@ -337,25 +336,23 @@ class Tests(TestCase):
 
         # test if switching dest wells
         exp_picklist = (
-            'Sample\tSource Plate Name\tSource Plate Type\tSource Well\t'
-            'Concentration\tTransfer Volume\tDestination Plate Name\t'
-            'Destination Well\n'
-            'sam1\tWater\t384PP_AQ_BP2_HT\tA1\t2.0\t1000.0\tNormalizedDNA\t'
-            'D1\n'
-            'sam2\tWater\t384PP_AQ_BP2_HT\tA2\t7.89\t2867.5\tNormalizedDNA\t'
-            'D2\n'
-            'blank1\tWater\t384PP_AQ_BP2_HT\tB1\tnan\t0.0\tNormalizedDNA\t'
-            'E1\n'
-            'sam3\tWater\t384PP_AQ_BP2_HT\tB2\t0.0\t0.0\tNormalizedDNA\t'
-            'E2\n'
-            'sam1\tSample\t384PP_AQ_BP2_HT\tA1\t2.0\t2500.0\tNormalizedDNA\t'
-            'D1\n'
-            'sam2\tSample\t384PP_AQ_BP2_HT\tA2\t7.89\t632.5\tNormalizedDNA\t'
-            'D2\n'
-            'blank1\tSample\t384PP_AQ_BP2_HT\tB1\tnan\t3500.0\tNormalizedDNA\t'
-            'E1\n'
-            'sam3\tSample\t384PP_AQ_BP2_HT\tB2\t0.0\t3500.0\tNormalizedDNA\t'
-            'E2')
+            "Sample\tSource Plate Name\tSource Plate Type\tSource Well\t"
+            "Concentration\tTransfer Volume\tDestination Plate Name\t"
+            "Destination Well\n"
+            "sam1\tSample\t384PP_AQ_BP2_HT\tA1\t2.0\t2500.0\tNormalizedDNA\t"
+            "D1\n"
+            "sam2\tSample\t384PP_AQ_BP2_HT\tA2\t7.89\t632.5\tNormalizedDNA\t"
+            "D2\n"
+            "blank1\tSample\t384PP_AQ_BP2_HT\tB1\tnan\t3500.0\tNormalizedDNA\t"
+            "E1\n"
+            "sam3\tSample\t384PP_AQ_BP2_HT\tB2\t0.0\t3500.0\tNormalizedDNA\t"
+            "E2\n"
+            "sam1\tWater\t384PP_AQ_BP2_HT\tA1\t2.0\t1000.0\tNormalizedDNA\t"
+            "D1\n"
+            "sam2\tWater\t384PP_AQ_BP2_HT\tA2\t7.89\t2867.5\tNormalizedDNA\t"
+            "D2\n"
+            "blank1\tWater\t384PP_AQ_BP2_HT\tB1\tnan\t0.0\tNormalizedDNA\tE1\n"
+            "sam3\tWater\t384PP_AQ_BP2_HT\tB2\t0.0\t0.0\tNormalizedDNA\tE2")
 
         dna_vols = np.array([[2500., 632.5],
                              [3500., 3500.]])
@@ -381,25 +378,24 @@ class Tests(TestCase):
 
         # test if switching source plates
         exp_picklist = (
-            'Sample\tSource Plate Name\tSource Plate Type\tSource Well\t'
-            'Concentration\tTransfer Volume\tDestination Plate Name\t'
-            'Destination Well\n'
-            'sam1\tWater\t384PP_AQ_BP2_HT\tA1\t2.0\t1000.0\tNormalizedDNA\t'
-            'A1\n'
-            'sam2\tWater\t384PP_AQ_BP2_HT\tA2\t7.89\t2867.5\tNormalizedDNA\t'
-            'A2\n'
-            'blank1\tWater\t384PP_AQ_BP2_HT\tB1\tnan\t0.0\tNormalizedDNA\t'
-            'B1\n'
-            'sam3\tWater\t384PP_AQ_BP2_HT\tB2\t0.0\t0.0\tNormalizedDNA\t'
-            'B2\n'
-            'sam1\tSample_Plate1\t384PP_AQ_BP2_HT\tA1\t2.0\t2500.0\t'
-            'NormalizedDNA\tA1\n'
-            'sam2\tSample_Plate1\t384PP_AQ_BP2_HT\tA2\t7.89\t632.5\t'
-            'NormalizedDNA\tA2\n'
-            'blank1\tSample_Plate2\t384PP_AQ_BP2_HT\tB1\tnan\t3500.0\t'
-            'NormalizedDNA\tB1\n'
-            'sam3\tSample_Plate2\t384PP_AQ_BP2_HT\tB2\t0.0\t3500.0\t'
-            'NormalizedDNA\tB2')
+            "Sample\tSource Plate Name\tSource Plate Type\tSource Well\t"
+            "Concentration\tTransfer Volume\tDestination Plate Name\t"
+            "Destination Well\n"
+            "sam1\tSample_Plate1\t384PP_AQ_BP2_HT\tA1\t2.0\t2500.0\t"
+            "NormalizedDNA\tA1\n"
+            "sam2\tSample_Plate1\t384PP_AQ_BP2_HT\tA2\t7.89\t632.5\t"
+            "NormalizedDNA\tA2\n"
+            "blank1\tSample_Plate2\t384PP_AQ_BP2_HT\tB1\tnan\t3500.0\t"
+            "NormalizedDNA\tB1\n"
+            "sam3\tSample_Plate2\t384PP_AQ_BP2_HT\tB2\t0.0\t3500.0\t"
+            "NormalizedDNA\tB2\n"
+            "sam1\tWater\t384PP_AQ_BP2_HT\tA1\t2.0\t1000.0\tNormalizedDNA\t"
+            "A1\n"
+            "sam2\tWater\t384PP_AQ_BP2_HT\tA2\t7.89\t2867.5\tNormalizedDNA\t"
+            "A2\n"
+            "blank1\tWater\t384PP_AQ_BP2_HT\tB1\tnan\t0.0\tNormalizedDNA\t"
+            "B1\n"
+            "sam3\tWater\t384PP_AQ_BP2_HT\tB2\t0.0\t0.0\tNormalizedDNA\tB2")
 
         dna_vols = np.array([[2500., 632.5],
                              [3500., 3500.]])

@@ -451,19 +451,20 @@ def format_dna_norm_picklist(dna_vols, water_vols, wells, dest_wells=None,
                  'Concentration\tTransfer Volume\tDestination Plate Name\t'
                  'Destination Well')
 
-    # water additions
-    for index, sample in np.ndenumerate(sample_names):
-        picklist += '\n' + '\t'.join([str(sample), water_plate_name,
-                                      water_plate_type, str(wells[index]),
-                                      str(dna_concs[index]),
-                                      str(water_vols[index]),
-                                      dest_plate_name, str(dest_wells[index])])
     # DNA additions
     for index, sample in np.ndenumerate(sample_names):
         picklist += '\n' + '\t'.join([str(sample), str(sample_plates[index]),
                                       str(dna_plate_type[index]),
                                       str(wells[index]), str(dna_concs[index]),
                                       str(dna_vols[index]),
+                                      dest_plate_name, str(dest_wells[index])])
+
+    # water additions
+    for index, sample in np.ndenumerate(sample_names):
+        picklist += '\n' + '\t'.join([str(sample), water_plate_name,
+                                      water_plate_type, str(wells[index]),
+                                      str(dna_concs[index]),
+                                      str(water_vols[index]),
                                       dest_plate_name, str(dest_wells[index])])
 
     return picklist
@@ -973,6 +974,7 @@ def parse_dna_conc_csv(fp):
 
     dna_df['pico_conc'] = pd.to_numeric(
         dna_df['[Concentration]'], errors='Coerce')
+
     return dna_df
 
 
