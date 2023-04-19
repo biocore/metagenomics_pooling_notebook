@@ -58,7 +58,8 @@ def format_preparation_files_mf(run_dir, mapping_file, output_dir, verbose):
                            'primer_plate', 'processing_robot', 'project_name',
                            'target_gene', 'target_subfragment',
                            'tm1000_8_tool', 'tm300_8_tool', 'tm50_8_tool',
-                           'water_lot', 'well_description', 'well_id'])
+                           'tm10_8_tool', 'water_lot', 'well_description',
+                           'well_id', 'well_id_96'])
 
         if verbose:
             project_name = remove_qiita_id(project)

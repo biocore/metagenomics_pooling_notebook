@@ -18,11 +18,11 @@ REQUIRED_MF_COLUMNS = {'sample_name', 'barcode', 'primer', 'primer_plate',
                        'mastermix_lot', 'water_lot', 'processing_robot',
                        'tm300_8_tool', 'tm50_8_tool', 'sample_plate',
                        'project_name', 'orig_name', 'well_description',
-                       'experiment_design_description',
+                       'experiment_design_description', 'tm10_8_tool',
                        'library_construction_protocol', 'linker', 'platform',
                        'run_center', 'run_date', 'run_prefix', 'pcr_primers',
                        'sequencing_meth', 'target_gene', 'target_subfragment',
-                       'center_name', 'center_project_name',
+                       'center_name', 'center_project_name', 'well_id_96',
                        'instrument_model', 'runid'}
 
 PREP_COLUMNS = ['experiment_design_description', 'well_description',
@@ -41,7 +41,7 @@ PREP_MF_COLUMNS = ['sample_name', 'barcode', 'center_name',
                    'mastermix_lot', 'water_lot', 'processing_robot',
                    'tm300_8_tool', 'tm50_8_tool', 'project_name', 'orig_name',
                    'well_description', 'pcr_primers', 'target_gene',
-                   'target_subfragment']
+                   'tm10_8_tool', 'target_subfragment', 'well_id_96']
 
 AMPLICON_PREP_COLUMN_RENAMER = {
     'Sample': 'sample_name',
@@ -626,6 +626,7 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
                 row["primer"] = sample.primer
                 row['primer_plate'] = sample.primer_plate
                 row['well_id'] = sample.well_id
+                row['well_id_96'] = sample.well_id_96
                 row['plating'] = sample.plating
                 row['extractionkit_lot'] = sample.extractionkit_lot
                 row['extraction_robot'] = sample.extraction_robot
@@ -636,6 +637,7 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
                 row['processing_robot'] = sample.processing_robot
                 row['tm300_8_tool'] = sample.tm300_8_tool
                 row['tm50_8_tool'] = sample.tm50_8_tool
+                row['tm10_8_tool'] = sample.tm10_8_tool
                 row['project_name'] = sample.project_name
                 row['orig_name'] = sample.orig_name
                 row['well_description'] = sample.well_description
