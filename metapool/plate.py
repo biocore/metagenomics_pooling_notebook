@@ -207,6 +207,23 @@ def _decompress_well(well):
     return chr(64 + row) + str(col)
 
 
+def _validate_well_id_96(well):
+    """Validates well_id_96 column values found in newer plate-maps."""
+    if well in [None, '']:
+        return None
+
+    row = well[0]
+    col = well[1:]
+
+    if col.isdigit():
+        col = int(col)
+        if col in range(1, 13) and row.upper() in ['A', 'B', 'C', 'D', 'E',
+                                                   'F', 'G', 'H']:
+            return (row, col)
+
+    return None
+
+
 def _plate_position(well):
     """Returns a 96 well plate position from a compressed 394 well plate ID"""
     row, col = _well_to_row_and_col(well)

@@ -6,7 +6,7 @@ from metapool.plate import (_well_to_row_and_col, _decompress_well,
                             _plate_position, validate_plate_metadata,
                             _validate_plate, Message, ErrorMessage,
                             WarningMessage, requires_dilution, dilute_gDNA,
-                            find_threshold, autopool)
+                            find_threshold, autopool, _validate_well_id_96)
 from metapool.metapool import (read_plate_map_csv, read_pico_csv,
                                calculate_norm_vol, assign_index,
                                compute_pico_concentration)
@@ -129,6 +129,53 @@ class PlateHelperTests(TestCase):
         self.assertEqual('3', _plate_position('D1'))
         self.assertEqual('3', _plate_position('D3'))
         self.assertEqual('3', _plate_position('D5'))
+
+    def test_well_id_96(self):
+        # a range of test inputs, including all valid inputs and some invalid
+        # ones.
+        test_input = ['A0', 'B0', 'C0', 'D0', 'E0', 'F0', 'G0', 'H0', 'I0',
+                      'A1', 'B1', 'C1', 'D1', 'E1', 'F1', 'G1', 'H1', 'I1',
+                      'A2', 'B2', 'C2', 'D2', 'E2', 'F2', 'G2', 'H2', 'I2',
+                      'A3', 'B3', 'C3', 'D3', 'E3', 'F3', 'G3', 'H3', 'I3',
+                      'A4', 'B4', 'C4', 'D4', 'E4', 'F4', 'G4', 'H4', 'I4',
+                      'A5', 'B5', 'C5', 'D5', 'E5', 'F5', 'G5', 'H5', 'I5',
+                      'A6', 'B6', 'C6', 'D6', 'E6', 'F6', 'G6', 'H6', 'I6',
+                      'A7', 'B7', 'C7', 'D7', 'E7', 'F7', 'G7', 'H7', 'I7',
+                      'A8', 'B8', 'C8', 'D8', 'E8', 'F8', 'G8', 'H8', 'I8',
+                      'A9', 'B9', 'C9', 'D9', 'E9', 'F9', 'G9', 'H9', 'I9',
+                      'A10', 'B10', 'C10', 'D10', 'E10', 'F10', 'G10', 'H10',
+                      'I10', 'A11', 'B11', 'C11', 'D11', 'E11', 'F11', 'G11',
+                      'H11', 'I11', 'A12', 'B12', 'C12', 'D12', 'E12', 'F12',
+                      'G12', 'H12', 'I12', 'A13', 'B13', 'C13', 'D13', 'E13',
+                      'F13', 'G13', 'H13', 'I13']
+
+        results = []
+
+        for well in test_input:
+            results.append(_validate_well_id_96(well))
+
+        # invalid inputs will cause _validate_well_id_96() to return None.
+        obs = [x for x in results if x != None]
+
+        exp = [('A', 1), ('B', 1), ('C', 1), ('D', 1), ('E', 1), ('F', 1),
+               ('G', 1), ('H', 1), ('A', 2), ('B', 2), ('C', 2), ('D', 2),
+               ('E', 2), ('F', 2), ('G', 2), ('H', 2), ('A', 3), ('B', 3),
+               ('C', 3), ('D', 3), ('E', 3), ('F', 3), ('G', 3), ('H', 3),
+               ('A', 4), ('B', 4), ('C', 4), ('D', 4), ('E', 4), ('F', 4),
+               ('G', 4), ('H', 4), ('A', 5), ('B', 5), ('C', 5), ('D', 5),
+               ('E', 5), ('F', 5), ('G', 5), ('H', 5), ('A', 6), ('B', 6),
+               ('C', 6), ('D', 6), ('E', 6), ('F', 6), ('G', 6), ('H', 6),
+               ('A', 7), ('B', 7), ('C', 7), ('D', 7), ('E', 7), ('F', 7),
+               ('G', 7), ('H', 7), ('A', 8), ('B', 8), ('C', 8), ('D', 8),
+               ('E', 8), ('F', 8), ('G', 8), ('H', 8), ('A', 9), ('B', 9),
+               ('C', 9), ('D', 9), ('E', 9), ('F', 9), ('G', 9), ('H', 9),
+               ('A', 10), ('B', 10), ('C', 10), ('D', 10), ('E', 10),
+               ('F', 10), ('G', 10), ('H', 10), ('A', 11), ('B', 11),
+               ('C', 11), ('D', 11), ('E', 11), ('F', 11), ('G', 11),
+               ('H', 11), ('A', 12), ('B', 12), ('C', 12), ('D', 12),
+               ('E', 12), ('F', 12), ('G', 12), ('H', 12)]
+
+        self.assertEqual(set(obs), set(exp))
 
 
 class MessageTests(TestCase):
