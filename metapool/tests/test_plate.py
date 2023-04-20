@@ -155,7 +155,7 @@ class PlateHelperTests(TestCase):
             results.append(_validate_well_id_96(well))
 
         # invalid inputs will cause _validate_well_id_96() to return None.
-        obs = [x for x in results if x != None]
+        obs = [x for x in results if x is not None]
 
         exp = [('A', 1), ('B', 1), ('C', 1), ('D', 1), ('E', 1), ('F', 1),
                ('G', 1), ('H', 1), ('A', 2), ('B', 2), ('C', 2), ('D', 2),
