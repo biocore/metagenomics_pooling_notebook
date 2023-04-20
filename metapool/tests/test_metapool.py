@@ -92,11 +92,11 @@ class Tests(TestCase):
     #     npt.assert_almost_equal(obs_water, exp_water)
     def test_read_plate_map_csv(self):
         plate_map_csv = \
-            'Sample\tRow\tCol\tBlank\tProject Name\n' + \
-            'sam1\tA\t1\tFalse\tstudy_1\n' + \
-            'sam2\tA\t2\tFalse\tstudy_1\n' + \
-            'blank1\tB\t1\tTrue\tstudy_1\n' + \
-            'sam3\tB\t2\tFalse\tstudy_1\n'
+            'Sample\tRow\tCol\tBlank\tProject Name\twell_id_96\n' + \
+            'sam1\tA\t1\tFalse\tstudy_1\tA1\n' + \
+            'sam2\tA\t2\tFalse\tstudy_1\tA2\n' + \
+            'blank1\tB\t1\tTrue\tstudy_1\tB1\n' + \
+            'sam3\tB\t2\tFalse\tstudy_1\tB2\n'
 
         plate_map_f = StringIO(plate_map_csv)
 
@@ -107,6 +107,7 @@ class Tests(TestCase):
                                      'Project Name': ['study_1', 'study_1',
                                                       'study_1', 'study_1'],
                                      'Well': ['A1', 'A2', 'B1', 'B2'],
+                                     'well_id_96': ['A1', 'A2', 'B1', 'B2'],
                                      'Blank': [False, False, True, False]})
 
         obs_plate_df = read_plate_map_csv(plate_map_f)
@@ -116,15 +117,15 @@ class Tests(TestCase):
 
     def test_read_plate_map_csv_remove_empty_wells(self):
         plate_map_csv = (
-            'Sample\tRow\tCol\tBlank\tProject Name\n'
-            'sam1\tA\t1\tFalse\tstudy_1\n'
-            'sam2\tA\t2\tFalse\tstudy_1\n'
-            'blank1\tB\t1\tTrue\tstudy_1\n'
-            '\tC\t1\tFalse\tstudy_1\n'
-            '\tD\t1\tFalse\tstudy_1\n'
-            '\tE\t1\tFalse\tstudy_1\n'
-            'sam3\tB\t2\tFalse\tstudy_1\n'
-            '\tD\t2\tFalse\tstudy_1\n')
+            'Sample\tRow\tCol\tBlank\tProject Name\twell_id_96\n'
+            'sam1\tA\t1\tFalse\tstudy_1\tA1\n'
+            'sam2\tA\t2\tFalse\tstudy_1\tA2\n'
+            'blank1\tB\t1\tTrue\tstudy_1\tB1\n'
+            '\tC\t1\tFalse\tstudy_1\tC1\n'
+            '\tD\t1\tFalse\tstudy_1\tD1\n'
+            '\tE\t1\tFalse\tstudy_1\tE1\n'
+            'sam3\tB\t2\tFalse\tstudy_1\tB2\n'
+            '\tD\t2\tFalse\tstudy_1\tD2\n')
 
         plate_map_f = StringIO(plate_map_csv)
         exp = pd.DataFrame({'Sample': ['sam1', 'sam2', 'blank1',
@@ -134,6 +135,7 @@ class Tests(TestCase):
                                 'study_1', 'study_1', 'study_1', 'study_1'],
                             'Col': [1, 2, 1, 2],
                             'Well': ['A1', 'A2', 'B1', 'B2'],
+                            'well_id_96': ['A1', 'A2', 'B1', 'B2'],
                             'Blank': [False, False, True, False]})
 
         with self.assertWarnsRegex(UserWarning,
@@ -146,11 +148,11 @@ class Tests(TestCase):
 
     def test_read_plate_map_csv_error_repeated_sample_names(self):
         plate_map_csv = \
-            'Sample\tRow\tCol\tBlank\n' + \
-            'sam1\tA\t1\tFalse\n' + \
-            'sam2\tA\t2\tFalse\n' + \
-            'blank1\tB\t1\tTrue\n' + \
-            'blank1\tB\t4\tTrue\n'
+            'Sample\tRow\tCol\tBlank\twell_id_96\n' + \
+            'sam1\tA\t1\tFalse\tA1\n' + \
+            'sam2\tA\t2\tFalse\tA2\n' + \
+            'blank1\tB\t1\tTrue\tB1\n' + \
+            'blank1\tB\t4\tTrue\tB4\n'
 
         plate_map_f = StringIO(plate_map_csv)
 
@@ -937,6 +939,7 @@ class Tests(TestCase):
         obs = estimate_read_depth(frame, estimated_total_output=600)
         exp_fp = os.path.join(self.fp, 'data/test_read_depth_output.tsv')
         exp = pd.read_csv(exp_fp, sep='\t')
+
         pd.testing.assert_frame_equal(exp, obs)
 
 

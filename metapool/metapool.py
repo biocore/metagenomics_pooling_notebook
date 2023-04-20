@@ -225,7 +225,7 @@ def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
     invalid_well_ids = [x for x in list(plate_df.well_id_96) if
                         _validate_well_id_96(x) is None]
 
-    if invalid_well_ids is not None:
+    if invalid_well_ids:
         raise ValueError('`well_id_96` column contains the following invalid '
                          'values: %s' % ','.join(invalid_well_ids))
 
