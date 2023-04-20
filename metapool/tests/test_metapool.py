@@ -165,11 +165,11 @@ class Tests(TestCase):
 
         # Test error
         plate_map_csv = \
-            'Sample\tRow\tCol\tBlank\tProject Name\n' + \
-            'sam1\tA\t1\tFalse\tstudy_1\n' + \
-            'sam2\tA\t2\tFalse\tstudy_1\n' + \
-            'BLANK1\tB\t1\tTrue\tstudy_1\n' + \
-            'sam3\tB\t2\tFalse\tstudy_1\n'
+            'Sample\tRow\tCol\tBlank\tProject Name\twell_id_96\n' + \
+            'sam1\tA\t1\tFalse\tstudy_1\tA1\n' + \
+            'sam2\tA\t2\tFalse\tstudy_1\tA2\n' + \
+            'BLANK1\tB\t1\tTrue\tstudy_1\tB1\n' + \
+            'sam3\tB\t2\tFalse\tstudy_1\tC1\n'
         with self.assertRaisesRegex(ValueError, "study_1 has 3 missing "
                                     r"samples \(i.e. sam1, sam2, sam3\). Some "
                                     "samples from Qiita: SK"):
@@ -178,11 +178,11 @@ class Tests(TestCase):
 
         # Test success
         plate_map_csv = \
-            'Sample\tRow\tCol\tBlank\tProject Name\n' + \
-            'SKM640183\tA\t1\tFalse\tstudy_1\n' + \
-            'SKM7.640188\tA\t2\tFalse\tstudy_1\n' + \
-            'BLANK1\tB\t1\tTrue\tstudy_1\n' + \
-            'SKD3.640198\tB\t2\tFalse\tstudy_1\n'
+            'Sample\tRow\tCol\tBlank\tProject Name\twell_id_96\n' + \
+            'SKM640183\tA\t1\tFalse\tstudy_1\tA1\n' + \
+            'SKM7.640188\tA\t2\tFalse\tstudy_1\tA2\n' + \
+            'BLANK1\tB\t1\tTrue\tstudy_1\tB1\n' + \
+            'SKD3.640198\tB\t2\tFalse\tstudy_1\tB2\n'
         obs = read_plate_map_csv(
             StringIO(plate_map_csv), qiita_oauth2_conf_fp=qiita_oauth2_conf_fp)
         exp = pd.DataFrame({
@@ -191,6 +191,7 @@ class Tests(TestCase):
             'Project Name': ['study_1', 'study_1', 'study_1', 'study_1'],
             'Col': [1, 2, 1, 2],
             'Well': ['A1', 'A2', 'B1', 'B2'],
+            'well_id_96': ['A1', 'A2', 'B1', 'B2'],
             'Blank': [False, False, True, False]})
         pd.testing.assert_frame_equal(obs, exp, check_like=True)
 
