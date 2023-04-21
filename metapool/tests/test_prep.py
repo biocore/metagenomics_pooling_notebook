@@ -164,7 +164,7 @@ class TestPrep(TestCase):
              1, 'Echo 550', 'ABTX_20230208_11052_Plate_238_11.8.21.RK.FH_A1',
              float('nan'), float('nan'), 1317793, float('nan'), 'V4', 'A1',
              'ABTX_20230208_ABTX_11052', '108379Z', 'sample.1', 'HT', 122822,
-             1331807, float('nan'), 'Z1', float('nan')],
+             1331807, float('nan'), 'A1', float('nan')],
             ['sample.2', 'TCCATACCGGAA', 'UCSDMI', 'Illumina',
              'SOME_CENTER_PROJECT_NAME',
              'This is a description of the experiment design.',
@@ -178,7 +178,7 @@ class TestPrep(TestCase):
              1, 'Echo 550', 'ABTX_20230208_11052_Plate_238_11.17.21.RK.FH_A2',
              float('nan'), float('nan'), 1317793, float('nan'), 'V4', 'A2',
              'ABTX_20230208_ABTX_11052', '108379Z', 'sample.2', 'HT', 122822,
-             1331807, float('nan'), 'Z2', float('nan')]]
+             1331807, float('nan'), 'A2', float('nan')]]
 
         # confirm that the observed data in the prep-info output matches
         # what's expected.
