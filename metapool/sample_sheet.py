@@ -13,7 +13,7 @@ from metapool.metapool import (bcl_scrub_name, sequencer_i5_index,
                                REVCOMP_SEQUENCERS)
 from metapool.plate import ErrorMessage, WarningMessage
 from metapool.prep import qiita_scrub_name
-from collections import OrderedDict
+
 
 _KL_SAMPLE_SHEET_SECTIONS = [
     'Header', 'Reads', 'Settings', 'Data', 'Bioinformatics', 'Contact'
