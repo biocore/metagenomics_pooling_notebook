@@ -24,6 +24,11 @@ _KL_SAMPLE_SHEET_DATA_COLUMNS = [
     'index', 'I5_Index_ID', 'index2', 'Sample_Project', 'Well_description'
 ]
 
+_KL_SAMPLE_SHEET_COLUMN_ALTS = {'well_description': 'Well_description',
+                                'description': 'Well_description',
+                                'Description': 'Well_description',
+                                'sample_plate': 'Sample_Plate'}
+
 _KL_AMPLICON_REMAPPER = {
     'sample sheet Sample_ID': 'Sample_ID',
     'Sample': 'Sample_Name',
@@ -229,7 +234,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                             f'have empty fields: {line}'
                         )
                     else:
-                        section_header = line
+                        section_header = self._process_section_header(line)
                     continue
 
                 elif section_name in {'Bioinformatics', 'Contact'}:
@@ -255,46 +260,12 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                     section[key] = value
                     continue
 
-        # For known popular alternatives of fields in [Data] section,
-        # proactively convert them to standard format.
-        alts = {'well_description': 'Well_description',
-                'description': 'Well_description',
-                'Description': 'Well_description',
-                'sample_plate': 'Sample_Plate'}
-
-        # assume all samples represent an identical list and order of columns.
-        # alternatives found in first sample will be true for all other
-        # samples as well.
-        if not self._samples:
-            # If this object has no samples, skip renaming of columns in [Data]
-            # section.
-            return
-
-        warning_msgs = []
-
-        obs = self._samples[0]._store
-        for lowercased_key in obs:
-            column_name, value = obs[lowercased_key]
-            if column_name in alts:
-                warning_msgs.append(f"column '{column_name}' changed to "
-                                    f"'{alts[column_name]}'")
-
-        if warning_msgs:
-            for msg in warning_msgs:
-                warnings.warn(msg)
-
-        # if differences in column names were found, overwrite the values in
-        # each Sample object.
-        if warning_msgs:
-            for i in range(0, len(self._samples)):
-                obs = self._samples[i]._store
-                d = OrderedDict()
-
-                for lowercased_key in obs:
-                    k, v = obs[lowercased_key]
-                    d[lowercased_key] = (alts[k], v) if k in alts else (k, v)
-
-                self._samples[i]._store = d
+    def _process_section_header(self, columns):
+        for i in range(0, len(columns)):
+            if columns[i] in _KL_SAMPLE_SHEET_COLUMN_ALTS:
+                # overwrite existing alternate name w/internal representation.
+                columns[i] = _KL_SAMPLE_SHEET_COLUMN_ALTS[columns[i]]
+        return columns
 
     def write(self, handle, blank_lines=1) -> None:
         """Write to a file-like object.
