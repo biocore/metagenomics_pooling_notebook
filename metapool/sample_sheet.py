@@ -13,6 +13,7 @@ from metapool.metapool import (bcl_scrub_name, sequencer_i5_index,
                                REVCOMP_SEQUENCERS)
 from metapool.plate import ErrorMessage, WarningMessage
 from metapool.prep import qiita_scrub_name
+from collections import OrderedDict
 
 _KL_SAMPLE_SHEET_SECTIONS = [
     'Header', 'Reads', 'Settings', 'Data', 'Bioinformatics', 'Contact'
@@ -197,7 +198,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
                 header_match = self._section_header_re.match(line[0])
 
-                # If we enter a section save it's name and continue to next
+                # If we enter a section save its name and continue to next
                 # line.
                 if header_match:
                     section_name, *_ = header_match.groups()
@@ -253,6 +254,47 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                     section = getattr(self, section_name)
                     section[key] = value
                     continue
+
+        # For known popular alternatives of fields in [Data] section,
+        # proactively convert them to standard format.
+        alts = {'well_description': 'Well_description',
+                'description': 'Well_description',
+                'Description': 'Well_description',
+                'sample_plate': 'Sample_Plate'}
+
+        # assume all samples represent an identical list and order of columns.
+        # alternatives found in first sample will be true for all other
+        # samples as well.
+        if not self._samples:
+            # If this object has no samples, skip renaming of columns in [Data]
+            # section.
+            return
+
+        warning_msgs = []
+
+        obs = self._samples[0]._store
+        for lowercased_key in obs:
+            column_name, value = obs[lowercased_key]
+            if column_name in alts:
+                warning_msgs.append(f"column '{column_name}' changed to "
+                                    f"'{alts[column_name]}'")
+
+        if warning_msgs:
+            for msg in warning_msgs:
+                warnings.warn(msg)
+
+        # if differences in column names were found, overwrite the values in
+        # each Sample object.
+        if warning_msgs:
+            for i in range(0, len(self._samples)):
+                obs = self._samples[i]._store
+                d = OrderedDict()
+
+                for lowercased_key in obs:
+                    k, v = obs[lowercased_key]
+                    d[lowercased_key] = (alts[k], v) if k in alts else (k, v)
+
+                self._samples[i]._store = d
 
     def write(self, handle, blank_lines=1) -> None:
         """Write to a file-like object.

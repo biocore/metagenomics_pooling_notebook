@@ -26,6 +26,9 @@ class BaseTests(unittest.TestCase):
                                '191103_D32611_0365_G00DHB5YXX',
                                'sample-sheet.csv')
 
+        self.alt_ss = os.path.join(data_dir,
+                                   'good-sample-sheet-with-alt-col-names.csv')
+
         self.good_ss = os.path.join(data_dir, 'good-sample-sheet.csv')
         self.with_comments = os.path.join(data_dir, 'good-sample-sheet-but-'
                                           'with-comments.csv')
@@ -515,6 +518,24 @@ class KLSampleSheetTests(BaseTests):
                             'library_construction_protocol')]
         obs = _validate_sample_sheet_metadata(self.metadata)
         self.assertEqual(str(obs[0]), str(exp[0]))
+
+    def test_alt_sample_sheet(self):
+        # testing with all the sheets we have access to
+        obs = KLSampleSheet(self.alt_ss).all_sample_keys
+
+        exp = ['Lane',
+               'Sample_ID',
+               'Sample_Name',
+               'Sample_Plate',
+               'Sample_Well',
+               'I7_Index_ID',
+               'index',
+               'I5_Index_ID',
+               'index2',
+               'Sample_Project',
+               'Well_description']
+
+        self.assertEqual(set(obs), set(exp))
 
 
 class SampleSheetWorkflow(BaseTests):
