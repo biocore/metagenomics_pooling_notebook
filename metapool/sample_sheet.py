@@ -14,6 +14,7 @@ from metapool.metapool import (bcl_scrub_name, sequencer_i5_index,
 from metapool.plate import ErrorMessage, WarningMessage
 from metapool.prep import qiita_scrub_name
 
+
 _KL_SAMPLE_SHEET_SECTIONS = [
     'Header', 'Reads', 'Settings', 'Data', 'Bioinformatics', 'Contact'
 ]
@@ -22,6 +23,11 @@ _KL_SAMPLE_SHEET_DATA_COLUMNS = [
     'Sample_ID', 'Sample_Name', 'Sample_Plate', 'Sample_Well', 'I7_Index_ID',
     'index', 'I5_Index_ID', 'index2', 'Sample_Project', 'Well_description'
 ]
+
+_KL_SAMPLE_SHEET_COLUMN_ALTS = {'well_description': 'Well_description',
+                                'description': 'Well_description',
+                                'Description': 'Well_description',
+                                'sample_plate': 'Sample_Plate'}
 
 _KL_AMPLICON_REMAPPER = {
     'sample sheet Sample_ID': 'Sample_ID',
@@ -197,7 +203,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
                 header_match = self._section_header_re.match(line[0])
 
-                # If we enter a section save it's name and continue to next
+                # If we enter a section save its name and continue to next
                 # line.
                 if header_match:
                     section_name, *_ = header_match.groups()
@@ -228,7 +234,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                             f'have empty fields: {line}'
                         )
                     else:
-                        section_header = line
+                        section_header = self._process_section_header(line)
                     continue
 
                 elif section_name in {'Bioinformatics', 'Contact'}:
@@ -253,6 +259,13 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                     section = getattr(self, section_name)
                     section[key] = value
                     continue
+
+    def _process_section_header(self, columns):
+        for i in range(0, len(columns)):
+            if columns[i] in _KL_SAMPLE_SHEET_COLUMN_ALTS:
+                # overwrite existing alternate name w/internal representation.
+                columns[i] = _KL_SAMPLE_SHEET_COLUMN_ALTS[columns[i]]
+        return columns
 
     def write(self, handle, blank_lines=1) -> None:
         """Write to a file-like object.
