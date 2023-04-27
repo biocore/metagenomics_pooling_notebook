@@ -1235,8 +1235,8 @@ def calculate_iseqnorm_pooling_volumes(plate_df,
     try:
         norm = plate_df[normalization_column]
         plate_df['proportion'] = norm / (norm.sum())
-        prop = plate_df['proportion']
-        plate_df['LoadingFactor'] = max(prop) / prop
+        plate_df['LoadingFactor'] = plate_df['proportion'].max() / \
+            plate_df['proportion']
         plate_df.loc[plate_df['LoadingFactor'].isnull(),
                      'LoadingFactor'] = plate_df['LoadingFactor'].max()
     except ValueError:

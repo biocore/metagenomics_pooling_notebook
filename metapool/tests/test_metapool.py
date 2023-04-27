@@ -50,11 +50,13 @@ class Tests(TestCase):
         counts_ps_fp = os.path.join(path, 'data/test_per_sample_fastq.tsv')
         no_blanks_fp = os.path.join(path, 'data/test_no_blanks.tsv')
         blanks_fp = os.path.join(path, 'data/test_blanks.tsv')
+        with_nan_fp = os.path.join(path, 'data/test_nan.tsv')
 
         self.plate_df = pd.read_csv(plate_fp, sep=',')
         self.counts_df = pd.read_csv(counts_fp, sep=',')
         self.counts_df_ps = pd.read_csv(counts_ps_fp, sep=',')
         self.no_blanks = pd.read_csv(no_blanks_fp, sep='\t')
+        self.with_nan = pd.read_csv(with_nan_fp, sep='\t')
         self.blanks = pd.read_csv(blanks_fp, sep='\t')
         self.fp = path
 
@@ -923,6 +925,13 @@ class Tests(TestCase):
         exp_fp = os.path.join(self.fp, 'data/test_blanks_output.tsv')
         exp = pd.read_csv(exp_fp, sep=',')
         pd.testing.assert_frame_equal(obs, exp)
+
+        # TEST NAN IN ORIGINAL DATA ARE HANDLED CORRECTLY
+        obs = calculate_iseqnorm_pooling_volumes(self.with_nan)
+
+        # if this cell's value is NaN, then calculate_iseqnorm_pooling_volumes
+        # is not handling NaN values properly.
+        self.assertFalse(pd.isna(obs['Filtered Reads'][3]))
 
     def test_estimate_read_depth(self):
 
