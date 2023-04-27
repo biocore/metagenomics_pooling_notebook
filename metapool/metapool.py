@@ -10,6 +10,7 @@ from random import choices
 from configparser import ConfigParser
 from qiita_client import QiitaClient
 from .prep import remove_qiita_id
+from .plate import _validate_well_id_96
 
 
 REVCOMP_SEQUENCERS = ['HiSeq4000', 'MiniSeq', 'NextSeq', 'HiSeq3000',
@@ -217,6 +218,17 @@ def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
     plate_df = pd.read_csv(f, sep=sep)
     if 'Project Name' not in plate_df.columns:
         raise ValueError('Missing `Project Name` column.')
+
+    if 'well_id_96' not in plate_df.columns:
+        raise ValueError('Missing `well_id_96` column.')
+
+    invalid_well_ids = [x for x in list(plate_df.well_id_96) if
+                        _validate_well_id_96(x) is None]
+
+    if invalid_well_ids:
+        raise ValueError('`well_id_96` column contains the following invalid '
+                         'values: %s' % ','.join(invalid_well_ids))
+
     plate_df['Well'] = plate_df['Row'] + plate_df['Col'].map(str)
 
     null_samples = plate_df.Sample.isnull()

@@ -87,7 +87,8 @@ class SeqproAmpliconTests(unittest.TestCase):
                               'processing_robot', 'project_name',
                               'target_gene', 'target_subfragment',
                               'tm1000_8_tool', 'tm300_8_tool', 'tm50_8_tool',
-                              'water_lot', 'well_description', 'well_id'},
+                              'tm10_8_tool', 'well_id_96', 'water_lot',
+                              'well_description', 'well_id'},
                              set(obs_df.columns))
 
     def test_verbose_flag(self):
