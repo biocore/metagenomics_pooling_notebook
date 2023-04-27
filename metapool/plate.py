@@ -207,9 +207,10 @@ def _decompress_well(well):
     return chr(64 + row) + str(col)
 
 
-VALID_96_WELL_COLUMNS = {i for i in range(1, 13)}
-VALID_96_WELL_ROWS = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'}
 def _validate_well_id_96(well):
+    VALID_96_WELL_COLUMNS = {i for i in range(1, 13)}
+    VALID_96_WELL_ROWS = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'}
+
     if well in [None, '']:
         return None
     try:
@@ -217,18 +218,18 @@ def _validate_well_id_96(well):
         col = well[1:]
     except IndexError:
         return None
-                
+
     try:
         col = int(col)
     except ValueError:
         return None
-        
+
     if col not in VALID_96_WELL_COLUMNS:
         return None
-        
+
     if row.upper() not in VALID_96_WELL_ROWS:
         return None
-        
+
     return (row, col)
 
 

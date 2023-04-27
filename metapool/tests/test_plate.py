@@ -131,20 +131,20 @@ class PlateHelperTests(TestCase):
         self.assertEqual('3', _plate_position('D5'))
 
     def test_well_id_96(self):
-       tests = []
-       for a in 'ABCDEFGH':
-           for b in range(1, 13):
-               tests.append(("f{a}{b}", (a, b)))
-       for a in 'IJK':
-           for b in range(1, 13):
-               tests.append(("f{a}{b}", None)) 
-       for a in 'ABC':
-           for b in [0, 13, 14]:
-               tests.append(("f{a}{b}", None))      
-               
-       for test, exp in tests:
-           obs = _validate_well_id_96(test)
-           self.assertEqual(obs, exp)                    
+        tests = []
+        for a in 'ABCDEFGH':
+            for b in range(1, 13):
+                tests.append((f"{a}{b}", (a, b)))
+        for a in 'IJK':
+            for b in range(1, 13):
+                tests.append((f"{a}{b}", None))
+        for a in 'ABC':
+            for b in [0, 13, 14]:
+                tests.append((f"{a}{b}", None))
+
+        for test, exp in tests:
+            obs = _validate_well_id_96(test)
+            self.assertEqual(obs, exp)
 
 
 class MessageTests(TestCase):
