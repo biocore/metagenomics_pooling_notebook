@@ -207,21 +207,29 @@ def _decompress_well(well):
     return chr(64 + row) + str(col)
 
 
+VALID_96_WELL_COLUMNS = {i for i in range(1, 13)}
+VALID_96_WELL_ROWS = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'}
 def _validate_well_id_96(well):
-    """Validates well_id_96 column values found in newer plate-maps."""
     if well in [None, '']:
         return None
-
-    row = well[0]
-    col = well[1:]
-
-    if col.isdigit():
+    try:
+        row = well[0]
+        col = well[1:]
+    except IndexError:
+        return None
+                
+    try:
         col = int(col)
-        if col in range(1, 13) and row.upper() in ['A', 'B', 'C', 'D', 'E',
-                                                   'F', 'G', 'H']:
-            return (row, col)
-
-    return None
+    except ValueError:
+        return None
+        
+    if col not in VALID_96_WELL_COLUMNS:
+        return None
+        
+    if row.upper() not in VALID_96_WELL_ROWS:
+        return None
+        
+    return (row, col)
 
 
 def _plate_position(well):
