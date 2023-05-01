@@ -92,11 +92,11 @@ class Tests(TestCase):
     #     npt.assert_almost_equal(obs_water, exp_water)
     def test_read_plate_map_csv(self):
         plate_map_csv = \
-            'Sample\tRow\tCol\tBlank\tProject Name\n' + \
-            'sam1\tA\t1\tFalse\tstudy_1\n' + \
-            'sam2\tA\t2\tFalse\tstudy_1\n' + \
-            'blank1\tB\t1\tTrue\tstudy_1\n' + \
-            'sam3\tB\t2\tFalse\tstudy_1\n'
+            'Sample\tRow\tCol\tBlank\tProject Name\twell_id_96\n' + \
+            'sam1\tA\t1\tFalse\tstudy_1\tA1\n' + \
+            'sam2\tA\t2\tFalse\tstudy_1\tA2\n' + \
+            'blank1\tB\t1\tTrue\tstudy_1\tB1\n' + \
+            'sam3\tB\t2\tFalse\tstudy_1\tB2\n'
 
         plate_map_f = StringIO(plate_map_csv)
 
@@ -107,6 +107,7 @@ class Tests(TestCase):
                                      'Project Name': ['study_1', 'study_1',
                                                       'study_1', 'study_1'],
                                      'Well': ['A1', 'A2', 'B1', 'B2'],
+                                     'well_id_96': ['A1', 'A2', 'B1', 'B2'],
                                      'Blank': [False, False, True, False]})
 
         obs_plate_df = read_plate_map_csv(plate_map_f)
@@ -116,15 +117,15 @@ class Tests(TestCase):
 
     def test_read_plate_map_csv_remove_empty_wells(self):
         plate_map_csv = (
-            'Sample\tRow\tCol\tBlank\tProject Name\n'
-            'sam1\tA\t1\tFalse\tstudy_1\n'
-            'sam2\tA\t2\tFalse\tstudy_1\n'
-            'blank1\tB\t1\tTrue\tstudy_1\n'
-            '\tC\t1\tFalse\tstudy_1\n'
-            '\tD\t1\tFalse\tstudy_1\n'
-            '\tE\t1\tFalse\tstudy_1\n'
-            'sam3\tB\t2\tFalse\tstudy_1\n'
-            '\tD\t2\tFalse\tstudy_1\n')
+            'Sample\tRow\tCol\tBlank\tProject Name\twell_id_96\n'
+            'sam1\tA\t1\tFalse\tstudy_1\tA1\n'
+            'sam2\tA\t2\tFalse\tstudy_1\tA2\n'
+            'blank1\tB\t1\tTrue\tstudy_1\tB1\n'
+            '\tC\t1\tFalse\tstudy_1\tC1\n'
+            '\tD\t1\tFalse\tstudy_1\tD1\n'
+            '\tE\t1\tFalse\tstudy_1\tE1\n'
+            'sam3\tB\t2\tFalse\tstudy_1\tB2\n'
+            '\tD\t2\tFalse\tstudy_1\tD2\n')
 
         plate_map_f = StringIO(plate_map_csv)
         exp = pd.DataFrame({'Sample': ['sam1', 'sam2', 'blank1',
@@ -134,6 +135,7 @@ class Tests(TestCase):
                                 'study_1', 'study_1', 'study_1', 'study_1'],
                             'Col': [1, 2, 1, 2],
                             'Well': ['A1', 'A2', 'B1', 'B2'],
+                            'well_id_96': ['A1', 'A2', 'B1', 'B2'],
                             'Blank': [False, False, True, False]})
 
         with self.assertWarnsRegex(UserWarning,
@@ -146,11 +148,11 @@ class Tests(TestCase):
 
     def test_read_plate_map_csv_error_repeated_sample_names(self):
         plate_map_csv = \
-            'Sample\tRow\tCol\tBlank\n' + \
-            'sam1\tA\t1\tFalse\n' + \
-            'sam2\tA\t2\tFalse\n' + \
-            'blank1\tB\t1\tTrue\n' + \
-            'blank1\tB\t4\tTrue\n'
+            'Sample\tRow\tCol\tBlank\twell_id_96\n' + \
+            'sam1\tA\t1\tFalse\tA1\n' + \
+            'sam2\tA\t2\tFalse\tA2\n' + \
+            'blank1\tB\t1\tTrue\tB1\n' + \
+            'blank1\tB\t4\tTrue\tB4\n'
 
         plate_map_f = StringIO(plate_map_csv)
 
@@ -163,11 +165,11 @@ class Tests(TestCase):
 
         # Test error
         plate_map_csv = \
-            'Sample\tRow\tCol\tBlank\tProject Name\n' + \
-            'sam1\tA\t1\tFalse\tstudy_1\n' + \
-            'sam2\tA\t2\tFalse\tstudy_1\n' + \
-            'BLANK1\tB\t1\tTrue\tstudy_1\n' + \
-            'sam3\tB\t2\tFalse\tstudy_1\n'
+            'Sample\tRow\tCol\tBlank\tProject Name\twell_id_96\n' + \
+            'sam1\tA\t1\tFalse\tstudy_1\tA1\n' + \
+            'sam2\tA\t2\tFalse\tstudy_1\tA2\n' + \
+            'BLANK1\tB\t1\tTrue\tstudy_1\tB1\n' + \
+            'sam3\tB\t2\tFalse\tstudy_1\tC1\n'
         with self.assertRaisesRegex(ValueError, "study_1 has 3 missing "
                                     r"samples \(i.e. sam1, sam2, sam3\). Some "
                                     "samples from Qiita: SK"):
@@ -176,11 +178,11 @@ class Tests(TestCase):
 
         # Test success
         plate_map_csv = \
-            'Sample\tRow\tCol\tBlank\tProject Name\n' + \
-            'SKM640183\tA\t1\tFalse\tstudy_1\n' + \
-            'SKM7.640188\tA\t2\tFalse\tstudy_1\n' + \
-            'BLANK1\tB\t1\tTrue\tstudy_1\n' + \
-            'SKD3.640198\tB\t2\tFalse\tstudy_1\n'
+            'Sample\tRow\tCol\tBlank\tProject Name\twell_id_96\n' + \
+            'SKM640183\tA\t1\tFalse\tstudy_1\tA1\n' + \
+            'SKM7.640188\tA\t2\tFalse\tstudy_1\tA2\n' + \
+            'BLANK1\tB\t1\tTrue\tstudy_1\tB1\n' + \
+            'SKD3.640198\tB\t2\tFalse\tstudy_1\tB2\n'
         obs = read_plate_map_csv(
             StringIO(plate_map_csv), qiita_oauth2_conf_fp=qiita_oauth2_conf_fp)
         exp = pd.DataFrame({
@@ -189,6 +191,7 @@ class Tests(TestCase):
             'Project Name': ['study_1', 'study_1', 'study_1', 'study_1'],
             'Col': [1, 2, 1, 2],
             'Well': ['A1', 'A2', 'B1', 'B2'],
+            'well_id_96': ['A1', 'A2', 'B1', 'B2'],
             'Blank': [False, False, True, False]})
         pd.testing.assert_frame_equal(obs, exp, check_like=True)
 
@@ -295,25 +298,24 @@ class Tests(TestCase):
     def test_format_dna_norm_picklist(self):
 
         exp_picklist = (
-            'Sample\tSource Plate Name\tSource Plate Type\tSource Well\t'
-            'Concentration\tTransfer Volume\tDestination Plate Name\t'
-            'Destination Well\n'
-            'sam1\tWater\t384PP_AQ_BP2_HT\tA1\t2.0\t1000.0\tNormalizedDNA\t'
-            'A1\n'
-            'sam2\tWater\t384PP_AQ_BP2_HT\tA2\t7.89\t2867.5\tNormalizedDNA\t'
-            'A2\n'
-            'blank1\tWater\t384PP_AQ_BP2_HT\tB1\tnan\t0.0\tNormalizedDNA\t'
-            'B1\n'
-            'sam3\tWater\t384PP_AQ_BP2_HT\tB2\t0.0\t0.0\tNormalizedDNA\t'
-            'B2\n'
-            'sam1\tSample\t384PP_AQ_BP2_HT\tA1\t2.0\t2500.0\tNormalizedDNA\t'
-            'A1\n'
-            'sam2\tSample\t384PP_AQ_BP2_HT\tA2\t7.89\t632.5\tNormalizedDNA\t'
-            'A2\n'
-            'blank1\tSample\t384PP_AQ_BP2_HT\tB1\tnan\t3500.0\t'
-            'NormalizedDNA\tB1\n'
-            'sam3\tSample\t384PP_AQ_BP2_HT\tB2\t0.0\t3500.0\tNormalizedDNA\t'
-            'B2')
+             "Sample\tSource Plate Name\tSource Plate Type\tSource Well\t"
+             "Concentration\tTransfer Volume\tDestination Plate Name\t"
+             "Destination Well\n"
+             "sam1\tSample\t384PP_AQ_BP2_HT\tA1\t2.0\t2500.0\tNormalizedDNA\t"
+             "A1\n"
+             "sam2\tSample\t384PP_AQ_BP2_HT\tA2\t7.89\t632.5\tNormalizedDNA\t"
+             "A2\n"
+             "blank1\tSample\t384PP_AQ_BP2_HT\tB1\tnan\t3500.0\t"
+             "NormalizedDNA\tB1\n"
+             "sam3\tSample\t384PP_AQ_BP2_HT\tB2\t0.0\t3500.0\tNormalizedDNA\t"
+             "B2\n"
+             "sam1\tWater\t384PP_AQ_BP2_HT\tA1\t2.0\t1000.0\tNormalizedDNA\t"
+             "A1\n"
+             "sam2\tWater\t384PP_AQ_BP2_HT\tA2\t7.89\t2867.5\tNormalizedDNA\t"
+             "A2\n"
+             "blank1\tWater\t384PP_AQ_BP2_HT\tB1\tnan\t0.0\tNormalizedDNA\t"
+             "B1\n"
+             "sam3\tWater\t384PP_AQ_BP2_HT\tB2\t0.0\t0.0\tNormalizedDNA\tB2")
 
         dna_vols = np.array([[2500., 632.5],
                              [3500., 3500.]])
@@ -337,25 +339,23 @@ class Tests(TestCase):
 
         # test if switching dest wells
         exp_picklist = (
-            'Sample\tSource Plate Name\tSource Plate Type\tSource Well\t'
-            'Concentration\tTransfer Volume\tDestination Plate Name\t'
-            'Destination Well\n'
-            'sam1\tWater\t384PP_AQ_BP2_HT\tA1\t2.0\t1000.0\tNormalizedDNA\t'
-            'D1\n'
-            'sam2\tWater\t384PP_AQ_BP2_HT\tA2\t7.89\t2867.5\tNormalizedDNA\t'
-            'D2\n'
-            'blank1\tWater\t384PP_AQ_BP2_HT\tB1\tnan\t0.0\tNormalizedDNA\t'
-            'E1\n'
-            'sam3\tWater\t384PP_AQ_BP2_HT\tB2\t0.0\t0.0\tNormalizedDNA\t'
-            'E2\n'
-            'sam1\tSample\t384PP_AQ_BP2_HT\tA1\t2.0\t2500.0\tNormalizedDNA\t'
-            'D1\n'
-            'sam2\tSample\t384PP_AQ_BP2_HT\tA2\t7.89\t632.5\tNormalizedDNA\t'
-            'D2\n'
-            'blank1\tSample\t384PP_AQ_BP2_HT\tB1\tnan\t3500.0\tNormalizedDNA\t'
-            'E1\n'
-            'sam3\tSample\t384PP_AQ_BP2_HT\tB2\t0.0\t3500.0\tNormalizedDNA\t'
-            'E2')
+            "Sample\tSource Plate Name\tSource Plate Type\tSource Well\t"
+            "Concentration\tTransfer Volume\tDestination Plate Name\t"
+            "Destination Well\n"
+            "sam1\tSample\t384PP_AQ_BP2_HT\tA1\t2.0\t2500.0\tNormalizedDNA\t"
+            "D1\n"
+            "sam2\tSample\t384PP_AQ_BP2_HT\tA2\t7.89\t632.5\tNormalizedDNA\t"
+            "D2\n"
+            "blank1\tSample\t384PP_AQ_BP2_HT\tB1\tnan\t3500.0\tNormalizedDNA\t"
+            "E1\n"
+            "sam3\tSample\t384PP_AQ_BP2_HT\tB2\t0.0\t3500.0\tNormalizedDNA\t"
+            "E2\n"
+            "sam1\tWater\t384PP_AQ_BP2_HT\tA1\t2.0\t1000.0\tNormalizedDNA\t"
+            "D1\n"
+            "sam2\tWater\t384PP_AQ_BP2_HT\tA2\t7.89\t2867.5\tNormalizedDNA\t"
+            "D2\n"
+            "blank1\tWater\t384PP_AQ_BP2_HT\tB1\tnan\t0.0\tNormalizedDNA\tE1\n"
+            "sam3\tWater\t384PP_AQ_BP2_HT\tB2\t0.0\t0.0\tNormalizedDNA\tE2")
 
         dna_vols = np.array([[2500., 632.5],
                              [3500., 3500.]])
@@ -381,25 +381,24 @@ class Tests(TestCase):
 
         # test if switching source plates
         exp_picklist = (
-            'Sample\tSource Plate Name\tSource Plate Type\tSource Well\t'
-            'Concentration\tTransfer Volume\tDestination Plate Name\t'
-            'Destination Well\n'
-            'sam1\tWater\t384PP_AQ_BP2_HT\tA1\t2.0\t1000.0\tNormalizedDNA\t'
-            'A1\n'
-            'sam2\tWater\t384PP_AQ_BP2_HT\tA2\t7.89\t2867.5\tNormalizedDNA\t'
-            'A2\n'
-            'blank1\tWater\t384PP_AQ_BP2_HT\tB1\tnan\t0.0\tNormalizedDNA\t'
-            'B1\n'
-            'sam3\tWater\t384PP_AQ_BP2_HT\tB2\t0.0\t0.0\tNormalizedDNA\t'
-            'B2\n'
-            'sam1\tSample_Plate1\t384PP_AQ_BP2_HT\tA1\t2.0\t2500.0\t'
-            'NormalizedDNA\tA1\n'
-            'sam2\tSample_Plate1\t384PP_AQ_BP2_HT\tA2\t7.89\t632.5\t'
-            'NormalizedDNA\tA2\n'
-            'blank1\tSample_Plate2\t384PP_AQ_BP2_HT\tB1\tnan\t3500.0\t'
-            'NormalizedDNA\tB1\n'
-            'sam3\tSample_Plate2\t384PP_AQ_BP2_HT\tB2\t0.0\t3500.0\t'
-            'NormalizedDNA\tB2')
+            "Sample\tSource Plate Name\tSource Plate Type\tSource Well\t"
+            "Concentration\tTransfer Volume\tDestination Plate Name\t"
+            "Destination Well\n"
+            "sam1\tSample_Plate1\t384PP_AQ_BP2_HT\tA1\t2.0\t2500.0\t"
+            "NormalizedDNA\tA1\n"
+            "sam2\tSample_Plate1\t384PP_AQ_BP2_HT\tA2\t7.89\t632.5\t"
+            "NormalizedDNA\tA2\n"
+            "blank1\tSample_Plate2\t384PP_AQ_BP2_HT\tB1\tnan\t3500.0\t"
+            "NormalizedDNA\tB1\n"
+            "sam3\tSample_Plate2\t384PP_AQ_BP2_HT\tB2\t0.0\t3500.0\t"
+            "NormalizedDNA\tB2\n"
+            "sam1\tWater\t384PP_AQ_BP2_HT\tA1\t2.0\t1000.0\tNormalizedDNA\t"
+            "A1\n"
+            "sam2\tWater\t384PP_AQ_BP2_HT\tA2\t7.89\t2867.5\tNormalizedDNA\t"
+            "A2\n"
+            "blank1\tWater\t384PP_AQ_BP2_HT\tB1\tnan\t0.0\tNormalizedDNA\t"
+            "B1\n"
+            "sam3\tWater\t384PP_AQ_BP2_HT\tB2\t0.0\t0.0\tNormalizedDNA\tB2")
 
         dna_vols = np.array([[2500., 632.5],
                              [3500., 3500.]])
@@ -941,6 +940,7 @@ class Tests(TestCase):
         obs = estimate_read_depth(frame, estimated_total_output=600)
         exp_fp = os.path.join(self.fp, 'data/test_read_depth_output.tsv')
         exp = pd.read_csv(exp_fp, sep='\t')
+
         pd.testing.assert_frame_equal(exp, obs)
 
 

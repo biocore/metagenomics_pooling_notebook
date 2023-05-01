@@ -13,13 +13,14 @@ git clone https://github.com/biocore/metagenomics_pooling_notebook.git
 Create a Python3 Conda environment in which to run the notebook:
 
 ```bash
-conda create -n pooling_nb 'python>=3.6' scipy numpy matplotlib pandas
+conda create -n metapool 'python=3.9' scikit-learn pandas numpy scipy nose pep8 flake8 matplotlib jupyter notebook 'seaborn>=0.7.1' pip openpyxl
+
 ```
 
 Activate the Conda environment:
 
 ```bash
-source activate pooling_nb
+source activate metapool
 ```
 
 Change directory to the downloaded repository folder and install:
@@ -53,6 +54,6 @@ Here's a quick example:
 ```bash
 cp metagenomics_pooling.ipynb ~/New_project/new_project_pooling.ipynb
 cd ~/New_project
-source activate pooling_nb
+source activate metapool
 jupyter notebook
 ```

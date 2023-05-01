@@ -6,7 +6,7 @@ from metapool.plate import (_well_to_row_and_col, _decompress_well,
                             _plate_position, validate_plate_metadata,
                             _validate_plate, Message, ErrorMessage,
                             WarningMessage, requires_dilution, dilute_gDNA,
-                            find_threshold, autopool)
+                            find_threshold, autopool, _validate_well_id_96)
 from metapool.metapool import (read_plate_map_csv, read_pico_csv,
                                calculate_norm_vol, assign_index,
                                compute_pico_concentration)
@@ -129,6 +129,22 @@ class PlateHelperTests(TestCase):
         self.assertEqual('3', _plate_position('D1'))
         self.assertEqual('3', _plate_position('D3'))
         self.assertEqual('3', _plate_position('D5'))
+
+    def test_well_id_96(self):
+        tests = []
+        for a in 'ABCDEFGH':
+            for b in range(1, 13):
+                tests.append((f"{a}{b}", (a, b)))
+        for a in 'IJK':
+            for b in range(1, 13):
+                tests.append((f"{a}{b}", None))
+        for a in 'ABC':
+            for b in [0, 13, 14]:
+                tests.append((f"{a}{b}", None))
+
+        for test, exp in tests:
+            obs = _validate_well_id_96(test)
+            self.assertEqual(obs, exp)
 
 
 class MessageTests(TestCase):

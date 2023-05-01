@@ -10,6 +10,7 @@ from random import choices
 from configparser import ConfigParser
 from qiita_client import QiitaClient
 from .prep import remove_qiita_id
+from .plate import _validate_well_id_96
 
 
 REVCOMP_SEQUENCERS = ['HiSeq4000', 'MiniSeq', 'NextSeq', 'HiSeq3000',
@@ -217,6 +218,17 @@ def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
     plate_df = pd.read_csv(f, sep=sep)
     if 'Project Name' not in plate_df.columns:
         raise ValueError('Missing `Project Name` column.')
+
+    if 'well_id_96' not in plate_df.columns:
+        raise ValueError('Missing `well_id_96` column.')
+
+    invalid_well_ids = [x for x in list(plate_df.well_id_96) if
+                        _validate_well_id_96(x) is None]
+
+    if invalid_well_ids:
+        raise ValueError('`well_id_96` column contains the following invalid '
+                         'values: %s' % ','.join(invalid_well_ids))
+
     plate_df['Well'] = plate_df['Row'] + plate_df['Col'].map(str)
 
     null_samples = plate_df.Sample.isnull()
@@ -451,19 +463,20 @@ def format_dna_norm_picklist(dna_vols, water_vols, wells, dest_wells=None,
                  'Concentration\tTransfer Volume\tDestination Plate Name\t'
                  'Destination Well')
 
-    # water additions
-    for index, sample in np.ndenumerate(sample_names):
-        picklist += '\n' + '\t'.join([str(sample), water_plate_name,
-                                      water_plate_type, str(wells[index]),
-                                      str(dna_concs[index]),
-                                      str(water_vols[index]),
-                                      dest_plate_name, str(dest_wells[index])])
     # DNA additions
     for index, sample in np.ndenumerate(sample_names):
         picklist += '\n' + '\t'.join([str(sample), str(sample_plates[index]),
                                       str(dna_plate_type[index]),
                                       str(wells[index]), str(dna_concs[index]),
                                       str(dna_vols[index]),
+                                      dest_plate_name, str(dest_wells[index])])
+
+    # water additions
+    for index, sample in np.ndenumerate(sample_names):
+        picklist += '\n' + '\t'.join([str(sample), water_plate_name,
+                                      water_plate_type, str(wells[index]),
+                                      str(dna_concs[index]),
+                                      str(water_vols[index]),
                                       dest_plate_name, str(dest_wells[index])])
 
     return picklist
@@ -973,6 +986,7 @@ def parse_dna_conc_csv(fp):
 
     dna_df['pico_conc'] = pd.to_numeric(
         dna_df['[Concentration]'], errors='Coerce')
+
     return dna_df
 
 
