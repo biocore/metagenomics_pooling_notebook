@@ -398,8 +398,8 @@ def calculate_norm_vol(dna_concs, ng=5, min_vol=2.5, max_vol=3500,
 def format_dna_norm_picklist(dna_vols, water_vols, wells, dest_wells=None,
                              dna_concs=None, sample_names=None,
                              sample_plates=None, water_plate_name='Water',
-                             dna_plate_type='384PP_AQ_BP2_HT',
-                             water_plate_type='384PP_AQ_BP2_HT',
+                             dna_plate_type='384PP_AQ_BP2',
+                             water_plate_type='384PP_AQ_BP2',
                              dest_plate_name='NormalizedDNA'):
     """
     Writes Echo-format pick list to achieve a normalized input DNA pool
@@ -445,7 +445,7 @@ def format_dna_norm_picklist(dna_vols, water_vols, wells, dest_wells=None,
     if isinstance(sample_plates, str):
         sample_plates = np.full_like(dna_vols, sample_plates, dtype=object)
     if dna_plate_type is None:
-        dna_plate_type = '384PP_AQ_BP2_HT'
+        dna_plate_type = '384PP_AQ_BP2'
     if isinstance(dna_plate_type, str):
         dna_plate_type = np.full_like(dna_vols, dna_plate_type, dtype=object)
     if dna_concs is None:
@@ -508,8 +508,8 @@ def assign_index(samples, index_df, start_idx=0):
 
 def format_index_picklist(sample_names, sample_wells, indices,
                           i5_vol=250, i7_vol=250,
-                          i5_plate_type='384LDV_AQ_B2_HT',
-                          i7_plate_type='384LDV_AQ_B2_HT',
+                          i5_plate_type='384LDV_AQ_B2',
+                          i7_plate_type='384LDV_AQ_B2',
                           dest_plate_name='IndexPCRPlate'):
     """
     Writes Echo-format pick list to achieve a normalized input DNA pool
@@ -813,7 +813,7 @@ def format_pooling_echo_pick_list(vol_sample,
                              (d % dest_plate_shape[1]))
 
             contents.append(
-                ",".join(['1', '384LDV_AQ_B2_HT', well_name, "",
+                ",".join(['1', '384LDV_AQ_B2', well_name, "",
                           val, 'NormalizedDNA', dest]))
 
     return "\n".join(contents)
