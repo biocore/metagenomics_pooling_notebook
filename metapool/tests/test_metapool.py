@@ -930,12 +930,12 @@ class Tests(TestCase):
         pd.testing.assert_frame_equal(obs, exp)
 
         # TEST NAN IN INPUT DATA ARE HANDLED CORRECTLY
-         obs = calculate_iseqnorm_pooling_volumes(self.with_nan)
+        obs = calculate_iseqnorm_pooling_volumes(self.with_nan)
 
-         # calculate_iseqnorm_pooling_volumes replaces NANs in
-         # calculated LoadingFactor with highest observed
-         # LoadingFactor in plate.
-         self.assertFalse(pd.isna(obs['LoadingFactor'][3]))
+        # calculate_iseqnorm_pooling_volumes replaces NANs in
+        # calculated LoadingFactor with highest observed
+        # LoadingFactor in plate.
+        self.assertFalse(pd.isna(obs['LoadingFactor'][3]))
 
     def test_estimate_read_depth(self):
 
