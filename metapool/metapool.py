@@ -1249,14 +1249,14 @@ def calculate_iseqnorm_pooling_volumes(plate_df,
         plate_df['proportion'] = norm / (norm.sum())
         plate_df['LoadingFactor'] = plate_df['proportion'].max()\
             / plate_df['proportion']
-        ## Underpooling BLANKS
+        # Underpooling BLANKS
         nblanks = plate_df.loc[plate_df['Blank']].shape[0]
         if (nblanks == 0):
             warnings.warn("There are no BLANKS in this plate")
         else:
             plate_df.loc[plate_df['Blank'], 'LoadingFactor'] = \
                 plate_df.loc[plate_df['Blank'], 'LoadingFactor'] / 2
-        ##
+        #
         plate_df.loc[plate_df['LoadingFactor'].isnull(),
                      'LoadingFactor'] = plate_df['LoadingFactor'].max()
     except ValueError:
