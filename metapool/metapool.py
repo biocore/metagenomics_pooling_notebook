@@ -1224,7 +1224,7 @@ def linear_transform(input_values, output_min=100, output_max=1000):
 def calculate_iseqnorm_pooling_volumes(plate_df,
                                        normalization_column='Filtered Reads',
                                        dynamic_range=100, lower_bound=1,
-                                       min_pool_vol=100, max_pool_vol=1000):
+                                       min_pool_vol=40, max_pool_vol=500):
     """
     Calculates optimal iseq normalization pooling volumes
     from a given set of parameters.
@@ -1247,8 +1247,16 @@ def calculate_iseqnorm_pooling_volumes(plate_df,
     try:
         norm = plate_df[normalization_column]
         plate_df['proportion'] = norm / (norm.sum())
-        prop = plate_df['proportion']
-        plate_df['LoadingFactor'] = max(prop) / prop
+        plate_df['LoadingFactor'] = plate_df['proportion'].max()\
+            / plate_df['proportion']
+        ## Underpooling BLANKS
+        nblanks = plate_df.loc[plate_df['Blank']].shape[0]
+        if (nblanks == 0):
+            warnings.warn("There are no BLANKS in this plate")
+        else:
+            plate_df.loc[plate_df['Blank'], 'LoadingFactor'] = \
+                plate_df.loc[plate_df['Blank'], 'LoadingFactor'] / 2
+        ##
         plate_df.loc[plate_df['LoadingFactor'].isnull(),
                      'LoadingFactor'] = plate_df['LoadingFactor'].max()
     except ValueError:
@@ -1282,8 +1290,10 @@ def calculate_iseqnorm_pooling_volumes(plate_df,
     f, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, figsize=(5, 8), sharex=True)
 
     ax1.set_title(f'{unnorm_proportion*100:.2f}% of sample set not normalized')
-    sns.scatterplot(x=plate_df[normalization_column],
-                    y=plate_df['iSeq normpool volume'],
+    sns.scatterplot(x=normalization_column,
+                    y='iSeq normpool volume',
+                    hue='Blank',
+                    data=plate_df,
                     alpha=0.5, ax=ax1)
     plt.xscale('log')
     sns.histplot(plate_df[normalization_column], ax=ax2)
