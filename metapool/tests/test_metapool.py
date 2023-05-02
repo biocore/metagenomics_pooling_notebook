@@ -50,11 +50,13 @@ class Tests(TestCase):
         counts_ps_fp = os.path.join(path, 'data/test_per_sample_fastq.tsv')
         no_blanks_fp = os.path.join(path, 'data/test_no_blanks.tsv')
         blanks_fp = os.path.join(path, 'data/test_blanks.tsv')
+        with_nan_fp = os.path.join(path, 'data/test_nan.tsv')
 
         self.plate_df = pd.read_csv(plate_fp, sep=',')
         self.counts_df = pd.read_csv(counts_fp, sep=',')
         self.counts_df_ps = pd.read_csv(counts_ps_fp, sep=',')
         self.no_blanks = pd.read_csv(no_blanks_fp, sep='\t')
+        self.with_nan = pd.read_csv(with_nan_fp, sep='\t')
         self.blanks = pd.read_csv(blanks_fp, sep='\t')
         self.fp = path
 
@@ -301,21 +303,21 @@ class Tests(TestCase):
              "Sample\tSource Plate Name\tSource Plate Type\tSource Well\t"
              "Concentration\tTransfer Volume\tDestination Plate Name\t"
              "Destination Well\n"
-             "sam1\tSample\t384PP_AQ_BP2_HT\tA1\t2.0\t2500.0\tNormalizedDNA\t"
+             "sam1\tSample\t384PP_AQ_BP2\tA1\t2.0\t2500.0\tNormalizedDNA\t"
              "A1\n"
-             "sam2\tSample\t384PP_AQ_BP2_HT\tA2\t7.89\t632.5\tNormalizedDNA\t"
+             "sam2\tSample\t384PP_AQ_BP2\tA2\t7.89\t632.5\tNormalizedDNA\t"
              "A2\n"
-             "blank1\tSample\t384PP_AQ_BP2_HT\tB1\tnan\t3500.0\t"
+             "blank1\tSample\t384PP_AQ_BP2\tB1\tnan\t3500.0\t"
              "NormalizedDNA\tB1\n"
-             "sam3\tSample\t384PP_AQ_BP2_HT\tB2\t0.0\t3500.0\tNormalizedDNA\t"
+             "sam3\tSample\t384PP_AQ_BP2\tB2\t0.0\t3500.0\tNormalizedDNA\t"
              "B2\n"
-             "sam1\tWater\t384PP_AQ_BP2_HT\tA1\t2.0\t1000.0\tNormalizedDNA\t"
+             "sam1\tWater\t384PP_AQ_BP2\tA1\t2.0\t1000.0\tNormalizedDNA\t"
              "A1\n"
-             "sam2\tWater\t384PP_AQ_BP2_HT\tA2\t7.89\t2867.5\tNormalizedDNA\t"
+             "sam2\tWater\t384PP_AQ_BP2\tA2\t7.89\t2867.5\tNormalizedDNA\t"
              "A2\n"
-             "blank1\tWater\t384PP_AQ_BP2_HT\tB1\tnan\t0.0\tNormalizedDNA\t"
+             "blank1\tWater\t384PP_AQ_BP2\tB1\tnan\t0.0\tNormalizedDNA\t"
              "B1\n"
-             "sam3\tWater\t384PP_AQ_BP2_HT\tB2\t0.0\t0.0\tNormalizedDNA\tB2")
+             "sam3\tWater\t384PP_AQ_BP2\tB2\t0.0\t0.0\tNormalizedDNA\tB2")
 
         dna_vols = np.array([[2500., 632.5],
                              [3500., 3500.]])
@@ -342,20 +344,20 @@ class Tests(TestCase):
             "Sample\tSource Plate Name\tSource Plate Type\tSource Well\t"
             "Concentration\tTransfer Volume\tDestination Plate Name\t"
             "Destination Well\n"
-            "sam1\tSample\t384PP_AQ_BP2_HT\tA1\t2.0\t2500.0\tNormalizedDNA\t"
+            "sam1\tSample\t384PP_AQ_BP2\tA1\t2.0\t2500.0\tNormalizedDNA\t"
             "D1\n"
-            "sam2\tSample\t384PP_AQ_BP2_HT\tA2\t7.89\t632.5\tNormalizedDNA\t"
+            "sam2\tSample\t384PP_AQ_BP2\tA2\t7.89\t632.5\tNormalizedDNA\t"
             "D2\n"
-            "blank1\tSample\t384PP_AQ_BP2_HT\tB1\tnan\t3500.0\tNormalizedDNA\t"
+            "blank1\tSample\t384PP_AQ_BP2\tB1\tnan\t3500.0\tNormalizedDNA\t"
             "E1\n"
-            "sam3\tSample\t384PP_AQ_BP2_HT\tB2\t0.0\t3500.0\tNormalizedDNA\t"
+            "sam3\tSample\t384PP_AQ_BP2\tB2\t0.0\t3500.0\tNormalizedDNA\t"
             "E2\n"
-            "sam1\tWater\t384PP_AQ_BP2_HT\tA1\t2.0\t1000.0\tNormalizedDNA\t"
+            "sam1\tWater\t384PP_AQ_BP2\tA1\t2.0\t1000.0\tNormalizedDNA\t"
             "D1\n"
-            "sam2\tWater\t384PP_AQ_BP2_HT\tA2\t7.89\t2867.5\tNormalizedDNA\t"
+            "sam2\tWater\t384PP_AQ_BP2\tA2\t7.89\t2867.5\tNormalizedDNA\t"
             "D2\n"
-            "blank1\tWater\t384PP_AQ_BP2_HT\tB1\tnan\t0.0\tNormalizedDNA\tE1\n"
-            "sam3\tWater\t384PP_AQ_BP2_HT\tB2\t0.0\t0.0\tNormalizedDNA\tE2")
+            "blank1\tWater\t384PP_AQ_BP2\tB1\tnan\t0.0\tNormalizedDNA\tE1\n"
+            "sam3\tWater\t384PP_AQ_BP2\tB2\t0.0\t0.0\tNormalizedDNA\tE2")
 
         dna_vols = np.array([[2500., 632.5],
                              [3500., 3500.]])
@@ -384,21 +386,21 @@ class Tests(TestCase):
             "Sample\tSource Plate Name\tSource Plate Type\tSource Well\t"
             "Concentration\tTransfer Volume\tDestination Plate Name\t"
             "Destination Well\n"
-            "sam1\tSample_Plate1\t384PP_AQ_BP2_HT\tA1\t2.0\t2500.0\t"
+            "sam1\tSample_Plate1\t384PP_AQ_BP2\tA1\t2.0\t2500.0\t"
             "NormalizedDNA\tA1\n"
-            "sam2\tSample_Plate1\t384PP_AQ_BP2_HT\tA2\t7.89\t632.5\t"
+            "sam2\tSample_Plate1\t384PP_AQ_BP2\tA2\t7.89\t632.5\t"
             "NormalizedDNA\tA2\n"
-            "blank1\tSample_Plate2\t384PP_AQ_BP2_HT\tB1\tnan\t3500.0\t"
+            "blank1\tSample_Plate2\t384PP_AQ_BP2\tB1\tnan\t3500.0\t"
             "NormalizedDNA\tB1\n"
-            "sam3\tSample_Plate2\t384PP_AQ_BP2_HT\tB2\t0.0\t3500.0\t"
+            "sam3\tSample_Plate2\t384PP_AQ_BP2\tB2\t0.0\t3500.0\t"
             "NormalizedDNA\tB2\n"
-            "sam1\tWater\t384PP_AQ_BP2_HT\tA1\t2.0\t1000.0\tNormalizedDNA\t"
+            "sam1\tWater\t384PP_AQ_BP2\tA1\t2.0\t1000.0\tNormalizedDNA\t"
             "A1\n"
-            "sam2\tWater\t384PP_AQ_BP2_HT\tA2\t7.89\t2867.5\tNormalizedDNA\t"
+            "sam2\tWater\t384PP_AQ_BP2\tA2\t7.89\t2867.5\tNormalizedDNA\t"
             "A2\n"
-            "blank1\tWater\t384PP_AQ_BP2_HT\tB1\tnan\t0.0\tNormalizedDNA\t"
+            "blank1\tWater\t384PP_AQ_BP2\tB1\tnan\t0.0\tNormalizedDNA\t"
             "B1\n"
-            "sam3\tWater\t384PP_AQ_BP2_HT\tB2\t0.0\t0.0\tNormalizedDNA\tB2")
+            "sam3\tWater\t384PP_AQ_BP2\tB2\t0.0\t0.0\tNormalizedDNA\tB2")
 
         dna_vols = np.array([[2500., 632.5],
                              [3500., 3500.]])
@@ -430,21 +432,21 @@ class Tests(TestCase):
             'Transfer Volume\tIndex Name\t'
             'Index Sequence\tIndex Combo\tDestination Plate Name\t'
             'Destination Well\n'
-            'sam1\tiTru5_plate\t384LDV_AQ_B2_HT\tA1\t250\tiTru5_01_A\t'
+            'sam1\tiTru5_plate\t384LDV_AQ_B2\tA1\t250\tiTru5_01_A\t'
             'ACCGACAA\t0\tIndexPCRPlate\tA1\n'
-            'sam2\tiTru5_plate\t384LDV_AQ_B2_HT\tB1\t250\tiTru5_01_B\t'
+            'sam2\tiTru5_plate\t384LDV_AQ_B2\tB1\t250\tiTru5_01_B\t'
             'AGTGGCAA\t1\tIndexPCRPlate\tA2\n'
-            'blank1\tiTru5_plate\t384LDV_AQ_B2_HT\tC1\t250\tiTru5_01_C\t'
+            'blank1\tiTru5_plate\t384LDV_AQ_B2\tC1\t250\tiTru5_01_C\t'
             'CACAGACT\t2\tIndexPCRPlate\tB1\n'
-            'sam3\tiTru5_plate\t384LDV_AQ_B2_HT\tD1\t250\tiTru5_01_D\t'
+            'sam3\tiTru5_plate\t384LDV_AQ_B2\tD1\t250\tiTru5_01_D\t'
             'CGACACTT\t3\tIndexPCRPlate\tB2\n'
-            'sam1\tiTru7_plate\t384LDV_AQ_B2_HT\tA1\t250\tiTru7_101_01\t'
+            'sam1\tiTru7_plate\t384LDV_AQ_B2\tA1\t250\tiTru7_101_01\t'
             'ACGTTACC\t0\tIndexPCRPlate\tA1\n'
-            'sam2\tiTru7_plate\t384LDV_AQ_B2_HT\tA2\t250\tiTru7_101_02\t'
+            'sam2\tiTru7_plate\t384LDV_AQ_B2\tA2\t250\tiTru7_101_02\t'
             'CTGTGTTG\t1\tIndexPCRPlate\tA2\n'
-            'blank1\tiTru7_plate\t384LDV_AQ_B2_HT\tA3\t250\tiTru7_101_03\t'
+            'blank1\tiTru7_plate\t384LDV_AQ_B2\tA3\t250\tiTru7_101_03\t'
             'TGAGGTGT\t2\tIndexPCRPlate\tB1\n'
-            'sam3\tiTru7_plate\t384LDV_AQ_B2_HT\tA4\t250\tiTru7_101_04\t'
+            'sam3\tiTru7_plate\t384LDV_AQ_B2\tA4\t250\tiTru7_101_04\t'
             'GATCCATG\t3\tIndexPCRPlate\tB2')
 
         sample_wells = np.array(['A1', 'A2', 'B1', 'B2'])
@@ -552,12 +554,12 @@ class Tests(TestCase):
                   'Concentration,Transfer Volume,Destination Plate Name,'
                   'Destination Well']
 
-        exp_values = ['1,384LDV_AQ_B2_HT,A1,,10.00,NormalizedDNA,A1',
-                      '1,384LDV_AQ_B2_HT,A2,,10.00,NormalizedDNA,A1',
-                      '1,384LDV_AQ_B2_HT,A3,,5.00,NormalizedDNA,A1',
-                      '1,384LDV_AQ_B2_HT,A4,,5.00,NormalizedDNA,A2',
-                      '1,384LDV_AQ_B2_HT,A5,,10.00,NormalizedDNA,A2',
-                      '1,384LDV_AQ_B2_HT,A6,,10.00,NormalizedDNA,A2']
+        exp_values = ['1,384LDV_AQ_B2,A1,,10.00,NormalizedDNA,A1',
+                      '1,384LDV_AQ_B2,A2,,10.00,NormalizedDNA,A1',
+                      '1,384LDV_AQ_B2,A3,,5.00,NormalizedDNA,A1',
+                      '1,384LDV_AQ_B2,A4,,5.00,NormalizedDNA,A2',
+                      '1,384LDV_AQ_B2,A5,,10.00,NormalizedDNA,A2',
+                      '1,384LDV_AQ_B2,A6,,10.00,NormalizedDNA,A2']
 
         exp_str = '\n'.join(header + exp_values)
 
@@ -574,12 +576,12 @@ class Tests(TestCase):
                   'Concentration,Transfer Volume,Destination Plate Name,'
                   'Destination Well']
 
-        exp_values = ['1,384LDV_AQ_B2_HT,A1,,10.00,NormalizedDNA,A1',
-                      '1,384LDV_AQ_B2_HT,A2,,10.00,NormalizedDNA,A1',
-                      '1,384LDV_AQ_B2_HT,A3,,0.00,NormalizedDNA,A1',
-                      '1,384LDV_AQ_B2_HT,A4,,5.00,NormalizedDNA,A1',
-                      '1,384LDV_AQ_B2_HT,A5,,10.00,NormalizedDNA,A2',
-                      '1,384LDV_AQ_B2_HT,A6,,10.00,NormalizedDNA,A2']
+        exp_values = ['1,384LDV_AQ_B2,A1,,10.00,NormalizedDNA,A1',
+                      '1,384LDV_AQ_B2,A2,,10.00,NormalizedDNA,A1',
+                      '1,384LDV_AQ_B2,A3,,0.00,NormalizedDNA,A1',
+                      '1,384LDV_AQ_B2,A4,,5.00,NormalizedDNA,A1',
+                      '1,384LDV_AQ_B2,A5,,10.00,NormalizedDNA,A2',
+                      '1,384LDV_AQ_B2,A6,,10.00,NormalizedDNA,A2']
 
         exp_str = '\n'.join(header + exp_values)
 
@@ -614,25 +616,25 @@ class Tests(TestCase):
             'Source Plate Type\tCounter\tPrimer\tSource Well\tIndex\t'
             'Unnamed: 9\tUnnamed: 10\tUnnamed: 11\tTransfer volume\t'
             'Destination Well\tUnnamed: 14\n'
-            '0\t1\tABTX_35\t8_29_13_rk_rh\ti5 Source Plate\t384LDV_AQ_B2_HT\t'
+            '0\t1\tABTX_35\t8_29_13_rk_rh\ti5 Source Plate\t384LDV_AQ_B2\t'
             '1841.0\tiTru5_01_G\tG1\tGTTCCATG\tiTru7_110_05\tA23\tCGCTTAAC\t'
             '250\tA1\tNaN\n'
-            '1\t2\tABTX_35\t8_29_13_rk_lh\ti5 Source Plate\t384LDV_AQ_B2_HT\t'
+            '1\t2\tABTX_35\t8_29_13_rk_lh\ti5 Source Plate\t384LDV_AQ_B2\t'
             '1842.0\tiTru5_01_H\tH1\tTAGCTGAG\tiTru7_110_06\tB23\tCACCACTA\t'
             '250\tC1\tNaN\n'
-            '2\t1\tABTX_35\t8_29_13_rk_rh\ti7 Source Plate\t384LDV_AQ_B2_HT\t'
+            '2\t1\tABTX_35\t8_29_13_rk_rh\ti7 Source Plate\t384LDV_AQ_B2\t'
             '1841.0\tiTru7_110_05\tA23\tCGCTTAAC\t\t\t\t250\tA1\tNaN\n'
-            '3\t2\tABTX_35\t8_29_13_rk_lh\ti7 Source Plate\t384LDV_AQ_B2_HT\t'
+            '3\t2\tABTX_35\t8_29_13_rk_lh\ti7 Source Plate\t384LDV_AQ_B2\t'
             '1842.0\tiTru7_110_06\tB23\tCACCACTA\t\t\t\t250\tC1\tNaN')
 
         test_dna_picklist_f = (
             '\tSource Plate Name\tSource Plate Type\tSource Well\t'
             'Concentration\tTransfer Volume\tDestination Plate Name\t'
             'Destination Well\n'
-            '0\twater\t384LDV_AQ_B2_HT\tA1\tNaN\t3420.0\tNormalizedDNA\tA1\n'
-            '1\twater\t384LDV_AQ_B2_HT\tC1\tNaN\t3442.5\tNormalizedDNA\tC1\n'
-            '5\t1\t384LDV_AQ_B2_HT\tA1\t12.751753\t80.0\tNormalizedDNA\tA1\n'
-            '6\t1\t384LDV_AQ_B2_HT\tC1\t17.582063\t57.5\tNormalizedDNA\tC1')
+            '0\twater\t384LDV_AQ_B2\tA1\tNaN\t3420.0\tNormalizedDNA\tA1\n'
+            '1\twater\t384LDV_AQ_B2\tC1\tNaN\t3442.5\tNormalizedDNA\tC1\n'
+            '5\t1\t384LDV_AQ_B2\tA1\t12.751753\t80.0\tNormalizedDNA\tA1\n'
+            '6\t1\t384LDV_AQ_B2\tC1\t17.582063\t57.5\tNormalizedDNA\tC1')
 
         test_qpcr_f = (
             '\tInclude\tColor\tPos\tName\tCp\tConcentration\tStandard\tStatus'
@@ -926,6 +928,14 @@ class Tests(TestCase):
         exp_fp = os.path.join(self.fp, 'data/test_blanks_output.tsv')
         exp = pd.read_csv(exp_fp, sep=',')
         pd.testing.assert_frame_equal(obs, exp)
+
+        # TEST NAN IN INPUT DATA ARE HANDLED CORRECTLY
+         obs = calculate_iseqnorm_pooling_volumes(self.with_nan)
+
+         # calculate_iseqnorm_pooling_volumes replaces NANs in
+         # calculated LoadingFactor with highest observed
+         # LoadingFactor in plate.
+         self.assertFalse(pd.isna(obs['LoadingFactor'][3]))
 
     def test_estimate_read_depth(self):
 
