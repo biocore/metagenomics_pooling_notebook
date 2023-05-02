@@ -502,7 +502,7 @@ def _add_metadata_to_sheet(metadata, sheet, sequencer):
     return sheet
 
 
-def _remap_table(table, assay):
+def _remap_table(table, assay, strict=True):
     if assay == _AMPLICON:
         remapper = _KL_AMPLICON_REMAPPER
     elif assay == _METAGENOMICS:
@@ -510,12 +510,45 @@ def _remap_table(table, assay):
     elif assay == _METATRANSCRIPTOMICS:
         remapper = _KL_METATRANSCRIPTOMICS_REMAPPER
 
-    # make a copy because we are going to modify the data
-    out = table[remapper.keys()].copy()
+    if strict:
+        # legacy operation. All columns not defined in remapper will be
+        # filtered out, including 'Well_description'.
+        out = table[remapper.keys()].copy()
+        out.rename(remapper, axis=1, inplace=True)
+    else:
+        out = table.copy(deep=True)
 
-    out.rename(remapper, axis=1, inplace=True)
+        # if a column named 'index' is present in table, assume it is a
+        # numeric index and not a sequence of bases, which is required in
+        # the output. Assume the column that will become 'index' is
+        # defined in remapper.
+        if 'index' in set(out.columns):
+            out.drop(columns=['index'], inplace=True)
+
+        # if an alternate form of a column name defined in
+        # _KL_SAMPLE_SHEET_COLUMN_ALTS is found in table, assume it should
+        # be renamed to its proper form and be included in the output e.g.:
+        # 'well_description' -> 'Well_description'.
+
+        # assume keys in _KL_SAMPLE_SHEET_COLUMN_ALTS do not overlap w/
+        # remapper (they currently do not). Define the full set of potential
+        # columns to rename in table.
+
+        # new syntax in 3.9 allows us to merge two dicts together w/OR.
+        remapper = _KL_SAMPLE_SHEET_COLUMN_ALTS | remapper
+
+        out.rename(remapper, axis=1, inplace=True)
+
+        # out may contain additional columns that aren't allowed in the [Data]
+        # section of a sample-sheet e.g.: 'Extraction Kit Lot'. There may also
+        # be required columns that aren't defined in out.
+        subset = list(set(_KL_SAMPLE_SHEET_DATA_COLUMNS) & set(out.columns))
+        out = out[subset]
 
     if 'Well_description' not in out.columns:
+        # note that if strict is True this condition will always be true, even
+        # if 'Well_description' is defined in table.
+
         # grab the original sample names from the inputted table
         out['Well_description'] = table.Sample.apply(qiita_scrub_name)
 
@@ -528,8 +561,8 @@ def _remap_table(table, assay):
     return out
 
 
-def _add_data_to_sheet(table, sheet, sequencer, lanes, assay):
-    table = _remap_table(table, assay)
+def _add_data_to_sheet(table, sheet, sequencer, lanes, assay, strict=True):
+    table = _remap_table(table, assay, strict)
 
     # for amplicon we don't have reverse barcodes
     if assay != _AMPLICON:
@@ -546,7 +579,7 @@ def _add_data_to_sheet(table, sheet, sequencer, lanes, assay):
     return sheet
 
 
-def make_sample_sheet(metadata, table, sequencer, lanes):
+def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
     """Write a valid sample sheet
 
     Parameters
@@ -587,6 +620,11 @@ def make_sample_sheet(metadata, table, sequencer, lanes):
         A string representing the sequencer used.
     lanes: list of integers
         A list of integers representing the lanes used.
+    strict: boolean
+        If True, a subset of columns based on Assay type will define the
+        columns in the [Data] section of the sample-sheet. Otherwise all
+        columns in table will pass through into the sample-sheet. Either way
+        some columns will be renamed as needed by Assay type.
 
     Returns
     -------
@@ -604,7 +642,7 @@ def make_sample_sheet(metadata, table, sequencer, lanes):
         sheet = KLSampleSheet()
         sheet = _add_metadata_to_sheet(metadata, sheet, sequencer)
         sheet = _add_data_to_sheet(table, sheet, sequencer, lanes,
-                                   metadata['Assay'])
+                                   metadata['Assay'], strict)
         return sheet
     else:
         for message in messages:
