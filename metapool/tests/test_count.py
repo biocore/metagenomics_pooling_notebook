@@ -309,8 +309,9 @@ class TestBCLConvertCount(TestCase):
 
     def test_bcl2fastq_counts(self):
         obs = bcl2fastq_counts(self.run_dir, self.ss)
-        pd.testing.assert_frame_equal(obs.sort_index(),
-                                      self.stats[['raw_reads']])
+
+        exp = self.stats[['raw_reads']] * 2
+        pd.testing.assert_frame_equal(obs.sort_index(), exp)
 
     def tearDown(self):
         shutil.rmtree(self.run_dir)

@@ -195,12 +195,16 @@ def _bclconvert_counts(path):
     df = pd.read_csv(path)
     # subselect only the columns we're concerned with
     df = df[["SampleID", "Lane", "# Reads"]]
+
+    # double # Reads to represent forward and reverse reads.
+    df['raw_reads'] = df['# Reads'] * 2
+    df.drop('# Reads', axis=1, inplace=True)
+
     # filter out rows that reference an 'Undetermined' fastq.gz file
     # and create our own copy to return to the user
     df = df.loc[df['SampleID'] != 'Undetermined'].copy()
     # rename columns to standard values for metapool
-    df.rename(columns={'SampleID': 'Sample_ID', '# Reads': 'raw_reads'},
-              inplace=True)
+    df.rename(columns={'SampleID': 'Sample_ID'}, inplace=True)
     # create indexes on these columns
     df['Lane'] = df['Lane'].astype(str)
     df.set_index(['Sample_ID', 'Lane'], inplace=True, verify_integrity=True)
