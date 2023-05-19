@@ -398,8 +398,8 @@ def calculate_norm_vol(dna_concs, ng=5, min_vol=2.5, max_vol=3500,
 def format_dna_norm_picklist(dna_vols, water_vols, wells, dest_wells=None,
                              dna_concs=None, sample_names=None,
                              sample_plates=None, water_plate_name='Water',
-                             dna_plate_type='384PP_AQ_BP2_HT',
-                             water_plate_type='384PP_AQ_BP2_HT',
+                             dna_plate_type='384PP_AQ_BP2',
+                             water_plate_type='384PP_AQ_BP2',
                              dest_plate_name='NormalizedDNA'):
     """
     Writes Echo-format pick list to achieve a normalized input DNA pool
@@ -445,7 +445,7 @@ def format_dna_norm_picklist(dna_vols, water_vols, wells, dest_wells=None,
     if isinstance(sample_plates, str):
         sample_plates = np.full_like(dna_vols, sample_plates, dtype=object)
     if dna_plate_type is None:
-        dna_plate_type = '384PP_AQ_BP2_HT'
+        dna_plate_type = '384PP_AQ_BP2'
     if isinstance(dna_plate_type, str):
         dna_plate_type = np.full_like(dna_vols, dna_plate_type, dtype=object)
     if dna_concs is None:
@@ -508,8 +508,8 @@ def assign_index(samples, index_df, start_idx=0):
 
 def format_index_picklist(sample_names, sample_wells, indices,
                           i5_vol=250, i7_vol=250,
-                          i5_plate_type='384LDV_AQ_B2_HT',
-                          i7_plate_type='384LDV_AQ_B2_HT',
+                          i5_plate_type='384LDV_AQ_B2',
+                          i7_plate_type='384LDV_AQ_B2',
                           dest_plate_name='IndexPCRPlate'):
     """
     Writes Echo-format pick list to achieve a normalized input DNA pool
@@ -813,7 +813,7 @@ def format_pooling_echo_pick_list(vol_sample,
                              (d % dest_plate_shape[1]))
 
             contents.append(
-                ",".join(['1', '384LDV_AQ_B2_HT', well_name, "",
+                ",".join(['1', '384LDV_AQ_B2', well_name, "",
                           val, 'NormalizedDNA', dest]))
 
     return "\n".join(contents)
@@ -1224,7 +1224,7 @@ def linear_transform(input_values, output_min=100, output_max=1000):
 def calculate_iseqnorm_pooling_volumes(plate_df,
                                        normalization_column='Filtered Reads',
                                        dynamic_range=100, lower_bound=1,
-                                       min_pool_vol=100, max_pool_vol=1000):
+                                       min_pool_vol=40, max_pool_vol=500):
     """
     Calculates optimal iseq normalization pooling volumes
     from a given set of parameters.
@@ -1247,8 +1247,17 @@ def calculate_iseqnorm_pooling_volumes(plate_df,
     try:
         norm = plate_df[normalization_column]
         plate_df['proportion'] = norm / (norm.sum())
-        prop = plate_df['proportion']
-        plate_df['LoadingFactor'] = max(prop) / prop
+        plate_df['LoadingFactor'] = plate_df['proportion'].max()\
+            / plate_df['proportion']
+        nblanks = plate_df.loc[plate_df['Blank']].shape[0]
+        if (nblanks == 0):
+            warnings.warn("There are no BLANKS in this plate")
+        # May 5 2023 meeting about blanks agreed to treat them
+        # agnostically. No underpooling.
+        # else:
+        #     plate_df.loc[plate_df['Blank'], 'LoadingFactor'] = \
+        #         plate_df.loc[plate_df['Blank'], 'LoadingFactor'] / 2
+        #
         plate_df.loc[plate_df['LoadingFactor'].isnull(),
                      'LoadingFactor'] = plate_df['LoadingFactor'].max()
     except ValueError:
@@ -1282,8 +1291,10 @@ def calculate_iseqnorm_pooling_volumes(plate_df,
     f, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, figsize=(5, 8), sharex=True)
 
     ax1.set_title(f'{unnorm_proportion*100:.2f}% of sample set not normalized')
-    sns.scatterplot(x=plate_df[normalization_column],
-                    y=plate_df['iSeq normpool volume'],
+    sns.scatterplot(x=normalization_column,
+                    y='iSeq normpool volume',
+                    hue='Blank',
+                    data=plate_df,
                     alpha=0.5, ax=ax1)
     plt.xscale('log')
     sns.histplot(plate_df[normalization_column], ax=ax2)
