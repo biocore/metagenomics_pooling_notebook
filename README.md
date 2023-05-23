@@ -1,6 +1,6 @@
 # metagenomics_pooling_notebook
 
-A Jupyter notebook to assist wet lab shotgun pipeline.
+A set of Jupyter notebooks and general code to assist the Knight Wet Lab pipelines.
 
 ## Installation
 
@@ -41,7 +41,7 @@ jupyter nbextension enable toc2/main
 
 ## Use
 
-The notebook itself contains detailed usage instructions. 
+The notebook itself contains detailed usage instructions.
 
 Ideally, you will copy this original notebook and use it for each plate you
 create with the shotgun pipeline.
