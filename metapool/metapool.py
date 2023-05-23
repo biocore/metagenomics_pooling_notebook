@@ -259,6 +259,9 @@ def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
 
             plate_map_samples = {
                 s for s in _df['Sample'] if not s.startswith('BLANK')}
+            print(qiita_id)
+            print(qurl)
+            print(qclient.get(qurl))
             qsamples = {
                 s.replace(f'{qiita_id}.', '') for s in qclient.get(qurl)}
             sample_name_diff = plate_map_samples - set(qsamples)
