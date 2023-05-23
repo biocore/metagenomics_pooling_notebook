@@ -17,7 +17,7 @@ jobs:
     # we can add more versions of node.js in the future
     strategy:
       matrix:
-        python-version: ['3.9']
+        python-version: ['3.9.16']
 
     services:
       postgres:
@@ -78,7 +78,7 @@ jobs:
 
           # Setting up main qiita conda environment
           conda config --add channels conda-forge
-          conda create -q --yes -n qiita python=3.9 libgfortran numpy nginx cython redis
+          conda create -q --yes -n qiita python=3.9.16 libgfortran numpy nginx cython redis
           conda activate qiita
           pip install sphinx sphinx-bootstrap-theme nose-timer codecov Click
 
@@ -113,7 +113,7 @@ jobs:
 
           echo "4. Starting supervisord => multiple qiita instances"
           supervisord -c ${PWD}/qiita-dev/qiita_pet/supervisor_example.conf
-          sleep 5
+          sleep 15
           cat /tmp/supervisord.log
           python -c 'import ssl; print(ssl.OPENSSL_VERSION)'
 
