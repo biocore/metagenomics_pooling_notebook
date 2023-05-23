@@ -163,7 +163,9 @@ class Tests(TestCase):
 
     def test_read_plate_map_csv_validate_qiita_sample_names(self):
         qiita_oauth2_conf_fp = os.path.join(
-            os.getcwd(), 'qiita.oauth2.cfg.local')
+            os.getcwd(), 'qiita.oauth2.cfg')
+        print(qiita_oauth2_conf_fp)
+        print(open(qiita_oauth2_conf_fp, 'r').readlines())
 
         # Test error
         plate_map_csv = \
