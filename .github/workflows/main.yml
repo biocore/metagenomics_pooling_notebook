@@ -14,10 +14,6 @@ jobs:
   build:
     # The type of runner that the job will run on (available options are window/macOS/linux)
     runs-on: ubuntu-latest
-    # we can add more versions of node.js in the future
-    strategy:
-      matrix:
-        python-version: ['3.9.16']
 
     services:
       postgres:
@@ -54,10 +50,8 @@ jobs:
 
       - uses: conda-incubator/setup-miniconda@v2
         with:
-          activate-environment: tester
-          python-version: ${{ matrix.python-version }}
-          conda-channels: anaconda, conda-forge, bioconda
           auto-update-conda: true
+          python-version: 3.6
 
       - name: Install Qiita
         env:
@@ -78,7 +72,7 @@ jobs:
 
           # Setting up main qiita conda environment
           conda config --add channels conda-forge
-          conda create -q --yes -n qiita python=3.9.16 libgfortran numpy nginx cython redis
+          conda create -q --yes -n qiita python=3.6 pip==9.0.3 libgfortran numpy nginx cython redis
           conda activate qiita
           pip install sphinx sphinx-bootstrap-theme nose-timer codecov Click
 
@@ -120,7 +114,7 @@ jobs:
       - name: Install metapool
         shell: bash -l {0}
         run: |
-          conda create -q --yes -n metapool python=${{ matrix.python-version }} scikit-learn pandas numpy nose pep8 flake8 matplotlib jupyter notebook 'seaborn>=0.7.1' pip openpyxl
+          conda create -q --yes -n metapool python=3.9 scikit-learn pandas numpy nose pep8 flake8 matplotlib jupyter notebook 'seaborn>=0.7.1' pip openpyxl
           conda activate metapool
           pip install coveralls flake8
           pip install -e ".[all]"
