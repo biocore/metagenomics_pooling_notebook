@@ -236,8 +236,8 @@ def run_counts(run_dir, metadata):
             minimap2_counts(run_dir, metadata)])
 
     # convenience columns to assess sample quality
-    good_ratio = out['quality_filtered_reads_r1r2'] / out['raw_reads_r1r2']
-    out['fraction_passing_quality_filter'] = good_ratio
+    ratio = out['quality_filtered_reads_r1r2'] / out['raw_reads_r1r2']
+    out['fraction_passing_quality_filter'] = ratio
     out['fraction_non_human'] = (out['non_host_reads'] /
                                  out['quality_filtered_reads_r1r2'])
 
