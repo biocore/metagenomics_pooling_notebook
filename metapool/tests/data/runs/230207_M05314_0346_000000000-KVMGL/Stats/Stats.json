@@ -1,0 +1,362 @@
+{
+ "Flowcell" : "000000000-CMW26",
+ "RunNumber" : 241,
+ "RunId" : "230207_M05314_0346_000000000-KVMGL",
+ "ReadInfosForLanes" : [
+  {
+   "LaneNumber" : 1,
+   "ReadInfos" : [
+    {
+     "Number" : 1,
+     "NumCycles" : 151,
+     "IsIndexedRead" : false
+    },
+    {
+     "Number" : 1,
+     "NumCycles" : 8,
+     "IsIndexedRead" : true
+    },
+    {
+     "Number" : 2,
+     "NumCycles" : 8,
+     "IsIndexedRead" : true
+    },
+    {
+     "Number" : 2,
+     "NumCycles" : 151,
+     "IsIndexedRead" : false
+    }
+   ]
+  },
+  {
+   "LaneNumber" : 3,
+   "ReadInfos" : [
+    {
+     "Number" : 3,
+     "NumCycles" : 151,
+     "IsIndexedRead" : false
+    },
+    {
+     "Number" : 3,
+     "NumCycles" : 8,
+     "IsIndexedRead" : true
+    },
+    {
+     "Number" : 3,
+     "NumCycles" : 8,
+     "IsIndexedRead" : true
+    },
+    {
+     "Number" : 3,
+     "NumCycles" : 151,
+     "IsIndexedRead" : false
+    }
+   ]
+  }
+ ],
+ "ConversionResults" : [
+  {
+   "LaneNumber" : 1,
+   "TotalClustersRaw" : 14419084,
+   "TotalClustersPF" : 6957975,
+   "Yield" : 2101308450,
+   "DemuxResults" : [
+    {
+     "SampleId" : "sample1",
+     "SampleName" : "sample1",
+     "IndexMetrics" : [
+      {
+       "IndexSequence" : "AGGTCACT+CTCCTGAA",
+       "MismatchCounts" : {
+        "0" : 8951,
+        "1" : 398
+       }
+      }
+     ],
+     "NumberReads" : 10000,
+     "Yield" : 2823398,
+     "ReadMetrics" : [
+      {
+       "ReadNumber" : 1,
+       "Yield" : 1411699,
+       "YieldQ30" : 1254547,
+       "QualityScoreSum" : 50473229,
+       "TrimmedBases" : 355996
+      },
+      {
+       "ReadNumber" : 2,
+       "Yield" : 1411699,
+       "YieldQ30" : 1116239,
+       "QualityScoreSum" : 47100820,
+       "TrimmedBases" : 72281
+      }
+     ]
+    },
+    {
+     "SampleId" : "sample2",
+     "SampleName" : "sample2",
+     "IndexMetrics" : [
+      {
+       "IndexSequence" : "AGGTCACT+CTCCTGAA",
+       "MismatchCounts" : {
+        "0" : 8951,
+        "1" : 398
+       }
+      }
+     ],
+     "NumberReads" : 100000,
+     "Yield" : 2823398,
+     "ReadMetrics" : [
+      {
+       "ReadNumber" : 1,
+       "Yield" : 1411699,
+       "YieldQ30" : 1254547,
+       "QualityScoreSum" : 50473229,
+       "TrimmedBases" : 355996
+      },
+      {
+       "ReadNumber" : 2,
+       "Yield" : 1411699,
+       "YieldQ30" : 1116239,
+       "QualityScoreSum" : 47100820,
+       "TrimmedBases" : 72281
+      }
+     ]
+    }
+   ],
+   "Undetermined" : {
+    "NumberReads" : 473281,
+    "Yield" : 142930862,
+    "ReadMetrics" : [
+     {
+      "ReadNumber" : 1,
+      "Yield" : 71465431,
+      "YieldQ30" : 47125274,
+      "QualityScoreSum" : 2153661622,
+      "TrimmedBases" : 4955366
+     },
+     {
+      "ReadNumber" : 2,
+      "Yield" : 71465431,
+      "YieldQ30" : 39987249,
+      "QualityScoreSum" : 2001380953,
+      "TrimmedBases" : 4438184
+     }
+    ]
+   }
+  },
+  {
+   "LaneNumber" : 3,
+   "TotalClustersRaw" : 14419084,
+   "TotalClustersPF" : 6957975,
+   "Yield" : 2101308450,
+   "DemuxResults" : [
+    {
+     "SampleId" : "sample1",
+     "SampleName" : "sample1",
+     "IndexMetrics" : [
+      {
+       "IndexSequence" : "AGGTCACT+CTCCTGAA",
+       "MismatchCounts" : {
+        "0" : 8951,
+        "1" : 398
+       }
+      }
+     ],
+     "NumberReads" : 100000,
+     "Yield" : 2823398,
+     "ReadMetrics" : [
+      {
+       "ReadNumber" : 1,
+       "Yield" : 1411699,
+       "YieldQ30" : 1254547,
+       "QualityScoreSum" : 50473229,
+       "TrimmedBases" : 355996
+      },
+      {
+       "ReadNumber" : 2,
+       "Yield" : 1411699,
+       "YieldQ30" : 1116239,
+       "QualityScoreSum" : 47100820,
+       "TrimmedBases" : 72281
+      }
+     ]
+    },
+    {
+     "SampleId" : "sample2",
+     "SampleName" : "sample2",
+     "IndexMetrics" : [
+      {
+       "IndexSequence" : "AGGTCACT+CTCCTGAA",
+       "MismatchCounts" : {
+        "0" : 8951,
+        "1" : 398
+       }
+      }
+     ],
+     "NumberReads" : 2300000,
+     "Yield" : 2823398,
+     "ReadMetrics" : [
+      {
+       "ReadNumber" : 1,
+       "Yield" : 1411699,
+       "YieldQ30" : 1254547,
+       "QualityScoreSum" : 50473229,
+       "TrimmedBases" : 355996
+      },
+      {
+       "ReadNumber" : 2,
+       "Yield" : 1411699,
+       "YieldQ30" : 1116239,
+       "QualityScoreSum" : 47100820,
+       "TrimmedBases" : 72281
+      }
+     ]
+    },
+    {
+     "SampleId" : "sample3",
+     "SampleName" : "sample3",
+     "IndexMetrics" : [
+      {
+       "IndexSequence" : "AGGTCACT+CTCCTGAA",
+       "MismatchCounts" : {
+        "0" : 8951,
+        "1" : 398
+       }
+      }
+     ],
+     "NumberReads" : 300000,
+     "Yield" : 2823398,
+     "ReadMetrics" : [
+      {
+       "ReadNumber" : 1,
+       "Yield" : 1411699,
+       "YieldQ30" : 1254547,
+       "QualityScoreSum" : 50473229,
+       "TrimmedBases" : 355996
+      },
+      {
+       "ReadNumber" : 2,
+       "Yield" : 1411699,
+       "YieldQ30" : 1116239,
+       "QualityScoreSum" : 47100820,
+       "TrimmedBases" : 72281
+      }
+     ]
+    },
+    {
+     "SampleId" : "sample4",
+     "SampleName" : "sample4",
+     "IndexMetrics" : [
+      {
+       "IndexSequence" : "AGGTCACT+CTCCTGAA",
+       "MismatchCounts" : {
+        "0" : 8951,
+        "1" : 398
+       }
+      }
+     ],
+     "NumberReads" : 400000,
+     "Yield" : 2823398,
+     "ReadMetrics" : [
+      {
+       "ReadNumber" : 1,
+       "Yield" : 1411699,
+       "YieldQ30" : 1254547,
+       "QualityScoreSum" : 50473229,
+       "TrimmedBases" : 355996
+      },
+      {
+       "ReadNumber" : 2,
+       "Yield" : 1411699,
+       "YieldQ30" : 1116239,
+       "QualityScoreSum" : 47100820,
+       "TrimmedBases" : 72281
+      }
+     ]
+    },
+    {
+     "SampleId" : "sample5",
+     "SampleName" : "sample5",
+     "IndexMetrics" : [
+      {
+       "IndexSequence" : "AGGTCACT+CTCCTGAA",
+       "MismatchCounts" : {
+        "0" : 8951,
+        "1" : 398
+       }
+      }
+     ],
+     "NumberReads" : 567000,
+     "Yield" : 2823398,
+     "ReadMetrics" : [
+      {
+       "ReadNumber" : 1,
+       "Yield" : 1411699,
+       "YieldQ30" : 1254547,
+       "QualityScoreSum" : 50473229,
+       "TrimmedBases" : 355996
+      },
+      {
+       "ReadNumber" : 2,
+       "Yield" : 1411699,
+       "YieldQ30" : 1116239,
+       "QualityScoreSum" : 47100820,
+       "TrimmedBases" : 72281
+      }
+     ]
+    }
+   ],
+   "Undetermined" : {
+    "NumberReads" : 473281,
+    "Yield" : 142930862,
+    "ReadMetrics" : [
+     {
+      "ReadNumber" : 1,
+      "Yield" : 71465431,
+      "YieldQ30" : 47125274,
+      "QualityScoreSum" : 2153661622,
+      "TrimmedBases" : 4955366
+     },
+     {
+      "ReadNumber" : 2,
+      "Yield" : 71465431,
+      "YieldQ30" : 39987249,
+      "QualityScoreSum" : 2001380953,
+      "TrimmedBases" : 4438184
+     }
+    ]
+   }
+  }
+ ],
+ "UnknownBarcodes" : [
+  {
+   "Lane" : 1,
+   "Barcodes" : {
+    "TGGTCTCA+CCAACACT" : 8440,
+    "TTGTCTCA+CCAACACT" : 7620,
+    "TTGGTCTC+CAACACTA" : 6100,
+    "CTCTCAGA+CTTACTGA" : 40,
+    "CTCCTGCT+CTTCACTG" : 40,
+    "CTCCTCCT+GTTCCCTG" : 40,
+    "CTCCTCCT+CTTCACTG" : 40,
+    "CTCCTCCG+CTGCCCTG" : 40,
+    "CTCCTCCG+CCCCCCTT" : 40,
+    "CTCCTCCC+CTTCACTG" : 40,
+    "CTCCTCAA+CTTCACTG" : 40,
+    "CTCCCTCT+TATGGCAC" : 40,
+    "CTCCATCA+CTTCACTG" : 40,
+    "CTCATTCA+CTTCACTG" : 40,
+    "CTCATCGA+CTTCACTA" : 40,
+    "CTCATCAG+TTCCTGAC" : 40,
+    "CTCATCAG+TTCACTAC" : 40,
+    "CTCATCAG+TCACTGAC" : 40,
+    "CTCATCAG+CTTTACGG" : 40,
+    "CTCATCAG+CTTCCCGG" : 40,
+    "CTCATCAG+CTTCACCA" : 40,
+    "CTCATCAG+CTACTGAC" : 40,
+    "CTCATCAG+ACTGACAC" : 40
+   }
+  }
+ ]
+}

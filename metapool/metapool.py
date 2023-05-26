@@ -10,6 +10,7 @@ from random import choices
 from configparser import ConfigParser
 from qiita_client import QiitaClient
 from .prep import remove_qiita_id
+from .plate import _validate_well_id_96
 
 
 REVCOMP_SEQUENCERS = ['HiSeq4000', 'MiniSeq', 'NextSeq', 'HiSeq3000',
@@ -217,6 +218,17 @@ def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
     plate_df = pd.read_csv(f, sep=sep)
     if 'Project Name' not in plate_df.columns:
         raise ValueError('Missing `Project Name` column.')
+
+    if 'well_id_96' not in plate_df.columns:
+        raise ValueError('Missing `well_id_96` column.')
+
+    invalid_well_ids = [x for x in list(plate_df.well_id_96) if
+                        _validate_well_id_96(x) is None]
+
+    if invalid_well_ids:
+        raise ValueError('`well_id_96` column contains the following invalid '
+                         'values: %s' % ','.join(invalid_well_ids))
+
     plate_df['Well'] = plate_df['Row'] + plate_df['Col'].map(str)
 
     null_samples = plate_df.Sample.isnull()
@@ -237,6 +249,10 @@ def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
     if qiita_validate:
         errors = []
         for project, _df in plate_df.groupby(['Project Name']):
+            # if project is a tuple, force to string
+            if isinstance(project, tuple):
+                project = project[0]
+
             project_name = remove_qiita_id(project)
             qiita_id = project.replace(f'{project_name}_', '')
             qurl = f'/api/v1/study/{qiita_id}/samples'
@@ -256,12 +272,26 @@ def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
                     if not tube_id_diff:
                         continue
                     len_tube_id_overlap = len(tube_id_diff)
-                    tids_example = ', '.join(choices(list(tids), k=5))
+
+                    tids = list(tids)
+                    if len(tids) > 5:
+                        # select five samples at random to display to the user.
+                        tids_example = ', '.join(choices(tids, k=5))
+                    else:
+                        tids_example = ', '.join(tids)
+
                     error_tube_id = (
                         f'tube_id in Qiita but {len_tube_id_overlap} missing '
                         f'samples. Some samples from tube_id: {tids_example}.')
                 len_overlap = len(sample_name_diff)
-                samples_example = ', '.join(choices(list(qsamples), k=5))
+
+                qsamples = list(qsamples)
+                if len(qsamples) > 5:
+                    # select five samples at random to display to the user.
+                    samples_example = ', '.join(choices(qsamples, k=5))
+                else:
+                    samples_example = ', '.join(qsamples)
+
                 missing = ', '.join(sorted(sample_name_diff)[:4])
                 errors.append(
                     f'{project} has {len_overlap} missing samples (i.e. '
@@ -274,7 +304,8 @@ def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
 
 
 # method to read minipico output
-def read_pico_csv(f, sep='\t', plate_reader='Synergy_HT',
+def read_pico_csv(f, sep='\t', plate_reader='SpectraMax_i3x',
+                  min_conc=0, max_conc=150,
                   conc_col_name='Sample DNA Concentration'):
     """
     reads tab-delimited pico quant
@@ -288,6 +319,12 @@ def read_pico_csv(f, sep='\t', plate_reader='Synergy_HT',
     plate_reader: str
         plate reader used to generate quant file ['Synergy_HT',
         'SpectraMax_i3x']
+    min_conc: int
+        minimum concentration allowed. Values lower than this
+        will be clipped
+    max_conc: int
+        maximum concentration allowed. Values higher than
+        this will be clipped
     conc_col_name: str
         name to use for concentration column output
 
@@ -321,8 +358,9 @@ def read_pico_csv(f, sep='\t', plate_reader='Synergy_HT',
     pico_df[conc_col_name] = \
         pd.to_numeric(pico_df[conc_col_name], errors='coerce')
     if plate_reader == 'SpectraMax_i3x':
-        # limit concentration range (0 - 60 )
-        pico_df[conc_col_name] = np.clip(pico_df[conc_col_name], 0, 60)
+        # limit concentration range (min_conc - max_conc )
+        pico_df[conc_col_name] = np.clip(pico_df[conc_col_name], min_conc,
+                                         max_conc)
 
     return pico_df
 
@@ -360,8 +398,8 @@ def calculate_norm_vol(dna_concs, ng=5, min_vol=2.5, max_vol=3500,
 def format_dna_norm_picklist(dna_vols, water_vols, wells, dest_wells=None,
                              dna_concs=None, sample_names=None,
                              sample_plates=None, water_plate_name='Water',
-                             dna_plate_type='384PP_AQ_BP2_HT',
-                             water_plate_type='384PP_AQ_BP2_HT',
+                             dna_plate_type='384PP_AQ_BP2',
+                             water_plate_type='384PP_AQ_BP2',
                              dest_plate_name='NormalizedDNA'):
     """
     Writes Echo-format pick list to achieve a normalized input DNA pool
@@ -407,7 +445,7 @@ def format_dna_norm_picklist(dna_vols, water_vols, wells, dest_wells=None,
     if isinstance(sample_plates, str):
         sample_plates = np.full_like(dna_vols, sample_plates, dtype=object)
     if dna_plate_type is None:
-        dna_plate_type = '384PP_AQ_BP2_HT'
+        dna_plate_type = '384PP_AQ_BP2'
     if isinstance(dna_plate_type, str):
         dna_plate_type = np.full_like(dna_vols, dna_plate_type, dtype=object)
     if dna_concs is None:
@@ -425,19 +463,20 @@ def format_dna_norm_picklist(dna_vols, water_vols, wells, dest_wells=None,
                  'Concentration\tTransfer Volume\tDestination Plate Name\t'
                  'Destination Well')
 
-    # water additions
-    for index, sample in np.ndenumerate(sample_names):
-        picklist += '\n' + '\t'.join([str(sample), water_plate_name,
-                                      water_plate_type, str(wells[index]),
-                                      str(dna_concs[index]),
-                                      str(water_vols[index]),
-                                      dest_plate_name, str(dest_wells[index])])
     # DNA additions
     for index, sample in np.ndenumerate(sample_names):
         picklist += '\n' + '\t'.join([str(sample), str(sample_plates[index]),
                                       str(dna_plate_type[index]),
                                       str(wells[index]), str(dna_concs[index]),
                                       str(dna_vols[index]),
+                                      dest_plate_name, str(dest_wells[index])])
+
+    # water additions
+    for index, sample in np.ndenumerate(sample_names):
+        picklist += '\n' + '\t'.join([str(sample), water_plate_name,
+                                      water_plate_type, str(wells[index]),
+                                      str(dna_concs[index]),
+                                      str(water_vols[index]),
                                       dest_plate_name, str(dest_wells[index])])
 
     return picklist
@@ -469,8 +508,8 @@ def assign_index(samples, index_df, start_idx=0):
 
 def format_index_picklist(sample_names, sample_wells, indices,
                           i5_vol=250, i7_vol=250,
-                          i5_plate_type='384LDV_AQ_B2_HT',
-                          i7_plate_type='384LDV_AQ_B2_HT',
+                          i5_plate_type='384LDV_AQ_B2',
+                          i7_plate_type='384LDV_AQ_B2',
                           dest_plate_name='IndexPCRPlate'):
     """
     Writes Echo-format pick list to achieve a normalized input DNA pool
@@ -729,7 +768,7 @@ def estimate_pool_conc_vol(sample_vols, sample_concs):
     # (total vol in nL * 1 L / 10^9 nL)
     pool_conc = total_pmols.sum() / (total_vol * nl_scalar)
 
-    return (pool_conc, total_vol)
+    return pool_conc, total_vol
 
 
 def format_pooling_echo_pick_list(vol_sample,
@@ -774,7 +813,7 @@ def format_pooling_echo_pick_list(vol_sample,
                              (d % dest_plate_shape[1]))
 
             contents.append(
-                ",".join(['1', '384LDV_AQ_B2_HT', well_name, "",
+                ",".join(['1', '384LDV_AQ_B2', well_name, "",
                           val, 'NormalizedDNA', dest]))
 
     return "\n".join(contents)
@@ -947,6 +986,7 @@ def parse_dna_conc_csv(fp):
 
     dna_df['pico_conc'] = pd.to_numeric(
         dna_df['[Concentration]'], errors='Coerce')
+
     return dna_df
 
 
@@ -1081,3 +1121,240 @@ def reformat_interleaved_to_columns(wells):
         new_wells[i] = nwell
 
     return new_wells
+
+def merge_read_counts(plate_df, counts_df, reads_column_name='Filtered Reads'):
+    """ Merges reads counts from FASTQC report or per_sample_FASTQ summary
+    :param plate_df: A DataFrame containing the growing plate dataframe.
+    :param counts_df: A DataFrame containing the counts.
+    :param reads_column_name: A string column header for
+    the merged read counts column.
+    :return: A DataFrame containing the read counts
+    from the input file in a column
+    with the reads_column_name.
+    """
+
+    # Map unwanted characters to other characters
+    plate_df['sample sheet Sample_ID'] = plate_df['Sample'].map(bcl_scrub_name)
+
+    # Logic for multiple input_file format support
+    if 'Category' in counts_df.columns:
+        sample_column = 'Category'
+        file_type = 'FastQC'
+    elif 'filename' in counts_df.columns:
+        sample_column = 'filename'
+        file_type = 'per_sample_FASTQ'
+    else:
+        raise Exception("Unsupported input file type.")
+
+    # Parse table to find sample names, and sum forward and rev reads.
+    for i in counts_df.index:
+        filename = counts_df.loc[i, sample_column]
+        match = re.match(r'^(.*)_S\d+_L00\d', filename)
+        if not match:
+            raise LookupError(f'id not found in {filename}')
+        sample_id = match.group(1)
+        counts_df.loc[i, 'Sample'] = sample_id
+    counts_df = counts_df.groupby('Sample').sum(numeric_only=True)
+
+    # Logic for multiple input_file format support
+    if file_type == 'FastQC':
+        counts_df[reads_column_name] = counts_df['Unique Reads'] + \
+                                       counts_df['Duplicate Reads']
+    elif file_type == 'per_sample_FASTQ':
+        counts_df.rename(columns={'reads': reads_column_name},
+                         inplace=True)
+
+    # Merge reads with plate_df
+    to_merge = counts_df[[reads_column_name]]
+    plate_df_w_reads = plate_df.merge(to_merge,
+                                      left_on='sample sheet Sample_ID',
+                                      right_on='Sample', how='left')
+
+    return plate_df_w_reads
+
+
+def read_survival(reads, label='Remaining', rmin=0, rmax=10 ** 6, rsteps=100):
+    """
+    Calculates a sample_retention curve from a read distribution
+    :param reads: A DataFrame Series of a distribution of reads.
+    :param label: A string label for the column that counts samples retained.
+    :param rmin: An integer that counts the minimum number of reads
+    for the sample_retention curve
+    :param rmax: An integer that counts the maximum number of reads
+    for the sample_retention curve
+    :param rsteps: An integer that counts the steps between
+    rmin and rmax to compute the sample_retention.
+    :return: A DataFrame containing the sample_retention data
+    for a survival curve.
+    with the reads_column_name.
+    """
+    rstep = int((rmax - rmin) / rsteps)
+    steps = list(range(rmin, rmax, rstep))
+    remaining = np.zeros(rsteps)
+    for i, t in enumerate(steps):
+        remaining[i] = np.greater_equal(reads, t).sum()
+
+    remaining_df = pd.DataFrame(remaining,
+                                index=steps, columns=[label])
+    return remaining_df
+
+
+def linear_transform(input_values, output_min=100, output_max=1000):
+    """
+    Calculates a linear transformation between a range of
+    input_values and output_min and output_max parameters
+    :param input_values: A DataFrame Series of a distribution of values.
+    :param output_min: An integer that specifies the minimum value
+    for the transformed output
+    :param output_max: An integer that specifies the maximum value
+    for the transformed output
+    :return: An array of linearly transformed values.
+    """
+
+    input_range = input_values.max() - input_values.min()
+    input_min = input_values.min()
+
+    diff1 = input_values - input_min
+    diff2 = output_max - output_min
+    transformed_values = (((diff1))*(diff2)/input_range) + output_min
+    return transformed_values
+
+
+def calculate_iseqnorm_pooling_volumes(plate_df,
+                                       normalization_column='Filtered Reads',
+                                       dynamic_range=100, lower_bound=1,
+                                       min_pool_vol=40, max_pool_vol=500):
+    """
+    Calculates optimal iseq normalization pooling volumes
+    from a given set of parameters.
+    :param plate_df: A DataFrame with ----need to add description----
+    :param normalization_column: A string indicating the column name for a
+    distribution of read counts used for normalization
+    :param dynamic_range: The ratio between the read counts of the
+    lower and high end of a clipped distribution of
+    Loading Factors for normalization.
+    Used to shape normalized distribution
+    :param lower_bound: An integer that specifies the lower end of the clipped
+    distribution of Loading Factors for normalization.
+    Used to shape normalized distribution
+    :param min_pool_vol: An integer that specifies the
+    minimum pooling volume (nL) per sample for acoustic droplet ejection.
+    :param min_pool_vol: An integer that specifies the
+    maximum pooling volume (nL) per sample for acoustic droplet ejection.
+    :return: A DataFrame with iSeqnorm pooling volumes.
+    """
+    try:
+        norm = plate_df[normalization_column]
+        plate_df['proportion'] = norm / (norm.sum())
+        plate_df['LoadingFactor'] = plate_df['proportion'].max()\
+            / plate_df['proportion']
+        nblanks = plate_df.loc[plate_df['Blank']].shape[0]
+        if (nblanks == 0):
+            warnings.warn("There are no BLANKS in this plate")
+        # May 5 2023 meeting about blanks agreed to treat them
+        # agnostically. No underpooling.
+        # else:
+        #     plate_df.loc[plate_df['Blank'], 'LoadingFactor'] = \
+        #         plate_df.loc[plate_df['Blank'], 'LoadingFactor'] / 2
+        #
+        plate_df.loc[plate_df['LoadingFactor'].isnull(),
+                     'LoadingFactor'] = plate_df['LoadingFactor'].max()
+    except ValueError:
+        raise ValueError(f'Function expects dataframe with merged, \
+                         per_sample read counts [\'{normalization_column}\']')
+
+    # Calculate proportion of samples not normalized (unnorm_proportion)
+    n = plate_df.shape[0]
+    upper_bound = lower_bound * dynamic_range
+    lf = plate_df['LoadingFactor']
+    unnorm_proportion = sum((lf < lower_bound) | (lf > upper_bound)) / n
+
+    # Transforming LoadingFactors into Pooling Volumes
+    # with linear transformation
+    plate_df['LoadingFactor'] = np.clip(plate_df['LoadingFactor'],
+                                        lower_bound, upper_bound)
+    norm_name = 'iSeq normpool volume'
+    plate_df[norm_name] = linear_transform(plate_df['LoadingFactor'],
+                                           output_min=min_pool_vol,
+                                           output_max=max_pool_vol)
+
+    # Underpooling BLANKS
+    nblanks = plate_df.loc[plate_df['Blank']].shape[0]
+    if (nblanks == 0):
+        warnings.warn("There are no BLANKS in this plate")
+    else:
+        plate_df.loc[plate_df['Blank'], 'iSeq normpool volume'] = \
+            plate_df.loc[plate_df['Blank'], 'iSeq normpool volume'] / 5
+
+    # Plotting
+    f, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, figsize=(5, 8), sharex=True)
+
+    ax1.set_title(f'{unnorm_proportion*100:.2f}% of sample set not normalized')
+    sns.scatterplot(x=normalization_column,
+                    y='iSeq normpool volume',
+                    hue='Blank',
+                    data=plate_df,
+                    alpha=0.5, ax=ax1)
+    plt.xscale('log')
+    sns.histplot(plate_df[normalization_column], ax=ax2)
+    plt.tight_layout()
+
+    return plate_df
+
+
+def estimate_read_depth(plate_df,
+                        estimated_total_output=4e9,
+                        on_target_column='Filtered Reads',
+                        off_target_column='Raw Reads'):
+    """
+    Builds a figure to estimate read depth per sample when
+    given a DataFrame with iSeq normalization pooling volumes.
+    :param plate_df: A DataFrame containing the growing plate dataframe.
+    :param estimated_total_output: An integer (reads) that
+    estimates the total output of the projected sequencing run.
+    :param on_target_column: A string formated column name specifying which
+    column was used for normalization, and as the numerator in the proportions.
+    :param off_target_column: A string formated column name specifying
+    which column to use as denominator in the proportions, typically Raw Reads.
+    :return: A figure with proportions of reads on and off target and an
+    estimate of average reads on target per sample.
+    """
+
+    plate_df['projected_reads'] = \
+        plate_df[off_target_column] * plate_df['LoadingFactor']
+
+    plate_df['projected_proportion'] = \
+        plate_df['projected_reads'] / (plate_df['projected_reads'].sum())
+
+    plate_df['projected_HO_reads'] = \
+        plate_df['projected_proportion'] * estimated_total_output
+
+    plate_df.sort_values(by='projected_HO_reads',
+                         ascending=False, inplace=True)
+
+    plate_df['on_target_proportion'] = \
+        plate_df[on_target_column] / plate_df[off_target_column]
+
+    plate_df['projected_off_target_reads'] = \
+        plate_df['projected_HO_reads'] * (1 - plate_df['on_target_proportion'])
+
+    plate_df['projected_on_target_reads'] = \
+        plate_df['projected_HO_reads'] * plate_df['on_target_proportion']
+
+    # PLOT
+    plt.subplots(figsize=(11, 6))
+    plot_df = plate_df.loc[~plate_df['projected_HO_reads'].isnull()]
+    plot_df = plot_df.reset_index()
+    plt.bar(range(plot_df.shape[0]),
+            plot_df['projected_on_target_reads'], width=1, color='r')
+    plt.bar(range(plot_df.shape[0]),
+            plot_df['projected_off_target_reads'],
+            bottom=plot_df['projected_on_target_reads'],
+            width=1, align='center', color='gray')
+
+    plt.title('Average reads on target per sample: ' +
+              "{:,}".format(int(plate_df['projected_on_target_reads'].mean())))
+    plt.show()
+
+    return plate_df
+

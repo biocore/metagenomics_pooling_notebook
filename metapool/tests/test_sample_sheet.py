@@ -26,6 +26,9 @@ class BaseTests(unittest.TestCase):
                                '191103_D32611_0365_G00DHB5YXX',
                                'sample-sheet.csv')
 
+        self.alt_ss = os.path.join(data_dir,
+                                   'good-sample-sheet-with-alt-col-names.csv')
+
         self.good_ss = os.path.join(data_dir, 'good-sample-sheet.csv')
         self.with_comments = os.path.join(data_dir, 'good-sample-sheet-but-'
                                           'with-comments.csv')
@@ -516,6 +519,24 @@ class KLSampleSheetTests(BaseTests):
         obs = _validate_sample_sheet_metadata(self.metadata)
         self.assertEqual(str(obs[0]), str(exp[0]))
 
+    def test_alt_sample_sheet(self):
+        # testing with all the sheets we have access to
+        obs = KLSampleSheet(self.alt_ss).all_sample_keys
+
+        exp = ['Lane',
+               'Sample_ID',
+               'Sample_Name',
+               'Sample_Plate',
+               'Sample_Well',
+               'I7_Index_ID',
+               'index',
+               'I5_Index_ID',
+               'index2',
+               'Sample_Project',
+               'Well_description']
+
+        self.assertEqual(set(obs), set(exp))
+
 
 class SampleSheetWorkflow(BaseTests):
     def setUp(self):
@@ -630,7 +651,7 @@ class SampleSheetWorkflow(BaseTests):
                    r'in the sample sheet is empty')
         with self.assertWarnsRegex(UserWarning, message):
             obs = make_sample_sheet(self.metadata, self.table, 'HiSeq4000',
-                                    [5, 7])
+                                    [5, 7], strict=False)
 
         self.assertEqual(obs.Reads, [151, 151])
         self.assertEqual(obs.Settings, {'ReverseComplement': '0'})
@@ -675,6 +696,69 @@ class SampleSheetWorkflow(BaseTests):
 
             self.assertEqual(dict(sample), dict(exp))
 
+    def test_column_alternatives(self):
+        # confirm standard 'Well_description' column name behaved as intended.
+        table2 = self.table.copy(deep=True)
+        table2['Well_description'] = ['Row A', 'Row B', 'Row C']
+
+        # allow 'Well_description' column to pass through to obs.
+        obs = make_sample_sheet(self.metadata,
+                                table2,
+                                'HiSeq4000',
+                                [5, 7],
+                                strict=False)
+
+        data = (
+            [5, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
+             'AGCCTTCGTCGC', '', '', 'THDMI_10317', 'Row A'],
+            [5, 'X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1',
+             '515rcbc12', 'CGTATAAATGCG', '', '', 'THDMI_10317', 'Row B'],
+            [5, 'X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1',
+             '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317', 'Row C'],
+            [7, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
+             'AGCCTTCGTCGC', '', '', 'THDMI_10317', 'Row A'],
+            [7, 'X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1',
+             '515rcbc12', 'CGTATAAATGCG', '', '', 'THDMI_10317', 'Row B'],
+            [7, 'X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1',
+             '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317', 'Row C'],
+        )
+        keys = ['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
+                'Sample_Well', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                'Sample_Project', 'Well_description']
+
+        for sample, row in zip(obs.samples, data):
+            exp = sample_sheet.Sample(dict(zip(keys, row)))
+            self.assertEqual(dict(sample), dict(exp))
+
+        # Try making sample-sheet w/an alternate column name and confirm that
+        # the results continue to be as expected.
+        table2.rename({'Well_description': 'well_description'},
+                      axis=1, inplace=True)
+
+        obs = make_sample_sheet(self.metadata,
+                                table2,
+                                'HiSeq4000',
+                                [5, 7],
+                                strict=False)
+
+        for sample, row in zip(obs.samples, data):
+            exp = sample_sheet.Sample(dict(zip(keys, row)))
+            self.assertEqual(dict(sample), dict(exp))
+
+        # Try w/another alternate column name
+        table2.rename({'well_description': 'description'},
+                      axis=1, inplace=True)
+
+        obs = make_sample_sheet(self.metadata,
+                                table2,
+                                'HiSeq4000',
+                                [5, 7],
+                                strict=False)
+
+        for sample, row in zip(obs.samples, data):
+            exp = sample_sheet.Sample(dict(zip(keys, row)))
+            self.assertEqual(dict(sample), dict(exp))
+
     def test_remap_table_amplicon(self):
         columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'Sample_Well',
                    'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
@@ -694,7 +778,7 @@ class SampleSheetWorkflow(BaseTests):
         message = (r'The column (I5_Index_ID|index2) '
                    r'in the sample sheet is empty')
         with self.assertWarnsRegex(UserWarning, message):
-            obs = _remap_table(self.table, 'TruSeq HT')
+            obs = _remap_table(self.table, 'TruSeq HT', strict=False)
 
             self.assertEqual(len(obs), 3)
             pd.testing.assert_frame_equal(obs, exp, check_like=True)
@@ -736,9 +820,11 @@ class SampleSheetWorkflow(BaseTests):
 
         exp = pd.DataFrame(columns=columns, data=data)
 
-        obs = _remap_table(self.table, 'Metagenomics')
+        obs = _remap_table(self.table, 'Metagenomics', strict=False)
 
         self.assertEqual(len(obs), 3)
+        print(obs.head())
+        print(exp.head())
         pd.testing.assert_frame_equal(obs, exp, check_like=True)
 
     def test_remap_table_metatranscriptomics(self):
@@ -778,7 +864,7 @@ class SampleSheetWorkflow(BaseTests):
 
         exp = pd.DataFrame(columns=columns, data=data)
 
-        obs = _remap_table(self.table, 'Metatranscriptomics')
+        obs = _remap_table(self.table, 'Metatranscriptomics', strict=False)
 
         self.assertEqual(len(obs), 3)
         pd.testing.assert_frame_equal(obs, exp, check_like=True)
@@ -790,7 +876,7 @@ class SampleSheetWorkflow(BaseTests):
                    r'in the sample sheet is empty')
         with self.assertWarnsRegex(UserWarning, message):
             obs = _add_data_to_sheet(self.table, self.sheet, 'HiSeq4000', [1],
-                                     'TruSeq HT')
+                                     'TruSeq HT', strict=False)
 
         self.assertEqual(len(obs), 3)
 

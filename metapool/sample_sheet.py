@@ -14,6 +14,7 @@ from metapool.metapool import (bcl_scrub_name, sequencer_i5_index,
 from metapool.plate import ErrorMessage, WarningMessage
 from metapool.prep import qiita_scrub_name
 
+
 _KL_SAMPLE_SHEET_SECTIONS = [
     'Header', 'Reads', 'Settings', 'Data', 'Bioinformatics', 'Contact'
 ]
@@ -22,6 +23,11 @@ _KL_SAMPLE_SHEET_DATA_COLUMNS = [
     'Sample_ID', 'Sample_Name', 'Sample_Plate', 'Sample_Well', 'I7_Index_ID',
     'index', 'I5_Index_ID', 'index2', 'Sample_Project', 'Well_description'
 ]
+
+_KL_SAMPLE_SHEET_COLUMN_ALTS = {'well_description': 'Well_description',
+                                'description': 'Well_description',
+                                'Description': 'Well_description',
+                                'sample_plate': 'Sample_Plate'}
 
 _KL_AMPLICON_REMAPPER = {
     'sample sheet Sample_ID': 'Sample_ID',
@@ -197,7 +203,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
                 header_match = self._section_header_re.match(line[0])
 
-                # If we enter a section save it's name and continue to next
+                # If we enter a section save its name and continue to next
                 # line.
                 if header_match:
                     section_name, *_ = header_match.groups()
@@ -228,7 +234,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                             f'have empty fields: {line}'
                         )
                     else:
-                        section_header = line
+                        section_header = self._process_section_header(line)
                     continue
 
                 elif section_name in {'Bioinformatics', 'Contact'}:
@@ -253,6 +259,13 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                     section = getattr(self, section_name)
                     section[key] = value
                     continue
+
+    def _process_section_header(self, columns):
+        for i in range(0, len(columns)):
+            if columns[i] in _KL_SAMPLE_SHEET_COLUMN_ALTS:
+                # overwrite existing alternate name w/internal representation.
+                columns[i] = _KL_SAMPLE_SHEET_COLUMN_ALTS[columns[i]]
+        return columns
 
     def write(self, handle, blank_lines=1) -> None:
         """Write to a file-like object.
@@ -489,7 +502,7 @@ def _add_metadata_to_sheet(metadata, sheet, sequencer):
     return sheet
 
 
-def _remap_table(table, assay):
+def _remap_table(table, assay, strict=True):
     if assay == _AMPLICON:
         remapper = _KL_AMPLICON_REMAPPER
     elif assay == _METAGENOMICS:
@@ -497,12 +510,45 @@ def _remap_table(table, assay):
     elif assay == _METATRANSCRIPTOMICS:
         remapper = _KL_METATRANSCRIPTOMICS_REMAPPER
 
-    # make a copy because we are going to modify the data
-    out = table[remapper.keys()].copy()
+    if strict:
+        # legacy operation. All columns not defined in remapper will be
+        # filtered out, including 'Well_description'.
+        out = table[remapper.keys()].copy()
+        out.rename(remapper, axis=1, inplace=True)
+    else:
+        out = table.copy(deep=True)
 
-    out.rename(remapper, axis=1, inplace=True)
+        # if a column named 'index' is present in table, assume it is a
+        # numeric index and not a sequence of bases, which is required in
+        # the output. Assume the column that will become 'index' is
+        # defined in remapper.
+        if 'index' in set(out.columns):
+            out.drop(columns=['index'], inplace=True)
+
+        # if an alternate form of a column name defined in
+        # _KL_SAMPLE_SHEET_COLUMN_ALTS is found in table, assume it should
+        # be renamed to its proper form and be included in the output e.g.:
+        # 'well_description' -> 'Well_description'.
+
+        # assume keys in _KL_SAMPLE_SHEET_COLUMN_ALTS do not overlap w/
+        # remapper (they currently do not). Define the full set of potential
+        # columns to rename in table.
+
+        # new syntax in 3.9 allows us to merge two dicts together w/OR.
+        remapper = _KL_SAMPLE_SHEET_COLUMN_ALTS | remapper
+
+        out.rename(remapper, axis=1, inplace=True)
+
+        # out may contain additional columns that aren't allowed in the [Data]
+        # section of a sample-sheet e.g.: 'Extraction Kit Lot'. There may also
+        # be required columns that aren't defined in out.
+        subset = list(set(_KL_SAMPLE_SHEET_DATA_COLUMNS) & set(out.columns))
+        out = out[subset]
 
     if 'Well_description' not in out.columns:
+        # note that if strict is True this condition will always be true, even
+        # if 'Well_description' is defined in table.
+
         # grab the original sample names from the inputted table
         out['Well_description'] = table.Sample.apply(qiita_scrub_name)
 
@@ -515,8 +561,8 @@ def _remap_table(table, assay):
     return out
 
 
-def _add_data_to_sheet(table, sheet, sequencer, lanes, assay):
-    table = _remap_table(table, assay)
+def _add_data_to_sheet(table, sheet, sequencer, lanes, assay, strict=True):
+    table = _remap_table(table, assay, strict)
 
     # for amplicon we don't have reverse barcodes
     if assay != _AMPLICON:
@@ -533,7 +579,7 @@ def _add_data_to_sheet(table, sheet, sequencer, lanes, assay):
     return sheet
 
 
-def make_sample_sheet(metadata, table, sequencer, lanes):
+def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
     """Write a valid sample sheet
 
     Parameters
@@ -574,6 +620,11 @@ def make_sample_sheet(metadata, table, sequencer, lanes):
         A string representing the sequencer used.
     lanes: list of integers
         A list of integers representing the lanes used.
+    strict: boolean
+        If True, a subset of columns based on Assay type will define the
+        columns in the [Data] section of the sample-sheet. Otherwise all
+        columns in table will pass through into the sample-sheet. Either way
+        some columns will be renamed as needed by Assay type.
 
     Returns
     -------
@@ -591,7 +642,7 @@ def make_sample_sheet(metadata, table, sequencer, lanes):
         sheet = KLSampleSheet()
         sheet = _add_metadata_to_sheet(metadata, sheet, sequencer)
         sheet = _add_data_to_sheet(table, sheet, sequencer, lanes,
-                                   metadata['Assay'])
+                                   metadata['Assay'], strict)
         return sheet
     else:
         for message in messages:

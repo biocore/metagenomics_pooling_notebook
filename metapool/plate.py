@@ -12,7 +12,8 @@ EXPECTED_COLUMNS = {
     'Plate Position', 'Primer Plate #', 'Plating', 'Extraction Kit Lot',
     'Extraction Robot', 'TM1000 8 Tool', 'Primer Date', 'MasterMix Lot',
     'Water Lot', 'Processing Robot', 'Sample Plate', 'Project_Name',
-    'Original Name'}
+    'Original Name', 'TM300 8 Tool', 'TM50 8 Tool', 'TM10 8 Tool', 'run_date',
+    'instrument_model', 'center_project_name', 'experiment_design_description'}
 
 
 class Message(object):
@@ -111,12 +112,13 @@ def _validate_plate(plate_metadata, context):
 
     observed = set(plate_metadata.keys())
 
-    # 2. All columns are exactly present, no more no less
+    # 2. All expected columns are present. additional columns are now okay.
     extra = observed - EXPECTED_COLUMNS
     if extra:
         messages.append(
-            ErrorMessage('The following columns are not needed: %s'
-                         % ', '.join(extra)))
+            WarningMessage('The following columns are not recognized and may '
+                           'be misspelled column names: %s'
+                           % ', '.join(extra)))
     missing = EXPECTED_COLUMNS - observed
     if missing:
         messages.append(ErrorMessage('The following columns are missing: %s' %
@@ -203,6 +205,32 @@ def _decompress_well(well):
         col = ceil(col/2)
 
     return chr(64 + row) + str(col)
+
+
+def _validate_well_id_96(well):
+    VALID_96_WELL_COLUMNS = {i for i in range(1, 13)}
+    VALID_96_WELL_ROWS = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'}
+
+    if well in [None, '']:
+        return None
+    try:
+        row = well[0]
+        col = well[1:]
+    except IndexError:
+        return None
+
+    try:
+        col = int(col)
+    except ValueError:
+        return None
+
+    if col not in VALID_96_WELL_COLUMNS:
+        return None
+
+    if row.upper() not in VALID_96_WELL_ROWS:
+        return None
+
+    return (row, col)
 
 
 def _plate_position(well):

@@ -1,0 +1,11 @@
+filename,md5,file_type,reads
+s1_S1_L001.trimmed.fastq.gz,dd1,raw_forward_seqs,10
+s1_S1_L001.trimmed.fastq.gz,x23,raw_forward_seqs,20
+s2_S1_L001.trimmed.fastq.gz,g54,raw_forward_seqs,30
+s2_S1_L001.trimmed.fastq.gz,g32,raw_forward_seqs,10
+s3_S1_L001.trimmed.fastq.gz,h6f,raw_forward_seqs,30
+s3_S1_L001.trimmed.fastq.gz,ee4,raw_forward_seqs,10
+s4_S1_L001.trimmed.fastq.gz,g54,raw_forward_seqs,30
+s4_S1_L001.trimmed.fastq.gz,g32,raw_forward_seqs,10
+s5_S1_L001.trimmed.fastq.gz,h6f,raw_forward_seqs,30
+s5_S1_L001.trimmed.fastq.gz,ee4,raw_forward_seqs,10
