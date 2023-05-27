@@ -128,6 +128,9 @@ jobs:
           export QIITA_SERVER_CERT=`pwd`/qiita-dev/qiita_core/support_files/server.crt
           echo -e "[qiita-oauth2]\nURL=https://localhost:8383\nCLIENT_ID=yKDgajoKn5xlOA8tpo48Rq8mWJkH9z4LBCx2SvqWYLIryaan2u\nCLIENT_SECRET=9xhU5rvzq8dHCEI5sSN95jesUULrZi6pT6Wuc71fDbFbsrnWarcSq56TJLN4kP4hH\nSERVER_CERT=${QIITA_SERVER_CERT}" > qiita.oauth2.cfg.local
 
+          PEM_PATH=`find /home/runner/miniconda3/envs/metapool | grep cacert.pem$ | grep 'site-packages/certifi'`
+          cat $PEM_PATH $QIITA_SERVER_CERT > ./appended_cacert.pem
+          mv ./appended_cacert.pem $PEM_PATH
       - name: Run tests and measure coverage
         shell: bash -l {0}
         run: |
