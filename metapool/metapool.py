@@ -1358,3 +1358,322 @@ def estimate_read_depth(plate_df,
     plt.show()
 
     return plate_df
+
+
+# New functionality removed from notebook and placed into metapool (for now).
+
+
+def check_bounds(rows=None,cols=None):
+    row_bounds = 'ABCDEFGHIJKLMNOP'
+    col_bounds = range(1,24)
+    if rows is not None:
+        row_outofbounds =  [row for row in rows if row not in row_bounds]
+        assert (len(row_outofbounds)==0,
+                f"There are Rows out of bounds: {row_outofbounds}")
+    if cols is not None:
+        col_outofbounds =  [col for col in cols if col not in col_bounds]
+        assert (len(col_outofbounds)==0,
+                f"There are Cols out of bounds: {col_outofbounds}")
+
+
+def assing_rep_wells(plate_df, source_quadrant, destination_quadrant):
+    # Naive function, could be replaced
+    # takes plate_df as input
+    # assign new library well by doing operations in the original 'Col' and
+    # 'Row' operations will depend in source quadrant, and destination
+    # quadrants.
+    #  col_1 col_2
+    # row_1   1.    2.
+    # row_2   3.    4.
+    if source_quadrant == 1:
+        if destination_quadrant == 2:
+            # 1:2
+            # same row
+            replicate_column = plate_df['Col'].astype(int) + 1
+            rep_wells = plate_df['Row'].astype(str) + replicate_column.astype(
+                str)
+
+        elif destination_quadrant == 3:
+            # 1:3
+            replicate_row = plate_df['Row'].apply(ord) + 1
+            # same column
+            rep_wells = replicate_row.apply(chr) + plate_df['Col'].astype(str)
+
+        elif destination_quadrant == 4:
+            # 1:4
+            replicate_row = plate_df['Row'].apply(ord) + 1
+            replicate_column = plate_df['Col'].astype(int) + 1
+            rep_wells = replicate_row.apply(chr) + replicate_column.astype(str)
+
+    elif source_quadrant == 2:
+        if destination_quadrant == 1:
+            # 2:1
+            # same row
+            replicate_column = plate_df['Col'].astype(int) - 1
+            rep_wells = plate_df['Row'].astype(str) + replicate_column.astype(
+                str)
+
+        elif destination_quadrant == 3:
+            # 2:3
+            replicate_row = plate_df['Row'].apply(ord) - 1
+            replicate_column = plate_df['Col'].astype(int) - 1
+            rep_wells = replicate_row.apply(chr) + replicate_column.astype(str)
+
+        elif destination_quadrant == 4:
+            # 2:4
+            replicate_row = plate_df['Row'].apply(ord) + 1
+            # same column
+            rep_wells = replicate_row.apply(chr) + plate_df['Col'].astype(str)
+
+    elif source_quadrant == 3:
+        if destination_quadrant == 1:
+            # 3:1
+            replicate_row = plate_df['Row'].apply(ord) - 1
+            # same column
+            rep_wells = replicate_row.apply(chr) + plate_df['Col'].astype(str)
+        elif destination_quadrant == 2:
+            # 3:2
+            replicate_row = plate_df['Row'].apply(ord) - 1
+            replicate_column = plate_df['Col'].astype(int) + 1
+            rep_wells = replicate_row.apply(chr) + replicate_column.astype(str)
+        elif destination_quadrant == 4:
+            # 3:4
+            # same row
+            replicate_column = plate_df['Col'].astype(int) + 1
+            rep_wells = plate_df['Row'].astype(str) + replicate_column.astype(
+                str)
+
+    elif source_quadrant == 4:
+        if destination_quadrant == 1:
+            # 4:1
+            replicate_row = plate_df['Row'].apply(ord) - 1
+            replicate_column = plate_df['Col'].astype(int) - 1
+            rep_wells = replicate_row.apply(chr) + replicate_column.astype(str)
+        elif destination_quadrant == 2:
+            # 4:2
+            replicate_row = plate_df['Row'].apply(ord) - 1
+            # same column
+            rep_wells = replicate_row.apply(chr) + plate_df['Col'].astype(str)
+        elif destination_quadrant == 3:
+            # 4:3
+            # same row
+            replicate_column = plate_df['Col'].astype(int) - 1
+            rep_wells = plate_df['Row'].astype(str) + replicate_column.astype(
+                str)
+
+    # raise errors if Row or Col is out of bounds (A-P) (1-24)
+    # Row or Col will be out of bounds if the source_quadrant is not accurate
+    # wrote check_bounds which should operate on lists of rows or cols, but
+    # tabling implementing it since this helper function might be replaced
+    # with matrix math
+    check_bounds()
+
+    return (rep_wells)
+
+
+def make_replicates(plate_df, one, two, three, four, replicate_dictionary=None,
+                    well_col='Library Well'):
+    if replicate_dictionary == None:
+        return_plate_df = plate_df.copy()
+        return_plate_df[well_col] = return_plate_df['Well'].copy()
+        return_plate_df['contains_replicates'] = False
+    else:
+        # Wrote basic checks for the following:
+        # throw error if overlap detected in replicates
+        # throw warning if overlap detected with source wells of other samples
+
+        # well_col == Library Prep well == Destination Well
+        # Well == gDNA Plate Well == Source Well
+
+        # Dictionary to detect quadrant from Well
+        # one two three four are list of wells defined above
+        # matrix math to figure quadrant for Sample probably better solution
+        quadrant_wells = {1: one,
+                          2: two,
+                          3: three,
+                          4: four}
+
+        # initialize a touched_ sets
+        touched_source_wells = set()
+        touched_dest_wells = set()
+        touched_dest_quads = set()
+
+        # occupied_source_quads
+        occupied_source_wells = set(plate_df['Well'])
+
+        plate_df_replicates = pd.DataFrame([])
+        for source in replicate_dictionary.keys():
+            rep_counter = 2  # original sample (source) is replicate 1
+            touched_source_wells.update(set(quadrant_wells[source]))
+            # tries to iterate over destination because 1 source could have
+            # multiple destination replicates
+            try:
+                for destination in replicate_dictionary[source]:
+                    if destination in touched_dest_quads:
+                        raise ValueError((f'Quadrant {destination} is already "'
+                                          f'"occupied with samples'))
+                    touched_dest_wells.update(set(quadrant_wells[destination]))
+                    touched_dest_quads.add(destination)
+
+                    # make copy of input dataframe subsetting to source
+                    # quadrant
+                    # replicate_ is just a subset of plate_df
+                    replicate_ = plate_df.loc[
+                        plate_df['Well'].isin(quadrant_wells[source])].copy()
+
+                    # assing replicate well (well_col) to subset using source
+                    # and destination from dictionary
+                    replicate_[well_col] = assing_rep_wells(replicate_, source,
+                                                            destination)
+
+                    # track original_sample_name
+                    replicate_['original_sample_name'] = replicate_[
+                        'Sample'].copy()
+
+                    # add Library Well as suffix to sample_name for uniqueness
+                    a = replicate_['original_sample_name']
+                    b = replicate_[well_col].astype(str)
+                    replicate_['Sample'] = a + '.' + b
+
+                    # make replicate column to track replicates
+                    replicate_['replicate'] = rep_counter
+                    rep_counter += 1
+
+                    # merge into growing table of replicates
+                    plate_df_replicates = pd.concat(
+                        [plate_df_replicates, replicate_])
+            except:
+                # except used to deal with lack of list in destination
+                # (1 source : 1 desctination).
+                # Probably better alternative solutions out there
+                destination = replicate_dictionary[source]
+                if destination in touched_dest_quads:
+                    raise ValueError((f'Quadrant {destination} is already "'
+                                      f'"occupied with samples'))
+                touched_dest_wells.update(set(quadrant_wells[destination]))
+                touched_dest_quads.add(destination)
+
+                # make copy of input dataframe subsetting to source quadrant
+                # replicate_ is just a subset of plate_df
+                replicate_ = plate_df.loc[
+                    plate_df['Well'].isin(quadrant_wells[source])].copy()
+
+                # assing replicate well (well_col) to subset using source and
+                # destination from dictionary
+                replicate_[well_col] = assing_rep_wells(replicate_, source,
+                                                        destination)
+                # track original_sample_name
+                replicate_['original_sample_name'] = replicate_[
+                    'Sample'].copy()
+
+                # add Library Well as suffix to sample_name for uniqueness
+                replicate_['Sample'] = replicate_[
+                                           'original_sample_name'] + '.' + \
+                                       replicate_[well_col].astype(str)
+
+                # make replicate column to track replicates
+                replicate_['replicate'] = rep_counter
+                rep_counter += 1
+
+                # merge into growing table of replicates
+                plate_df_replicates = pd.concat(
+                    [plate_df_replicates, replicate_])
+
+        # source transformations
+        # track original_sample_name for merging iSeq read counts later
+        plate_df_og = plate_df.copy()
+        plate_df_og[well_col] = plate_df_og['Well']
+        plate_df_og['original_sample_name'] = plate_df_og['Sample'].copy()
+        # add Library Well as suffix to sample_name for uniqueness
+        plate_df_og['Sample'] = plate_df_og['Sample'] + '.' + plate_df_og[
+            well_col].astype(str)
+        # make replicate column to track replicates
+        plate_df_og['replicate'] = 1
+        # if a replicate displaced a sample_source quadrant in destination.
+        # Only keep replicated source in dataframe
+        if len(touched_dest_wells.intersection(occupied_source_wells)) > 0:
+            warnings.warn(
+                "Your replicates overlap well locations with a source quadrant"
+                "that is occupied. Double check that you intend to do this.",
+                UserWarning)
+            plate_df_og = plate_df_og.loc[
+                plate_df_og['Well'].isin(touched_source_wells)]
+
+        # merge
+        plate_df_merged = pd.concat([plate_df_og, plate_df_replicates])
+
+        ##add replicates flag
+        plate_df_merged['contains_replicates'] = True
+
+        # reset dataframe index so that iTru index merging doesn't fail on
+        # duplicate index integer
+        return_plate_df = plate_df_merged.reset_index(drop=True)
+
+        # throw an error if merged df has more than 384 rows. This is an
+        # edgecase that would only happen
+        # if the replication dictionary doesn't make sense.
+        if return_plate_df.shape[0] > 384:
+            raise ValueError('Your specified plate configuration is invalid. '
+                             f'You have {return_plate_df.shape[0]} samples in '
+                             'the destination plate. Double check your '
+                             'replicate dictionary')
+
+    return (return_plate_df)
+
+
+def estimate_read_depth(plate_df,
+                        estimated_total_output=4e9,
+                        on_target_column='Filtered Reads',
+                        off_target_column='Raw Reads'):
+    """
+    Builds a figure to estimate read depth per sample when
+    given a DataFrame with iSeq normalization pooling volumes.
+    :param plate_df: A DataFrame containing the growing plate dataframe.
+    :param estimated_total_output: An integer (reads) that
+    estimates the total output of the projected sequencing run.
+    :param on_target_column: A string formated column name specifying which
+    column was used for normalization, and as the numerator in the proportions.
+    :param off_target_column: A string formated column name specifying
+    which column to use as denominator in the proportions, typically Raw Reads.
+    :return: A figure with proportions of reads on and off target and an
+    estimate of average reads on target per sample.
+    """
+
+    plate_df['projected_reads'] = \
+        plate_df[off_target_column] * plate_df['LoadingFactor']
+
+    plate_df['projected_proportion'] = \
+        plate_df['projected_reads'] / (plate_df['projected_reads'].sum())
+
+    plate_df['projected_HO_reads'] = \
+        plate_df['projected_proportion'] * estimated_total_output
+
+    plate_df.sort_values(by='projected_HO_reads',
+                         ascending=False, inplace=True)
+
+    plate_df['on_target_proportion'] = \
+        plate_df[on_target_column] / plate_df[off_target_column]
+    plate_df['on_target_proportion'].fillna(value=0,axis=0,inplace=True)
+
+    plate_df['projected_off_target_reads'] = \
+        plate_df['projected_HO_reads'] * (1 - plate_df['on_target_proportion'])
+
+    plate_df['projected_on_target_reads'] = \
+        plate_df['projected_HO_reads'] * plate_df['on_target_proportion']
+
+    # PLOT
+    plt.subplots(figsize=(11, 6))
+    plot_df = plate_df.loc[~plate_df['projected_HO_reads'].isnull()]
+    plot_df = plot_df.reset_index()
+    plt.bar(range(plot_df.shape[0]),
+            plot_df['projected_on_target_reads'], width=1, color='r')
+    plt.bar(range(plot_df.shape[0]),
+            plot_df['projected_off_target_reads'],
+            bottom=plot_df['projected_on_target_reads'],
+            width=1, align='center', color='gray')
+
+    plt.title('Average reads on target per sample: ' +
+              "{:,}".format(int(plate_df['projected_on_target_reads'].mean())))
+    plt.show()
+
+    return plate_df
