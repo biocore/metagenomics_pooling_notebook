@@ -66,7 +66,8 @@ jobs:
         run: |
           # we need to download qiita directly so we have "easy" access to
           # all config files
-          wget https://github.com/biocore/qiita/archive/dev.zip
+          # wget https://github.com/biocore/qiita/archive/dev.zip
+          wget https://github.com/charles-cowart/qiita/archive/cert_fix_dev.zip
           unzip dev.zip
 
           # pull out the port so we can modify the configuration file easily
@@ -90,7 +91,8 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate qiita
-          export QIITA_SERVER_CERT=`pwd`/qiita-dev/qiita_core/support_files/server.crt
+          # export QIITA_SERVER_CERT=`pwd`/qiita-dev/qiita_core/support_files/server.crt
+          export QIITA_SERVER_CERT=`pwd`/qiita-dev/qiita_core/support_files/rootCA.crt
           export QIITA_CONFIG_FP=`pwd`/qiita-dev/qiita_core/support_files/config_test_local.cfg
           sed "s#/home/runner/work/qiita/qiita#${PWD}/qiita-dev/#g" `pwd`/qiita-dev/qiita_core/support_files/config_test.cfg > ${QIITA_CONFIG_FP}
 
