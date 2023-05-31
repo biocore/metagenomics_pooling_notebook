@@ -70,6 +70,8 @@ jobs:
           wget https://github.com/charles-cowart/qiita/archive/refs/heads/cert_fix_dev.zip
           # unzip dev.zip
           unzip cert_fix_dev.zip
+          # rename to make downstream commands work
+          mv qiita-cert_fix_dev qiita-dev
 
           # pull out the port so we can modify the configuration file easily
           pgport=${{ job.services.postgres.ports[5432] }}
