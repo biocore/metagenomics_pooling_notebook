@@ -192,12 +192,12 @@ class TestCount(TestCase):
     def test_bcl2fastq_counts(self):
         obs = bcl2fastq_counts(self.run_dir, self.ss)
         pd.testing.assert_frame_equal(obs.sort_index(),
-                                      self.stats[['raw_reads']])
+                                      self.stats[['raw_reads_r1r2']])
 
     def test_fastp_counts(self):
         obs = fastp_counts(self.run_dir, self.ss)
-        pd.testing.assert_frame_equal(obs.sort_index(),
-                                      self.stats[['quality_filtered_reads']])
+        exp = self.stats[['quality_filtered_reads_r1r2']]
+        pd.testing.assert_frame_equal(obs.sort_index(), exp)
 
     def test_minimap2_counts(self):
         obs = minimap2_counts(self.run_dir, self.ss)
@@ -210,17 +210,17 @@ class TestCount(TestCase):
 
 
 RUN_STATS = {
-    'raw_reads': {('sample1', '1'): 10000, ('sample2', '1'): 100000,
-                  ('sample1', '3'): 100000, ('sample2', '3'): 2300000,
-                  ('sample3', '3'): 300000, ('sample4', '3'): 400000,
-                  ('sample5', '3'): 567000},
-    'quality_filtered_reads': {('sample1', '1'): 10800.0,
-                               ('sample2', '1'): 61404.0,
-                               ('sample1', '3'): 335996.0,
-                               ('sample2', '3'): 18374.0,
-                               ('sample3', '3'): 4692.0,
-                               ('sample4', '3'): 960.0,
-                               ('sample5', '3'): 30846196.0},
+    'raw_reads_r1r2': {('sample1', '1'): 10000, ('sample2', '1'): 100000,
+                       ('sample1', '3'): 100000, ('sample2', '3'): 2300000,
+                       ('sample3', '3'): 300000, ('sample4', '3'): 400000,
+                       ('sample5', '3'): 567000},
+    'quality_filtered_reads_r1r2': {('sample1', '1'): 10800.0,
+                                    ('sample2', '1'): 61404.0,
+                                    ('sample1', '3'): 335996.0,
+                                    ('sample2', '3'): 18374.0,
+                                    ('sample3', '3'): 4692.0,
+                                    ('sample4', '3'): 960.0,
+                                    ('sample5', '3'): 30846196.0},
     'non_host_reads': {('sample1', '1'): 111172.0, ('sample2', '1'): 277611.0,
                        ('sample1', '3'): 1168275.0, ('sample2', '3'): 1277.0,
                        ('sample3', '3'): 33162.0, ('sample4', '3'): 2777.0,
@@ -309,8 +309,9 @@ class TestBCLConvertCount(TestCase):
 
     def test_bcl2fastq_counts(self):
         obs = bcl2fastq_counts(self.run_dir, self.ss)
-        pd.testing.assert_frame_equal(obs.sort_index(),
-                                      self.stats[['raw_reads']])
+
+        exp = self.stats[['raw_reads_r1r2']] * 2
+        pd.testing.assert_frame_equal(obs.sort_index(), exp)
 
     def tearDown(self):
         shutil.rmtree(self.run_dir)

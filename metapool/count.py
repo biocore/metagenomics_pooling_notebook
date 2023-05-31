@@ -183,9 +183,10 @@ def _bcl2fastq_counts(path):
         out.append(table)
 
     out = pd.concat(out)
-    out.rename(columns={'SampleId': 'Sample_ID', 'NumberReads': 'raw_reads'},
+    out.rename(columns={'SampleId': 'Sample_ID',
+                        'NumberReads': 'raw_reads_r1r2'},
                inplace=True)
-    out = out[['Sample_ID', 'Lane', 'raw_reads']]
+    out = out[['Sample_ID', 'Lane', 'raw_reads_r1r2']]
     out.set_index(['Sample_ID', 'Lane'], inplace=True, verify_integrity=True)
     return out
 
@@ -195,12 +196,16 @@ def _bclconvert_counts(path):
     df = pd.read_csv(path)
     # subselect only the columns we're concerned with
     df = df[["SampleID", "Lane", "# Reads"]]
+
+    # double # Reads to represent forward and reverse reads.
+    df['raw_reads_r1r2'] = df['# Reads'] * 2
+    df.drop('# Reads', axis=1, inplace=True)
+
     # filter out rows that reference an 'Undetermined' fastq.gz file
     # and create our own copy to return to the user
     df = df.loc[df['SampleID'] != 'Undetermined'].copy()
     # rename columns to standard values for metapool
-    df.rename(columns={'SampleID': 'Sample_ID', '# Reads': 'raw_reads'},
-              inplace=True)
+    df.rename(columns={'SampleID': 'Sample_ID'}, inplace=True)
     # create indexes on these columns
     df['Lane'] = df['Lane'].astype(str)
     df.set_index(['Sample_ID', 'Lane'], inplace=True, verify_integrity=True)
@@ -210,7 +215,7 @@ def _bclconvert_counts(path):
 
 def fastp_counts(run_dir, metadata):
     return _parsefier(run_dir, metadata, 'json', '.json',
-                      'quality_filtered_reads',
+                      'quality_filtered_reads_r1r2',
                       _parse_fastp_counts)
 
 
@@ -231,10 +236,10 @@ def run_counts(run_dir, metadata):
             minimap2_counts(run_dir, metadata)])
 
     # convenience columns to assess sample quality
-    out['fraction_passing_quality_filter'] = (out['quality_filtered_reads'] /
-                                              out['raw_reads'])
+    ratio = out['quality_filtered_reads_r1r2'] / out['raw_reads_r1r2']
+    out['fraction_passing_quality_filter'] = ratio
     out['fraction_non_human'] = (out['non_host_reads'] /
-                                 out['quality_filtered_reads'])
+                                 out['quality_filtered_reads_r1r2'])
 
     out.fillna(value='NA', inplace=True)
 
