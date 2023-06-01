@@ -11,6 +11,7 @@ from configparser import ConfigParser
 from qiita_client import QiitaClient
 from .prep import remove_qiita_id
 from .plate import _validate_well_id_96
+from collections import OrderedDict
 
 
 REVCOMP_SEQUENCERS = ['HiSeq4000', 'MiniSeq', 'NextSeq', 'HiSeq3000',
@@ -1363,262 +1364,193 @@ def estimate_read_depth(plate_df,
 # New functionality removed from notebook and placed into metapool (for now).
 
 
-def check_bounds(rows=None,cols=None):
-    row_bounds = 'ABCDEFGHIJKLMNOP'
-    col_bounds = range(1,24)
-    if rows is not None:
-        row_outofbounds =  [row for row in rows if row not in row_bounds]
-        assert (len(row_outofbounds)==0,
-                f"There are Rows out of bounds: {row_outofbounds}")
-    if cols is not None:
-        col_outofbounds =  [col for col in cols if col not in col_bounds]
-        assert (len(col_outofbounds)==0,
-                f"There are Cols out of bounds: {col_outofbounds}")
+class PlateMapping:
+    STATUS_EMPTY = 'empty'
+    STATUS_SOURCE = 'source'
+    STATUS_DESTINATION = 'destination'
 
+    row_letters = [chr(ord('A') + x) for x in range(0, 16)]
+    # quadrants = ['blue', 'green', 'red', 'yellow']
+    quadrants = ['1', '2', '3', '4']
 
-def assing_rep_wells(plate_df, source_quadrant, destination_quadrant):
-    # Naive function, could be replaced
-    # takes plate_df as input
-    # assign new library well by doing operations in the original 'Col' and
-    # 'Row' operations will depend in source quadrant, and destination
-    # quadrants.
-    #  col_1 col_2
-    # row_1   1.    2.
-    # row_2   3.    4.
-    if source_quadrant == 1:
-        if destination_quadrant == 2:
-            # 1:2
-            # same row
-            replicate_column = plate_df['Col'].astype(int) + 1
-            rep_wells = plate_df['Row'].astype(str) + replicate_column.astype(
-                str)
+    def __init__(self, well_column_name):
+        self.map_to_384 = {}
 
-        elif destination_quadrant == 3:
-            # 1:3
-            replicate_row = plate_df['Row'].apply(ord) + 1
-            # same column
-            rep_wells = replicate_row.apply(chr) + plate_df['Col'].astype(str)
+        for quadrant in PlateMapping.quadrants:
+            self.map_to_384[quadrant] = self._get_quadrant(quadrant)
 
-        elif destination_quadrant == 4:
-            # 1:4
-            replicate_row = plate_df['Row'].apply(ord) + 1
-            replicate_column = plate_df['Col'].astype(int) + 1
-            rep_wells = replicate_row.apply(chr) + replicate_column.astype(str)
+        if well_column_name is None:
+            self.well_column_name = 'Library Well'
+        else:
+            self.well_column_name = well_column_name
 
-    elif source_quadrant == 2:
-        if destination_quadrant == 1:
-            # 2:1
-            # same row
-            replicate_column = plate_df['Col'].astype(int) - 1
-            rep_wells = plate_df['Row'].astype(str) + replicate_column.astype(
-                str)
+        # All quadrants begin at one as they represent a potential source
+        # quadrant, even if they are empty. If quad 1 is replicated once,
+        # counter '1' will become 2. If quad 2 is replicated three times,
+        # counter '1' will become 4.
+        self.rep_counters = {'1': 1, '2': 1, '3': 1, '4': 1}
 
-        elif destination_quadrant == 3:
-            # 2:3
-            replicate_row = plate_df['Row'].apply(ord) - 1
-            replicate_column = plate_df['Col'].astype(int) - 1
-            rep_wells = replicate_row.apply(chr) + replicate_column.astype(str)
+        self.status = {'1': PlateMapping.STATUS_EMPTY,
+                       '2': PlateMapping.STATUS_EMPTY,
+                       '3': PlateMapping.STATUS_EMPTY,
+                       '4': PlateMapping.STATUS_EMPTY}
 
-        elif destination_quadrant == 4:
-            # 2:4
-            replicate_row = plate_df['Row'].apply(ord) + 1
-            # same column
-            rep_wells = replicate_row.apply(chr) + plate_df['Col'].astype(str)
+        # this allows us to store output dataframes for each quadrant,
+        # overwrite them on demand, and save final concatenation for when
+        # we're done.
+        self.data = {'1': None, '2': None, '3': None, '4': None}
 
-    elif source_quadrant == 3:
-        if destination_quadrant == 1:
-            # 3:1
-            replicate_row = plate_df['Row'].apply(ord) - 1
-            # same column
-            rep_wells = replicate_row.apply(chr) + plate_df['Col'].astype(str)
-        elif destination_quadrant == 2:
-            # 3:2
-            replicate_row = plate_df['Row'].apply(ord) - 1
-            replicate_column = plate_df['Col'].astype(int) + 1
-            rep_wells = replicate_row.apply(chr) + replicate_column.astype(str)
-        elif destination_quadrant == 4:
-            # 3:4
-            # same row
-            replicate_column = plate_df['Col'].astype(int) + 1
-            rep_wells = plate_df['Row'].astype(str) + replicate_column.astype(
-                str)
+    def _get_quadrant(self, quadrant):
+        d = OrderedDict()
+        for i in range(1, 9):
+            row_96 = PlateMapping.row_letters[i - 1]
+            if quadrant in ['1', '2']:
+                row_384 = PlateMapping.row_letters[(2 * i) - 2]
+            else:
+                row_384 = PlateMapping.row_letters[(2 * i) - 1]
 
-    elif source_quadrant == 4:
-        if destination_quadrant == 1:
-            # 4:1
-            replicate_row = plate_df['Row'].apply(ord) - 1
-            replicate_column = plate_df['Col'].astype(int) - 1
-            rep_wells = replicate_row.apply(chr) + replicate_column.astype(str)
-        elif destination_quadrant == 2:
-            # 4:2
-            replicate_row = plate_df['Row'].apply(ord) - 1
-            # same column
-            rep_wells = replicate_row.apply(chr) + plate_df['Col'].astype(str)
-        elif destination_quadrant == 3:
-            # 4:3
-            # same row
-            replicate_column = plate_df['Col'].astype(int) - 1
-            rep_wells = plate_df['Row'].astype(str) + replicate_column.astype(
-                str)
+            for j in range(1, 13):
+                col_96 = j
+                if quadrant in ['1', '3']:
+                    col_384 = (2 * j) - 1
+                else:
+                    col_384 = (2 * j)
 
-    # raise errors if Row or Col is out of bounds (A-P) (1-24)
-    # Row or Col will be out of bounds if the source_quadrant is not accurate
-    # wrote check_bounds which should operate on lists of rows or cols, but
-    # tabling implementing it since this helper function might be replaced
-    # with matrix math
-    check_bounds()
+                k = "%s%s" % (row_96, col_96)
+                v = "%s%s" % (row_384, col_384)
+                d[k] = v
 
-    return (rep_wells)
+        return d
 
+    def get_384_well_location(self, well_96_id, quadrant):
+        if quadrant in self.map_to_384:
+            if well_96_id in self.map_to_384[quadrant]:
+                return self.map_to_384[quadrant][well_96_id]
 
-def make_replicates(plate_df, one, two, three, four, replicate_dictionary=None,
-                    well_col='Library Well'):
-    if replicate_dictionary == None:
-        return_plate_df = plate_df.copy()
-        return_plate_df[well_col] = return_plate_df['Well'].copy()
-        return_plate_df['contains_replicates'] = False
-    else:
-        # Wrote basic checks for the following:
-        # throw error if overlap detected in replicates
-        # throw warning if overlap detected with source wells of other samples
+    def get_96_well_location_and_quadrant(self, well_384_id):
+        # not an optimal search by any means but the mean
+        # search space will only be 192 and will not grow.
+        for quadrant in PlateMapping.quadrants:
+            for k in self.map_to_384[quadrant]:
+                if self.map_to_384[quadrant][k] == well_384_id:
+                    return quadrant, k
 
-        # well_col == Library Prep well == Destination Well
-        # Well == gDNA Plate Well == Source Well
+    def map_quadrants(self, src_quad, dst_quad):
+        # since all values in self.d are generated in the same order by
+        # the same function and saved as OrderedDicts, the 384-well locations
+        # from any src quadrant will map directly to those of the dst quad.
+        src = list(self.map_to_384[str(src_quad)].values())
+        dst = list(self.map_to_384[str(dst_quad)].values())
 
-        # Dictionary to detect quadrant from Well
-        # one two three four are list of wells defined above
-        # matrix math to figure quadrant for Sample probably better solution
-        quadrant_wells = {1: one,
-                          2: two,
-                          3: three,
-                          4: four}
+        return dict(map(lambda i, j: (i, j), src, dst))
 
-        # initialize a touched_ sets
-        touched_source_wells = set()
-        touched_dest_wells = set()
-        touched_dest_quads = set()
+    def get_all_384_locations_for(self, quadrant):
+        return list(self.map_to_384[str(quadrant)].values())
 
-        # occupied_source_quads
-        occupied_source_wells = set(plate_df['Well'])
+    @classmethod
+    def check_bounds_384(cls, locations):
+        results = []
 
-        plate_df_replicates = pd.DataFrame([])
-        for source in replicate_dictionary.keys():
-            rep_counter = 2  # original sample (source) is replicate 1
-            touched_source_wells.update(set(quadrant_wells[source]))
-            # tries to iterate over destination because 1 source could have
-            # multiple destination replicates
+        for location in locations:
+            row = location[0]
+            col = location[1:]
             try:
-                for destination in replicate_dictionary[source]:
-                    if destination in touched_dest_quads:
-                        raise ValueError((f'Quadrant {destination} is already "'
-                                          f'"occupied with samples'))
-                    touched_dest_wells.update(set(quadrant_wells[destination]))
-                    touched_dest_quads.add(destination)
+                col = int(col)
+            except ValueError:
+                results.append(location)
 
-                    # make copy of input dataframe subsetting to source
-                    # quadrant
-                    # replicate_ is just a subset of plate_df
-                    replicate_ = plate_df.loc[
-                        plate_df['Well'].isin(quadrant_wells[source])].copy()
+            if row not in PlateMapping.row_letters:
+                results.append(location)
 
-                    # assing replicate well (well_col) to subset using source
-                    # and destination from dictionary
-                    replicate_[well_col] = assing_rep_wells(replicate_, source,
-                                                            destination)
+            if col < 1 or col > 24:
+                results.append(location)
 
-                    # track original_sample_name
-                    replicate_['original_sample_name'] = replicate_[
-                        'Sample'].copy()
+        return results if results else None
 
-                    # add Library Well as suffix to sample_name for uniqueness
-                    a = replicate_['original_sample_name']
-                    b = replicate_[well_col].astype(str)
-                    replicate_['Sample'] = a + '.' + b
+    def _replicate(self, plate_384, src_quad, dst_quad, overwrite=False):
+        if self.status[src_quad] != PlateMapping.STATUS_SOURCE:
+            raise ValueError(f'Quadrant {src_quad} is not a source quadrant')
 
-                    # make replicate column to track replicates
-                    replicate_['replicate'] = rep_counter
-                    rep_counter += 1
+        if self.status[dst_quad] == PlateMapping.STATUS_SOURCE:
+            raise ValueError(f'Quadrant {dst_quad} is a source quadrant')
 
-                    # merge into growing table of replicates
-                    plate_df_replicates = pd.concat(
-                        [plate_df_replicates, replicate_])
-            except:
-                # except used to deal with lack of list in destination
-                # (1 source : 1 desctination).
-                # Probably better alternative solutions out there
-                destination = replicate_dictionary[source]
-                if destination in touched_dest_quads:
-                    raise ValueError((f'Quadrant {destination} is already "'
-                                      f'"occupied with samples'))
-                touched_dest_wells.update(set(quadrant_wells[destination]))
-                touched_dest_quads.add(destination)
+        if self.status[dst_quad] == PlateMapping.STATUS_DESTINATION and \
+           overwrite is False:
+            raise ValueError(f'Quadrant {dst_quad} is already occupied with "'
+                             f'"replicate samples')
 
-                # make copy of input dataframe subsetting to source quadrant
-                # replicate_ is just a subset of plate_df
-                replicate_ = plate_df.loc[
-                    plate_df['Well'].isin(quadrant_wells[source])].copy()
+        # if there are wells in the prospective destination quadrant that are
+        # already occupied in plate_384, raise an Error.
+        dst_wells = self.get_all_384_locations_for(dst_quad)
+        occupied = plate_384.loc[plate_384['Well'].isin(dst_wells)].copy()
 
-                # assing replicate well (well_col) to subset using source and
-                # destination from dictionary
-                replicate_[well_col] = assing_rep_wells(replicate_, source,
-                                                        destination)
-                # track original_sample_name
-                replicate_['original_sample_name'] = replicate_[
-                    'Sample'].copy()
+        if occupied.shape[0] > 0 and overwrite is False:
+            raise ValueError(f'Quadrant {dst_quad} contains source samples')
 
-                # add Library Well as suffix to sample_name for uniqueness
-                replicate_['Sample'] = replicate_[
-                                           'original_sample_name'] + '.' + \
-                                       replicate_[well_col].astype(str)
+        rows = []
+        for src, dst in self.map_quadrants(src_quad, dst_quad).items():
+            # rows are clipped one at a time rather than as a subset of Well
+            # ids because the order of the subset returned is according to
+            # their numeric index id, rather than the order passed through
+            # .in().
+            # row will be a df that is just one row long.
+            row = plate_384.loc[plate_384['Well'] == src].copy()
 
-                # make replicate column to track replicates
-                replicate_['replicate'] = rep_counter
-                rep_counter += 1
+            if row.shape[0] > 1:
+                raise ValueError(f'{src} matched more than one row in '
+                                 'plate_map')
 
-                # merge into growing table of replicates
-                plate_df_replicates = pd.concat(
-                    [plate_df_replicates, replicate_])
+            # assume row.shape[0] is either 0 (no-match) or 1 (exact match)
+            if row.shape[0] == 1:
+                row.loc[0, self.well_column_name] = dst_quad
+                row.loc[0, 'original_sample_name'] = row.loc[0, 'Sample']
+                # add dst as suffix to sample_name for uniqueness
+                row.loc[0, 'Sample'] = row.loc[0, 'Sample'] + '.' + dst
+                row.loc[0, 'replicate'] = self.rep_counters[src_quad]
+                row.loc[0, 'contains_replicates'] = True
+                rows.append(row)
 
-        # source transformations
-        # track original_sample_name for merging iSeq read counts later
-        plate_df_og = plate_df.copy()
-        plate_df_og[well_col] = plate_df_og['Well']
-        plate_df_og['original_sample_name'] = plate_df_og['Sample'].copy()
-        # add Library Well as suffix to sample_name for uniqueness
-        plate_df_og['Sample'] = plate_df_og['Sample'] + '.' + plate_df_og[
-            well_col].astype(str)
-        # make replicate column to track replicates
-        plate_df_og['replicate'] = 1
-        # if a replicate displaced a sample_source quadrant in destination.
-        # Only keep replicated source in dataframe
-        if len(touched_dest_wells.intersection(occupied_source_wells)) > 0:
-            warnings.warn(
-                "Your replicates overlap well locations with a source quadrant"
-                "that is occupied. Double check that you intend to do this.",
-                UserWarning)
-            plate_df_og = plate_df_og.loc[
-                plate_df_og['Well'].isin(touched_source_wells)]
+        self.status[dst_quad] = PlateMapping.STATUS_DESTINATION
+        self.data[dst_quad] = pd.concat(rows, axis=0)
+        self.rep_counters[src_quad] += 1
 
-        # merge
-        plate_df_merged = pd.concat([plate_df_og, plate_df_replicates])
+    def make_replicates(self, plate_df, replicates=None):
+        if replicates == None:
+            # Abort early and safely for the no replication case.
+            result = plate_df.copy()
+            result[self.well_column_name] = result['Well'].copy()
+            result['contains_replicates'] = False
+            return result
 
-        ##add replicates flag
-        plate_df_merged['contains_replicates'] = True
+        # Examples of replicates
+        # replicate_dict = {source1_quadrant:destination1_quadrant}
+        # replicate_dict = {source1_quadrant:[destination1_quadrants,
+        #                                     destination2_quadrants]}
+        # replicate_dict = {1: [2, 3, 4]}
+
+        # fix replicates so that even {source1_quadrant:destination1_quadrant}
+        # becomes a list.
+        for key in replicates:
+            if not isinstance(replicates[key], list):
+                v = replicates[key]
+                replicates[key] = [v]
+
+        quads = []
+
+        for src_quad in replicates.keys():
+            # every source quadrant (src_quad) is going to have a list in
+            # replicates w/one or more destination quadrants (dst_quad) to
+            # replicate to. We need to process each one in turn.
+            for dst_quad in replicates[src_quad]:
+                quads.append(self._replicate(plate_df, src_quad, dst_quad))
+
+        result = pd.concat(quads, axis=0)
 
         # reset dataframe index so that iTru index merging doesn't fail on
         # duplicate index integer
-        return_plate_df = plate_df_merged.reset_index(drop=True)
+        result.reset_index(drop=True, inplace=True)
 
-        # throw an error if merged df has more than 384 rows. This is an
-        # edgecase that would only happen
-        # if the replication dictionary doesn't make sense.
-        if return_plate_df.shape[0] > 384:
-            raise ValueError('Your specified plate configuration is invalid. '
-                             f'You have {return_plate_df.shape[0]} samples in '
-                             'the destination plate. Double check your '
-                             'replicate dictionary')
-
-    return (return_plate_df)
+        return result
 
 
 def estimate_read_depth(plate_df,
