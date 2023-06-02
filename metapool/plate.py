@@ -7,6 +7,7 @@ import warnings
 from scipy.stats import zscore
 from sklearn.linear_model import LogisticRegression
 from collections import OrderedDict
+from string import ascii_uppercase
 
 
 EXPECTED_COLUMNS = {
@@ -420,7 +421,7 @@ class PlateReplication:
     STATUS_SOURCE = 'source'
     STATUS_DESTINATION = 'destination'
 
-    row_letters = [chr(ord('A') + x) for x in range(0, 16)]
+    row_letters = list(ascii_uppercase[:16])
 
     # aka ['blue', 'green', 'red', 'yellow']
     quadrants = ['1', '2', '3', '4']
@@ -509,8 +510,8 @@ class PlateReplication:
         # since all values in self.d are generated in the same order by
         # the same function and saved as OrderedDicts, the 384-well locations
         # from any src quadrant will map directly to those of the dst quad.
-        src = list(self.map_to_384[str(src_quad)].values())
-        dst = list(self.map_to_384[str(dst_quad)].values())
+        src = self.map_to_384[str(src_quad)].values()
+        dst = self.map_to_384[str(dst_quad)].values()
 
         return dict(map(lambda i, j: (i, j), src, dst))
 
@@ -531,7 +532,7 @@ class PlateReplication:
         '''
         Check if one or more 384-well plate IDs are valid.
         :param locations: A list of one or more locations
-        :return: A list of valid locations or None if none were valid.
+        :return: A list of valid locations.
         '''
         if not isinstance(locations, list):
             # if a single value was passed instead of a list, convert it
@@ -557,7 +558,7 @@ class PlateReplication:
             if col < 1 or col > 24:
                 results.append(location)
 
-        return results if results else None
+        return results
 
     def _replicate(self, plate_384, src_quad, dst_quad, overwrite=False):
         if self.status[src_quad] != PlateReplication.STATUS_SOURCE:
@@ -692,8 +693,9 @@ class PlateReplication:
         # potential overwrites and concatenate them before returning the
         # result to the user. Reset dataframe index so that iTru index merging
         # doesn't fail on duplicate index integer.
-        result = pd.concat([self.data[quad] for quad in self.data], axis=0,
-                           ignore_index=True)
+        quads = [self.data[quad] for quad in self.data if
+                 self.data[quad] is not None]
+        result = pd.concat(quads, axis=0, ignore_index=True)
         result.reset_index(drop=True, inplace=True)
 
         return result
