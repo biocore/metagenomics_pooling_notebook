@@ -569,8 +569,8 @@ class PlateReplication:
 
         if self.status[dst_quad] == PlateReplication.STATUS_DESTINATION and \
                 overwrite is False:
-            raise ValueError(f'Quadrant {dst_quad} is already occupied with "'
-                             f'"replicate samples')
+            raise ValueError(f'Quadrant {dst_quad} is already occupied with '
+                             f'replicate samples')
 
         # if there are wells in the prospective destination quadrant that are
         # already occupied in plate_384, raise an Error.
