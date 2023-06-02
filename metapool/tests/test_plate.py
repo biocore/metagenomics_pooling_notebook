@@ -570,19 +570,6 @@ class PlateReplicationTests(TestCase):
         self.input_df = pd.read_csv('metapool/tests/data/input_plate.tsv',
                                     sep='\t', dtype=str)
 
-    def _frames_equal(self, obs, exp):
-        obs = obs.set_index('Sample').sort_index()
-        exp = exp.set_index('Sample').sort_index()
-
-        try:
-            # assert_frame_equal() returns None if frames are equal and
-            # raises AssertionError if they are not.
-            assert_frame_equal(obs, exp)
-        except AssertionError:
-            return False
-
-        return True
-
     def test_overwrite_source_quad(self):
         # replicate a valid source to empty sources 2 and 4 plus overwriting
         # source 3.
@@ -594,7 +581,10 @@ class PlateReplicationTests(TestCase):
         exp = pd.read_csv('metapool/tests/data/file1.tsv',
                           sep='\t', dtype=str)
 
-        self.assertTrue(self._frames_equal(obs, exp))
+        obs = obs.set_index('Sample').sort_index()
+        exp = exp.set_index('Sample').sort_index()
+
+        assert_frame_equal(obs, exp)
 
         # replicate a valid source to empty sources 2 and 4 plus overwriting
         # source 3 with overwrites not allowed. Should return an Error.
@@ -613,7 +603,10 @@ class PlateReplicationTests(TestCase):
         exp = pd.read_csv('metapool/tests/data/file2.tsv',
                           sep='\t', dtype=str)
 
-        self.assertTrue(self._frames_equal(obs, exp))
+        obs = obs.set_index('Sample').sort_index()
+        exp = exp.set_index('Sample').sort_index()
+
+        assert_frame_equal(obs, exp)
 
     def test_two_replications(self):
         # confirm that two sources can be replicated successfully.
@@ -625,7 +618,10 @@ class PlateReplicationTests(TestCase):
         exp = pd.read_csv('metapool/tests/data/file3.tsv',
                           sep='\t', dtype=str)
 
-        self.assertTrue(self._frames_equal(obs, exp))
+        obs = obs.set_index('Sample').sort_index()
+        exp = exp.set_index('Sample').sort_index()
+
+        assert_frame_equal(obs, exp)
 
     def test_parameter_conversion(self):
         # confirm conversion to lists works as intended.
@@ -636,7 +632,10 @@ class PlateReplicationTests(TestCase):
         exp = pd.read_csv('metapool/tests/data/file4.tsv',
                           sep='\t', dtype=str)
 
-        self.assertTrue(self._frames_equal(obs, exp))
+        obs = obs.set_index('Sample').sort_index()
+        exp = exp.set_index('Sample').sort_index()
+
+        assert_frame_equal(obs, exp)
 
     def test_replicate_empty_quad(self):
         # confirm replicating an empty quad to an empty quad raises an Error.
