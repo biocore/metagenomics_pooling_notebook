@@ -6,7 +6,8 @@ from metapool.plate import (_well_to_row_and_col, _decompress_well,
                             _plate_position, validate_plate_metadata,
                             _validate_plate, Message, ErrorMessage,
                             WarningMessage, requires_dilution, dilute_gDNA,
-                            find_threshold, autopool, _validate_well_id_96)
+                            find_threshold, autopool, _validate_well_id_96,
+                            PlateReplication)
 from metapool.metapool import (read_plate_map_csv, read_pico_csv,
                                calculate_norm_vol, assign_index,
                                compute_pico_concentration)
@@ -561,6 +562,101 @@ class PlateValidationTests(TestCase):
         expected = {'primers': ['1'], 'names': ['THDMI UK Plate 2'],
                     'positions': ['1']}
         self.assertEqual(context, expected)
+
+
+class PlateReplicationTests(TestCase):
+    def test_plate_replication(self):
+        # replicate a valid source to empty sources 2 and 4 plus overwriting
+        # source 3.
+
+        input_df = pd.read_csv('./input_plate.tsv',
+                               sep='\t', dtype=str)
+
+        pr = PlateReplication('Library Well')
+
+        obs = pr.make_replicates(input_df, {1: [2, 3, 4]}, overwrite=True)
+
+        exp = pd.read_csv('./file1.tsv',
+                          sep='\t', dtype=str)
+
+        pd.set_option('display.max_columns', None)
+
+        obs = obs.set_index('Sample').to_dict(orient='index')
+        exp = exp.set_index('Sample').to_dict(orient='index')
+
+        sample_names = set(obs.keys()).union(set(exp.keys()))
+
+        for sample_name in sample_names:
+            self.assertDictEqual(obs[sample_name], exp[sample_name])
+
+        # replicate a valid source to empty sources 2 and 4 plus overwriting
+        # source 3 with overwrites not allowed. Should return an Error.
+
+        with self.assertRaisesRegex(ValueError, 'Quadrant 3 is a source '
+                                                'quadrant'):
+            pr.make_replicates(input_df, {1: [2, 3, 4]}, overwrite=False)
+
+    def test_plate_replication2(self):
+        # replicate to two empty sources, confirm original source in quad 3
+        # remains in output.
+
+        input_df = pd.read_csv('./input_plate.tsv',
+                               sep='\t', dtype=str)
+
+        pr = PlateReplication('Library Well')
+
+        obs = pr.make_replicates(input_df, {1: [2, 4]}, overwrite=True)
+
+        exp = pd.read_csv('./file2.tsv',
+                          sep='\t', dtype=str)
+
+        pd.set_option('display.max_columns', None)
+
+        obs = obs.set_index('Sample').to_dict(orient='index')
+        exp = exp.set_index('Sample').to_dict(orient='index')
+
+        sample_names = set(obs.keys()).union(set(exp.keys()))
+
+        for sample_name in sample_names:
+            self.assertDictEqual(obs[sample_name], exp[sample_name])
+
+        # replicate a valid source to empty sources 2 and 4 plus overwriting
+        # source 3 with overwrites not allowed. Should return an Error.
+
+        with self.assertRaisesRegex(ValueError, 'Quadrant 3 is a source '
+                                                'quadrant'):
+            pr.make_replicates(input_df, {1: [2, 3, 4]}, overwrite=False)
+
+    def atest_plate_replication2(self):
+        # confirm that a source other than quad 1 can replicate to empty
+        # sources.
+        replicate = {3: [2, 4]}
+
+        # confirm that two sources can be replicated successfully.
+        replicate = {1: [2], 3: [4]}
+
+        # confirm conversion to lists works as intended.
+        replicate = {1: 2, 3: 4}
+
+        self.assertTrue(False)
+
+    def atest_odd_scenario_handling(self):
+        # confirm replicating an empty quad to an empty quad raises an Error.
+        replicate = {2: [4]}
+
+        # confirm replicating an empty quad to a source quad raises an Error.
+        replicate = {2: [3]}
+
+        # confirm two sources replicating to the same quad.
+        replicate = {1: [2], 3: [2]}
+
+        # confirm source replicating to empty quad then empty quad attempting
+        # to replicate and overwrite original raises an Error.
+        # A source that's been replicated once shouldn't be allowed to be
+        # overwritten.
+        replicate = {1: [2], 2: [1]}
+
+        self.assertTrue(False)
 
 
 if __name__ == '__main__':
