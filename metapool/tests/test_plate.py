@@ -1,5 +1,6 @@
 import sys
 import pandas as pd
+from pandas.testing import assert_frame_equal
 
 from unittest import TestCase, main
 from metapool.plate import (_well_to_row_and_col, _decompress_well,
@@ -565,129 +566,98 @@ class PlateValidationTests(TestCase):
 
 
 class PlateReplicationTests(TestCase):
+    def setUp(self):
+        self.input_df = pd.read_csv('metapool/tests/data/input_plate.tsv',
+                                    sep='\t', dtype=str)
+
+    def _frames_equal(self, obs, exp):
+        obs = obs.set_index('Sample').sort_index()
+        exp = exp.set_index('Sample').sort_index()
+
+        try:
+            # assert_frame_equal() returns None if frames are equal and
+            # raises AssertionError if they are not.
+            assert_frame_equal(obs, exp)
+        except AssertionError:
+            return False
+
+        return True
+
     def test_overwrite_source_quad(self):
         # replicate a valid source to empty sources 2 and 4 plus overwriting
         # source 3.
 
-        input_df = pd.read_csv('metapool/tests/data/input_plate.tsv',
-                               sep='\t', dtype=str)
-
         pr = PlateReplication('Library Well')
 
-        obs = pr.make_replicates(input_df, {1: [2, 3, 4]}, overwrite=True)
+        obs = pr.make_replicates(self.input_df, {1: [2, 3, 4]}, overwrite=True)
 
         exp = pd.read_csv('metapool/tests/data/file1.tsv',
                           sep='\t', dtype=str)
 
-        pd.set_option('display.max_columns', None)
-
-        obs = obs.set_index('Sample').to_dict(orient='index')
-        exp = exp.set_index('Sample').to_dict(orient='index')
-
-        sample_names = set(obs.keys()).union(set(exp.keys()))
-
-        for sample_name in sample_names:
-            self.assertDictEqual(obs[sample_name], exp[sample_name])
+        self.assertTrue(self._frames_equal(obs, exp))
 
         # replicate a valid source to empty sources 2 and 4 plus overwriting
         # source 3 with overwrites not allowed. Should return an Error.
 
         with self.assertRaisesRegex(ValueError, 'Quadrant 3 is a source '
                                                 'quadrant'):
-            pr.make_replicates(input_df, {1: [2, 3, 4]}, overwrite=False)
+            pr.make_replicates(self.input_df, {1: [2, 3, 4]}, overwrite=False)
 
     def test_another_source(self):
         # confirm that a source other than quad 1 can replicate to empty
         # sources.
-
-        input_df = pd.read_csv('metapool/tests/data/input_plate.tsv',
-                               sep='\t', dtype=str)
-
         pr = PlateReplication('Library Well')
 
-        obs = pr.make_replicates(input_df, {3: [2, 4]}, overwrite=True)
+        obs = pr.make_replicates(self.input_df, {3: [2, 4]}, overwrite=True)
 
         exp = pd.read_csv('metapool/tests/data/file2.tsv',
                           sep='\t', dtype=str)
 
-        pd.set_option('display.max_columns', None)
-
-        obs = obs.set_index('Sample').to_dict(orient='index')
-        exp = exp.set_index('Sample').to_dict(orient='index')
-
-        sample_names = set(obs.keys()).union(set(exp.keys()))
-
-        for sample_name in sample_names:
-            self.assertDictEqual(obs[sample_name], exp[sample_name])
+        self.assertTrue(self._frames_equal(obs, exp))
 
     def test_two_replications(self):
         # confirm that two sources can be replicated successfully.
-
-        input_df = pd.read_csv('metapool/tests/data/input_plate.tsv',
-                               sep='\t', dtype=str)
-
         pr = PlateReplication('Library Well')
 
-        obs = pr.make_replicates(input_df, {1: [2], 3: [4]}, overwrite=True)
+        obs = pr.make_replicates(self.input_df, {1: [2], 3: [4]},
+                                 overwrite=True)
 
         exp = pd.read_csv('metapool/tests/data/file3.tsv',
                           sep='\t', dtype=str)
 
-        pd.set_option('display.max_columns', None)
-
-        obs = obs.set_index('Sample').to_dict(orient='index')
-        exp = exp.set_index('Sample').to_dict(orient='index')
-
-        sample_names = set(obs.keys()).union(set(exp.keys()))
-
-        for sample_name in sample_names:
-            self.assertDictEqual(obs[sample_name], exp[sample_name])
+        self.assertTrue(self._frames_equal(obs, exp))
 
     def test_parameter_conversion(self):
         # confirm conversion to lists works as intended.
-
-        input_df = pd.read_csv('metapool/tests/data/input_plate.tsv',
-                               sep='\t', dtype=str)
-
         pr = PlateReplication('Library Well')
 
-        obs = pr.make_replicates(input_df, {1: 2, 3: 4}, overwrite=True)
+        obs = pr.make_replicates(self.input_df, {1: 2, 3: 4}, overwrite=True)
 
         exp = pd.read_csv('metapool/tests/data/file4.tsv',
                           sep='\t', dtype=str)
 
-        pd.set_option('display.max_columns', None)
-
-        obs = obs.set_index('Sample').to_dict(orient='index')
-        exp = exp.set_index('Sample').to_dict(orient='index')
-
-        sample_names = set(obs.keys()).union(set(exp.keys()))
-
-        for sample_name in sample_names:
-            self.assertDictEqual(obs[sample_name], exp[sample_name])
+        self.assertTrue(self._frames_equal(obs, exp))
 
     def test_replicate_empty_quad(self):
         # confirm replicating an empty quad to an empty quad raises an Error.
-
-        input_df = pd.read_csv('metapool/tests/data/input_plate.tsv',
-                               sep='\t', dtype=str)
 
         pr = PlateReplication('Library Well')
 
         with self.assertRaisesRegex(ValueError, 'Quadrant 2 is not a source '
                                                 'quadrant'):
-            pr.make_replicates(input_df, {2: [4]}, overwrite=False)
+            pr.make_replicates(self.input_df, {2: [4]}, overwrite=False)
 
         # confirm replicating an empty quad to a source quad raises an Error.
         with self.assertRaisesRegex(ValueError, 'Quadrant 2 is not a source '
                                                 'quadrant'):
-            pr.make_replicates(input_df, {2: [3]}, overwrite=False)
+            pr.make_replicates(self.input_df, {2: [3]}, overwrite=False)
 
         # confirm two sources replicating to the same quad raises an Error.
         with self.assertRaisesRegex(ValueError, 'Quadrant 2 is already '
                                                 'occupied with replicate '
                                                 'samples'):
-            pr.make_replicates(input_df, {1: [2], 3: [2]}, overwrite=False)
+            pr.make_replicates(self.input_df, {1: [2], 3: [2]},
+                               overwrite=False)
 
         # confirm source replicating to empty quad then empty quad attempting
         # to replicate and overwrite original raises an Error.
@@ -695,7 +665,8 @@ class PlateReplicationTests(TestCase):
         # overwritten.
         with self.assertRaisesRegex(ValueError, 'Quadrant 2 is not a source '
                                                 'quadrant'):
-            pr.make_replicates(input_df, {1: [2], 2: [1]}, overwrite=False)
+            pr.make_replicates(self.input_df, {1: [2], 2: [1]},
+                               overwrite=False)
 
 
 if __name__ == '__main__':
