@@ -569,14 +569,14 @@ class PlateReplicationTests(TestCase):
         # replicate a valid source to empty sources 2 and 4 plus overwriting
         # source 3.
 
-        input_df = pd.read_csv('./input_plate.tsv',
+        input_df = pd.read_csv('metapool/tests/data/input_plate.tsv',
                                sep='\t', dtype=str)
 
         pr = PlateReplication('Library Well')
 
         obs = pr.make_replicates(input_df, {1: [2, 3, 4]}, overwrite=True)
 
-        exp = pd.read_csv('./file1.tsv',
+        exp = pd.read_csv('metapool/tests/data/file1.tsv',
                           sep='\t', dtype=str)
 
         pd.set_option('display.max_columns', None)
@@ -600,14 +600,14 @@ class PlateReplicationTests(TestCase):
         # confirm that a source other than quad 1 can replicate to empty
         # sources.
 
-        input_df = pd.read_csv('./input_plate.tsv',
+        input_df = pd.read_csv('metapool/tests/data/input_plate.tsv',
                                sep='\t', dtype=str)
 
         pr = PlateReplication('Library Well')
 
         obs = pr.make_replicates(input_df, {3: [2, 4]}, overwrite=True)
 
-        exp = pd.read_csv('./file2.tsv',
+        exp = pd.read_csv('metapool/tests/data/file2.tsv',
                           sep='\t', dtype=str)
 
         pd.set_option('display.max_columns', None)
@@ -623,14 +623,14 @@ class PlateReplicationTests(TestCase):
     def test_two_replications(self):
         # confirm that two sources can be replicated successfully.
 
-        input_df = pd.read_csv('./input_plate.tsv',
+        input_df = pd.read_csv('metapool/tests/data/input_plate.tsv',
                                sep='\t', dtype=str)
 
         pr = PlateReplication('Library Well')
 
         obs = pr.make_replicates(input_df, {1: [2], 3: [4]}, overwrite=True)
 
-        exp = pd.read_csv('./file3.tsv',
+        exp = pd.read_csv('metapool/tests/data/file3.tsv',
                           sep='\t', dtype=str)
 
         pd.set_option('display.max_columns', None)
@@ -646,14 +646,14 @@ class PlateReplicationTests(TestCase):
     def test_parameter_conversion(self):
         # confirm conversion to lists works as intended.
 
-        input_df = pd.read_csv('./input_plate.tsv',
+        input_df = pd.read_csv('metapool/tests/data/input_plate.tsv',
                                sep='\t', dtype=str)
 
         pr = PlateReplication('Library Well')
 
         obs = pr.make_replicates(input_df, {1: 2, 3: 4}, overwrite=True)
 
-        exp = pd.read_csv('./file4.tsv',
+        exp = pd.read_csv('metapool/tests/data/file4.tsv',
                           sep='\t', dtype=str)
 
         pd.set_option('display.max_columns', None)
@@ -669,7 +669,7 @@ class PlateReplicationTests(TestCase):
     def test_replicate_empty_quad(self):
         # confirm replicating an empty quad to an empty quad raises an Error.
 
-        input_df = pd.read_csv('./input_plate.tsv',
+        input_df = pd.read_csv('metapool/tests/data/input_plate.tsv',
                                sep='\t', dtype=str)
 
         pr = PlateReplication('Library Well')
