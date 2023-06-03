@@ -6,6 +6,8 @@ import pandas as pd
 import warnings
 from scipy.stats import zscore
 from sklearn.linear_model import LogisticRegression
+from collections import OrderedDict
+from string import ascii_uppercase
 
 
 EXPECTED_COLUMNS = {
@@ -412,3 +414,288 @@ def _autopool_norm(pool_failures, total_nmol, min_conc, sample_concs,
                      'MiniPico Pooled Volume'] = my_func
 
     return plate_df
+
+
+class PlateReplication:
+    STATUS_EMPTY = 'empty'
+    STATUS_SOURCE = 'source'
+    STATUS_DESTINATION = 'destination'
+
+    row_letters = list(ascii_uppercase[:16])
+
+    # aka ['blue', 'green', 'red', 'yellow']
+    quadrants = ['1', '2', '3', '4']
+
+    def __init__(self, well_column_name):
+        self.map_to_384 = {}
+
+        for quadrant in PlateReplication.quadrants:
+            self.map_to_384[quadrant] = self._get_quadrant(quadrant)
+
+        if well_column_name is None:
+            self.well_column_name = 'Library Well'
+        else:
+            self.well_column_name = well_column_name
+
+        self._reset()
+
+    def _reset(self):
+        # Used for (re)initialization so that make_replicate() calls can
+        # be made multiple times using the same object.
+
+        # All quadrants begin at one as they represent a potential source
+        # quadrant, even if they are empty. If quad 1 is replicated once,
+        # counter '1' will become 2. If quad 2 is replicated three times,
+        # counter '1' will become 4. If a quadrant becomes a destination then
+        # this value will be overwritten. If empty, this value will be unused.
+        self.rep_counters = {'1': 1, '2': 1, '3': 1, '4': 1}
+
+        self.status = {'1': PlateReplication.STATUS_EMPTY,
+                       '2': PlateReplication.STATUS_EMPTY,
+                       '3': PlateReplication.STATUS_EMPTY,
+                       '4': PlateReplication.STATUS_EMPTY}
+
+        # this allows us to store output dataframes for each quadrant,
+        # overwrite them on demand, and save final concatenation for when
+        # we're done.
+        self.data = {'1': None, '2': None, '3': None, '4': None}
+
+    def _get_quadrant(self, quadrant):
+        d = OrderedDict()
+        for i in range(1, 9):
+            row_96 = PlateReplication.row_letters[i - 1]
+            if quadrant in ['1', '2']:
+                row_384 = PlateReplication.row_letters[(2 * i) - 2]
+            else:
+                row_384 = PlateReplication.row_letters[(2 * i) - 1]
+
+            for j in range(1, 13):
+                col_96 = j
+                if quadrant in ['1', '3']:
+                    col_384 = (2 * j) - 1
+                else:
+                    col_384 = (2 * j)
+
+                k = "%s%s" % (row_96, col_96)
+                v = "%s%s" % (row_384, col_384)
+                d[k] = v
+
+        return d
+
+    def get_384_well_location(self, well_96_id, quadrant):
+        '''
+        Translate a 96-well plate + a quadrant into a 384-well plate cell
+        :param well_96_id: A 96-well plate ID
+        :param quadrant: A quadrant of a 384-well plate e.g. '1', '2', '3', '4'
+        :return: A 384-well plate ID
+        '''
+        quadrant = str(quadrant)
+        if quadrant in self.map_to_384:
+            if well_96_id in self.map_to_384[quadrant]:
+                return self.map_to_384[quadrant][well_96_id]
+
+    def get_96_well_location_and_quadrant(self, well_384_id):
+        '''
+        Translate a 384-well plate ID to a 96-well plate ID and a quadrant
+        :param well_384_id: A 384-well plate ID
+        :return: A tuple of (quadrant, 96-well plate ID)
+        '''
+        # not an optimal search but mean-search-space is 192 and won't grow.
+        for quadrant in PlateReplication.quadrants:
+            for k in self.map_to_384[quadrant]:
+                if self.map_to_384[quadrant][k] == well_384_id:
+                    return quadrant, k
+
+    def _map_quadrants(self, src_quad, dst_quad):
+        # since all values in self.d are generated in the same order by
+        # the same function and saved as OrderedDicts, the 384-well locations
+        # from any src quadrant will map directly to those of the dst quad.
+        src = self.map_to_384[str(src_quad)].values()
+        dst = self.map_to_384[str(dst_quad)].values()
+
+        return dict(map(lambda i, j: (i, j), src, dst))
+
+    def _get_all_384_locations(self, quadrant):
+        return list(self.map_to_384[quadrant].values())
+
+    def _get_quadrants(self, wells_384):
+        results = []
+
+        for i in range(1, 5):
+            all_wells_in_quadrant = set(self._get_all_384_locations(str(i)))
+            if set(wells_384) & all_wells_in_quadrant:
+                results.append(str(i))
+
+        return results
+
+    def check_bounds_384(self, locations):
+        '''
+        Check if one or more 384-well plate IDs are valid.
+        :param locations: A list of one or more locations
+        :return: A list of valid locations.
+        '''
+        if not isinstance(locations, list):
+            # if a single value was passed instead of a list, convert it
+            # into a list of one.
+            locations = [locations]
+
+        results = []
+
+        for location in locations:
+            # ensure location is always a string
+            location = str(location)
+
+            row = location[0]
+            col = location[1:]
+            try:
+                col = int(col)
+            except ValueError:
+                results.append(location)
+
+            if row not in PlateReplication.row_letters:
+                results.append(location)
+
+            if col < 1 or col > 24:
+                results.append(location)
+
+        return results
+
+    def _replicate(self, plate_384, src_quad, dst_quad, overwrite=False):
+        if self.status[src_quad] != PlateReplication.STATUS_SOURCE:
+            raise ValueError(f'Quadrant {src_quad} is not a source quadrant')
+
+        if self.status[dst_quad] == PlateReplication.STATUS_SOURCE and \
+                overwrite is False:
+            raise ValueError(f'Quadrant {dst_quad} is a source quadrant')
+
+        if self.status[dst_quad] == PlateReplication.STATUS_DESTINATION and \
+                overwrite is False:
+            raise ValueError(f'Quadrant {dst_quad} is already occupied with '
+                             f'replicate samples')
+
+        # if there are wells in the prospective destination quadrant that are
+        # already occupied in plate_384, raise an Error.
+        dst_wells = self._get_all_384_locations(str(dst_quad))
+        occupied = plate_384.loc[plate_384['Well'].isin(dst_wells)].copy()
+
+        if occupied.shape[0] > 0 and overwrite is False:
+            raise ValueError(f'Quadrant {dst_quad} contains source samples')
+
+        self.rep_counters[src_quad] += 1
+
+        rows = []
+        for src, dst in self._map_quadrants(src_quad, dst_quad).items():
+            # rows are clipped one at a time rather than as a subset of Well
+            # ids because the order of the subset returned is according to
+            # their numeric index id, rather than the order passed through
+            # .in().
+            # row will be a df that is just one row long.
+            row = plate_384.loc[plate_384['Well'] == src].copy()
+            # reset the numeric index, otherwise the row will keep the index
+            # from the old plate and row.loc[] will not modify the right row.
+            row.reset_index(inplace=True, drop=True)
+
+            if row.shape[0] > 1:
+                raise ValueError(f'{src} matched more than one row in '
+                                 'plate_map')
+
+            # assume row.shape[0] is either 0 (no-match) or 1 (exact match)
+            if row.shape[0] == 1:
+                row.loc[0, self.well_column_name] = dst
+                row.loc[0, 'original_sample_name'] = row.loc[0, 'Sample']
+                # add dst as suffix to sample_name for uniqueness
+                row.loc[0, 'Sample'] = str(row.loc[0, 'Sample']) + '.' + dst
+                row.loc[0, 'replicate'] = str(self.rep_counters[src_quad])
+                row.loc[0, 'contains_replicates'] = 'True'
+
+                rows.append(row)
+
+        self.status[dst_quad] = PlateReplication.STATUS_DESTINATION
+        # overwrites any existing values for that quadrant if present.
+        self.data[dst_quad] = pd.concat(rows, axis=0, ignore_index=True)
+
+    def _populate_source(self, src_quad, plate_384):
+        # note that the number of columns and their type differ in the
+        # output from the input. This means that even a source-quadrant can't
+        # be copied wholesale from the input document into self.data[src_quad].
+        # It must be munged as well.
+        rows = []
+
+        for src in self._get_all_384_locations(src_quad):
+            row = plate_384.loc[plate_384['Well'] == src].copy()
+            # reset the numeric index, otherwise the row will keep the index
+            # from the old plate and row.loc[] will not modify the right row.
+            row.reset_index(inplace=True, drop=True)
+
+            if row.shape[0] > 1:
+                raise ValueError(f'{src} matched more than one row in '
+                                 'plate_map')
+
+            # assume row.shape[0] is either 0 (no-match) or 1 (exact match)
+            if row.shape[0] == 1:
+                row.loc[0, self.well_column_name] = src
+                row.loc[0, 'original_sample_name'] = row.loc[0, 'Sample']
+                # add dst as suffix to sample_name for uniqueness
+                row.loc[0, 'Sample'] = str(row.loc[0, 'Sample']) + '.' + src
+                # convert rep_counters to string so it doesn't become '1.0.'
+                row.loc[0, 'replicate'] = str(self.rep_counters[src_quad])
+                # contains_replicates is a document-wide boolean. It should
+                # be True even in the source row columns.
+                row.loc[0, 'contains_replicates'] = 'True'
+                rows.append(row)
+
+        self.status[src_quad] = PlateReplication.STATUS_SOURCE
+        self.data[src_quad] = pd.concat(rows, axis=0, ignore_index=True)
+
+    def make_replicates(self, plate_384, replicates=None, overwrite=False):
+        '''
+        Given a 384-well plate and replication orders, generate output.
+        :param plate_384: A 384-well plate.
+        :param replicates: A dict containing a source quadrant and a list of
+        destinations e.g.: {1: [2, 3, 4]}
+        :param overwrite: Allow overwriting of an occupied quadrant.
+        :return:
+        '''
+
+        # re-initialize object state for current call.
+        self._reset()
+
+        if replicates is None:
+            # This generates output equal to legacy no-replication case.
+            # Useful for generating output even when no replications are
+            # needed.
+            result = plate_384.copy()
+            result[self.well_column_name] = result['Well'].copy()
+            result['contains_replicates'] = 'False'
+            return result
+
+        for key in replicates:
+            if not isinstance(replicates[key], list):
+                v = replicates[key]
+                replicates[key] = [v]
+
+        # discover which quads in plate_df contain samples, mark them as
+        # source plates, and populate self.data for src_quad.
+        for src_quad in self._get_quadrants(list(plate_384['Well'].copy())):
+            self._populate_source(src_quad, plate_384)
+
+        for src_quad in replicates.keys():
+            # every source quadrant (src_quad) is going to have a list in
+            # replicates w/one or more destination quadrants (dst_quad) to
+            # replicate to. We need to process each one in turn.
+            for dst_quad in replicates[src_quad]:
+                # the values in replicates are likely to be integers, not
+                # strings, as they are from the user.
+                self._replicate(plate_384, str(src_quad), str(dst_quad),
+                                overwrite)
+
+        # Take the final output for each quad after all replications and
+        # potential overwrites and concatenate them before returning the
+        # result to the user. Reset dataframe index so that iTru index merging
+        # doesn't fail on duplicate index integer.
+        quads = [self.data[quad] for quad in self.data if
+                 self.data[quad] is not None]
+        result = pd.concat(quads, axis=0, ignore_index=True)
+        result.reset_index(drop=True, inplace=True)
+
+        return result
