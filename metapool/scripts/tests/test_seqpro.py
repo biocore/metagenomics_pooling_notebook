@@ -6,6 +6,7 @@ from metapool.scripts.seqpro import format_preparation_files
 from shutil import copy, copytree, rmtree
 from os.path import join
 from subprocess import Popen, PIPE
+import pandas as pd
 
 
 class SeqproTests(unittest.TestCase):
@@ -73,12 +74,167 @@ class SeqproTests(unittest.TestCase):
                 '200318_A00953_0082_AH5TWYDSXY.Trojecp_666.3.tsv'
             ]
 
-            self.assertEqual(sorted(os.listdir('./')), exp_preps)
+            # assert filenames are correct, and contents are correct,
+            # including columns, column order, and empty values are not
+            # present.
+            exp = {'200318_A00953_0082_AH5TWYDSXY.Project_1111.1.tsv': {
+                0: {'experiment_design_description': 'Eqiiperiment',
+                    'well_description': 'FooBar_666_p1.sample1.A1',
+                    'library_construction_protocol': 'Knight Lab Kapa HP',
+                    'platform': 'Illumina', 'run_center': 'IGM',
+                    'run_date': '2020-03-18',
+                    'run_prefix': 'sample1_S333_L001',
+                    'sequencing_meth': 'sequencing by synthesis',
+                    'center_name': 'UCSD', 'center_project_name': 'Project',
+                    'instrument_model': 'Illumina NovaSeq 6000',
+                    'runid': '200318_A00953_0082_AH5TWYDSXY', 'lane': 1,
+                    'sample_project': 'Project', 'i5_index_id': 'iTru5_01_A',
+                    'index2': 'ACCGACAA', 'sample_plate': 'FooBar_666_p1',
+                    'sample_well': 'A1', 'sample_name': 'sample1',
+                    'index': 'CCGACTAT', 'i7_index_id': 'iTru7_107_07',
+                    'raw_reads_r1r2': 10000,
+                    'quality_filtered_reads_r1r2': 10800.0,
+                    'non_host_reads': 111172.0,
+                    'fraction_passing_quality_filter': 1.08,
+                    'fraction_non_human': 10.293703703703704},
+                1: {'experiment_design_description': 'Eqiiperiment',
+                    'well_description': 'FooBar_666_p1.sample2.A2',
+                    'library_construction_protocol': 'Knight Lab Kapa HP',
+                    'platform': 'Illumina', 'run_center': 'IGM',
+                    'run_date': '2020-03-18',
+                    'run_prefix': 'sample2_S404_L001',
+                    'sequencing_meth': 'sequencing by synthesis',
+                    'center_name': 'UCSD', 'center_project_name': 'Project',
+                    'instrument_model': 'Illumina NovaSeq 6000',
+                    'runid': '200318_A00953_0082_AH5TWYDSXY', 'lane': 1,
+                    'sample_project': 'Project', 'i5_index_id': 'iTru5_01_A',
+                    'index2': 'CTTCGCAA', 'sample_plate': 'FooBar_666_p1',
+                    'sample_well': 'A2', 'sample_name': 'sample2',
+                    'index': 'CCGACTAT', 'i7_index_id': 'iTru7_107_08',
+                    'raw_reads_r1r2': 100000,
+                    'quality_filtered_reads_r1r2': 61404.0,
+                    'non_host_reads': 277611.0,
+                    'fraction_passing_quality_filter': 0.61404,
+                    'fraction_non_human': 4.521057260113348}},
+                   '200318_A00953_0082_AH5TWYDSXY.Project_1111.3.tsv': {
+                       0: {'experiment_design_description': 'Eqiiperiment',
+                           'well_description': 'FooBar_666_p1.sample1.A3',
+                           'library_construction_protocol': ('Knight Lab Kapa '
+                                                             'HP'),
+                           'platform': 'Illumina', 'run_center': 'IGM',
+                           'run_date': '2020-03-18',
+                           'run_prefix': 'sample1_S241_L003',
+                           'sequencing_meth': 'sequencing by synthesis',
+                           'center_name': 'UCSD',
+                           'center_project_name': 'Project',
+                           'instrument_model': 'Illumina NovaSeq 6000',
+                           'runid': '200318_A00953_0082_AH5TWYDSXY', 'lane': 3,
+                           'sample_project': 'Project',
+                           'i5_index_id': 'iTru5_01_A', 'index2': 'AACACCAC',
+                           'sample_plate': 'FooBar_666_p1',
+                           'sample_well': 'A3', 'sample_name': 'sample1',
+                           'index': 'GCCTTGTT', 'i7_index_id': 'iTru7_107_09',
+                           'raw_reads_r1r2': 100000,
+                           'quality_filtered_reads_r1r2': 335996.0,
+                           'non_host_reads': 1168275.0,
+                           'fraction_passing_quality_filter': 3.35996,
+                           'fraction_non_human': 3.477050322027643},
+                       1: {'experiment_design_description': 'Eqiiperiment',
+                           'well_description': 'FooBar_666_p1.sample2.A4',
+                           'library_construction_protocol': ('Knight Lab Kapa '
+                                                             'HP'),
+                           'platform': 'Illumina', 'run_center': 'IGM',
+                           'run_date': '2020-03-18',
+                           'run_prefix': 'sample2_S316_L003',
+                           'sequencing_meth': 'sequencing by synthesis',
+                           'center_name': 'UCSD',
+                           'center_project_name': 'Project',
+                           'instrument_model': 'Illumina NovaSeq 6000',
+                           'runid': '200318_A00953_0082_AH5TWYDSXY', 'lane': 3,
+                           'sample_project': 'Project',
+                           'i5_index_id': 'iTru5_01_A', 'index2': 'CGTATCTC',
+                           'sample_plate': 'FooBar_666_p1',
+                           'sample_well': 'A4', 'sample_name': 'sample2',
+                           'index': 'AACTTGCC', 'i7_index_id': 'iTru7_107_10',
+                           'raw_reads_r1r2': 2300000,
+                           'quality_filtered_reads_r1r2': 18374.0,
+                           'non_host_reads': 1277.0,
+                           'fraction_passing_quality_filter':
+                               0.0079886956521739,
+                           'fraction_non_human': 0.0695003809731141}},
+                   '200318_A00953_0082_AH5TWYDSXY.Trojecp_666.3.tsv': {
+                       0: {'experiment_design_description': 'SomethingWitty',
+                           'well_description': 'FooBar_666_p1.sample3.A5',
+                           'library_construction_protocol': ('Knight Lab Kapa '
+                                                             'HP'),
+                           'platform': 'Illumina', 'run_center': 'IGM',
+                           'run_date': '2020-03-18',
+                           'run_prefix': 'sample3_S457_L003',
+                           'sequencing_meth': 'sequencing by synthesis',
+                           'center_name': 'UCSD',
+                           'center_project_name': 'Trojecp',
+                           'instrument_model': 'Illumina NovaSeq 6000',
+                           'runid': '200318_A00953_0082_AH5TWYDSXY', 'lane': 3,
+                           'sample_project': 'Trojecp',
+                           'i5_index_id': 'iTru5_01_A', 'index2': 'GGTACGAA',
+                           'sample_plate': 'FooBar_666_p1',
+                           'sample_well': 'A5', 'sample_name': 'sample3',
+                           'index': 'CAATGTGG', 'i7_index_id': 'iTru7_107_11',
+                           'raw_reads_r1r2': 300000,
+                           'quality_filtered_reads_r1r2': 4692.0,
+                           'non_host_reads': 33162.0,
+                           'fraction_passing_quality_filter': 0.01564,
+                           'fraction_non_human': 7.067774936061381},
+                       1: {'experiment_design_description': 'SomethingWitty',
+                           'well_description': 'FooBar_666_p1.sample4.B6',
+                           'library_construction_protocol': ('Knight Lab Kapa '
+                                                             'HP'),
+                           'platform': 'Illumina', 'run_center': 'IGM',
+                           'run_date': '2020-03-18',
+                           'run_prefix': 'sample4_S369_L003',
+                           'sequencing_meth': 'sequencing by synthesis',
+                           'center_name': 'UCSD',
+                           'center_project_name': 'Trojecp',
+                           'instrument_model': 'Illumina NovaSeq 6000',
+                           'runid': '200318_A00953_0082_AH5TWYDSXY', 'lane': 3,
+                           'sample_project': 'Trojecp',
+                           'i5_index_id': 'iTru5_01_A', 'index2': 'CGATCGAT',
+                           'sample_plate': 'FooBar_666_p1',
+                           'sample_well': 'B6', 'sample_name': 'sample4',
+                           'index': 'AAGGCTGA', 'i7_index_id': 'iTru7_107_12',
+                           'raw_reads_r1r2': 400000,
+                           'quality_filtered_reads_r1r2': 960.0,
+                           'non_host_reads': 2777.0,
+                           'fraction_passing_quality_filter': 0.0024,
+                           'fraction_non_human': 2.892708333333333},
+                       2: {'experiment_design_description': 'SomethingWitty',
+                           'well_description': 'FooBar_666_p1.sample5.B8',
+                           'library_construction_protocol': ('Knight Lab Kapa '
+                                                             'HP'),
+                           'platform': 'Illumina', 'run_center': 'IGM',
+                           'run_date': '2020-03-18',
+                           'run_prefix': 'sample5_S392_L003',
+                           'sequencing_meth': 'sequencing by synthesis',
+                           'center_name': 'UCSD',
+                           'center_project_name': 'Trojecp',
+                           'instrument_model': 'Illumina NovaSeq 6000',
+                           'runid': '200318_A00953_0082_AH5TWYDSXY', 'lane': 3,
+                           'sample_project': 'Trojecp',
+                           'i5_index_id': 'iTru5_01_A', 'index2': 'AAGACACC',
+                           'sample_plate': 'FooBar_666_p1',
+                           'sample_well': 'B8', 'sample_name': 'sample5',
+                           'index': 'TTACCGAG', 'i7_index_id': 'iTru7_107_13',
+                           'raw_reads_r1r2': 567000,
+                           'quality_filtered_reads_r1r2': 30846196.0,
+                           'non_host_reads': 4337654.0,
+                           'fraction_passing_quality_filter':
+                               54.402462081128746,
+                           'fraction_non_human': 0.1406220073295261}}
+                   }
 
-            for prep, exp_lines in zip(exp_preps, [4, 4, 5]):
-                with open(prep) as f:
-                    self.assertEqual(len(f.read().split('\n')), exp_lines,
-                                     'Assertion error in %s' % prep)
+            for prep in exp_preps:
+                obs = pd.read_csv(prep, sep='\t').to_dict('index')
+                self.assertDictEqual(obs, exp[prep])
 
     def test_verbose_flag(self):
         self.maxDiff = None
