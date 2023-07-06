@@ -186,7 +186,7 @@ class KLSampleSheetTests(BaseTests):
             'Date': '2/26/20',
             'Workflow': 'GenerateFASTQ',
             'Application': 'FASTQ Only',
-            'Assay': 'Metagenomics',
+            'Assay': 'Metagenomic',
             'Description': '',
             'Chemistry': 'Default'
         }
@@ -642,6 +642,15 @@ class SampleSheetWorkflow(BaseTests):
         messages = _validate_sample_sheet_metadata(self.metadata)
         self.assertEqual(messages, [])
 
+    def test_validate_sample_sheet_metadata_bad_assay_types(self):
+        invalid_types = ['SomeType', 'Metagenomics', 'Metatranscriptomics']
+
+        for invalid_type in invalid_types:
+            self.metadata['Assay'] = invalid_type
+            messages = _validate_sample_sheet_metadata(self.metadata)
+            exp = f'ErrorMessage: {invalid_type} is not a supported Assay'
+            self.assertEqual(str(messages[0]), exp)
+
     def test_make_sample_sheet(self):
         exp_bfx = pd.DataFrame(self.metadata['Bioinformatics'])
         exp_contact = pd.DataFrame(self.metadata['Contact'])
@@ -820,7 +829,7 @@ class SampleSheetWorkflow(BaseTests):
 
         exp = pd.DataFrame(columns=columns, data=data)
 
-        obs = _remap_table(self.table, 'Metagenomics', strict=False)
+        obs = _remap_table(self.table, 'Metagenomic', strict=False)
 
         self.assertEqual(len(obs), 3)
         print(obs.head())
@@ -864,7 +873,7 @@ class SampleSheetWorkflow(BaseTests):
 
         exp = pd.DataFrame(columns=columns, data=data)
 
-        obs = _remap_table(self.table, 'Metatranscriptomics', strict=False)
+        obs = _remap_table(self.table, 'Metatranscriptomic', strict=False)
 
         self.assertEqual(len(obs), 3)
         pd.testing.assert_frame_equal(obs, exp, check_like=True)
@@ -933,7 +942,7 @@ class SampleSheetWorkflow(BaseTests):
     def test_add_metadata_to_sheet_most_defaults(self):
         sheet = KLSampleSheet()
 
-        self.metadata['Assay'] = 'Metagenomics'
+        self.metadata['Assay'] = 'Metagenomic'
         exp_bfx = pd.DataFrame(self.metadata['Bioinformatics'])
         exp_contact = pd.DataFrame(self.metadata['Contact'])
 
@@ -958,7 +967,7 @@ class SampleSheetWorkflow(BaseTests):
             'Date': datetime.today().strftime('%Y-%m-%d'),
             'Workflow': 'GenerateFASTQ',
             'Application': 'FASTQ Only',
-            'Assay': 'Metagenomics',
+            'Assay': 'Metagenomic',
             'Description': '',
             'Chemistry': 'Default',
         }
@@ -1006,7 +1015,7 @@ class SampleSheetWorkflow(BaseTests):
 
     def test_remove_options_for_iseq(self):
         sheet = KLSampleSheet()
-        self.metadata['Assay'] = 'Metagenomics'
+        self.metadata['Assay'] = 'Metagenomic'
         obs = _add_metadata_to_sheet(self.metadata, sheet, 'iSeq')
 
         settings = {
