@@ -1,4 +1,4 @@
-import os
+from os.path import join, dirname
 
 import pandas
 import pandas as pd
@@ -11,25 +11,24 @@ from metapool.prep import (preparations_for_run, remove_qiita_id,
                            parse_illumina_run_id,
                            _check_invalid_names, agp_transform, parse_prep,
                            generate_qiita_prep_file, qiita_scrub_name,
-                           preparations_for_run_mapping_file)
+                           preparations_for_run_mapping_file, demux_pre_prep)
 
 
 class TestPrep(TestCase):
     def setUp(self):
-        data_dir = os.path.join(os.path.dirname(__file__), 'data')
-        self.good_run = os.path.join(data_dir, 'runs',
-                                     '191103_D32611_0365_G00DHB5YXX')
-        self.good_run_new_version = os.path.join(
+        data_dir = join(dirname(__file__), 'data')
+        self.good_run = join(data_dir, 'runs', '191103_D32611_0365_G00DHB5YXX')
+        self.good_run_new_version = join(
             data_dir, 'runs', '191104_D32611_0365_G00DHB5YXZ')
-        self.OKish_run_new_version = os.path.join(
+        self.OKish_run_new_version = join(
             data_dir, 'runs', '191104_D32611_0365_OK15HB5YXZ')
 
-        self.amplicon_run = os.path.join(data_dir, 'runs',
-                                         '230207_M05314_0346_000000000-KVMGL')
+        self.amplicon_run = join(data_dir, 'runs',
+                                 '230207_M05314_0346_000000000-KVMGL')
 
-        self.ss = os.path.join(self.good_run, 'sample-sheet.csv')
-        self.prep = os.path.join(data_dir, 'prep.tsv')
-        self.mf = os.path.join(self.amplicon_run, 'sample_mapping_file.tsv')
+        self.ss = join(self.good_run, 'sample-sheet.csv')
+        self.prep = join(data_dir, 'prep.tsv')
+        self.mf = join(self.amplicon_run, 'sample_mapping_file.tsv')
 
     def _check_run_191103_D32611_0365_G00DHB5YXX(self, obs):
         "Convenience method to check the output of a whole run"
@@ -364,17 +363,17 @@ class TestPrep(TestCase):
         self.assertIsNone(obs)
 
     def test_is_non_empty_gz_file(self):
-        non_empty = os.path.join(self.good_run, 'Baz', 'sample_2_S10_L001_R1_0'
-                                                       '01.fastq.gz')
+        non_empty = join(self.good_run, 'Baz', 'sample_2_S10_L001_R1_0'
+                                               '01.fastq.gz')
         self.assertTrue(is_nonempty_gz_file(non_empty))
-        non_empty = os.path.join(self.good_run, 'Baz', 'sample_2_S10_L001_R2_0'
-                                                       '01.fastq.gz')
+        non_empty = join(self.good_run, 'Baz', 'sample_2_S10_L001_R2_0'
+                                               '01.fastq.gz')
         self.assertTrue(is_nonempty_gz_file(non_empty))
-        empty = os.path.join(self.good_run, 'Baz/atropos_qc/sample_2_S10_L003_'
-                                            'R1_001.fastq.gz')
+        empty = join(self.good_run, 'Baz/atropos_qc/sample_2_S10_L003_'
+                                    'R1_001.fastq.gz')
         self.assertFalse(is_nonempty_gz_file(empty))
-        empty = os.path.join(self.good_run, 'Baz/atropos_qc/sample_2_S10_L003_'
-                                            'R2_001.fastq.gz')
+        empty = join(self.good_run, 'Baz/atropos_qc/sample_2_S10_L003_'
+                                    'R2_001.fastq.gz')
         self.assertFalse(is_nonempty_gz_file(empty))
 
     def test_parse_illumina_run_id(self):
@@ -819,6 +818,34 @@ class TestPrep(TestCase):
         self.assertEqual(qiita_scrub_name('{}/<>'), '.')
         self.assertEqual(qiita_scrub_name('th!s.has.happened'),
                          'th.s.has.happened')
+
+
+class TestPrePrepReplicates(TestCase):
+    def setUp(self):
+        self.data_dir = join('metapool', 'tests', 'data')
+        self.prep_w_replicates_path = join(self.data_dir,
+                                           'pre_prep_w_replicates.csv')
+        self.replicate_output_paths = [join(self.data_dir,
+                                            'replicate_output5.txt'),
+                                       join(self.data_dir,
+                                            'replicate_output6.txt'),
+                                       join(self.data_dir,
+                                            'replicate_output7.txt')]
+
+    def test_demux_pre_prep(self):
+        # parse_prep() extended to support pre-prep files as well.
+        df = parse_prep(self.prep_w_replicates_path)
+        results = demux_pre_prep(df)
+
+        # assert that the proper number of dataframes were returned.
+        self.assertEqual(len(results), 3)
+
+        # assert that each pre-prep dataframe appears in the correct order and
+        # matches known results.
+        for replicate_output_path in self.replicate_output_paths:
+            obs = results.pop(0)
+            exp = parse_prep(replicate_output_path)
+            self.assertTrue(obs.equals(exp))
 
 
 if __name__ == "__main__":

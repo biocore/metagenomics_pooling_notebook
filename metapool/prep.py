@@ -7,6 +7,7 @@ import pandas as pd
 from glob import glob
 from datetime import datetime
 from string import ascii_letters, digits
+from metapool.plate import PlateReplication
 
 
 REQUIRED_COLUMNS = {'sample_plate', 'sample_well', 'i7_index_id', 'index',
@@ -666,17 +667,17 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
 
 
 def parse_prep(prep_path):
-    """Parses a prep file into a DataFrame
+    """Parses a prep or pre-prep file into a DataFrame
 
     Parameters
     ----------
     prep_path: str or file-like
-        Filepath to the preparation file
+        Filepath to the preparation or pre-preparation file
 
     Returns
     -------
     pd.DataFrame
-        Parsed prep file with the sample_name column set as the index.
+        Parsed file with the sample_name column set as the index.
     """
     prep = pd.read_csv(prep_path, sep='\t', dtype=str, keep_default_na=False,
                        na_values=[])
@@ -842,3 +843,86 @@ def qiita_scrub_name(name):
         the sample name, formatted for qiita
     """
     return re.sub(r'[^0-9a-zA-Z\-\.]+', '.', name)
+
+
+def _organize_by_project(pre_prep):
+    # extract project-level metadata
+
+    gb = pre_prep.groupby('project_name')
+
+    results = [gb.get_group(grp) for grp in gb.groups]
+
+    projects = []
+    data = {}
+
+    for project in results:
+        # the set of unique project_names should only be one value
+        project_name = set(project['project_name']).pop()
+
+        # assert that all values in 'contains_replicates' column for a given
+        # project are either all True or all False. Handle case-variations.
+        values = set([x.lower() == 'true' for x in
+                      list(project['contains_replicates'])])
+        if len(values) != 1:
+            raise ValueError(f"values in 'contains_replicates' column contain "
+                             "values for both True and False for project "
+                             f"'{project_name}'")
+
+        projects.append((project_name, values.pop()))
+        data[project_name] = project
+
+        return {'projects': projects, 'data': data}
+
+
+def _demux_by_project(frame):
+    # use PlateReplication object to convert each sample's 384 well location
+    # into a 96-well location + quadrant. Since replication is performed at
+    # the plate-level, this will identify which replicants belong in which
+    # new sample-sheet.
+    plate = PlateReplication(None)
+
+    well_ids = list(frame.destination_well_id)
+
+    frame['quad'] = [plate.get_96_well_location_and_quadrant(x)[0] for x in
+                     well_ids]
+
+    gb = frame.groupby('quad')
+
+    results = [gb.get_group(grp).drop(['quad'], axis=1) for grp in gb.groups]
+
+    # clean-up each dataframe before returning to the user.
+    for result in results:
+        result['Sample_ID'] = result.index
+        result.reset_index(inplace=True)
+
+    return results
+
+
+def demux_pre_prep(pre_prep):
+    """Given a pre-prep file w/samples that are plate-replicates, generate new
+       pre-prep files for each unique plate-replicate.
+
+    Parameters
+    ----------
+    pre_prep: A Pandas dataframe representing a pre-prep file.
+        Object from where to extract the data.
+
+    Returns
+    -------
+    list of pre_preps
+    """
+    metadata = _organize_by_project(pre_prep)
+
+    results = []
+
+    for project_name, needs_demuxing in metadata['projects']:
+        print(project_name)
+        print("NEEDS DEMUXING: %s" % needs_demuxing)
+        df = metadata['data'][project_name]
+
+        if needs_demuxing:
+            results += _demux_by_project(df)
+        else:
+            results.append(df)
+
+    return results

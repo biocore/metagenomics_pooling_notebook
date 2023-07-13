@@ -1,8 +1,8 @@
 import sys
 import unittest
-import os
 import tempfile
 from datetime import datetime
+from os.path import join, dirname
 
 import pandas as pd
 import sample_sheet
@@ -15,42 +15,40 @@ from metapool.sample_sheet import (KLSampleSheet,
                                    _validate_sample_sheet_metadata,
                                    _remap_table,
                                    make_sample_sheet, contains_replicates,
-                                   _demux_sample_sheet, _get_demux_metadata)
+                                   _demux_sample_sheet, _get_demux_metadata,
+                                   demux_sample_sheet)
 from metapool.plate import ErrorMessage, WarningMessage
 
 
 # The classes below share the same filepaths, so we use this dummy class
 class BaseTests(unittest.TestCase):
     def setUp(self):
-        data_dir = os.path.join(os.path.dirname(__file__), 'data')
-        self.ss = os.path.join(data_dir, 'runs',
-                               '191103_D32611_0365_G00DHB5YXX',
-                               'sample-sheet.csv')
+        data_dir = join(dirname(__file__), 'data')
+        self.ss = join(data_dir, 'runs', '191103_D32611_0365_G00DHB5YXX',
+                       'sample-sheet.csv')
 
-        self.alt_ss = os.path.join(data_dir,
-                                   'good-sample-sheet-with-alt-col-names.csv')
+        self.alt_ss = join(data_dir,
+                           'good-sample-sheet-with-alt-col-names.csv')
 
-        self.good_ss = os.path.join(data_dir, 'good-sample-sheet.csv')
-        self.with_comments = os.path.join(data_dir, 'good-sample-sheet-but-'
-                                          'with-comments.csv')
+        self.good_ss = join(data_dir, 'good-sample-sheet.csv')
+        self.with_comments = join(data_dir, 'good-sample-sheet-but-'
+                                            'with-comments.csv')
 
         fp = 'good-sample-sheet-with-comments-and-new-lines.csv'
-        self.with_comments_and_new_lines = os.path.join(data_dir, fp)
+        self.with_comments_and_new_lines = join(data_dir, fp)
 
-        self.with_new_lines = os.path.join(data_dir, 'good-sample-sheet-with-'
-                                           'new-lines.csv')
+        self.with_new_lines = join(data_dir, 'good-sample-sheet-with-'
+                                             'new-lines.csv')
 
-        self.no_project_ss = os.path.join(data_dir,
-                                          'no-project-name-sample-sheet.csv')
+        self.no_project_ss = join(data_dir, 'no-project-name-sample-sheet.csv')
 
         # "valid" upfront but will have repeated values after scrubbing
-        self.ok_ss = os.path.join(data_dir, 'ok-sample-sheet.csv')
+        self.ok_ss = join(data_dir, 'ok-sample-sheet.csv')
 
-        self.scrubbable_ss = os.path.join(data_dir,
-                                          'scrubbable-sample-sheet.csv')
+        self.scrubbable_ss = join(data_dir, 'scrubbable-sample-sheet.csv')
 
-        self.bad_project_name_ss = os.path.join(
-            data_dir, 'bad-project-name-sample-sheet.csv')
+        self.bad_project_name_ss = join(data_dir,
+                                        'bad-project-name-sample-sheet.csv')
 
         bfx = [
             {
@@ -1251,14 +1249,22 @@ class ValidateSampleSheetTests(BaseTests):
 
 class DemuxReplicatesTests(BaseTests):
     def setUp(self):
-        self.data_dir = os.path.join('metapool', 'tests', 'data')
-        self.sheet_w_replicates_path = os.path.join(self.data_dir,
-                                                    'sheet_w_replicates.csv')
-        self.sheet_wo_replicates_path = os.path.join(self.data_dir,
-                                                     'sheet_wo_replicates.csv')
+        self.data_dir = join('metapool', 'tests', 'data')
+        self.sheet_w_replicates_path = join(self.data_dir,
+                                            'sheet_w_replicates.csv')
+        self.sheet_wo_replicates_path = join(self.data_dir,
+                                             'sheet_wo_replicates.csv')
 
-        self.legacy_sheet_path = os.path.join(self.data_dir,
-                                              'good-sample-sheet.csv')
+        self.legacy_sheet_path = join(self.data_dir, 'good-sample-sheet.csv')
+
+        self.replicate_output_paths = [join(self.data_dir,
+                                            'replicate_output1.csv'),
+                                       join(self.data_dir,
+                                            'replicate_output2.csv'),
+                                       join(self.data_dir,
+                                            'replicate_output3.csv'),
+                                       join(self.data_dir,
+                                            'replicate_output4.csv')]
 
     def test_contains_replicates(self):
         # test sample-sheet w/both projects w/replicates and not.
@@ -1614,7 +1620,6 @@ class DemuxReplicatesTests(BaseTests):
             self.assertDictEqual(obs_df.to_dict(), exp_value)
 
     def test_get_demux_metadata(self):
-        self.maxDiff = None
         # test sample-sheet w/both projects w/replicates and not.
         sheet = KLSampleSheet(self.sheet_w_replicates_path)
 
@@ -1672,9 +1677,26 @@ class DemuxReplicatesTests(BaseTests):
     def test_demux_sample_sheet(self):
         # this test will need to compare the four completed sample-sheets
         # made using self.sheet_w_replicates_path against an expected result.
-        # TODO: Components pass tests and output looks good. Just implement
-        #  test itself.
-        pass
+
+        # test sample-sheet w/both projects w/replicates and not.
+        sheet = KLSampleSheet(self.sheet_w_replicates_path)
+        results = demux_sample_sheet(sheet)
+
+        # assert that the proper number of KLSampleSheets were returned.
+        self.assertEqual(len(results), 4)
+
+        # assert that each sample-sheet appears in the correct order and
+        # matches known results.
+        for replicate_output_path in self.replicate_output_paths:
+            exp = KLSampleSheet(replicate_output_path)
+            obs = results.pop(0)
+            self.assertEqual(obs.Header, exp.Header)
+            self.assertEqual(obs.Reads, exp.Reads)
+            self.assertEqual(obs.Settings, exp.Settings)
+            self.assertTrue(obs.Bioinformatics.equals(exp.Bioinformatics))
+            self.assertTrue(obs.Contact.equals(exp.Contact))
+            for o_sample, e_sample in zip(obs.samples, exp.samples):
+                self.assertEqual(o_sample, e_sample)
 
 
 DF_DATA = [
