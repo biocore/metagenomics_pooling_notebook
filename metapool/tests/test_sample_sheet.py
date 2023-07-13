@@ -1,8 +1,8 @@
 import sys
 import unittest
-import os
 import tempfile
 from datetime import datetime
+from os.path import join, dirname
 
 import pandas as pd
 import sample_sheet
@@ -14,42 +14,41 @@ from metapool.sample_sheet import (KLSampleSheet,
                                    _add_metadata_to_sheet, _add_data_to_sheet,
                                    _validate_sample_sheet_metadata,
                                    _remap_table,
-                                   make_sample_sheet)
+                                   make_sample_sheet, contains_replicates,
+                                   _demux_sample_sheet, _get_demux_metadata,
+                                   demux_sample_sheet)
 from metapool.plate import ErrorMessage, WarningMessage
 
 
 # The classes below share the same filepaths, so we use this dummy class
 class BaseTests(unittest.TestCase):
     def setUp(self):
-        data_dir = os.path.join(os.path.dirname(__file__), 'data')
-        self.ss = os.path.join(data_dir, 'runs',
-                               '191103_D32611_0365_G00DHB5YXX',
-                               'sample-sheet.csv')
+        data_dir = join(dirname(__file__), 'data')
+        self.ss = join(data_dir, 'runs', '191103_D32611_0365_G00DHB5YXX',
+                       'sample-sheet.csv')
 
-        self.alt_ss = os.path.join(data_dir,
-                                   'good-sample-sheet-with-alt-col-names.csv')
+        self.alt_ss = join(data_dir,
+                           'good-sample-sheet-with-alt-col-names.csv')
 
-        self.good_ss = os.path.join(data_dir, 'good-sample-sheet.csv')
-        self.with_comments = os.path.join(data_dir, 'good-sample-sheet-but-'
-                                          'with-comments.csv')
+        self.good_ss = join(data_dir, 'good-sample-sheet.csv')
+        self.with_comments = join(data_dir, 'good-sample-sheet-but-'
+                                            'with-comments.csv')
 
         fp = 'good-sample-sheet-with-comments-and-new-lines.csv'
-        self.with_comments_and_new_lines = os.path.join(data_dir, fp)
+        self.with_comments_and_new_lines = join(data_dir, fp)
 
-        self.with_new_lines = os.path.join(data_dir, 'good-sample-sheet-with-'
-                                           'new-lines.csv')
+        self.with_new_lines = join(data_dir, 'good-sample-sheet-with-'
+                                             'new-lines.csv')
 
-        self.no_project_ss = os.path.join(data_dir,
-                                          'no-project-name-sample-sheet.csv')
+        self.no_project_ss = join(data_dir, 'no-project-name-sample-sheet.csv')
 
         # "valid" upfront but will have repeated values after scrubbing
-        self.ok_ss = os.path.join(data_dir, 'ok-sample-sheet.csv')
+        self.ok_ss = join(data_dir, 'ok-sample-sheet.csv')
 
-        self.scrubbable_ss = os.path.join(data_dir,
-                                          'scrubbable-sample-sheet.csv')
+        self.scrubbable_ss = join(data_dir, 'scrubbable-sample-sheet.csv')
 
-        self.bad_project_name_ss = os.path.join(
-            data_dir, 'bad-project-name-sample-sheet.csv')
+        self.bad_project_name_ss = join(data_dir,
+                                        'bad-project-name-sample-sheet.csv')
 
         bfx = [
             {
@@ -1246,6 +1245,442 @@ class ValidateSampleSheetTests(BaseTests):
         exp = pd.DataFrame(index=index, data=DF_DATA, columns=columns)
         exp.index.name = 'sample_id'
         pd.testing.assert_frame_equal(obs, exp)
+
+
+class DemuxReplicatesTests(BaseTests):
+    def setUp(self):
+        self.data_dir = join('metapool', 'tests', 'data')
+        self.sheet_w_replicates_path = join(self.data_dir,
+                                            'sheet_w_replicates.csv')
+        self.sheet_wo_replicates_path = join(self.data_dir,
+                                             'sheet_wo_replicates.csv')
+
+        self.legacy_sheet_path = join(self.data_dir, 'good-sample-sheet.csv')
+
+        self.replicate_output_paths = [join(self.data_dir,
+                                            'replicate_output1.csv'),
+                                       join(self.data_dir,
+                                            'replicate_output2.csv'),
+                                       join(self.data_dir,
+                                            'replicate_output3.csv'),
+                                       join(self.data_dir,
+                                            'replicate_output4.csv')]
+
+    def test_contains_replicates(self):
+        # test sample-sheet w/both projects w/replicates and not.
+        sheet = KLSampleSheet(self.sheet_w_replicates_path)
+        self.assertTrue(contains_replicates(sheet))
+
+        # test sample-sheet w/no replicates in any project.
+        sheet = KLSampleSheet(self.sheet_wo_replicates_path)
+        self.assertFalse(contains_replicates(sheet))
+
+        # confirm legacy sample-sheets will return False
+        sheet = KLSampleSheet(self.legacy_sheet_path)
+        self.assertFalse(contains_replicates(sheet))
+
+    def test_internal_demux_sample_sheet(self):
+        # test sample-sheet w/both projects w/replicates and not.
+        sheet = KLSampleSheet(self.sheet_w_replicates_path)
+
+        with self.assertRaisesRegex(ValueError, "Project 'abc' is not defined "
+                                                "in sample-sheet"):
+            _demux_sample_sheet(sheet, 'abc')
+
+        results = _demux_sample_sheet(sheet, 'Feist_11661')
+
+        exp = [{'sample_id': {0: 'BLANK_43_12G_A1',
+                              1: 'RMA_KHP_rpoS_Mage_Q97E_A11',
+                              2: 'JBI_KHP_HGL_021_A13',
+                              3: 'JBI_KHP_HGL_022_A15',
+                              4: 'JBI_KHP_HGL_023_A17',
+                              5: 'JBI_KHP_HGL_024_A19',
+                              6: 'BLANK_43_12H_A3',
+                              7: 'RMA_KHP_rpoS_Mage_Q97D_A5',
+                              8: 'RMA_KHP_rpoS_Mage_Q97L_A7',
+                              9: 'RMA_KHP_rpoS_Mage_Q97N_A9'},
+                'orig_name': {0: 'BLANK.43.12G', 1: 'RMA.KHP.rpoS.Mage.Q97E',
+                              2: 'JBI.KHP.HGL.021', 3: 'JBI.KHP.HGL.022',
+                              4: 'JBI.KHP.HGL.023', 5: 'JBI.KHP.HGL.024',
+                              6: 'BLANK.43.12H', 7: 'RMA.KHP.rpoS.Mage.Q97D',
+                              8: 'RMA.KHP.rpoS.Mage.Q97L',
+                              9: 'RMA.KHP.rpoS.Mage.Q97N'},
+                'sample_name': {0: 'BLANK.43.12G.A1',
+                                1: 'RMA.KHP.rpoS.Mage.Q97E.A11',
+                                2: 'JBI.KHP.HGL.021.A13',
+                                3: 'JBI.KHP.HGL.022.A15',
+                                4: 'JBI.KHP.HGL.023.A17',
+                                5: 'JBI.KHP.HGL.024.A19',
+                                6: 'BLANK.43.12H.A3',
+                                7: 'RMA.KHP.rpoS.Mage.Q97D.A5',
+                                8: 'RMA.KHP.rpoS.Mage.Q97L.A7',
+                                9: 'RMA.KHP.rpoS.Mage.Q97N.A9'},
+                'source_well_384': {0: 'A1', 1: 'A11', 2: 'A13', 3: 'A15',
+                                    4: 'A17',
+                                    5: 'A19', 6: 'A3', 7: 'A5', 8: 'A7',
+                                    9: 'A9'},
+                'destination_well_384': {0: 'A1', 1: 'A11', 2: 'A13', 3: 'A15',
+                                         4: 'A17', 5: 'A19', 6: 'A3', 7: 'A5',
+                                         8: 'A7', 9: 'A9'},
+                'sample_plate': {0: 'Feist_11661_P43', 1: 'Feist_11661_P43',
+                                 2: 'Feist_11661_P43', 3: 'Feist_11661_P43',
+                                 4: 'Feist_11661_P43', 5: 'Feist_11661_P43',
+                                 6: 'Feist_11661_P43', 7: 'Feist_11661_P43',
+                                 8: 'Feist_11661_P43', 9: 'Feist_11661_P43'},
+                'sample_well': {0: 'A1', 1: 'A11', 2: 'A13', 3: 'A15',
+                                4: 'A17',
+                                5: 'A19', 6: 'A3', 7: 'A5', 8: 'A7', 9: 'A9'},
+                'i7_index_id': {0: 'iTru7_114_08', 1: 'iTru7_201_01',
+                                2: 'iTru7_201_02', 3: 'iTru7_201_03',
+                                4: 'iTru7_201_04', 5: 'iTru7_201_05',
+                                6: 'iTru7_114_09', 7: 'iTru7_114_10',
+                                8: 'iTru7_114_11', 9: 'iTru7_114_12'},
+                'index': {0: 'CCGACTAT', 1: 'AACACCAC', 2: 'AACTTGCC',
+                          3: 'CGTATCTC',
+                          4: 'CAATGTGG', 5: 'GGTACGAA', 6: 'ACCGACAA',
+                          7: 'CCGACTAT',
+                          8: 'CTTCGCAA', 9: 'GCCTTGTT'},
+                'i5_index_id': {0: 'iTru5_01_A', 1: 'iTru5_06_A',
+                                2: 'iTru5_07_A',
+                                3: 'iTru5_08_A', 4: 'iTru5_09_A',
+                                5: 'iTru5_10_A',
+                                6: 'iTru5_02_A', 7: 'iTru5_03_A',
+                                8: 'iTru5_04_A',
+                                9: 'iTru5_05_A'},
+                'index2': {0: 'AAGGCTGA', 1: 'CATCTGCT', 2: 'GAAGGTTC',
+                           3: 'CTCTCAGA',
+                           4: 'GAAGAGGT', 5: 'TCGTCTGA', 6: 'CGATCGAT',
+                           7: 'TTACCGAG',
+                           8: 'AAGACACC', 9: 'GTCCTAAG'},
+                'sample_project': {0: 'Feist_11661', 1: 'Feist_11661',
+                                   2: 'Feist_11661', 3: 'Feist_11661',
+                                   4: 'Feist_11661', 5: 'Feist_11661',
+                                   6: 'Feist_11661', 7: 'Feist_11661',
+                                   8: 'Feist_11661', 9: 'Feist_11661'},
+                'well_description': {0: 'description', 1: 'description',
+                                     2: 'description', 3: 'description',
+                                     4: 'description', 5: 'description',
+                                     6: 'description', 7: 'description',
+                                     8: 'description', 9: 'description'},
+                'library_construction_protocol': {0: 'Nextera', 1: 'Nextera',
+                                                  2: 'Nextera', 3: 'Nextera',
+                                                  4: 'Nextera', 5: 'Nextera',
+                                                  6: 'Nextera', 7: 'Nextera',
+                                                  8: 'Nextera', 9: 'Nextera'},
+                'experiment_design_description': {0: 'Equipment',
+                                                  1: 'Equipment',
+                                                  2: 'Equipment',
+                                                  3: 'Equipment',
+                                                  4: 'Equipment',
+                                                  5: 'Equipment',
+                                                  6: 'Equipment',
+                                                  7: 'Equipment',
+                                                  8: 'Equipment',
+                                                  9: 'Equipment'},
+                'Sample_ID': {0: 'BLANK_43_12G_A1',
+                              1: 'RMA_KHP_rpoS_Mage_Q97E_A11',
+                              2: 'JBI_KHP_HGL_021_A13',
+                              3: 'JBI_KHP_HGL_022_A15',
+                              4: 'JBI_KHP_HGL_023_A17',
+                              5: 'JBI_KHP_HGL_024_A19',
+                              6: 'BLANK_43_12H_A3',
+                              7: 'RMA_KHP_rpoS_Mage_Q97D_A5',
+                              8: 'RMA_KHP_rpoS_Mage_Q97L_A7',
+                              9: 'RMA_KHP_rpoS_Mage_Q97N_A9'}},
+               {'sample_id': {0: 'RMA_KHP_rpoS_Mage_Q97N_A10',
+                              1: 'RMA_KHP_rpoS_Mage_Q97E_A12',
+                              2: 'JBI_KHP_HGL_021_A14',
+                              3: 'JBI_KHP_HGL_022_A16',
+                              4: 'JBI_KHP_HGL_023_A18', 5: 'BLANK_43_12G_A2',
+                              6: 'JBI_KHP_HGL_024_A20', 7: 'BLANK_43_12H_A4',
+                              8: 'RMA_KHP_rpoS_Mage_Q97D_A6',
+                              9: 'RMA_KHP_rpoS_Mage_Q97L_A8'},
+                'orig_name': {0: 'RMA.KHP.rpoS.Mage.Q97N',
+                              1: 'RMA.KHP.rpoS.Mage.Q97E',
+                              2: 'JBI.KHP.HGL.021',
+                              3: 'JBI.KHP.HGL.022', 4: 'JBI.KHP.HGL.023',
+                              5: 'BLANK.43.12G', 6: 'JBI.KHP.HGL.024',
+                              7: 'BLANK.43.12H', 8: 'RMA.KHP.rpoS.Mage.Q97D',
+                              9: 'RMA.KHP.rpoS.Mage.Q97L'},
+                'sample_name': {0: 'RMA.KHP.rpoS.Mage.Q97N.A10',
+                                1: 'RMA.KHP.rpoS.Mage.Q97E.A12',
+                                2: 'JBI.KHP.HGL.021.A14',
+                                3: 'JBI.KHP.HGL.022.A16',
+                                4: 'JBI.KHP.HGL.023.A18', 5: 'BLANK.43.12G.A2',
+                                6: 'JBI.KHP.HGL.024.A20', 7: 'BLANK.43.12H.A4',
+                                8: 'RMA.KHP.rpoS.Mage.Q97D.A6',
+                                9: 'RMA.KHP.rpoS.Mage.Q97L.A8'},
+                'source_well_384': {0: 'A9', 1: 'A11', 2: 'A13', 3: 'A15',
+                                    4: 'A17',
+                                    5: 'A1', 6: 'A19', 7: 'A3', 8: 'A5',
+                                    9: 'A7'},
+                'destination_well_384': {0: 'A10', 1: 'A12', 2: 'A14',
+                                         3: 'A16',
+                                         4: 'A18', 5: 'A2', 6: 'A20', 7: 'A4',
+                                         8: 'A6', 9: 'A8'},
+                'sample_plate': {0: 'Feist_11661_P43', 1: 'Feist_11661_P43',
+                                 2: 'Feist_11661_P43', 3: 'Feist_11661_P43',
+                                 4: 'Feist_11661_P43', 5: 'Feist_11661_P43',
+                                 6: 'Feist_11661_P43', 7: 'Feist_11661_P43',
+                                 8: 'Feist_11661_P43', 9: 'Feist_11661_P43'},
+                'sample_well': {0: 'A10', 1: 'A12', 2: 'A14', 3: 'A16',
+                                4: 'A18',
+                                5: 'A2', 6: 'A20', 7: 'A4', 8: 'A6', 9: 'A8'},
+                'i7_index_id': {0: 'iTru7_114_12', 1: 'iTru7_201_01',
+                                2: 'iTru7_201_02', 3: 'iTru7_201_03',
+                                4: 'iTru7_201_04', 5: 'iTru7_114_08',
+                                6: 'iTru7_201_05', 7: 'iTru7_114_09',
+                                8: 'iTru7_114_10', 9: 'iTru7_114_11'},
+                'index': {0: 'GAAGTACC', 1: 'AGTGGCAA', 2: 'CAGGTATC',
+                          3: 'GTGGTATG',
+                          4: 'TCTCTAGG', 5: 'TCTGAGAG', 6: 'TGAGCTGT',
+                          7: 'CAATAGCC',
+                          8: 'ACCGCATA', 9: 'CATTCGTC'},
+                'i5_index_id': {0: 'iTru5_05_A', 1: 'iTru5_06_A',
+                                2: 'iTru5_07_A',
+                                3: 'iTru5_08_A', 4: 'iTru5_09_A',
+                                5: 'iTru5_01_A',
+                                6: 'iTru5_10_A', 7: 'iTru5_02_A',
+                                8: 'iTru5_03_A',
+                                9: 'iTru5_04_A'},
+                'index2': {0: 'TGTTCGAG', 1: 'TACTCCAG', 2: 'CTCGTCTT',
+                           3: 'GATACCTG',
+                           4: 'CGAACTGT', 5: 'AAGCACTG', 6: 'ACCTCTTC',
+                           7: 'CGTCAAGA',
+                           8: 'CCAAGCAA', 9: 'AAGCATCG'},
+                'sample_project': {0: 'Feist_11661', 1: 'Feist_11661',
+                                   2: 'Feist_11661', 3: 'Feist_11661',
+                                   4: 'Feist_11661', 5: 'Feist_11661',
+                                   6: 'Feist_11661', 7: 'Feist_11661',
+                                   8: 'Feist_11661', 9: 'Feist_11661'},
+                'well_description': {0: 'description', 1: 'description',
+                                     2: 'description', 3: 'description',
+                                     4: 'description', 5: 'description',
+                                     6: 'description', 7: 'description',
+                                     8: 'description', 9: 'description'},
+                'library_construction_protocol': {0: 'Nextera', 1: 'Nextera',
+                                                  2: 'Nextera', 3: 'Nextera',
+                                                  4: 'Nextera', 5: 'Nextera',
+                                                  6: 'Nextera', 7: 'Nextera',
+                                                  8: 'Nextera', 9: 'Nextera'},
+                'experiment_design_description': {0: 'Equipment',
+                                                  1: 'Equipment',
+                                                  2: 'Equipment',
+                                                  3: 'Equipment',
+                                                  4: 'Equipment',
+                                                  5: 'Equipment',
+                                                  6: 'Equipment',
+                                                  7: 'Equipment',
+                                                  8: 'Equipment',
+                                                  9: 'Equipment'},
+                'Sample_ID': {0: 'RMA_KHP_rpoS_Mage_Q97N_A10',
+                              1: 'RMA_KHP_rpoS_Mage_Q97E_A12',
+                              2: 'JBI_KHP_HGL_021_A14',
+                              3: 'JBI_KHP_HGL_022_A16',
+                              4: 'JBI_KHP_HGL_023_A18', 5: 'BLANK_43_12G_A2',
+                              6: 'JBI_KHP_HGL_024_A20', 7: 'BLANK_43_12H_A4',
+                              8: 'RMA_KHP_rpoS_Mage_Q97D_A6',
+                              9: 'RMA_KHP_rpoS_Mage_Q97L_A8'}},
+               {'sample_id': {0: 'RMA_KHP_rpoS_Mage_Q97N_B10',
+                              1: 'RMA_KHP_rpoS_Mage_Q97E_B12',
+                              2: 'JBI_KHP_HGL_021_B14',
+                              3: 'JBI_KHP_HGL_022_B16',
+                              4: 'JBI_KHP_HGL_023_B18', 5: 'BLANK_43_12G_B2',
+                              6: 'JBI_KHP_HGL_024_B20', 7: 'BLANK_43_12H_B4',
+                              8: 'RMA_KHP_rpoS_Mage_Q97D_B6',
+                              9: 'RMA_KHP_rpoS_Mage_Q97L_B8'},
+                'orig_name': {0: 'RMA.KHP.rpoS.Mage.Q97N',
+                              1: 'RMA.KHP.rpoS.Mage.Q97E',
+                              2: 'JBI.KHP.HGL.021',
+                              3: 'JBI.KHP.HGL.022', 4: 'JBI.KHP.HGL.023',
+                              5: 'BLANK.43.12G', 6: 'JBI.KHP.HGL.024',
+                              7: 'BLANK.43.12H', 8: 'RMA.KHP.rpoS.Mage.Q97D',
+                              9: 'RMA.KHP.rpoS.Mage.Q97L'},
+                'sample_name': {0: 'RMA.KHP.rpoS.Mage.Q97N.B10',
+                                1: 'RMA.KHP.rpoS.Mage.Q97E.B12',
+                                2: 'JBI.KHP.HGL.021.B14',
+                                3: 'JBI.KHP.HGL.022.B16',
+                                4: 'JBI.KHP.HGL.023.B18', 5: 'BLANK.43.12G.B2',
+                                6: 'JBI.KHP.HGL.024.B20', 7: 'BLANK.43.12H.B4',
+                                8: 'RMA.KHP.rpoS.Mage.Q97D.B6',
+                                9: 'RMA.KHP.rpoS.Mage.Q97L.B8'},
+                'source_well_384': {0: 'A9', 1: 'A11', 2: 'A13', 3: 'A15',
+                                    4: 'A17',
+                                    5: 'A1', 6: 'A19', 7: 'A3', 8: 'A5',
+                                    9: 'A7'},
+                'destination_well_384': {0: 'B10', 1: 'B12', 2: 'B14',
+                                         3: 'B16',
+                                         4: 'B18', 5: 'B2', 6: 'B20', 7: 'B4',
+                                         8: 'B6', 9: 'B8'},
+                'sample_plate': {0: 'Feist_11661_P43', 1: 'Feist_11661_P43',
+                                 2: 'Feist_11661_P43', 3: 'Feist_11661_P43',
+                                 4: 'Feist_11661_P43', 5: 'Feist_11661_P43',
+                                 6: 'Feist_11661_P43', 7: 'Feist_11661_P43',
+                                 8: 'Feist_11661_P43', 9: 'Feist_11661_P43'},
+                'sample_well': {0: 'B10', 1: 'B12', 2: 'B14', 3: 'B16',
+                                4: 'B18',
+                                5: 'B2', 6: 'B20', 7: 'B4', 8: 'B6', 9: 'B8'},
+                'i7_index_id': {0: 'iTru7_114_12', 1: 'iTru7_201_01',
+                                2: 'iTru7_201_02', 3: 'iTru7_201_03',
+                                4: 'iTru7_201_04', 5: 'iTru7_114_08',
+                                6: 'iTru7_201_05', 7: 'iTru7_114_09',
+                                8: 'iTru7_114_10', 9: 'iTru7_114_11'},
+                'index': {0: 'AAGTCGAG', 1: 'TGCCTCAA', 2: 'TATCGGTC',
+                          3: 'ATCTGACC',
+                          4: 'TATTCGCC', 5: 'CATTCGGT', 6: 'CACAGACT',
+                          7: 'ACGGACTT',
+                          8: 'TCGGTTAC', 9: 'CATGTGTG'},
+                'i5_index_id': {0: 'iTru5_05_A', 1: 'iTru5_06_A',
+                                2: 'iTru5_07_A',
+                                3: 'iTru5_08_A', 4: 'iTru5_09_A',
+                                5: 'iTru5_01_A',
+                                6: 'iTru5_10_A', 7: 'iTru5_02_A',
+                                8: 'iTru5_03_A',
+                                9: 'iTru5_04_A'},
+                'index2': {0: 'TGGCACTA', 1: 'CCATGAAC', 2: 'GGTTGTCA',
+                           3: 'GCCAATAC',
+                           4: 'AACCTCCT', 5: 'GTATTGGC', 6: 'AGCTACCA',
+                           7: 'CACTGTAG',
+                           8: 'AGTCGCTT', 9: 'CACAGGAA'},
+                'sample_project': {0: 'Feist_11661', 1: 'Feist_11661',
+                                   2: 'Feist_11661', 3: 'Feist_11661',
+                                   4: 'Feist_11661', 5: 'Feist_11661',
+                                   6: 'Feist_11661', 7: 'Feist_11661',
+                                   8: 'Feist_11661', 9: 'Feist_11661'},
+                'well_description': {0: 'description', 1: 'description',
+                                     2: 'description', 3: 'description',
+                                     4: 'description', 5: 'description',
+                                     6: 'description', 7: 'description',
+                                     8: 'description', 9: 'description'},
+                'library_construction_protocol': {0: 'Nextera', 1: 'Nextera',
+                                                  2: 'Nextera', 3: 'Nextera',
+                                                  4: 'Nextera', 5: 'Nextera',
+                                                  6: 'Nextera', 7: 'Nextera',
+                                                  8: 'Nextera', 9: 'Nextera'},
+                'experiment_design_description': {0: 'Equipment',
+                                                  1: 'Equipment',
+                                                  2: 'Equipment',
+                                                  3: 'Equipment',
+                                                  4: 'Equipment',
+                                                  5: 'Equipment',
+                                                  6: 'Equipment',
+                                                  7: 'Equipment',
+                                                  8: 'Equipment',
+                                                  9: 'Equipment'},
+                'Sample_ID': {0: 'RMA_KHP_rpoS_Mage_Q97N_B10',
+                              1: 'RMA_KHP_rpoS_Mage_Q97E_B12',
+                              2: 'JBI_KHP_HGL_021_B14',
+                              3: 'JBI_KHP_HGL_022_B16',
+                              4: 'JBI_KHP_HGL_023_B18', 5: 'BLANK_43_12G_B2',
+                              6: 'JBI_KHP_HGL_024_B20', 7: 'BLANK_43_12H_B4',
+                              8: 'RMA_KHP_rpoS_Mage_Q97D_B6',
+                              9: 'RMA_KHP_rpoS_Mage_Q97L_B8'}}]
+
+        # assert that the number of dataframes and their values are as
+        # expected for 'Feist_11661'.
+        for obs_df, exp_value in zip(results, exp):
+            self.assertDictEqual(obs_df.to_dict(), exp_value)
+
+        results = _demux_sample_sheet(sheet, 'Geist_11662')
+
+        exp = [{'sample_id': {0: 'abc_def_ghi_025_B21'},
+                'orig_name': {0: 'abc.def.ghi.025'},
+                'sample_name': {0: 'abc.def.ghi.025.B21'},
+                'source_well_384': {0: 'A21'},
+                'destination_well_384': {0: 'A21'},
+                'sample_plate': {0: 'Geist_11662_P43'},
+                'sample_well': {0: 'A21'}, 'i7_index_id': {0: 'iTru7_201_05'},
+                'index': {0: 'CACAGTTT'}, 'i5_index_id': {0: 'iTru5_10_A'},
+                'index2': {0: 'AGCTAAAA'},
+                'sample_project': {0: 'Geist_11662'},
+                'well_description': {0: 'description'},
+                'library_construction_protocol': {0: 'Nextera'},
+                'experiment_design_description': {0: 'Equipment'},
+                'Sample_ID': {0: 'abc_def_ghi_025_B21'}}]
+
+        # assert that the number of dataframes and their values are as
+        # expected for 'Geist_11662'.
+        for obs_df, exp_value in zip(results, exp):
+            self.assertDictEqual(obs_df.to_dict(), exp_value)
+
+    def test_get_demux_metadata(self):
+        # test sample-sheet w/both projects w/replicates and not.
+        sheet = KLSampleSheet(self.sheet_w_replicates_path)
+
+        obs = _get_demux_metadata(sheet)
+
+        exp = {
+            "bioinformatics": {
+                "Feist_11661": {
+                    "Sample_Project": "Feist_11661",
+                    "QiitaID": "11661",
+                    "BarcodesAreRC": "False",
+                    "ForwardAdapter": "AACC",
+                    "ReverseAdapter": "GGTT",
+                    "HumanFiltering": "False",
+                    "library_construction_protocol": "Nextera",
+                    "experiment_design_description": "Equipment",
+                    "contains_replicates": "True"
+                },
+                "Geist_11662": {
+                    "Sample_Project": "Geist_11662",
+                    "QiitaID": "11662",
+                    "BarcodesAreRC": "False",
+                    "ForwardAdapter": "AACC",
+                    "ReverseAdapter": "GGTT",
+                    "HumanFiltering": "False",
+                    "library_construction_protocol": "Nextera",
+                    "experiment_design_description": "Equipment",
+                    "contains_replicates": "False"
+                }
+            },
+            "contact": {
+                "Feist_11661": {
+                    "Email": "person@domain.edu",
+                    "Sample_Project": "Feist_11661"
+                },
+                "Geist_11662": {
+                    "Email": "another_person@domain.edu",
+                    "Sample_Project": "Geist_11662"
+                }
+            },
+            "projects": [
+                (
+                    "Feist_11661",
+                    True
+                ),
+                (
+                    "Geist_11662",
+                    False
+                )
+            ]
+        }
+
+        self.assertDictEqual(obs, exp)
+
+    def test_demux_sample_sheet(self):
+        # this test will need to compare the four completed sample-sheets
+        # made using self.sheet_w_replicates_path against an expected result.
+
+        # test sample-sheet w/both projects w/replicates and not.
+        sheet = KLSampleSheet(self.sheet_w_replicates_path)
+        results = demux_sample_sheet(sheet)
+
+        # assert that the proper number of KLSampleSheets were returned.
+        self.assertEqual(len(results), 4)
+
+        # assert that each sample-sheet appears in the correct order and
+        # matches known results.
+        for replicate_output_path in self.replicate_output_paths:
+            exp = KLSampleSheet(replicate_output_path)
+            obs = results.pop(0)
+            self.assertEqual(obs.Header, exp.Header)
+            self.assertEqual(obs.Reads, exp.Reads)
+            self.assertEqual(obs.Settings, exp.Settings)
+            self.assertTrue(obs.Bioinformatics.equals(exp.Bioinformatics))
+            self.assertTrue(obs.Contact.equals(exp.Contact))
+            for o_sample, e_sample in zip(obs.samples, exp.samples):
+                self.assertEqual(o_sample, e_sample)
 
 
 DF_DATA = [
