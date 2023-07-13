@@ -4,7 +4,8 @@ from .prep import (preparations_for_run, parse_prep,
                    preparations_for_run_mapping_file, remove_qiita_id)
 from .sample_sheet import (sample_sheet_to_dataframe, KLSampleSheet,
                            validate_and_scrub_sample_sheet, make_sample_sheet,
-                           quiet_validate_and_scrub_sample_sheet)
+                           quiet_validate_and_scrub_sample_sheet,
+                           contains_replicates, demux_sample_sheet)
 from .plate import (validate_plate_metadata, requires_dilution, dilute_gDNA,
                     autopool, find_threshold)
 from .amplipool import assign_emp_index
@@ -21,8 +22,9 @@ __all__ = ['preparations_for_run', 'parse_prep',
            'quiet_validate_and_scrub_sample_sheet', 'validate_plate_metadata',
            'assign_emp_index', 'IGMManifest', 'run_counts',
            'requires_dilution', 'dilute_gDNA', 'autopool', 'find_threshold',
-           'extract_stats_metadata', 'sum_lanes',
-           'preparations_for_run_mapping_file', 'remove_qiita_id']
+           'extract_stats_metadata', 'sum_lanes', 'remove_qiita_id',
+           'preparations_for_run_mapping_file', 'demux_sample_sheet',
+           'contains_replicates']
 
 from . import _version
 
