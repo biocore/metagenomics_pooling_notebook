@@ -39,7 +39,7 @@ _KL_AMPLICON_REMAPPER = {
     'Project Name': 'Sample_Project',
 }
 
-_KL_METAGENOMICS_REMAPPER = {
+_KL_METAGENOMIC_REMAPPER = {
     'sample sheet Sample_ID': 'Sample_ID',
     'Sample': 'Sample_Name',
     'Project Plate': 'Sample_Plate',
@@ -51,7 +51,7 @@ _KL_METAGENOMICS_REMAPPER = {
     'Project Name': 'Sample_Project',
 }
 
-_KL_METATRANSCRIPTOMICS_REMAPPER = {
+_KL_METATRANSCRIPTOMIC_REMAPPER = {
     'sample sheet Sample_ID': 'Sample_ID',
     'Sample': 'Sample_Name',
     'Project Plate': 'Sample_Plate',
@@ -64,9 +64,9 @@ _KL_METATRANSCRIPTOMICS_REMAPPER = {
 }
 
 _AMPLICON = 'TruSeq HT'
-_METAGENOMICS = 'Metagenomics'
-_METATRANSCRIPTOMICS = 'Metatranscriptomics'
-_ASSAYS = {_AMPLICON, _METAGENOMICS, _METATRANSCRIPTOMICS}
+_METAGENOMIC = 'Metagenomic'
+_METATRANSCRIPTOMIC = 'Metatranscriptomic'
+_ASSAYS = {_AMPLICON, _METAGENOMIC, _METATRANSCRIPTOMIC}
 
 _READS = {
     'Read1': 151,
@@ -505,10 +505,10 @@ def _add_metadata_to_sheet(metadata, sheet, sequencer):
 def _remap_table(table, assay, strict=True):
     if assay == _AMPLICON:
         remapper = _KL_AMPLICON_REMAPPER
-    elif assay == _METAGENOMICS:
-        remapper = _KL_METAGENOMICS_REMAPPER
-    elif assay == _METATRANSCRIPTOMICS:
-        remapper = _KL_METATRANSCRIPTOMICS_REMAPPER
+    elif assay == _METAGENOMIC:
+        remapper = _KL_METAGENOMIC_REMAPPER
+    elif assay == _METATRANSCRIPTOMIC:
+        remapper = _KL_METATRANSCRIPTOMIC_REMAPPER
 
     if strict:
         # legacy operation. All columns not defined in remapper will be

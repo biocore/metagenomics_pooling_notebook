@@ -29,7 +29,7 @@ classifiers = [
     'Operating System :: Microsoft :: Windows']
 
 
-description = 'Metagenomics pooling Jupyter notebook helper'
+description = 'Metagenomic pooling Jupyter notebook helper'
 
 with open('README.md') as f:
     long_description = f.read()
