@@ -916,8 +916,6 @@ def demux_pre_prep(pre_prep):
     results = []
 
     for project_name, needs_demuxing in metadata['projects']:
-        print(project_name)
-        print("NEEDS DEMUXING: %s" % needs_demuxing)
         df = metadata['data'][project_name]
 
         if needs_demuxing:

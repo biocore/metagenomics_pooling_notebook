@@ -843,7 +843,9 @@ class TestPrePrepReplicates(TestCase):
         # assert that each pre-prep dataframe appears in the correct order and
         # matches known results.
         for replicate_output_path in self.replicate_output_paths:
+            print(f"testing against {replicate_output_path}...")
             obs = results.pop(0)
+            obs.set_index('sample_name', inplace=True)
             exp = parse_prep(replicate_output_path)
             self.assertTrue(obs.equals(exp))
 
