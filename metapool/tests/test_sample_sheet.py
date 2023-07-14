@@ -1361,17 +1361,7 @@ class DemuxReplicatesTests(BaseTests):
                                                   6: 'Equipment',
                                                   7: 'Equipment',
                                                   8: 'Equipment',
-                                                  9: 'Equipment'},
-                'Sample_ID': {0: 'BLANK_43_12G_A1',
-                              1: 'RMA_KHP_rpoS_Mage_Q97E_A11',
-                              2: 'JBI_KHP_HGL_021_A13',
-                              3: 'JBI_KHP_HGL_022_A15',
-                              4: 'JBI_KHP_HGL_023_A17',
-                              5: 'JBI_KHP_HGL_024_A19',
-                              6: 'BLANK_43_12H_A3',
-                              7: 'RMA_KHP_rpoS_Mage_Q97D_A5',
-                              8: 'RMA_KHP_rpoS_Mage_Q97L_A7',
-                              9: 'RMA_KHP_rpoS_Mage_Q97N_A9'}},
+                                                  9: 'Equipment'}},
                {'sample_id': {0: 'RMA_KHP_rpoS_Mage_Q97N_A10',
                               1: 'RMA_KHP_rpoS_Mage_Q97E_A12',
                               2: 'JBI_KHP_HGL_021_A14',
@@ -1457,15 +1447,7 @@ class DemuxReplicatesTests(BaseTests):
                                                   6: 'Equipment',
                                                   7: 'Equipment',
                                                   8: 'Equipment',
-                                                  9: 'Equipment'},
-                'Sample_ID': {0: 'RMA_KHP_rpoS_Mage_Q97N_A10',
-                              1: 'RMA_KHP_rpoS_Mage_Q97E_A12',
-                              2: 'JBI_KHP_HGL_021_A14',
-                              3: 'JBI_KHP_HGL_022_A16',
-                              4: 'JBI_KHP_HGL_023_A18', 5: 'BLANK_43_12G_A2',
-                              6: 'JBI_KHP_HGL_024_A20', 7: 'BLANK_43_12H_A4',
-                              8: 'RMA_KHP_rpoS_Mage_Q97D_A6',
-                              9: 'RMA_KHP_rpoS_Mage_Q97L_A8'}},
+                                                  9: 'Equipment'}},
                {'sample_id': {0: 'RMA_KHP_rpoS_Mage_Q97N_B10',
                               1: 'RMA_KHP_rpoS_Mage_Q97E_B12',
                               2: 'JBI_KHP_HGL_021_B14',
@@ -1551,15 +1533,7 @@ class DemuxReplicatesTests(BaseTests):
                                                   6: 'Equipment',
                                                   7: 'Equipment',
                                                   8: 'Equipment',
-                                                  9: 'Equipment'},
-                'Sample_ID': {0: 'RMA_KHP_rpoS_Mage_Q97N_B10',
-                              1: 'RMA_KHP_rpoS_Mage_Q97E_B12',
-                              2: 'JBI_KHP_HGL_021_B14',
-                              3: 'JBI_KHP_HGL_022_B16',
-                              4: 'JBI_KHP_HGL_023_B18', 5: 'BLANK_43_12G_B2',
-                              6: 'JBI_KHP_HGL_024_B20', 7: 'BLANK_43_12H_B4',
-                              8: 'RMA_KHP_rpoS_Mage_Q97D_B6',
-                              9: 'RMA_KHP_rpoS_Mage_Q97L_B8'}}]
+                                                  9: 'Equipment'}}]
 
         # assert that the number of dataframes and their values are as
         # expected for 'Feist_11661'.
@@ -1580,8 +1554,7 @@ class DemuxReplicatesTests(BaseTests):
                 'sample_project': {0: 'Geist_11662'},
                 'well_description': {0: 'description'},
                 'library_construction_protocol': {0: 'Nextera'},
-                'experiment_design_description': {0: 'Equipment'},
-                'Sample_ID': {0: 'abc_def_ghi_025_B21'}}]
+                'experiment_design_description': {0: 'Equipment'}}]
 
         # assert that the number of dataframes and their values are as
         # expected for 'Geist_11662'.

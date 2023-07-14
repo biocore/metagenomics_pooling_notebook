@@ -838,29 +838,28 @@ def _process_sample_sheet(sheet, project_name, contains_replicates):
     # if this project does not contain replicates, simply return the filtered
     # dataframe for this project. Return as a list as expected.
     if contains_replicates is False:
-        df['Sample_ID'] = df.index
-        df.reset_index(inplace=True)
-        return [df]
+        return [df.reset_index()]
 
     # use PlateReplication object to convert each sample's 384 well location
     # into a 96-well location + quadrant. Since replication is performed at
-    # the plate-level, this will identify which replicants belong in which
+    # the plate-level, this will identify which replicates belong in which
     # new sample-sheet.
     plate = PlateReplication(None)
 
     df['quad'] = df.apply(lambda row: plate.get_96_well_location_and_quadrant(
         row.destination_well_384)[0], axis=1)
 
-    gb = df.groupby('quad')
+    res = []
 
-    results = [gb.get_group(grp).drop(['quad'], axis=1) for grp in gb.groups]
+    for quad in df['quad'].unique():
+        # for each unique quadrant found, create a new dataframe that's a
+        # subset containing only members of that quadrant. Delete the temporary
+        # 'quad' column afterwards and reset the index to an integer value
+        # starting at zero; the current-index will revert to a column named
+        # 'sample_id'. Return the list of new dataframes.
+        res.append(df[df['quad'] == quad].drop(['quad'], axis=1).reset_index())
 
-    # clean-up each dataframe before returning to the user.
-    for result in results:
-        result['Sample_ID'] = result.index
-        result.reset_index(inplace=True)
-
-    return results
+    return res
 
 
 def demux_sample_sheet(sheet):
