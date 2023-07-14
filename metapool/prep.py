@@ -666,7 +666,7 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
     return output
 
 
-def parse_prep(prep_path):
+def parse_prep(prep_path, numeric_index=False):
     """Parses a prep or pre-prep file into a DataFrame
 
     Parameters
@@ -681,7 +681,10 @@ def parse_prep(prep_path):
     """
     prep = pd.read_csv(prep_path, sep='\t', dtype=str, keep_default_na=False,
                        na_values=[])
-    prep.set_index('sample_name', verify_integrity=True, inplace=True)
+
+    if not numeric_index:
+        prep.set_index('sample_name', verify_integrity=True, inplace=True)
+
     return prep
 
 
@@ -845,35 +848,6 @@ def qiita_scrub_name(name):
     return re.sub(r'[^0-9a-zA-Z\-\.]+', '.', name)
 
 
-def _organize_by_project(pre_prep):
-    # extract project-level metadata
-
-    gb = pre_prep.groupby('project_name')
-
-    results = [gb.get_group(grp) for grp in gb.groups]
-
-    projects = []
-    data = {}
-
-    for project in results:
-        # the set of unique project_names should only be one value
-        project_name = set(project['project_name']).pop()
-
-        # assert that all values in 'contains_replicates' column for a given
-        # project are either all True or all False. Handle case-variations.
-        values = set([x.lower() == 'true' for x in
-                      list(project['contains_replicates'])])
-        if len(values) != 1:
-            raise ValueError(f"values in 'contains_replicates' column contain "
-                             "values for both True and False for project "
-                             f"'{project_name}'")
-
-        projects.append((project_name, values.pop()))
-        data[project_name] = project
-
-        return {'projects': projects, 'data': data}
-
-
 def _demux_by_project(frame):
     # use PlateReplication object to convert each sample's 384 well location
     # into a 96-well location + quadrant. Since replication is performed at
@@ -881,21 +855,12 @@ def _demux_by_project(frame):
     # new sample-sheet.
     plate = PlateReplication(None)
 
-    well_ids = list(frame.destination_well_id)
-
     frame['quad'] = [plate.get_96_well_location_and_quadrant(x)[0] for x in
-                     well_ids]
+                     list(frame.destination_well_id)]
 
     gb = frame.groupby('quad')
 
-    results = [gb.get_group(grp).drop(['quad'], axis=1) for grp in gb.groups]
-
-    # clean-up each dataframe before returning to the user.
-    for result in results:
-        result['Sample_ID'] = result.index
-        result.reset_index(inplace=True)
-
-    return results
+    return [gb.get_group(grp).drop(['quad'], axis=1) for grp in gb.groups]
 
 
 def demux_pre_prep(pre_prep):
@@ -911,12 +876,28 @@ def demux_pre_prep(pre_prep):
     -------
     list of pre_preps
     """
-    metadata = _organize_by_project(pre_prep)
+    projects = []
+    data = {}
+
+    for project_name, project in pre_prep.groupby('project_name'):
+        # assert that all values in 'contains_replicates' column for a given
+        # project are either all True or all False. Handle case-variations.
+        project.contains_replicates = project.contains_replicates.str.lower()
+        values = project.contains_replicates.unique()
+
+        if len(values) != 1:
+            raise ValueError(
+                f"values in 'contains_replicates' column contain "
+                "values for both True and False for project "
+                f"'{project_name}'")
+
+        projects.append((project_name, values[0] == 'true'))
+        data[project_name] = project
 
     results = []
 
-    for project_name, needs_demuxing in metadata['projects']:
-        df = metadata['data'][project_name]
+    for project_name, needs_demuxing in projects:
+        df = data[project_name]
 
         if needs_demuxing:
             results += _demux_by_project(df)

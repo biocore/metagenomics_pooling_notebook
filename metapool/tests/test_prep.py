@@ -834,7 +834,7 @@ class TestPrePrepReplicates(TestCase):
 
     def test_demux_pre_prep(self):
         # parse_prep() extended to support pre-prep files as well.
-        df = parse_prep(self.prep_w_replicates_path)
+        df = parse_prep(self.prep_w_replicates_path, numeric_index=True)
         results = demux_pre_prep(df)
 
         # assert that the proper number of dataframes were returned.
@@ -842,9 +842,9 @@ class TestPrePrepReplicates(TestCase):
 
         # assert that each pre-prep dataframe appears in the correct order and
         # matches known results.
-        for replicate_output_path in self.replicate_output_paths:
+        for replicate_output_path, obs in zip(self.replicate_output_paths,
+                                              results):
             print(f"testing against {replicate_output_path}...")
-            obs = results.pop(0)
             obs.set_index('sample_name', inplace=True)
             exp = parse_prep(replicate_output_path)
             self.assertTrue(obs.equals(exp))

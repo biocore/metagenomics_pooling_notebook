@@ -13,10 +13,8 @@ from metapool.sample_sheet import (KLSampleSheet,
                                    sample_sheet_to_dataframe,
                                    _add_metadata_to_sheet, _add_data_to_sheet,
                                    _validate_sample_sheet_metadata,
-                                   _remap_table,
-                                   make_sample_sheet, contains_replicates,
-                                   _demux_sample_sheet, _get_demux_metadata,
-                                   demux_sample_sheet)
+                                   _remap_table, make_sample_sheet,
+                                   _process_sample_sheet, demux_sample_sheet)
 from metapool.plate import ErrorMessage, WarningMessage
 
 
@@ -1266,28 +1264,15 @@ class DemuxReplicatesTests(BaseTests):
                                        join(self.data_dir,
                                             'replicate_output4.csv')]
 
-    def test_contains_replicates(self):
-        # test sample-sheet w/both projects w/replicates and not.
-        sheet = KLSampleSheet(self.sheet_w_replicates_path)
-        self.assertTrue(contains_replicates(sheet))
-
-        # test sample-sheet w/no replicates in any project.
-        sheet = KLSampleSheet(self.sheet_wo_replicates_path)
-        self.assertFalse(contains_replicates(sheet))
-
-        # confirm legacy sample-sheets will return False
-        sheet = KLSampleSheet(self.legacy_sheet_path)
-        self.assertFalse(contains_replicates(sheet))
-
     def test_internal_demux_sample_sheet(self):
         # test sample-sheet w/both projects w/replicates and not.
         sheet = KLSampleSheet(self.sheet_w_replicates_path)
 
         with self.assertRaisesRegex(ValueError, "Project 'abc' is not defined "
                                                 "in sample-sheet"):
-            _demux_sample_sheet(sheet, 'abc')
+            _process_sample_sheet(sheet, 'abc', True)
 
-        results = _demux_sample_sheet(sheet, 'Feist_11661')
+        results = _process_sample_sheet(sheet, 'Feist_11661', True)
 
         exp = [{'sample_id': {0: 'BLANK_43_12G_A1',
                               1: 'RMA_KHP_rpoS_Mage_Q97E_A11',
@@ -1581,7 +1566,7 @@ class DemuxReplicatesTests(BaseTests):
         for obs_df, exp_value in zip(results, exp):
             self.assertDictEqual(obs_df.to_dict(), exp_value)
 
-        results = _demux_sample_sheet(sheet, 'Geist_11662')
+        results = _process_sample_sheet(sheet, 'Geist_11662', False)
 
         exp = [{'sample_id': {0: 'abc_def_ghi_025_B21'},
                 'orig_name': {0: 'abc.def.ghi.025'},
@@ -1602,61 +1587,6 @@ class DemuxReplicatesTests(BaseTests):
         # expected for 'Geist_11662'.
         for obs_df, exp_value in zip(results, exp):
             self.assertDictEqual(obs_df.to_dict(), exp_value)
-
-    def test_get_demux_metadata(self):
-        # test sample-sheet w/both projects w/replicates and not.
-        sheet = KLSampleSheet(self.sheet_w_replicates_path)
-
-        obs = _get_demux_metadata(sheet)
-
-        exp = {
-            "bioinformatics": {
-                "Feist_11661": {
-                    "Sample_Project": "Feist_11661",
-                    "QiitaID": "11661",
-                    "BarcodesAreRC": "False",
-                    "ForwardAdapter": "AACC",
-                    "ReverseAdapter": "GGTT",
-                    "HumanFiltering": "False",
-                    "library_construction_protocol": "Nextera",
-                    "experiment_design_description": "Equipment",
-                    "contains_replicates": "True"
-                },
-                "Geist_11662": {
-                    "Sample_Project": "Geist_11662",
-                    "QiitaID": "11662",
-                    "BarcodesAreRC": "False",
-                    "ForwardAdapter": "AACC",
-                    "ReverseAdapter": "GGTT",
-                    "HumanFiltering": "False",
-                    "library_construction_protocol": "Nextera",
-                    "experiment_design_description": "Equipment",
-                    "contains_replicates": "False"
-                }
-            },
-            "contact": {
-                "Feist_11661": {
-                    "Email": "person@domain.edu",
-                    "Sample_Project": "Feist_11661"
-                },
-                "Geist_11662": {
-                    "Email": "another_person@domain.edu",
-                    "Sample_Project": "Geist_11662"
-                }
-            },
-            "projects": [
-                (
-                    "Feist_11661",
-                    True
-                ),
-                (
-                    "Geist_11662",
-                    False
-                )
-            ]
-        }
-
-        self.assertDictEqual(obs, exp)
 
     def test_demux_sample_sheet(self):
         # this test will need to compare the four completed sample-sheets

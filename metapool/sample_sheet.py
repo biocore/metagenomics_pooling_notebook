@@ -10,7 +10,6 @@ from metapool.metapool import (bcl_scrub_name, sequencer_i5_index,
                                REVCOMP_SEQUENCERS)
 from metapool.prep import qiita_scrub_name
 from metapool.plate import ErrorMessage, WarningMessage, PlateReplication
-from collections import defaultdict
 
 
 _KL_SAMPLE_SHEET_SECTIONS = [
@@ -826,30 +825,7 @@ def sample_sheet_to_dataframe(sheet):
     return out.set_index('sample_id')
 
 
-def contains_replicates(sheet):
-    """Returns True if samples in sheet include one or more replicates.
-
-    Parameters
-    ----------
-    sheet: sample_sheet.KLSampleSheet
-        Object from where to extract the data.
-
-    Returns
-    -------
-    bool
-        True if samples in sheet include one or more replicates.
-    """
-    if 'contains_replicates' in sheet.Bioinformatics.columns:
-        for index, row in sheet.Bioinformatics.iterrows():
-            if row['contains_replicates'].lower() == 'true':
-                return True
-
-    # legacy sample-sheet does not handle replicates or no replicates were
-    # found.
-    return False
-
-
-def _demux_sample_sheet(sheet, project_name):
+def _process_sample_sheet(sheet, project_name, contains_replicates):
     df = sample_sheet_to_dataframe(sheet)
 
     if project_name not in set(df['sample_project']):
@@ -858,6 +834,13 @@ def _demux_sample_sheet(sheet, project_name):
 
     # filter out samples not associated w/this project
     df = df.loc[df['sample_project'] == project_name]
+
+    # if this project does not contain replicates, simply return the filtered
+    # dataframe for this project. Return as a list as expected.
+    if contains_replicates is False:
+        df['Sample_ID'] = df.index
+        df.reset_index(inplace=True)
+        return [df]
 
     # use PlateReplication object to convert each sample's 384 well location
     # into a 96-well location + quadrant. Since replication is performed at
@@ -880,31 +863,6 @@ def _demux_sample_sheet(sheet, project_name):
     return results
 
 
-def _get_demux_metadata(sheet):
-    # extract project-level metadata for sections that are affected by the
-    # demuxing of the sample-sheet.
-    bi = defaultdict(list)
-    for entry in sheet.Bioinformatics.to_dict(orient='records'):
-        project_name = entry['Sample_Project']
-        bi[project_name] = entry
-
-    contact = defaultdict(list)
-    for entry in sheet.Contact.to_dict(orient='records'):
-        project_name = entry['Sample_Project']
-        contact[project_name] = entry
-
-    # determine which projects need to be demuxed, and which do not.
-    projects = []
-    for index, row in sheet.Bioinformatics.iterrows():
-        project = row['Sample_Project']
-        if row['contains_replicates'].lower() == 'true':
-            projects.append((project, True))
-        else:
-            projects.append((project, False))
-
-    return {'bioinformatics': bi, 'contact': contact, 'projects': projects}
-
-
 def demux_sample_sheet(sheet):
     """Given a sample-sheet w/samples that are plate-replicates, generate new
        sample-sheets for each unique plate-replicate.
@@ -918,44 +876,24 @@ def demux_sample_sheet(sheet):
         -------
         list of sheets
     """
-    metadata = _get_demux_metadata(sheet)
-
     demuxed_sheets = []
-    for project, needs_demuxing in metadata['projects']:
+    for index, row in sheet.Bioinformatics.iterrows():
+        project = row['Sample_Project']
+        needs_demuxing = row['contains_replicates'].lower() == 'true'
+
         # generate a new bioinformatics section containing only the
         # information for the project.
-        columns = ['Sample_Project', 'QiitaID', 'BarcodesAreRC',
-                   'ForwardAdapter',
-                   'ReverseAdapter', 'HumanFiltering',
-                   'library_construction_protocol',
-                   'experiment_design_description']
 
-        bi = metadata['bioinformatics'][project]
-
-        data = [bi['Sample_Project'],
-                bi['QiitaID'],
-                bi['BarcodesAreRC'],
-                bi['ForwardAdapter'],
-                bi['ReverseAdapter'],
-                bi['HumanFiltering'],
-                bi['library_construction_protocol'],
-                bi['experiment_design_description']]
-
-        project_bi = pd.DataFrame(columns=columns, data=[data])
-
-        # generate a new contact section containing only the contact info
-        # needed by the new bioinformatics section.
-        columns = ['Email', 'Sample_Project']
-
-        contact = metadata['contact'][project]
-
-        data = [contact['Email'],
-                contact['Sample_Project']]
-        project_contact = pd.DataFrame(columns=columns, data=[data])
+        project_bi = sheet.Bioinformatics.loc[
+            sheet.Bioinformatics['Sample_Project'] == project].drop(
+            ['contains_replicates'], axis=1).reset_index(drop=True)
+        project_contact = sheet.Contact.loc[
+            sheet.Contact['Sample_Project'] == project].reset_index(drop=True)
 
         # create new sample-sheets, one for each project w/out replicates
         # and n sheets for each project w/replicates.
-        frames = _demux_sample_sheet(sheet, project)
+        print("NEEDS DEMUXING: %s" % needs_demuxing)
+        frames = _process_sample_sheet(sheet, project, needs_demuxing)
         for df in frames:
             new_sheet = KLSampleSheet()
             new_sheet.Header = sheet.Header
