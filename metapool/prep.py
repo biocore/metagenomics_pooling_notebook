@@ -7,6 +7,7 @@ import pandas as pd
 from glob import glob
 from datetime import datetime
 from string import ascii_letters, digits
+from metapool.plate import PlateReplication
 
 
 REQUIRED_COLUMNS = {'sample_plate', 'sample_well', 'i7_index_id', 'index',
@@ -666,21 +667,23 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
 
 
 def parse_prep(prep_path):
-    """Parses a prep file into a DataFrame
+    """Parses a prep or pre-prep file into a DataFrame
 
     Parameters
     ----------
     prep_path: str or file-like
-        Filepath to the preparation file
+        Filepath to the preparation or pre-preparation file
 
     Returns
     -------
     pd.DataFrame
-        Parsed prep file with the sample_name column set as the index.
+        Parsed file with the sample_name column set as the index.
     """
     prep = pd.read_csv(prep_path, sep='\t', dtype=str, keep_default_na=False,
                        na_values=[])
+
     prep.set_index('sample_name', verify_integrity=True, inplace=True)
+
     return prep
 
 
@@ -842,3 +845,63 @@ def qiita_scrub_name(name):
         the sample name, formatted for qiita
     """
     return re.sub(r'[^0-9a-zA-Z\-\.]+', '.', name)
+
+
+def _demux_by_project(frame):
+    # use PlateReplication object to convert each sample's 384 well location
+    # into a 96-well location + quadrant. Since replication is performed at
+    # the plate-level, this will identify which replicants belong in which
+    # new sample-sheet.
+    plate = PlateReplication(None)
+
+    frame['quad'] = frame.apply(lambda row:
+                                plate.get_96_well_location_and_quadrant(
+                                    row.destination_well_id)[0], axis=1)
+
+    res = []
+
+    for quad in sorted(frame['quad'].unique()):
+        # for each unique quadrant found, create a new dataframe that's a
+        # subset containing only members of that quadrant. Delete the temporary
+        # 'quad' column afterwards and reset the index to an integer value
+        # starting at zero; the current-index will revert to a column named
+        # 'sample_id'. Return the list of new dataframes.
+        res.append(frame[frame['quad'] == quad].drop(['quad'], axis=1))
+
+    return res
+
+
+def demux_pre_prep(pre_prep):
+    """Given a pre-prep file w/samples that are plate-replicates, generate new
+       pre-prep files for each unique plate-replicate.
+
+    Parameters
+    ----------
+    pre_prep: A Pandas dataframe representing a pre-prep file.
+        Object from where to extract the data.
+
+    Returns
+    -------
+    list of pre_preps
+    """
+    results = []
+
+    for project_name, project in pre_prep.groupby('project_name'):
+        # assert that all values in 'contains_replicates' column for a given
+        # project are either all True or all False. Handle case-variations.
+        project.contains_replicates = project.contains_replicates.str.lower()
+        values = project.contains_replicates.unique()
+
+        if len(values) != 1:
+            raise ValueError(
+                f"values in 'contains_replicates' column contain "
+                "values for both True and False for project "
+                f"'{project_name}'")
+
+        if values[0] == 'true':
+            # if values[0] is True, then this project needs demuxing.
+            results += _demux_by_project(project)
+        else:
+            results.append(project)
+
+    return results

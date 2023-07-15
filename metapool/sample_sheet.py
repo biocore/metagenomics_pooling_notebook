@@ -2,17 +2,14 @@ import re
 import csv
 import collections
 import warnings
-
 from datetime import datetime
 from itertools import chain, repeat, islice
-
 import sample_sheet
 import pandas as pd
-
 from metapool.metapool import (bcl_scrub_name, sequencer_i5_index,
                                REVCOMP_SEQUENCERS)
-from metapool.plate import ErrorMessage, WarningMessage
 from metapool.prep import qiita_scrub_name
+from metapool.plate import ErrorMessage, WarningMessage, PlateReplication
 
 
 _KL_SAMPLE_SHEET_SECTIONS = [
@@ -826,3 +823,86 @@ def sample_sheet_to_dataframe(sheet):
     out.drop(columns='Sample_Project', inplace=True)
     out.sort_values(by='sample_well', inplace=True)
     return out.set_index('sample_id')
+
+
+def _process_sample_sheet(sheet, project_name, contains_replicates):
+    df = sample_sheet_to_dataframe(sheet)
+
+    if project_name not in set(df['sample_project']):
+        raise ValueError(f"Project '{project_name}' is not defined in "
+                         "sample-sheet")
+
+    # filter out samples not associated w/this project
+    df = df.loc[df['sample_project'] == project_name]
+
+    # if this project does not contain replicates, simply return the filtered
+    # dataframe for this project. Return as a list as expected.
+    if contains_replicates is False:
+        return [df.reset_index()]
+
+    # use PlateReplication object to convert each sample's 384 well location
+    # into a 96-well location + quadrant. Since replication is performed at
+    # the plate-level, this will identify which replicates belong in which
+    # new sample-sheet.
+    plate = PlateReplication(None)
+
+    df['quad'] = df.apply(lambda row: plate.get_96_well_location_and_quadrant(
+        row.destination_well_384)[0], axis=1)
+
+    res = []
+
+    for quad in sorted(df['quad'].unique()):
+        # for each unique quadrant found, create a new dataframe that's a
+        # subset containing only members of that quadrant. Delete the temporary
+        # 'quad' column afterwards and reset the index to an integer value
+        # starting at zero; the current-index will revert to a column named
+        # 'sample_id'. Return the list of new dataframes.
+        res.append(df[df['quad'] == quad].drop(['quad'], axis=1).reset_index())
+
+    return res
+
+
+def demux_sample_sheet(sheet):
+    """Given a sample-sheet w/samples that are plate-replicates, generate new
+       sample-sheets for each unique plate-replicate.
+
+        Parameters
+        ----------
+        sheet: sample_sheet.KLSampleSheet
+            Object from where to extract the data.
+
+        Returns
+        -------
+        list of sheets
+    """
+    demuxed_sheets = []
+    for index, row in sheet.Bioinformatics.iterrows():
+        project = row['Sample_Project']
+        needs_demuxing = row['contains_replicates'].lower() == 'true'
+
+        # generate a new bioinformatics section containing only the
+        # information for the project.
+
+        project_bi = sheet.Bioinformatics.loc[
+            sheet.Bioinformatics['Sample_Project'] == project].drop(
+            ['contains_replicates'], axis=1).reset_index(drop=True)
+        project_contact = sheet.Contact.loc[
+            sheet.Contact['Sample_Project'] == project].reset_index(drop=True)
+
+        # create new sample-sheets, one for each project w/out replicates
+        # and n sheets for each project w/replicates.
+        frames = _process_sample_sheet(sheet, project, needs_demuxing)
+        for df in frames:
+            new_sheet = KLSampleSheet()
+            new_sheet.Header = sheet.Header
+            new_sheet.Reads = sheet.Reads
+            new_sheet.Settings = sheet.Settings
+            new_sheet.Bioinformatics = project_bi
+            new_sheet.Contact = project_contact
+
+            for sample in df.to_dict(orient='records'):
+                new_sheet.add_sample(sample_sheet.Sample(sample))
+
+            demuxed_sheets.append(new_sheet)
+
+    return demuxed_sheets

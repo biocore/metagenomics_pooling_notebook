@@ -1,0 +1,39 @@
+[Header],,,,,,,,,,,,,,
+IEMFileVersion,4,,,,,,,,,,,,,
+Investigator Name,Knight,,,,,,,,,,,,,
+Experiment Name,RKL0042,,,,,,,,,,,,,
+Date,2020-02-26,,,,,,,,,,,,,
+Workflow,GenerateFASTQ,,,,,,,,,,,,,
+Application,FASTQ Only,,,,,,,,,,,,,
+Assay,Metagenomic,,,,,,,,,,,,,
+Description,,,,,,,,,,,,,,
+Chemistry,Default,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+[Reads],,,,,,,,,,,,,,
+150,,,,,,,,,,,,,,
+150,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+[Settings],,,,,,,,,,,,,,
+ReverseComplement,0,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+[Data],,,,,,,,,,,,,,
+Sample_ID,orig_name,sample_name,source_well_384,destination_well_384,sample_plate,sample_well,i7_index_id,index,i5_index_id,index2,sample_project,well_description,library_construction_protocol,experiment_design_description
+RMA_KHP_rpoS_Mage_Q97N_B10,RMA.KHP.rpoS.Mage.Q97N,RMA.KHP.rpoS.Mage.Q97N.B10,A9,B10,Feist_11661_P43,B10,iTru7_114_12,AAGTCGAG,iTru5_05_A,TGGCACTA,Feist_11661,description,Nextera,Equipment
+RMA_KHP_rpoS_Mage_Q97E_B12,RMA.KHP.rpoS.Mage.Q97E,RMA.KHP.rpoS.Mage.Q97E.B12,A11,B12,Feist_11661_P43,B12,iTru7_201_01,TGCCTCAA,iTru5_06_A,CCATGAAC,Feist_11661,description,Nextera,Equipment
+JBI_KHP_HGL_021_B14,JBI.KHP.HGL.021,JBI.KHP.HGL.021.B14,A13,B14,Feist_11661_P43,B14,iTru7_201_02,TATCGGTC,iTru5_07_A,GGTTGTCA,Feist_11661,description,Nextera,Equipment
+JBI_KHP_HGL_022_B16,JBI.KHP.HGL.022,JBI.KHP.HGL.022.B16,A15,B16,Feist_11661_P43,B16,iTru7_201_03,ATCTGACC,iTru5_08_A,GCCAATAC,Feist_11661,description,Nextera,Equipment
+JBI_KHP_HGL_023_B18,JBI.KHP.HGL.023,JBI.KHP.HGL.023.B18,A17,B18,Feist_11661_P43,B18,iTru7_201_04,TATTCGCC,iTru5_09_A,AACCTCCT,Feist_11661,description,Nextera,Equipment
+BLANK_43_12G_B2,BLANK.43.12G,BLANK.43.12G.B2,A1,B2,Feist_11661_P43,B2,iTru7_114_08,CATTCGGT,iTru5_01_A,GTATTGGC,Feist_11661,description,Nextera,Equipment
+JBI_KHP_HGL_024_B20,JBI.KHP.HGL.024,JBI.KHP.HGL.024.B20,A19,B20,Feist_11661_P43,B20,iTru7_201_05,CACAGACT,iTru5_10_A,AGCTACCA,Feist_11661,description,Nextera,Equipment
+BLANK_43_12H_B4,BLANK.43.12H,BLANK.43.12H.B4,A3,B4,Feist_11661_P43,B4,iTru7_114_09,ACGGACTT,iTru5_02_A,CACTGTAG,Feist_11661,description,Nextera,Equipment
+RMA_KHP_rpoS_Mage_Q97D_B6,RMA.KHP.rpoS.Mage.Q97D,RMA.KHP.rpoS.Mage.Q97D.B6,A5,B6,Feist_11661_P43,B6,iTru7_114_10,TCGGTTAC,iTru5_03_A,AGTCGCTT,Feist_11661,description,Nextera,Equipment
+RMA_KHP_rpoS_Mage_Q97L_B8,RMA.KHP.rpoS.Mage.Q97L,RMA.KHP.rpoS.Mage.Q97L.B8,A7,B8,Feist_11661_P43,B8,iTru7_114_11,CATGTGTG,iTru5_04_A,CACAGGAA,Feist_11661,description,Nextera,Equipment
+,,,,,,,,,,,,,,
+[Bioinformatics],,,,,,,,,,,,,,
+Sample_Project,QiitaID,BarcodesAreRC,ForwardAdapter,ReverseAdapter,HumanFiltering,library_construction_protocol,experiment_design_description,,,,,,,
+Feist_11661,11661,False,AACC,GGTT,False,Nextera,Equipment,,,,,,,
+,,,,,,,,,,,,,,
+[Contact],,,,,,,,,,,,,,
+Email,Sample_Project,,,,,,,,,,,,,
+person@domain.edu,Feist_11661,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
