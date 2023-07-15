@@ -666,7 +666,7 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
     return output
 
 
-def parse_prep(prep_path, numeric_index=False):
+def parse_prep(prep_path):
     """Parses a prep or pre-prep file into a DataFrame
 
     Parameters
@@ -682,8 +682,7 @@ def parse_prep(prep_path, numeric_index=False):
     prep = pd.read_csv(prep_path, sep='\t', dtype=str, keep_default_na=False,
                        na_values=[])
 
-    if not numeric_index:
-        prep.set_index('sample_name', verify_integrity=True, inplace=True)
+    prep.set_index('sample_name', verify_integrity=True, inplace=True)
 
     return prep
 
@@ -855,12 +854,21 @@ def _demux_by_project(frame):
     # new sample-sheet.
     plate = PlateReplication(None)
 
-    frame['quad'] = [plate.get_96_well_location_and_quadrant(x)[0] for x in
-                     list(frame.destination_well_id)]
+    frame['quad'] = frame.apply(lambda row:
+                                plate.get_96_well_location_and_quadrant(
+                                    row.destination_well_id)[0], axis=1)
 
-    gb = frame.groupby('quad')
+    res = []
 
-    return [gb.get_group(grp).drop(['quad'], axis=1) for grp in gb.groups]
+    for quad in sorted(frame['quad'].unique()):
+        # for each unique quadrant found, create a new dataframe that's a
+        # subset containing only members of that quadrant. Delete the temporary
+        # 'quad' column afterwards and reset the index to an integer value
+        # starting at zero; the current-index will revert to a column named
+        # 'sample_id'. Return the list of new dataframes.
+        res.append(frame[frame['quad'] == quad].drop(['quad'], axis=1))
+
+    return res
 
 
 def demux_pre_prep(pre_prep):
@@ -876,8 +884,7 @@ def demux_pre_prep(pre_prep):
     -------
     list of pre_preps
     """
-    projects = []
-    data = {}
+    results = []
 
     for project_name, project in pre_prep.groupby('project_name'):
         # assert that all values in 'contains_replicates' column for a given
@@ -891,17 +898,10 @@ def demux_pre_prep(pre_prep):
                 "values for both True and False for project "
                 f"'{project_name}'")
 
-        projects.append((project_name, values[0] == 'true'))
-        data[project_name] = project
-
-    results = []
-
-    for project_name, needs_demuxing in projects:
-        df = data[project_name]
-
-        if needs_demuxing:
-            results += _demux_by_project(df)
+        if values[0] == 'true':
+            # if values[0] is True, then this project needs demuxing.
+            results += _demux_by_project(project)
         else:
-            results.append(df)
+            results.append(project)
 
     return results

@@ -851,7 +851,7 @@ def _process_sample_sheet(sheet, project_name, contains_replicates):
 
     res = []
 
-    for quad in df['quad'].unique():
+    for quad in sorted(df['quad'].unique()):
         # for each unique quadrant found, create a new dataframe that's a
         # subset containing only members of that quadrant. Delete the temporary
         # 'quad' column afterwards and reset the index to an integer value
@@ -891,7 +891,6 @@ def demux_sample_sheet(sheet):
 
         # create new sample-sheets, one for each project w/out replicates
         # and n sheets for each project w/replicates.
-        print("NEEDS DEMUXING: %s" % needs_demuxing)
         frames = _process_sample_sheet(sheet, project, needs_demuxing)
         for df in frames:
             new_sheet = KLSampleSheet()
