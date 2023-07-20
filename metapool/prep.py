@@ -847,28 +847,35 @@ def qiita_scrub_name(name):
     return re.sub(r'[^0-9a-zA-Z\-\.]+', '.', name)
 
 
-def _demux_by_project(frame):
-    # use PlateReplication object to convert each sample's 384 well location
-    # into a 96-well location + quadrant. Since replication is performed at
-    # the plate-level, this will identify which replicants belong in which
-    # new sample-sheet.
-    plate = PlateReplication(None)
+def pre_prep_needs_demuxing(pre_prep):
+    """Returns True if pre-prep needs to be demultiplexed.
 
-    frame['quad'] = frame.apply(lambda row:
-                                plate.get_96_well_location_and_quadrant(
-                                    row.destination_well_id)[0], axis=1)
+    Parameters
+    ----------
+    pre_prep: Dataframe representing pre-prep file.
+        Object from where to extract the data.
 
-    res = []
+    Returns
+    -------
+    bool
+        True if pre-prep needs to be demultiplexed.
+    """
+    if 'contains_replicates' in pre_prep:
+        contains_replicates = pre_prep.contains_replicates.apply(
+            lambda x: x.lower() == 'true').unique()
 
-    for quad in sorted(frame['quad'].unique()):
-        # for each unique quadrant found, create a new dataframe that's a
-        # subset containing only members of that quadrant. Delete the temporary
-        # 'quad' column afterwards and reset the index to an integer value
-        # starting at zero; the current-index will revert to a column named
-        # 'sample_id'. Return the list of new dataframes.
-        res.append(frame[frame['quad'] == quad].drop(['quad'], axis=1))
+        # By convention, all values in this column must either be True or
+        # False.
+        if len(contains_replicates) > 1:
+            raise ValueError("all values in contains_replicates column must "
+                             "either be True or False")
 
-    return res
+        # return either True or False, depending on the values found.
+        return list(contains_replicates)[0]
+
+    # legacy pre-prep does not handle replicates or no replicates were
+    # found.
+    return False
 
 
 def demux_pre_prep(pre_prep):
@@ -884,24 +891,27 @@ def demux_pre_prep(pre_prep):
     -------
     list of pre_preps
     """
-    results = []
+    if not pre_prep_needs_demuxing(pre_prep):
+        raise ValueError("pre_prep does not need to be demultiplexed")
 
-    for project_name, project in pre_prep.groupby('project_name'):
-        # assert that all values in 'contains_replicates' column for a given
-        # project are either all True or all False. Handle case-variations.
-        project.contains_replicates = project.contains_replicates.str.lower()
-        values = project.contains_replicates.unique()
+    # use PlateReplication object to convert each sample's 384 well location
+    # into a 96-well location + quadrant. Since replication is performed at
+    # the plate-level, this will identify which replicants belong in which
+    # new sample-sheet.
+    plate = PlateReplication(None)
 
-        if len(values) != 1:
-            raise ValueError(
-                f"values in 'contains_replicates' column contain "
-                "values for both True and False for project "
-                f"'{project_name}'")
+    pre_prep['quad'] = pre_prep.apply(lambda row:
+                                      plate.get_96_well_location_and_quadrant(
+                                          row.destination_well_id)[0], axis=1)
 
-        if values[0] == 'true':
-            # if values[0] is True, then this project needs demuxing.
-            results += _demux_by_project(project)
-        else:
-            results.append(project)
+    res = []
 
-    return results
+    for quad in sorted(pre_prep['quad'].unique()):
+        # for each unique quadrant found, create a new dataframe that's a
+        # subset containing only members of that quadrant. Delete the temporary
+        # 'quad' column afterwards and reset the index to an integer value
+        # starting at zero; the current-index will revert to a column named
+        # 'sample_id'. Return the list of new dataframes.
+        res.append(pre_prep[pre_prep['quad'] == quad].drop(['quad'], axis=1))
+
+    return res

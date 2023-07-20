@@ -825,20 +825,42 @@ def sample_sheet_to_dataframe(sheet):
     return out.set_index('sample_id')
 
 
-def _process_sample_sheet(sheet, project_name, contains_replicates):
+def sheet_needs_demuxing(sheet):
+    """Returns True if sample-sheet needs to be demultiplexed.
+
+    Parameters
+    ----------
+    sheet: sample_sheet.KLSampleSheet
+        Object from where to extract the data.
+
+    Returns
+    -------
+    bool
+        True if sample-sheet needs to be demultiplexed.
+    """
+    if 'contains_replicates' in sheet.Bioinformatics.columns:
+        contains_replicates = sheet.Bioinformatics.contains_replicates.apply(
+            lambda x: x.lower() == 'true').unique()
+        if len(contains_replicates) > 1:
+            raise ValueError("all projects in Bioinformatics section must "
+                             "either contain replicates or not.")
+
+        # return either True or False, depending on the values found in
+        # Bioinformatics section.
+        return list(contains_replicates)[0]
+
+    # legacy sample-sheet does not handle replicates or no replicates were
+    # found.
+    return False
+
+
+def _demux_sample_sheet(sheet):
+    """
+    internal function that performs the actual demuxing.
+    :param sheet: A valid KLSampleSheet confirmed to have replicates
+    :return: a list of DataFrames.
+    """
     df = sample_sheet_to_dataframe(sheet)
-
-    if project_name not in set(df['sample_project']):
-        raise ValueError(f"Project '{project_name}' is not defined in "
-                         "sample-sheet")
-
-    # filter out samples not associated w/this project
-    df = df.loc[df['sample_project'] == project_name]
-
-    # if this project does not contain replicates, simply return the filtered
-    # dataframe for this project. Return as a list as expected.
-    if contains_replicates is False:
-        return [df.reset_index()]
 
     # use PlateReplication object to convert each sample's 384 well location
     # into a 96-well location + quadrant. Since replication is performed at
@@ -875,34 +897,53 @@ def demux_sample_sheet(sheet):
         -------
         list of sheets
     """
+    if 'contains_replicates' not in sheet.Bioinformatics:
+        raise ValueError("sample-sheet does not contain replicates")
+
+    # by convention, all projects in the sample-sheet are either going
+    # to be True or False. If some projects are True while others are
+    # False, we should raise an Error.
+    contains_replicates = sheet.Bioinformatics.contains_replicates.apply(
+        lambda x: x.lower() == 'true').unique()
+    if len(contains_replicates) > 1:
+        raise ValueError("all projects in Bioinformatics section must "
+                         "either contain replicates or not.")
+
+    # contains_replicates[0] is of type 'np.bool_' rather than 'bool'. Hence,
+    # the syntax below reflects what appears to be common practice for such
+    # types.
+    if not contains_replicates[0]:
+        raise ValueError("all projects in Bioinformatics section do not "
+                         "contain replicates")
+
     demuxed_sheets = []
-    for index, row in sheet.Bioinformatics.iterrows():
-        project = row['Sample_Project']
-        needs_demuxing = row['contains_replicates'].lower() == 'true'
 
-        # generate a new bioinformatics section containing only the
-        # information for the project.
+    # create new sample-sheets, one for each set of replicates. Since
+    # replication is performed at the plate level (e.g.: plate 2 is a
+    # replicate of plate 1, BLANKS and all), we can split replicates
+    # according to their destination quadrant number.
+    for df in _demux_sample_sheet(sheet):
+        new_sheet = KLSampleSheet()
+        new_sheet.Header = sheet.Header
+        new_sheet.Reads = sheet.Reads
+        new_sheet.Settings = sheet.Settings
+        projects = set(df.sample_project)
 
-        project_bi = sheet.Bioinformatics.loc[
-            sheet.Bioinformatics['Sample_Project'] == project].drop(
+        # Generate a list of projects associated with each set of samples.
+        # Construct bioinformatics and contact sections for each set so that
+        # projects not referenced in the sample-set are not included in the
+        # Bioinformatics and Contact sections.
+
+        new_sheet.Bioinformatics = sheet.Bioinformatics.loc[
+            sheet.Bioinformatics['Sample_Project'].isin(projects)].drop(
             ['contains_replicates'], axis=1).reset_index(drop=True)
-        project_contact = sheet.Contact.loc[
-            sheet.Contact['Sample_Project'] == project].reset_index(drop=True)
+        new_sheet.Contact = sheet.Contact.loc[
+            sheet.Contact['Sample_Project'].isin(projects)].reset_index(
+            drop=True)
 
-        # create new sample-sheets, one for each project w/out replicates
-        # and n sheets for each project w/replicates.
-        frames = _process_sample_sheet(sheet, project, needs_demuxing)
-        for df in frames:
-            new_sheet = KLSampleSheet()
-            new_sheet.Header = sheet.Header
-            new_sheet.Reads = sheet.Reads
-            new_sheet.Settings = sheet.Settings
-            new_sheet.Bioinformatics = project_bi
-            new_sheet.Contact = project_contact
+        for sample in df.to_dict(orient='records'):
+            new_sheet.add_sample(sample_sheet.Sample(sample))
 
-            for sample in df.to_dict(orient='records'):
-                new_sheet.add_sample(sample_sheet.Sample(sample))
-
-            demuxed_sheets.append(new_sheet)
+        demuxed_sheets.append(new_sheet)
 
     return demuxed_sheets

@@ -11,7 +11,8 @@ from metapool.prep import (preparations_for_run, remove_qiita_id,
                            parse_illumina_run_id,
                            _check_invalid_names, agp_transform, parse_prep,
                            generate_qiita_prep_file, qiita_scrub_name,
-                           preparations_for_run_mapping_file, demux_pre_prep)
+                           preparations_for_run_mapping_file, demux_pre_prep,
+                           pre_prep_needs_demuxing)
 
 
 class TestPrep(TestCase):
@@ -825,12 +826,44 @@ class TestPrePrepReplicates(TestCase):
         self.data_dir = join('metapool', 'tests', 'data')
         self.prep_w_replicates_path = join(self.data_dir,
                                            'pre_prep_w_replicates.csv')
+        self.prep_wo_replicates_path = join(self.data_dir,
+                                            'pre_prep_wo_replicates.csv')
+        self.prep_legacy_path = join(self.data_dir, 'prep.tsv')
+        self.prep_w_mixed_replicates = join(self.data_dir,
+                                            'bad_pre_prep.csv')
         self.replicate_output_paths = [join(self.data_dir,
                                             'replicate_output5.txt'),
                                        join(self.data_dir,
                                             'replicate_output6.txt'),
                                        join(self.data_dir,
                                             'replicate_output7.txt')]
+
+    def test_pre_prep_needs_demuxing(self):
+        # Confirm that a pre-prep file w/contains_replicates column defined
+        # and containing replicate samples results in True being returned
+        # from pre_prep_needs_demuxing().
+        df = parse_prep(self.prep_w_replicates_path)
+        self.assertTrue(pre_prep_needs_demuxing(df))
+
+        # Confirm that a pre-prep file w/contains_replicates column defined
+        # and containing no replicate samples results in False being returned
+        # from pre_prep_needs_demuxing().
+        df = parse_prep(self.prep_wo_replicates_path)
+        self.assertFalse(pre_prep_needs_demuxing(df))
+
+        # Confirm that a legacy pre-prep file w/out contains_replicates
+        # column returns False from pre_prep_needs_demuxing().
+        df = parse_prep(self.prep_legacy_path)
+        self.assertFalse(pre_prep_needs_demuxing(df))
+
+        # Confirm that a pre-prep file w/contains_replicates column defined
+        # w/some samples expressing True while others are False returns an
+        # Error.
+        with self.assertRaisesRegex(ValueError, 'all values in contains_'
+                                                'replicates column must either'
+                                                ' be True or False'):
+            sheet = parse_prep(self.prep_w_mixed_replicates)
+            pre_prep_needs_demuxing(sheet)
 
     def test_demux_pre_prep(self):
         # parse_prep() extended to support pre-prep files as well.
@@ -846,8 +879,6 @@ class TestPrePrepReplicates(TestCase):
                                               results):
             print(f"testing against {replicate_output_path}...")
             exp = parse_prep(replicate_output_path)
-            obs.to_csv('obs', sep='\t')
-            exp.to_csv('exp', sep='\t')
             self.assertTrue(obs.equals(exp))
 
 
