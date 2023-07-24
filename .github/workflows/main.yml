@@ -119,7 +119,7 @@ jobs:
       - name: Install metapool
         shell: bash -l {0}
         run: |
-          conda create -q --yes -n metapool python=${{ matrix.python-version }} scikit-learn pandas numpy nose pep8 flake8 matplotlib jupyter notebook 'seaborn>=0.7.1' pip openpyxl
+          conda create -q --yes -n metapool python=${{ matrix.python-version }} 'scikit-bio>=0.5.7' scikit-learn pandas numpy nose pep8 flake8 matplotlib jupyter notebook 'seaborn>=0.7.1' pip openpyxl
           conda activate metapool
           pip install coveralls flake8
           pip install -e ".[all]"
