@@ -862,6 +862,13 @@ def _demux_sample_sheet(sheet):
     """
     df = sample_sheet_to_dataframe(sheet)
 
+    # modify df to remove 'library_construction_protocol' and
+    # 'experiment_design_description' columns that we don't want for the
+    # [Data] section of this sample-sheet.
+
+    df = df.drop(columns=['library_construction_protocol',
+                          'experiment_design_description'])
+
     # use PlateReplication object to convert each sample's 384 well location
     # into a 96-well location + quadrant. Since replication is performed at
     # the plate-level, this will identify which replicates belong in which
@@ -879,7 +886,7 @@ def _demux_sample_sheet(sheet):
         # 'quad' column afterwards and reset the index to an integer value
         # starting at zero; the current-index will revert to a column named
         # 'sample_id'. Return the list of new dataframes.
-        res.append(df[df['quad'] == quad].drop(['quad'], axis=1).reset_index())
+        res.append(df[df['quad'] == quad].drop(['quad'], axis=1))
 
     return res
 
@@ -941,6 +948,12 @@ def demux_sample_sheet(sheet):
             sheet.Contact['Sample_Project'].isin(projects)].reset_index(
             drop=True)
 
+        # for our purposes here, we want to reindex df so that the index
+        # becomes Sample_ID and a new numeric index is created before
+        # turning it into a dict. In other situations it remains beneficial
+        # for _demux_sample_sheet to return a dataframe with sample_id as
+        # the index, such as seqpro.
+        df['Sample_ID'] = df.index
         for sample in df.to_dict(orient='records'):
             new_sheet.add_sample(sample_sheet.Sample(sample))
 

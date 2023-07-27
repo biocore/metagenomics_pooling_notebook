@@ -462,7 +462,13 @@ def preparations_for_run(run_path, sheet, pipeline='fastp-and-minimap2'):
         for lane, lane_sheet in project_sheet.groupby('lane'):
             # this is the portion of the loop that creates the prep
             data = []
-            for sample_id, sample in lane_sheet.iterrows():
+
+            # for sample_id, sample in lane_sheet.iterrows():
+            for tmp, sample in lane_sheet.iterrows():
+                if isinstance(sample, pd.core.series.Series):
+                    sample_id = tmp
+                else:
+                    sample_id = sample.sample_id
                 run_prefix = get_run_prefix(run_path,
                                             project,
                                             sample_id,

@@ -215,7 +215,7 @@ def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
         warnings.warn('No qiita_oauth2_conf_fp set so not checking plate_map '
                       'and Qiita study overlap')
 
-    plate_df = pd.read_csv(f, sep=sep, dtype = {'Sample': str})
+    plate_df = pd.read_csv(f, sep=sep, dtype={'Sample': str})
     if 'Project Name' not in plate_df.columns:
         raise ValueError('Missing `Project Name` column.')
 
