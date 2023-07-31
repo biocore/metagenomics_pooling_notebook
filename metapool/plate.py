@@ -236,7 +236,7 @@ def _validate_well_id_96(well):
 
 
 def _plate_position(well):
-    """Returns a 96 well plate position from a compressed 394 well plate ID"""
+    """Returns a 96 well plate position from a compressed 384 well plate ID"""
     row, col = _well_to_row_and_col(well)
 
     if row % 2 == 0 and col % 2 == 0:
