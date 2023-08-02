@@ -8,7 +8,6 @@ import sample_sheet
 import pandas as pd
 from metapool.metapool import (bcl_scrub_name, sequencer_i5_index,
                                REVCOMP_SEQUENCERS)
-from metapool.prep import qiita_scrub_name
 from metapool.plate import ErrorMessage, WarningMessage, PlateReplication
 
 
@@ -506,10 +505,23 @@ def _remap_table(table, assay, strict=True):
         remapper = _KL_METAGENOMIC_REMAPPER
     elif assay == _METATRANSCRIPTOMIC:
         remapper = _KL_METATRANSCRIPTOMIC_REMAPPER
+    else:
+        raise ValueError(f"'{assay} is not a valid Assay type.")
+
+    # Well_description column is now defined here as the concatenation
+    # of the following columns. If the column existed previously it will
+    # be overwritten, otherwise it will be created here. Alternate versions
+    # of the column name have already been resolved at this point.
+
+    # Note that the amplicon notebook currently generates the same values for
+    # this column. If the functionality in the notebook changes, the output
+    # will continue to be redfined with the current values here.
+    well_description = table['Project Plate'].astype(str) + "." + \
+        table['Sample'].astype(str) + "." + table['Well'].astype(str)
 
     if strict:
         # legacy operation. All columns not defined in remapper will be
-        # filtered out, including 'Well_description'.
+        # filtered out.
         out = table[remapper.keys()].copy()
         out.rename(remapper, axis=1, inplace=True)
     else:
@@ -525,7 +537,7 @@ def _remap_table(table, assay, strict=True):
         # if an alternate form of a column name defined in
         # _KL_SAMPLE_SHEET_COLUMN_ALTS is found in table, assume it should
         # be renamed to its proper form and be included in the output e.g.:
-        # 'well_description' -> 'Well_description'.
+        # 'sample_plate' -> 'Sample_Plate'.
 
         # assume keys in _KL_SAMPLE_SHEET_COLUMN_ALTS do not overlap w/
         # remapper (they currently do not). Define the full set of potential
@@ -533,7 +545,6 @@ def _remap_table(table, assay, strict=True):
 
         # new syntax in 3.9 allows us to merge two dicts together w/OR.
         remapper = _KL_SAMPLE_SHEET_COLUMN_ALTS | remapper
-
         out.rename(remapper, axis=1, inplace=True)
 
         # out may contain additional columns that aren't allowed in the [Data]
@@ -542,12 +553,9 @@ def _remap_table(table, assay, strict=True):
         subset = list(set(_KL_SAMPLE_SHEET_DATA_COLUMNS) & set(out.columns))
         out = out[subset]
 
-    if 'Well_description' not in out.columns:
-        # note that if strict is True this condition will always be true, even
-        # if 'Well_description' is defined in table.
-
-        # grab the original sample names from the inputted table
-        out['Well_description'] = table.Sample.apply(qiita_scrub_name)
+    # append the new 'Well_description' column, now that alternates have been
+    # removed and non-essential columns have been dropped.
+    out['Well_description'] = well_description
 
     for column in _KL_SAMPLE_SHEET_DATA_COLUMNS:
         if column not in out.columns:
@@ -561,7 +569,6 @@ def _remap_table(table, assay, strict=True):
 def _add_data_to_sheet(table, sheet, sequencer, lanes, assay, strict=True):
     table = _remap_table(table, assay, strict)
 
-    # for amplicon we don't have reverse barcodes
     if assay != _AMPLICON:
         table['index2'] = sequencer_i5_index(sequencer, table['index2'])
 
