@@ -11,7 +11,7 @@ from configparser import ConfigParser
 from qiita_client import QiitaClient
 from .prep import remove_qiita_id
 from .plate import _validate_well_id_96
-
+from string import ascii_letters, digits
 
 REVCOMP_SEQUENCERS = ['HiSeq4000', 'MiniSeq', 'NextSeq', 'HiSeq3000',
                       'iSeq', 'NovaSeq']
@@ -171,6 +171,51 @@ def sum_lanes(multi_lane_df, lanes_to_sum):
     return total
 
 
+def identify_invalid_sample_names(plate_df):
+    '''
+    Returns a list of invalid sample_names. Based on QIIME mapping-file docs.
+    Taken from Qiita's util.py:get_invalid_sample_names().
+
+    :param plate_df: A DataFrame representing a plate-map file.
+    :return: List of invalid sample-names.
+    '''
+
+    # convert all values to strings to handle instances when values like
+    # NaN are used as sample-names. Currently 'NaN' is an acceptable name.
+    sample_names = [str(x) for x in list(plate_df['Sample'])]
+    valid_chars = set(ascii_letters + digits + '.' + '-')
+    return sorted([ch for ch in sample_names if set(ch) - valid_chars])
+
+
+def sanitize_plate_map_sample_names(plate_df):
+    '''
+    Remove leading and/or trailing whitespace from sample-names.
+    :param plate_df: A DataFrame representing a plate-map file.
+    :return: List of invalid sample-names.
+    '''
+
+    # remove any leading and/or trailing whitespace from sample-names only.
+    plate_df['tmp'] = plate_df.Sample.str.strip()
+
+    # note which columns needed cleaning. We'll be returning this info to the
+    # user.
+    plate_df['changed'] = plate_df['Sample'] != plate_df['tmp']
+    repaired_names = plate_df.loc[plate_df['changed']]['Sample'].to_list()
+
+    # replace all sample-names w/their sanitized versions and drop the temp
+    # columns.
+    plate_df['Sample'] = plate_df['tmp']
+    plate_df.drop(columns={'tmp', 'changed'}, inplace=True)
+
+    if repaired_names:
+        # when values such as NaN are used in Sample column:
+        repaired_names = [str(x) for x in repaired_names]
+        warnings.warn("Leading and/or trailing whitespace was removed from the"
+                      " following sample-names: %s" % ','.join(repaired_names))
+
+    return plate_df
+
+
 def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
     """
     reads tab-delimited plate map into a Pandas dataframe and if
@@ -215,7 +260,7 @@ def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
         warnings.warn('No qiita_oauth2_conf_fp set so not checking plate_map '
                       'and Qiita study overlap')
 
-    plate_df = pd.read_csv(f, sep=sep)
+    plate_df = pd.read_csv(f, sep=sep, dtype={'Sample': str})
     if 'Project Name' not in plate_df.columns:
         raise ValueError('Missing `Project Name` column.')
 
@@ -231,10 +276,22 @@ def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
 
     plate_df['Well'] = plate_df['Row'] + plate_df['Col'].map(str)
 
+    # remove any leading and/or trailing whitespace before determining if
+    # any of the sample-names are invalid or duplicates.
+    # Needed in case validation against Qiita is not requested.
+    plate_df = sanitize_plate_map_sample_names(plate_df)
+
+    invalid_sample_names = identify_invalid_sample_names(plate_df)
+
+    if invalid_sample_names:
+        raise ValueError(
+            'The following sample names are invalid: %s' % ','.join(
+                invalid_sample_names))
+
     null_samples = plate_df.Sample.isnull()
     if null_samples.any():
         warnings.warn(('This plate map contains %d empty wells, these will be '
-                      'ignored') % null_samples.sum())
+                       'ignored') % null_samples.sum())
 
         # slice to the non-null samples and reset the index so samples are
         # still indexed with a continuous list of integers
@@ -451,7 +508,7 @@ def format_dna_norm_picklist(dna_vols, water_vols, wells, dest_wells=None,
     if dna_concs is None:
         dna_concs = np.empty(dna_vols.shape) * np.nan
     if (dna_concs.shape != sample_names.shape != dna_vols.shape
-       != sample_plates.shape != dna_plate_type.shape):
+            != sample_plates.shape != dna_plate_type.shape):
         raise ValueError(('dna_vols %r has a size different from dna_concs %r'
                           ' or sample_names %r') %
                          (dna_vols.shape, dna_concs.shape, sample_names.shape))
@@ -547,18 +604,18 @@ def format_index_picklist(sample_names, sample_wells, indices,
         picklist += '\n' + '\t'.join([str(sample), indices.iloc[i]['i5 plate'],
                                       i5_plate_type,
                                       indices.iloc[i]['i5 well'], str(
-                                          i5_vol), indices.iloc[i]['i5 name'],
+                i5_vol), indices.iloc[i]['i5 name'],
                                       indices.iloc[i]['i5 sequence'], str(
-                                          indices.iloc[i]['index combo']),
+                indices.iloc[i]['index combo']),
                                       dest_plate_name, well])
     # i7 additions
     for i, (sample, well) in enumerate(zip(sample_names, sample_wells)):
         picklist += '\n' + '\t'.join([str(sample), indices.iloc[i]['i7 plate'],
                                       i7_plate_type,
                                       indices.iloc[i]['i7 well'], str(
-                                          i7_vol), indices.iloc[i]['i7 name'],
+                i7_vol), indices.iloc[i]['i7 name'],
                                       indices.iloc[i]['i7 sequence'], str(
-                                          indices.iloc[i]['index combo']),
+                indices.iloc[i]['index combo']),
                                       dest_plate_name, well])
 
     return picklist
@@ -663,7 +720,7 @@ def compute_shotgun_pooling_values_qpcr(sample_concs, sample_fracs=None,
     sample_fracs_pass[sample_concs <= min_conc] = 0
 
     # renormalize to exclude lost samples
-    sample_fracs_pass *= 1/sample_fracs_pass.sum()
+    sample_fracs_pass *= 1 / sample_fracs_pass.sum()
 
     # floor concentration value
     sample_concs_floor = sample_concs.copy()
@@ -673,7 +730,7 @@ def compute_shotgun_pooling_values_qpcr(sample_concs, sample_fracs=None,
     sample_vols = (total_nmol * sample_fracs_pass) / sample_concs_floor
 
     # convert L to nL
-    sample_vols *= 10**9
+    sample_vols *= 10 ** 9
 
     return sample_vols
 
@@ -730,7 +787,7 @@ def compute_shotgun_pooling_values_qpcr_minvol(sample_concs, sample_fracs=None,
     sample_vols = (total_nmol * sample_fracs) / sample_concs
 
     # convert L to nL
-    sample_vols *= 10**9
+    sample_vols *= 10 ** 9
 
     # drop volumes for samples below floor concentration to floor_vol
     sample_vols[sample_concs < floor_conc] = floor_vol
@@ -756,7 +813,7 @@ def estimate_pool_conc_vol(sample_vols, sample_concs):
         The total volume of the pool, in nL
     """
     # scalar to adjust nL to L for molarity calculations
-    nl_scalar = 10**-9
+    nl_scalar = 10 ** -9
 
     # calc total pool pmols
     total_pmols = np.multiply(sample_concs, sample_vols) * nl_scalar
@@ -796,7 +853,7 @@ def format_pooling_echo_pick_list(vol_sample,
     d = 1
     for i in range(rows):
         for j in range(cols):
-            well_name = "%s%d" % (chr(ord('A') + i), j+1)
+            well_name = "%s%d" % (chr(ord('A') + i), j + 1)
             # Machine will round, so just give it enough info to do the
             # correct rounding.
             val = "%.2f" % pool_vols[i][j]
@@ -809,7 +866,7 @@ def format_pooling_echo_pick_list(vol_sample,
                 running_tot += pool_vols[i][j]
 
             dest = "%s%d" % (chr(ord('A') +
-                                 int(np.floor(d/dest_plate_shape[0]))),
+                                 int(np.floor(d / dest_plate_shape[0]))),
                              (d % dest_plate_shape[1]))
 
             contents.append(
@@ -855,7 +912,7 @@ def plot_plate_vals(dataset, color_map='YlGnBu', annot_str=None,
                         ax=ax1,
                         xticklabels=[x + 1 for x in range(dataset.shape[1])],
                         yticklabels=list(string.ascii_uppercase)[
-                            0:dataset.shape[0]],
+                                    0:dataset.shape[0]],
                         # square = True,
                         annot=True,
                         fmt='.0f',
@@ -866,7 +923,7 @@ def plot_plate_vals(dataset, color_map='YlGnBu', annot_str=None,
                         ax=ax1,
                         xticklabels=[x + 1 for x in range(dataset.shape[1])],
                         yticklabels=list(string.ascii_uppercase)[
-                            0:dataset.shape[0]],
+                                    0:dataset.shape[0]],
                         # square = True,
                         annot=annot_str,
                         fmt=annot_fmt,
@@ -952,12 +1009,13 @@ def combine_dfs(qpcr_df, dna_picklist, index_picklist):
 
     combined_df.set_index('Well', inplace=True)
 
-    b = dna_picklist.loc[dna_picklist['Source Plate Name'] != 'water',
-                         ].set_index('Destination Well')
+    b = dna_picklist.loc[
+        dna_picklist['Source Plate Name'] != 'water',].set_index(
+        'Destination Well')
     c = index_picklist.loc[index_picklist['Source Plate Name'] ==
-                           'i7 Source Plate', ].set_index('Destination Well')
+                           'i7 Source Plate',].set_index('Destination Well')
     d = index_picklist.loc[index_picklist['Source Plate Name'] ==
-                           'i5 Source Plate', ].set_index('Destination Well')
+                           'i5 Source Plate',].set_index('Destination Well')
 
     # Add DNA conc columns
     combined_df['DNA Concentration'] = b['Concentration']
@@ -982,7 +1040,7 @@ def combine_dfs(qpcr_df, dna_picklist, index_picklist):
 def parse_dna_conc_csv(fp):
     dna_df = pd.read_excel(fp, skiprows=4, parse_cols=[1, 2, 3, 4, 5])
 
-    dna_df = dna_df.loc[list(range(384)), ]
+    dna_df = dna_df.loc[list(range(384)),]
 
     dna_df['pico_conc'] = pd.to_numeric(
         dna_df['[Concentration]'], errors='Coerce')
@@ -1018,7 +1076,7 @@ def compute_pico_concentration(dna_vals, size=400):
     np.array of floats
         A 2D array of floats
     """
-    lib_concentration = (dna_vals / (660 * float(size))) * 10**6
+    lib_concentration = (dna_vals / (660 * float(size))) * 10 ** 6
 
     return lib_concentration
 
@@ -1052,7 +1110,6 @@ def rc(seq):
 
 
 def sequencer_i5_index(sequencer, indices):
-
     if sequencer in REVCOMP_SEQUENCERS:
         print('%s: i5 barcodes are output as reverse compliments' % sequencer)
         return [rc(x) for x in indices]
@@ -1217,7 +1274,7 @@ def linear_transform(input_values, output_min=100, output_max=1000):
 
     diff1 = input_values - input_min
     diff2 = output_max - output_min
-    transformed_values = (((diff1))*(diff2)/input_range) + output_min
+    transformed_values = (((diff1)) * (diff2) / input_range) + output_min
     return transformed_values
 
 
@@ -1247,8 +1304,8 @@ def calculate_iseqnorm_pooling_volumes(plate_df,
     try:
         norm = plate_df[normalization_column]
         plate_df['proportion'] = norm / (norm.sum())
-        plate_df['LoadingFactor'] = plate_df['proportion'].max()\
-            / plate_df['proportion']
+        plate_df['LoadingFactor'] = plate_df['proportion'].max() / \
+            plate_df['proportion']
         nblanks = plate_df.loc[plate_df['Blank']].shape[0]
         if (nblanks == 0):
             warnings.warn("There are no BLANKS in this plate")
@@ -1290,7 +1347,8 @@ def calculate_iseqnorm_pooling_volumes(plate_df,
     # Plotting
     f, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, figsize=(5, 8), sharex=True)
 
-    ax1.set_title(f'{unnorm_proportion*100:.2f}% of sample set not normalized')
+    ax1.set_title(
+        f'{unnorm_proportion * 100:.2f}% of sample set not normalized')
     sns.scatterplot(x=normalization_column,
                     y='iSeq normpool volume',
                     hue='Blank',

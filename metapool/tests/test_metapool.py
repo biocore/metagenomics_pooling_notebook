@@ -20,7 +20,9 @@ from metapool.metapool import (read_plate_map_csv, read_pico_csv,
                                extract_stats_metadata, sum_lanes,
                                merge_read_counts, read_survival,
                                linear_transform, estimate_read_depth,
-                               calculate_iseqnorm_pooling_volumes)
+                               calculate_iseqnorm_pooling_volumes,
+                               identify_invalid_sample_names,
+                               sanitize_plate_map_sample_names)
 
 
 class Tests(TestCase):
@@ -114,8 +116,8 @@ class Tests(TestCase):
 
         obs_plate_df = read_plate_map_csv(plate_map_f)
 
-        pd.testing.assert_frame_equal(
-            obs_plate_df, exp_plate_df, check_like=True)
+        pd.testing.assert_frame_equal(obs_plate_df, exp_plate_df,
+                                      check_like=True)
 
     def test_read_plate_map_csv_remove_empty_wells(self):
         plate_map_csv = (
@@ -952,6 +954,35 @@ class Tests(TestCase):
         exp = pd.read_csv(exp_fp, sep='\t')
 
         pd.testing.assert_frame_equal(exp, obs)
+
+    def test_identify_invalid_sample_names(self):
+
+        df = pd.DataFrame(['ABCD.1234', 'ABCD', '1234', '1234.ABCD',
+                           '1234_abcD', '1234-abcd', "1234L'Oreal",
+                           '1234L"Oreal'],
+                          columns=['Sample'])
+
+        obs = identify_invalid_sample_names(df)
+
+        exp = ['1234L"Oreal', "1234L'Oreal", '1234_abcD']
+
+        self.assertEqual(obs, exp)
+
+    def test_sanitize_plate_map_sample_names(self):
+        # construct an example DataFrame w/sample-names containing leading
+        # and/or trailing whitespace.
+        sample_names = ['  A  ', 'b', ' C', 'D ', '\te\t']
+        some_row = [1, 2, 3, 4, 5]
+        df = pd.DataFrame(list(zip(sample_names, some_row)),
+                          columns=['Sample', 'AnotherRow'])
+
+        # sanitize the input DataFrame and confirm that the contents of the
+        # Sample column are as we expect they should be.
+        obs = list(sanitize_plate_map_sample_names(df)['Sample'])
+
+        exp = ['A', 'b', 'C', 'D', 'e']
+
+        self.assertEqual(obs, exp)
 
 
 if __name__ == "__main__":
