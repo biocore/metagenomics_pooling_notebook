@@ -200,7 +200,7 @@ def sanitize_plate_map_sample_names(plate_df):
     # note which columns needed cleaning. We'll be returning this info to the
     # user.
     plate_df['changed'] = plate_df['Sample'] != plate_df['tmp']
-    repaired_names = plate_df.loc[plate_df['changed'].to_list()
+    repaired_names = plate_df.loc[plate_df['changed']]['Sample'].to_list()
 
     # replace all sample-names w/their sanitized versions and drop the temp
     # columns.
