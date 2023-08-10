@@ -2,7 +2,7 @@
 IEMFileVersion,4,,,,,,,,,
 Investigator Name,Knight,,,,,,,,,
 Experiment Name,RKL_experiment,,,,,,,,,
-Date,2023-07-06,,,,,,,,,
+Date,2023-08-10,,,,,,,,,
 Workflow,GenerateFASTQ,,,,,,,,,
 Application,FASTQ Only,,,,,,,,,
 Assay,Metagenomic,,,,,,,,,
@@ -19,7 +19,7 @@ MaskShortReads,1,,,,,,,,,
 OverrideCycles,Y151;I8N2;I8N2;Y151,,,,,,,,,
 ,,,,,,,,,,
 [Data],,,,,,,,,,
-Sample_ID,Sample_Name,Sample_Plate,Sample_Well,I7_Index_ID,index,I5_Index_ID,index2,Sample_Project,Well_description,Lane
+Sample_ID,Sample_Name,Sample_Plate,well_id_384,I7_Index_ID,index,I5_Index_ID,index2,Sample_Project,Well_description,Lane
 33-A1,33-A1,Example Plate 1,A1,iTru7_109_01,CTCGTCTT,iTru5_19_A,TGTGCGTT,Example_Project_1,33-A1,1
 820072905-2,820072905-2,Example Plate 1,C1,iTru7_109_02,CGAACTGT,iTru5_19_B,CTAGGCAT,Example_Project_1,820072905-2,1
 820029517-3,820029517-3,Example Plate 1,E1,iTru7_109_03,CATTCGGT,iTru5_19_C,TCCGTATG,Example_Project_1,820029517-3,1
