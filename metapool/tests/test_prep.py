@@ -42,7 +42,7 @@ class TestPrep(TestCase):
                    'library_construction_protocol', 'platform', 'run_center',
                    'run_date', 'run_prefix', 'sequencing_meth', 'center_name',
                    'center_project_name', 'instrument_model', 'runid',
-                   'sample_plate', 'sample_well', 'i7_index_id', 'index',
+                   'sample_plate', 'well_id_384', 'i7_index_id', 'index',
                    'i5_index_id', 'index2', 'lane', 'sample_project',
                    'well_description']
 
@@ -142,10 +142,10 @@ class TestPrep(TestCase):
                        'target_gene', 'pcr_primers', 'primer_plate',
                        'processing_robot', 'well_description',
                        'extraction_robot', 'tm300_8_tool', 'water_lot',
-                       'extractionkit_lot', 'target_subfragment', 'well_id',
-                       'project_name', 'tm1000_8_tool', 'orig_name', 'plating',
-                       'primer_date', 'mastermix_lot', 'tm50_8_tool',
-                       'well_id_96', 'tm10_8_tool']
+                       'extractionkit_lot', 'target_subfragment',
+                       'well_id_384', 'project_name', 'tm1000_8_tool',
+                       'orig_name', 'plating', 'primer_date', 'mastermix_lot',
+                       'tm50_8_tool', 'well_id_96', 'tm10_8_tool']
 
         self.assertEqual(set(exp_columns), set(obs_df.columns))
 
@@ -443,7 +443,7 @@ class TestPrep(TestCase):
                    'library_construction_protocol', 'platform', 'run_center',
                    'run_date', 'run_prefix', 'sequencing_meth', 'center_name',
                    'center_project_name', 'instrument_model', 'runid',
-                   'sample_plate', 'sample_well', 'i7_index_id', 'index',
+                   'sample_plate', 'well_id_384', 'i7_index_id', 'index',
                    'i5_index_id', 'index2', 'lane', 'sample_project',
                    'well_description']
 
@@ -474,7 +474,7 @@ class TestPrep(TestCase):
                    'library_construction_protocol', 'platform', 'run_center',
                    'run_date', 'run_prefix', 'sequencing_meth', 'center_name',
                    'center_project_name', 'instrument_model', 'runid',
-                   'sample_plate', 'sample_well', 'i7_index_id', 'index',
+                   'sample_plate', 'well_id_384', 'i7_index_id', 'index',
                    'i5_index_id', 'index2', 'lane', 'sample_project',
                    'well_description']
 
@@ -516,7 +516,7 @@ class TestPrep(TestCase):
                    'library_construction_protocol', 'platform', 'run_center',
                    'run_date', 'run_prefix', 'sequencing_meth', 'center_name',
                    'center_project_name', 'instrument_model', 'runid',
-                   'sample_plate', 'sample_well', 'i7_index_id', 'index',
+                   'sample_plate', 'well_id_384', 'i7_index_id', 'index',
                    'i5_index_id', 'index2', 'lane', 'sample_project',
                    'well_description']
 
@@ -541,7 +541,7 @@ class TestPrep(TestCase):
 
     def test_parse_prep(self):
         columns = [
-            'barcode', 'primer', 'project_name', 'well_id',
+            'barcode', 'primer', 'project_name', 'well_id_384',
             'primer_plate', 'plating', 'extractionkit_lot',
             'extraction_robot', 'tm1000_8_tool', 'primer_date',
             'mastermix_lot', 'water_lot', 'processing_robot',
@@ -676,7 +676,7 @@ class TestPrep(TestCase):
         obs3 = generate_qiita_prep_file(self.platedf3, 'ITS')
 
         exp_columns1 = ['sample_name', 'barcode', 'primer', 'primer_plate',
-                        'well_id', 'plating', 'extractionkit_lot',
+                        'well_id_384', 'plating', 'extractionkit_lot',
                         'extraction_robot', 'tm1000_8_tool', 'primer_date',
                         'mastermix_lot', 'water_lot', 'processing_robot',
                         'tm300_8_tool', 'tm50_8_tool', 'tm10_8_tool',
@@ -689,7 +689,7 @@ class TestPrep(TestCase):
                         'instrument_model', 'runid', 'sample sheet Sample_ID']
 
         exp_columns2 = ['sample_name', 'barcode', 'primer', 'primer_plate',
-                        'well_id', 'plating', 'extractionkit_lot',
+                        'well_id_384', 'plating', 'extractionkit_lot',
                         'extraction_robot', 'tm1000_8_tool', 'primer_date',
                         'mastermix_lot', 'water_lot', 'processing_robot',
                         'tm300_8_tool', 'tm50_8_tool', 'tm10_8_tool',
@@ -703,7 +703,7 @@ class TestPrep(TestCase):
                         'Reverse primer (EukBr)', 'sample sheet Sample_ID']
 
         exp_columns3 = ['sample_name', 'barcode', 'primer', 'primer_plate',
-                        'well_id', 'plating', 'extractionkit_lot',
+                        'well_id_384', 'plating', 'extractionkit_lot',
                         'extraction_robot', 'tm1000_8_tool', 'primer_date',
                         'mastermix_lot', 'water_lot', 'processing_robot',
                         'tm300_8_tool', 'tm50_8_tool', 'tm10_8_tool',

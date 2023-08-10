@@ -17,7 +17,7 @@ Chemistry,Default,,,,,,,,,
 ReverseComplement,0,,,,,,,,,
 ,,,,,,,,,,
 [Data],,,,,,,,,,
-orig_name,sample_id,sample_name,source_well_384,destination_well_384,contains_replicates,Sample_Plate,Sample_Well,I7_Index_ID,index,I5_Index_ID,index2,Sample_Project,Well_description
+orig_name,sample_id,sample_name,source_well_384,destination_well_384,contains_replicates,Sample_Plate,well_id_384,I7_Index_ID,index,I5_Index_ID,index2,Sample_Project,Well_description
 BLANK.43.12G,BLANK_43_12G_A1,BLANK.43.12G.A1,A1,A1,TRUE,Feist_11661_P43,A1,iTru7_114_08,CCGACTAT,iTru5_01_A,AAGGCTGA,Feist_11661,description
 BLANK.43.12H,BLANK_43_12H_A3,BLANK.43.12H.A3,A3,A3,TRUE,Feist_11661_P43,A3,iTru7_114_09,ACCGACAA,iTru5_02_A,CGATCGAT,Feist_11661,description
 RMA.KHP.rpoS.Mage.Q97D,RMA_KHP_rpoS_Mage_Q97D_A5,RMA.KHP.rpoS.Mage.Q97D.A5,A5,A5,TRUE,Feist_11661_P43,A5,iTru7_114_10,CCGACTAT,iTru5_03_A,TTACCGAG,Feist_11661,description

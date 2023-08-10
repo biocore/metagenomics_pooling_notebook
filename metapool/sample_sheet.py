@@ -17,7 +17,7 @@ _KL_SAMPLE_SHEET_SECTIONS = [
 ]
 
 _KL_SAMPLE_SHEET_DATA_COLUMNS = [
-    'Sample_ID', 'Sample_Name', 'Sample_Plate', 'Sample_Well', 'I7_Index_ID',
+    'Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384', 'I7_Index_ID',
     'index', 'I5_Index_ID', 'index2', 'Sample_Project', 'Well_description'
 ]
 
@@ -30,7 +30,7 @@ _KL_AMPLICON_REMAPPER = {
     'sample sheet Sample_ID': 'Sample_ID',
     'Sample': 'Sample_Name',
     'Project Plate': 'Sample_Plate',
-    'Well': 'Sample_Well',
+    'Well': 'well_id_384',
     'Name': 'I7_Index_ID',
     'Golay Barcode': 'index',
     'Project Name': 'Sample_Project',
@@ -40,7 +40,7 @@ _KL_METAGENOMIC_REMAPPER = {
     'sample sheet Sample_ID': 'Sample_ID',
     'Sample': 'Sample_Name',
     'Project Plate': 'Sample_Plate',
-    'Well': 'Sample_Well',
+    'Well': 'well_id_384',
     'i7 name': 'I7_Index_ID',
     'i7 sequence': 'index',
     'i5 name': 'I5_Index_ID',
@@ -52,7 +52,7 @@ _KL_METATRANSCRIPTOMIC_REMAPPER = {
     'sample sheet Sample_ID': 'Sample_ID',
     'Sample': 'Sample_Name',
     'Project Plate': 'Sample_Plate',
-    'Well': 'Sample_Well',
+    'Well': 'well_id_384',
     'i7 name': 'I7_Index_ID',
     'i7 sequence': 'index',
     'i5 name': 'I5_Index_ID',
@@ -821,7 +821,7 @@ def sample_sheet_to_dataframe(sheet):
                                           'experiment_design_description']],
                     left_on='sample_project', right_on='Sample_Project')
     out.drop(columns='Sample_Project', inplace=True)
-    out.sort_values(by='sample_well', inplace=True)
+    out.sort_values(by='well_id_384', inplace=True)
     return out.set_index('sample_id')
 
 

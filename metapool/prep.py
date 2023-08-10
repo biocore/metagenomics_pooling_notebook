@@ -10,11 +10,11 @@ from string import ascii_letters, digits
 from metapool.plate import PlateReplication
 
 
-REQUIRED_COLUMNS = {'sample_plate', 'sample_well', 'i7_index_id', 'index',
+REQUIRED_COLUMNS = {'sample_plate', 'well_id_384', 'i7_index_id', 'index',
                     'i5_index_id', 'index2', 'sample_name'}
 
 REQUIRED_MF_COLUMNS = {'sample_name', 'barcode', 'primer', 'primer_plate',
-                       'well_id', 'plating', 'extractionkit_lot',
+                       'well_id_384', 'plating', 'extractionkit_lot',
                        'extraction_robot', 'tm1000_8_tool', 'primer_date',
                        'mastermix_lot', 'water_lot', 'processing_robot',
                        'tm300_8_tool', 'tm50_8_tool', 'sample_plate',
@@ -37,12 +37,13 @@ PREP_MF_COLUMNS = ['sample_name', 'barcode', 'center_name',
                    'instrument_model', 'lane', 'library_construction_protocol',
                    'platform', 'run_center', 'run_date', 'run_prefix', 'runid',
                    'sample_plate', 'sequencing_meth', 'linker', 'primer',
-                   'primer_plate', 'well_id', 'plating', 'extractionkit_lot',
-                   'extraction_robot', 'tm1000_8_tool', 'primer_date',
-                   'mastermix_lot', 'water_lot', 'processing_robot',
-                   'tm300_8_tool', 'tm50_8_tool', 'project_name', 'orig_name',
-                   'well_description', 'pcr_primers', 'target_gene',
-                   'tm10_8_tool', 'target_subfragment', 'well_id_96']
+                   'primer_plate', 'well_id_384', 'plating',
+                   'extractionkit_lot', 'extraction_robot', 'tm1000_8_tool',
+                   'primer_date', 'mastermix_lot', 'water_lot',
+                   'processing_robot', 'tm300_8_tool', 'tm50_8_tool',
+                   'project_name', 'orig_name', 'well_description',
+                   'pcr_primers', 'target_gene', 'tm10_8_tool',
+                   'target_subfragment', 'well_id_96']
 
 AMPLICON_PREP_COLUMN_RENAMER = {
     'Sample': 'sample_name',
@@ -490,7 +491,7 @@ def preparations_for_run(run_path, sheet, pipeline='fastp-and-minimap2'):
                 row["instrument_model"] = instrument_model
                 row["runid"] = run_id
                 row["sample_plate"] = sample.sample_plate
-                row["sample_well"] = sample.sample_well
+                row["well_id_384"] = sample.well_id_384
                 row["i7_index_id"] = sample['i7_index_id']
                 row["index"] = sample['index']
                 row["i5_index_id"] = sample['i5_index_id']
@@ -499,7 +500,7 @@ def preparations_for_run(run_path, sheet, pipeline='fastp-and-minimap2'):
                 row["sample_project"] = project
                 row["well_description"] = '%s.%s.%s' % (sample.sample_plate,
                                                         sample.sample_name,
-                                                        sample.sample_well)
+                                                        sample.well_id_384)
 
                 data.append(row)
 
@@ -626,7 +627,7 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
                 row["linker"] = sample.linker
                 row["primer"] = sample.primer
                 row['primer_plate'] = sample.primer_plate
-                row['well_id'] = sample.well_id
+                row['well_id_384'] = sample.well_id_384
                 row['well_id_96'] = sample.well_id_96
                 row['plating'] = sample.plating
                 row['extractionkit_lot'] = sample.extractionkit_lot
@@ -711,7 +712,7 @@ def generate_qiita_prep_file(platedf, seqtype):
             'Golay Barcode': 'barcode',
             '515FB Forward Primer (Parada)': 'primer',
             'Project Name': 'project_name',
-            'Well': 'well_id',
+            'Well': 'well_id_384',
             'Primer Plate #': 'primer_plate',
             'Plating': 'plating',
             'Extraction Kit Lot': 'extractionkit_lot',
@@ -733,7 +734,7 @@ def generate_qiita_prep_file(platedf, seqtype):
             'Golay Barcode': 'barcode',
             'Reverse complement of 3prime Illumina Adapter': 'primer',
             'Project Name': 'project_name',
-            'Well': 'well_id',
+            'Well': 'well_id_384',
             'Primer Plate #': 'primer_plate',
             'Plating': 'plating',
             'Extraction Kit Lot': 'extractionkit_lot',
@@ -763,7 +764,8 @@ def generate_qiita_prep_file(platedf, seqtype):
 
     prep['orig_name'] = prep['sample_name']
     prep['well_description'] = (prep['sample_plate'] + '.'
-                                + prep['sample_name'] + '.' + prep['well_id'])
+                                + prep['sample_name'] + '.'
+                                + prep['well_id_384'])
     prep['center_name'] = 'UCSDMI'
     prep['run_center'] = 'UCSDMI'
     prep['platform'] = 'Illumina'
@@ -798,7 +800,7 @@ def generate_qiita_prep_file(platedf, seqtype):
 
     # the approved order of columns in the prep-file.
     column_order = ['sample_name', 'barcode', 'primer', 'primer_plate',
-                    'well_id', 'plating', 'extractionkit_lot',
+                    'well_id_384', 'plating', 'extractionkit_lot',
                     'extraction_robot', 'tm1000_8_tool', 'primer_date',
                     'mastermix_lot', 'water_lot', 'processing_robot',
                     'tm300_8_tool', 'tm50_8_tool', 'tm10_8_tool',

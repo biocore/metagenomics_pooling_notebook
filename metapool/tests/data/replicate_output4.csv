@@ -17,7 +17,7 @@ Chemistry,Default,,,,,,,,,,,,,
 ReverseComplement,0,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,
 [Data],,,,,,,,,,,,,,
-Sample_ID,orig_name,sample_name,source_well_384,destination_well_384,sample_plate,sample_well,i7_index_id,index,i5_index_id,index2,sample_project,well_description,library_construction_protocol,experiment_design_description
+Sample_ID,orig_name,sample_name,source_well_384,destination_well_384,sample_plate,well_id_384,i7_index_id,index,i5_index_id,index2,sample_project,well_description,library_construction_protocol,experiment_design_description
 abc_def_ghi_025_B21,abc.def.ghi.025,abc.def.ghi.025.B21,A21,A21,Geist_11662_P43,A21,iTru7_201_05,CACAGTTT,iTru5_10_A,AGCTAAAA,Geist_11662,description,Nextera,Equipment
 ,,,,,,,,,,,,,,
 [Bioinformatics],,,,,,,,,,,,,,

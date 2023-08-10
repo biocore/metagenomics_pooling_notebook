@@ -17,7 +17,7 @@ Chemistry,Default,,,,,,,,,,,,,
 ReverseComplement,0,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,
 [Data],,,,,,,,,,,,,,
-Sample_ID,orig_name,sample_name,source_well_384,destination_well_384,sample_plate,sample_well,i7_index_id,index,i5_index_id,index2,sample_project,well_description,library_construction_protocol,experiment_design_description
+Sample_ID,orig_name,sample_name,source_well_384,destination_well_384,sample_plate,well_id_384,i7_index_id,index,i5_index_id,index2,sample_project,well_description,library_construction_protocol,experiment_design_description
 BLANK_43_12G_A1,BLANK.43.12G,BLANK.43.12G.A1,A1,A1,Feist_11661_P43,A1,iTru7_114_08,CCGACTAT,iTru5_01_A,AAGGCTGA,Feist_11661,description,Nextera,Equipment
 RMA_KHP_rpoS_Mage_Q97E_A11,RMA.KHP.rpoS.Mage.Q97E,RMA.KHP.rpoS.Mage.Q97E.A11,A11,A11,Feist_11661_P43,A11,iTru7_201_01,AACACCAC,iTru5_06_A,CATCTGCT,Feist_11661,description,Nextera,Equipment
 JBI_KHP_HGL_021_A13,JBI.KHP.HGL.021,JBI.KHP.HGL.021.A13,A13,A13,Feist_11661_P43,A13,iTru7_201_02,AACTTGCC,iTru5_07_A,GAAGGTTC,Feist_11661,description,Nextera,Equipment

@@ -219,7 +219,7 @@ class KLSampleSheetTests(BaseTests):
             'KnightLabKapaHP,Eqiiperiment\n'
         )
         keys = ['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
-                'Sample_Well', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                'well_id_384', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
                 'Sample_Project', 'Well_description',
                 'library_construction_protocol', 'experiment_design_protocol']
 
@@ -524,7 +524,7 @@ class KLSampleSheetTests(BaseTests):
                'Sample_ID',
                'Sample_Name',
                'Sample_Plate',
-               'Sample_Well',
+               'well_id_384',
                'I7_Index_ID',
                'index',
                'I5_Index_ID',
@@ -694,7 +694,7 @@ class SampleSheetWorkflow(BaseTests):
              '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317', 'X00179789'],
         )
         keys = ['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
-                'Sample_Well', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                'well_id_384', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
                 'Sample_Project', 'Well_description']
 
         for sample, row in zip(obs.samples, data):
@@ -729,7 +729,7 @@ class SampleSheetWorkflow(BaseTests):
              '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317', 'Row C'],
         )
         keys = ['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
-                'Sample_Well', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                'well_id_384', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
                 'Sample_Project', 'Well_description']
 
         for sample, row in zip(obs.samples, data):
@@ -766,7 +766,7 @@ class SampleSheetWorkflow(BaseTests):
             self.assertEqual(dict(sample), dict(exp))
 
     def test_remap_table_amplicon(self):
-        columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'Sample_Well',
+        columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
                    'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
                    'Sample_Project', 'Well_description']
         data = [
@@ -809,7 +809,7 @@ class SampleSheetWorkflow(BaseTests):
         self.table['Project Name'] = 'Tst_project_1234'
         self.table['Project Plate'] = 'The_plate'
 
-        columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'Sample_Well',
+        columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
                    'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
                    'Sample_Project', 'Well_description']
         data = [
@@ -853,7 +853,7 @@ class SampleSheetWorkflow(BaseTests):
         self.table['Project Name'] = 'Tst_project_1234'
         self.table['Project Plate'] = 'The_plate'
 
-        columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'Sample_Well',
+        columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
                    'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
                    'Sample_Project', 'Well_description']
         data = [
@@ -895,7 +895,7 @@ class SampleSheetWorkflow(BaseTests):
              '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317', 'X00179789'],
         )
         keys = ['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
-                'Sample_Well', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                'well_id_384', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
                 'Sample_Project', 'Well_description']
 
         for sample, row in zip(obs.samples, data):
@@ -1232,7 +1232,7 @@ class ValidateSampleSheetTests(BaseTests):
         ss = KLSampleSheet(self.ss)
         obs = sample_sheet_to_dataframe(ss)
 
-        columns = ['lane', 'sample_name', 'sample_plate', 'sample_well',
+        columns = ['lane', 'sample_name', 'sample_plate', 'well_id_384',
                    'i7_index_id', 'index', 'i5_index_id', 'index2',
                    'sample_project', 'well_description',
                    'library_construction_protocol',
@@ -1312,7 +1312,7 @@ class DemuxReplicatesTests(BaseTests):
                                  4: 'Feist_11661_P43', 5: 'Feist_11661_P43',
                                  6: 'Feist_11661_P43', 7: 'Feist_11661_P43',
                                  8: 'Feist_11661_P43', 9: 'Feist_11661_P43'},
-                'sample_well': {0: 'A1', 1: 'A11', 2: 'A13', 3: 'A15',
+                'well_id_384': {0: 'A1', 1: 'A11', 2: 'A13', 3: 'A15',
                                 4: 'A17',
                                 5: 'A19', 6: 'A3', 7: 'A5', 8: 'A7', 9: 'A9'},
                 'i7_index_id': {0: 'iTru7_114_08', 1: 'iTru7_201_01',
@@ -1398,7 +1398,7 @@ class DemuxReplicatesTests(BaseTests):
                                  4: 'Feist_11661_P43', 5: 'Feist_11661_P43',
                                  6: 'Feist_11661_P43', 7: 'Feist_11661_P43',
                                  8: 'Feist_11661_P43', 9: 'Feist_11661_P43'},
-                'sample_well': {0: 'A10', 1: 'A12', 2: 'A14', 3: 'A16',
+                'well_id_384': {0: 'A10', 1: 'A12', 2: 'A14', 3: 'A16',
                                 4: 'A18',
                                 5: 'A2', 6: 'A20', 7: 'A4', 8: 'A6', 9: 'A8'},
                 'i7_index_id': {0: 'iTru7_114_12', 1: 'iTru7_201_01',
@@ -1484,7 +1484,7 @@ class DemuxReplicatesTests(BaseTests):
                                  4: 'Feist_11661_P43', 5: 'Feist_11661_P43',
                                  6: 'Feist_11661_P43', 7: 'Feist_11661_P43',
                                  8: 'Feist_11661_P43', 9: 'Feist_11661_P43'},
-                'sample_well': {0: 'B10', 1: 'B12', 2: 'B14', 3: 'B16',
+                'well_id_384': {0: 'B10', 1: 'B12', 2: 'B14', 3: 'B16',
                                 4: 'B18',
                                 5: 'B2', 6: 'B20', 7: 'B4', 8: 'B6', 9: 'B8'},
                 'i7_index_id': {0: 'iTru7_114_12', 1: 'iTru7_201_01',
@@ -1548,7 +1548,7 @@ class DemuxReplicatesTests(BaseTests):
                 'source_well_384': {0: 'A21'},
                 'destination_well_384': {0: 'A21'},
                 'sample_plate': {0: 'Geist_11662_P43'},
-                'sample_well': {0: 'A21'}, 'i7_index_id': {0: 'iTru7_201_05'},
+                'well_id_384': {0: 'A21'}, 'i7_index_id': {0: 'iTru7_201_05'},
                 'index': {0: 'CACAGTTT'}, 'i5_index_id': {0: 'iTru5_10_A'},
                 'index2': {0: 'AGCTAAAA'},
                 'sample_project': {0: 'Geist_11662'},
