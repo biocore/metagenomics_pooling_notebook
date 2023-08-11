@@ -219,7 +219,7 @@ class KLSampleSheetTests(BaseTests):
             'KnightLabKapaHP,Eqiiperiment\n'
         )
         keys = ['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
-                'Sample_Well', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                'well_id_384', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
                 'Sample_Project', 'Well_description',
                 'library_construction_protocol', 'experiment_design_protocol']
 
@@ -524,7 +524,7 @@ class KLSampleSheetTests(BaseTests):
                'Sample_ID',
                'Sample_Name',
                'Sample_Plate',
-               'Sample_Well',
+               'well_id_384',
                'I7_Index_ID',
                'index',
                'I5_Index_ID',
@@ -700,7 +700,7 @@ class SampleSheetWorkflow(BaseTests):
              'THDMI_10317_PUK2.X00179789.E1'],
         )
         keys = ['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
-                'Sample_Well', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                'well_id_384', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
                 'Sample_Project', 'Well_description']
 
         for sample, row in zip(obs.samples, data):
@@ -740,7 +740,7 @@ class SampleSheetWorkflow(BaseTests):
              'THDMI_10317_PUK2.X00179789.E1'],
         )
         keys = ['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
-                'Sample_Well', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                'well_id_384', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
                 'Sample_Project', 'Well_description']
 
         for sample, row in zip(obs.samples, data):
@@ -777,7 +777,7 @@ class SampleSheetWorkflow(BaseTests):
             self.assertEqual(dict(sample), dict(exp))
 
     def test_remap_table_amplicon(self):
-        columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'Sample_Well',
+        columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
                    'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
                    'Sample_Project', 'Well_description']
 
@@ -828,7 +828,7 @@ class SampleSheetWorkflow(BaseTests):
         self.table['Project Name'] = 'Tst_project_1234'
         self.table['Project Plate'] = 'The_plate'
 
-        columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'Sample_Well',
+        columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
                    'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
                    'Sample_Project', 'Well_description']
         data = [
@@ -875,7 +875,7 @@ class SampleSheetWorkflow(BaseTests):
         self.table['Project Name'] = 'Tst_project_1234'
         self.table['Project Plate'] = 'The_plate'
 
-        columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'Sample_Well',
+        columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
                    'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
                    'Sample_Project', 'Well_description']
         data = [
@@ -920,7 +920,7 @@ class SampleSheetWorkflow(BaseTests):
              'THDMI_10317_PUK2.X00179789.E1'],
         )
         keys = ['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
-                'Sample_Well', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                'well_id_384', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
                 'Sample_Project', 'Well_description']
 
         for sample, row in zip(obs.samples, data):
@@ -1257,7 +1257,7 @@ class ValidateSampleSheetTests(BaseTests):
         ss = KLSampleSheet(self.ss)
         obs = sample_sheet_to_dataframe(ss)
 
-        columns = ['lane', 'sample_name', 'sample_plate', 'sample_well',
+        columns = ['lane', 'sample_name', 'sample_plate', 'well_id_384',
                    'i7_index_id', 'index', 'i5_index_id', 'index2',
                    'sample_project', 'well_description',
                    'library_construction_protocol',
