@@ -1,4 +1,4 @@
-dilution	dilution_id	plasmid_id	pool	plasmid_sequence_id
+dilution	dilution_id	plasmid_id	syndna_pool_number	plasmid_sequence_id
 1	1	p126	pool1	seq_1_gc=0.26_PmeI_NcoI
 0.1	2	p136	pool1	seq_1_gc=0.36_PmeI_XhoI
 0.01	3	p146	pool1	seq_1_gc=0.46_PmeI_NcoI

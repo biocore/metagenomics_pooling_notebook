@@ -3,9 +3,10 @@ import unittest
 import numpy as np
 
 from diff_dataframes import dataframes_are_equal
-from metapool.rescale_counts import convert_read_count_to_cell_count_per_g_input, \
+from metapool.rescale_counts import _to_column_percentage, \
+    convert_read_count_to_cell_count_per_g_input, \
     to_absolute_abundance_read_count, to_absolute_abundance_cell_count, \
-    _to_row_percentage, _to_column_percentage
+    _to_row_percentage
 
 
 _folder = "metapool/tests/data/spike_in/"
@@ -21,11 +22,11 @@ class TestRescaleCounts(unittest.TestCase):
             _folder + "metadata_features.tsv",
             sep="\t", index_col="OTUID")
         prep_info_samples = pd.read_csv(
-            _folder + "metadata_samples_plasmid_sequences.txt,
+            _folder + "metadata_samples_plasmid_sequences.txt",
             sep="\t", index_col="sample_name")
-
         df1 = convert_read_count_to_cell_count_per_g_input(table_community,
-                                               metadata_features, prep_info_samples)
+                                                           metadata_features,
+                                                           prep_info_samples)
         spot_check_gotus = [
             "G000006785",
             "G900156305",
@@ -58,6 +59,9 @@ class TestRescaleCounts(unittest.TestCase):
         metadata_features = pd.read_csv(
             _folder + "metadata_features.tsv",
             sep="\t", index_col="OTUID")
+        prep_info_samples = pd.read_csv(
+            _folder + "metadata_samples_plasmid_sequences.txt",
+            sep="\t", index_col="sample_name")
 
         # Clean sample names (Trims everything after last underscore)
         linear_models["sample_name"] = \
@@ -98,6 +102,9 @@ class TestRescaleCounts(unittest.TestCase):
         metadata_features = pd.read_csv(
             _folder + "metadata_features.tsv",
             sep="\t", index_col="OTUID")
+        prep_info_samples = pd.read_csv(
+            _folder + "metadata_samples_plasmid_sequences.txt",
+            sep="\t", index_col="sample_name")
 
         # Clean sample names (Trims everything after last underscore)
         linear_models["sample_name"] = \
@@ -106,15 +113,17 @@ class TestRescaleCounts(unittest.TestCase):
                 "",
                 regex=True)
 
-        df, failed_samples = to_absolute_abundance_cell_count(
-            table_community, linear_models, metadata_features)
+        df, failed_smpls = to_absolute_abundance_cell_count(table_community,
+                                                            linear_models,
+                                                            metadata_features,
+                                                            prep_info_samples)
         # R version applies absolute abundance transform,
         # cell count transform, and a transpose,
         # Python version you must externally transpose.
         df = df.T
 
         print("WARNING: The following samples don't have "
-              "applicable linear models:", failed_samples)
+              "applicable linear models:", failed_smpls)
         # If you want to check with external tools:
         # df.to_csv("feature_table_cell_counts.txt", sep="\t")
         df_r = pd.read_csv(

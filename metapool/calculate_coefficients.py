@@ -121,7 +121,8 @@ def calculate_coefficients(table_synthetic_hits, metadata_pools, dilutions,
         "b_slope": []
     }
 
-    for name, group in final_table_1.groupby(["syndna_pool_number", "sample_name_pool"]):
+    for name, group in final_table_1.groupby(["syndna_pool_number",
+                                              "sample_name_pool"]):
         m, b, r, p, std_err = scipy.stats.linregress(
             group["counts_per_million_log10"], group["dilution_id"])
         result["syndna_pool_number"].append(name[0])
@@ -130,5 +131,6 @@ def calculate_coefficients(table_synthetic_hits, metadata_pools, dilutions,
         result["b_slope"].append(m)
 
     coefall = pd.DataFrame(result)
-    coefall = coefall.sort_values(by=["syndna_pool_number", "sample_name_pool"])
+    coefall = coefall.sort_values(by=["syndna_pool_number",
+                                      "sample_name_pool"])
     return coefall

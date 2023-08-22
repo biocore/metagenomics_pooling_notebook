@@ -28,7 +28,9 @@ class TestRescaleCounts(unittest.TestCase):
         # )
 
         coefall = coefall.set_index("sample_name_pool")
+
         coefall_r = pd.read_csv(
             folder + "results_synDNA_linear_model_variables_R.txt",
             index_col="sample_name_pool", sep="\t")
+
         self.assertTrue(dataframes_are_equal(coefall, coefall_r, verbose=True))

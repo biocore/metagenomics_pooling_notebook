@@ -1,4 +1,4 @@
-pool	sample_name_pool	a_intercept	b_slope
+syndna_pool_number	sample_name_pool	a_intercept	b_slope
 pool1	14606.363202697.metaG_pool1	5.44628260624808	-1.08738903579495
 pool1	14606.363202703.metaG_pool1	5.34427061381687	-1.08767047185428
 pool1	14606.363202708.metaG_pool1	5.55110368690648	-1.12564695115375
