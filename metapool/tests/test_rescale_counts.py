@@ -75,6 +75,7 @@ class TestRescaleCounts(unittest.TestCase):
         df2, failed_cols = to_absolute_abundance_cell_count(
             table_community, linear_models, metadata_features)
 
+        # TODO: failing here
         self.assertTrue(dataframes_are_equal(
             df1_cell_count, df2, verbose=False))
 
