@@ -91,7 +91,7 @@ def calculate_coefficients(table_synthetic_hits, metadata_pools, dilutions,
     # Merge table with plasmid dilution information
     table_synthetic_hits_with_dilutions = \
         table_synthetic_hits_long_with_totals_and_pools_all_lanes.merge(
-            dilutions, on=["plasmid_id", "pool"])
+            dilutions, on=["plasmid_id", "syndna_pool_number"])
 
     final_table_1 = table_synthetic_hits_with_dilutions
 
@@ -109,26 +109,26 @@ def calculate_coefficients(table_synthetic_hits, metadata_pools, dilutions,
         plot_with_fit(
             "counts_per_million_log10",
             "dilution_log",
-            final_table_1.groupby(["pool", "sample_name"]),
+            final_table_1.groupby(["syndna_pool_number", "sample_name"]),
             xmax=4,
             ymax=4
         )
 
     result = {
-        "pool": [],
+        "syndna_pool_number": [],
         "sample_name_pool": [],
         "a_intercept": [],
         "b_slope": []
     }
 
-    for name, group in final_table_1.groupby(["pool", "sample_name_pool"]):
+    for name, group in final_table_1.groupby(["syndna_pool_number", "sample_name_pool"]):
         m, b, r, p, std_err = scipy.stats.linregress(
             group["counts_per_million_log10"], group["dilution_id"])
-        result["pool"].append(name[0])
+        result["syndna_pool_number"].append(name[0])
         result["sample_name_pool"].append(name[1])
         result["a_intercept"].append(b)
         result["b_slope"].append(m)
 
     coefall = pd.DataFrame(result)
-    coefall = coefall.sort_values(by=["pool", "sample_name_pool"])
+    coefall = coefall.sort_values(by=["syndna_pool_number", "sample_name_pool"])
     return coefall
