@@ -15,23 +15,12 @@ _folder = "metapool/tests/data/spike_in/"
 class TestRescaleCounts(unittest.TestCase):
     def test_read_count_to_cell_count(self):
         # Load required data
-        table_community = pd.read_csv(
-            _folder + "table_community_hits.txt",
-            sep="\t", index_col="OTUID")
-        metadata_features = pd.read_csv(
-            _folder + "metadata_features.tsv",
-            sep="\t", index_col="OTUID")
-        prep_info_samples = pd.read_csv(
-            _folder + "metadata_samples_plasmid_sequences.txt",
-            sep="\t", index_col="sample_name")
-        df1 = convert_read_count_to_cell_count_per_g_input(table_community,
-                                                           metadata_features,
-                                                           prep_info_samples)
-        spot_check_gotus = [
-            "G000006785",
-            "G900156305",
-            "G000006725",
-            "G900156885"]
+        table_community = pd.read_csv( _folder + "table_community_hits.txt", sep="\t", index_col="OTUID")
+        metadata_features = pd.read_csv( _folder + "metadata_features.tsv", sep="\t", index_col="OTUID")
+        prep_info_samples = pd.read_csv( _folder + "metadata_samples_plasmid_sequences.txt", sep="\t", index_col="sample_name")
+
+        df1 = convert_read_count_to_cell_count_per_g_input(table_community, metadata_features, prep_info_samples)
+        spot_check_gotus = [ "G000006785", "G900156305", "G000006725", "G900156885"]
 
         for i in range(len(spot_check_gotus)):
             for j in range(i+1, len(spot_check_gotus)):
@@ -40,13 +29,22 @@ class TestRescaleCounts(unittest.TestCase):
                 len1 = metadata_features.loc[gotu1, "total_length"]
                 len2 = metadata_features.loc[gotu2, "total_length"]
                 for sample in table_community.columns:
-                    start_ratio = table_community.loc[gotu1, sample] / \
-                                  table_community.loc[gotu2, sample]
-                    end_ratio = df1.loc[gotu1, sample] / df1.loc[gotu2, sample]
+                    # note that if values given in the files are accurate representations
+                    # of real values, 'inf' and 'nan' are frequently values for start_ratio.
+                    start_ratio = table_community.loc[gotu1, sample] / table_community.loc[gotu2, sample]
+
                     if not np.isnan(start_ratio):
-                        self.assertAlmostEqual(
-                            end_ratio,
-                            start_ratio * len2/len1)
+                        print("START RATIO: %s" % start_ratio)
+                        # gotu[1-2] and sample both appear to be in df1, otherwise it would raise exception.
+                        # hence the form of the output of convert_read_count...() is correct.
+                        end_ratio = df1.loc[gotu1, sample] / df1.loc[gotu2, sample]
+                        print("END RATIO: %s" % end_ratio)
+                        print("PASSING VALUE: %s\n" % (start_ratio * len2/len1))
+                        self.assertAlmostEqual(end_ratio, (start_ratio * len2/len1))
+                    else:
+                        print("start_ratio is NaN. Skipping...")
+
+        self.assertTrue(False)
 
     def test_abundance_read_count(self):
         # Load required data
