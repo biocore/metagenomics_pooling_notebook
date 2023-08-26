@@ -110,6 +110,7 @@ class KLSampleSheetTests(BaseTests):
                 # After parsing, the contents of the written file are the same
                 # because comments and empty lines are ignored in the current
                 # API.
+                old_filename = filename
                 if filename in {self.with_comments,
                                 self.with_new_lines,
                                 self.with_comments_and_new_lines}:
@@ -117,7 +118,7 @@ class KLSampleSheetTests(BaseTests):
 
                 with open(filename) as expected:
                     self.assertEqual(observed.split(), expected.read().split(),
-                                     f'Problem found with {filename}')
+                                     f'Problem found with {old_filename}')
 
     def test_empty_write(self):
         exp = [
@@ -682,26 +683,26 @@ class SampleSheetWorkflow(BaseTests):
         data = (
             [5, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
              'AGCCTTCGTCGC', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00180471.A1'],
+             '', 'THDMI_10317_PUK2.X00180471.A1'],
             [5, 'X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1',
              '515rcbc12', 'CGTATAAATGCG', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00180199.C1'],
+             '', 'THDMI_10317_PUK2.X00180199.C1'],
             [5, 'X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1',
              '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00179789.E1'],
+             '', 'THDMI_10317_PUK2.X00179789.E1'],
             [7, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
              'AGCCTTCGTCGC', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00180471.A1'],
+             '', 'THDMI_10317_PUK2.X00180471.A1'],
             [7, 'X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1',
              '515rcbc12', 'CGTATAAATGCG', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00180199.C1'],
+             '', 'THDMI_10317_PUK2.X00180199.C1'],
             [7, 'X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1',
              '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00179789.E1'],
+             '', 'THDMI_10317_PUK2.X00179789.E1'],
         )
         keys = ['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
                 'well_id_384', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
-                'Sample_Project', 'Well_description']
+                'Sample_Project', 'syndna_pool_number', 'Well_description']
 
         for sample, row in zip(obs.samples, data):
             exp = sample_sheet.Sample(dict(zip(keys, row)))
@@ -722,26 +723,26 @@ class SampleSheetWorkflow(BaseTests):
         data = (
             [5, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
              'AGCCTTCGTCGC', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00180471.A1'],
+             '', 'THDMI_10317_PUK2.X00180471.A1'],
             [5, 'X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1',
              '515rcbc12', 'CGTATAAATGCG', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00180199.C1'],
+             '', 'THDMI_10317_PUK2.X00180199.C1'],
             [5, 'X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1',
              '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00179789.E1'],
+             '', 'THDMI_10317_PUK2.X00179789.E1'],
             [7, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
              'AGCCTTCGTCGC', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00180471.A1'],
+             '', 'THDMI_10317_PUK2.X00180471.A1'],
             [7, 'X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1',
              '515rcbc12', 'CGTATAAATGCG', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00180199.C1'],
+             '', 'THDMI_10317_PUK2.X00180199.C1'],
             [7, 'X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1',
              '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00179789.E1'],
+             '', 'THDMI_10317_PUK2.X00179789.E1'],
         )
         keys = ['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
                 'well_id_384', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
-                'Sample_Project', 'Well_description']
+                'Sample_Project', 'syndna_pool_number', 'Well_description']
 
         for sample, row in zip(obs.samples, data):
             exp = sample_sheet.Sample(dict(zip(keys, row)))
@@ -779,18 +780,18 @@ class SampleSheetWorkflow(BaseTests):
     def test_remap_table_amplicon(self):
         columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
                    'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
-                   'Sample_Project', 'Well_description']
+                   'Sample_Project', 'syndna_pool_number', 'Well_description']
 
         data = [
             ['X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
              'AGCCTTCGTCGC', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00180471.A1'],
+             '', 'THDMI_10317_PUK2.X00180471.A1'],
             ['X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1', '515rcbc12',
              'CGTATAAATGCG', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00180199.C1'],
+             '', 'THDMI_10317_PUK2.X00180199.C1'],
             ['X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1', '515rcbc24',
              'TGACTAATGGCC', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00179789.E1'],
+             '', 'THDMI_10317_PUK2.X00179789.E1'],
         ]
 
         exp = pd.DataFrame(columns=columns, data=data)
@@ -830,17 +831,17 @@ class SampleSheetWorkflow(BaseTests):
 
         columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
                    'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
-                   'Sample_Project', 'Well_description']
+                   'Sample_Project', 'syndna_pool_number', 'Well_description']
         data = [
             ['33-A1', '33-A1', 'The_plate', 'A1', 'iTru7_109_01',
              'CTCGTCTT', 'iTru5_19_A', 'AACGCACA', 'Tst_project_1234',
-             'The_plate.33-A1.A1'],
+             '', 'The_plate.33-A1.A1'],
             ['820072905-2', '820072905-2', 'The_plate', 'C1', 'iTru7_109_02',
              'CGAACTGT', 'iTru5_19_B', 'ATGCCTAG', 'Tst_project_1234',
-             'The_plate.820072905-2.C1'],
+             '', 'The_plate.820072905-2.C1'],
             ['820029517-3', '820029517-3', 'The_plate', 'E1', 'iTru7_109_03',
              'CATTCGGT', 'iTru5_19_C', 'CATACGGA', 'Tst_project_1234',
-             'The_plate.820029517-3.E1'],
+             '', 'The_plate.820029517-3.E1'],
         ]
 
         exp = pd.DataFrame(columns=columns, data=data)
@@ -877,17 +878,17 @@ class SampleSheetWorkflow(BaseTests):
 
         columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
                    'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
-                   'Sample_Project', 'Well_description']
+                   'Sample_Project', 'syndna_pool_number', 'Well_description']
         data = [
             ['33-A1', '33-A1', 'The_plate', 'A1', 'iTru7_109_01',
              'CTCGTCTT', 'iTru5_19_A', 'AACGCACA', 'Tst_project_1234',
-             'The_plate.33-A1.A1'],
+             '', 'The_plate.33-A1.A1'],
             ['820072905-2', '820072905-2', 'The_plate', 'C1', 'iTru7_109_02',
              'CGAACTGT', 'iTru5_19_B', 'ATGCCTAG', 'Tst_project_1234',
-             'The_plate.820072905-2.C1'],
+             '', 'The_plate.820072905-2.C1'],
             ['820029517-3', '820029517-3', 'The_plate', 'E1', 'iTru7_109_03',
              'CATTCGGT', 'iTru5_19_C', 'CATACGGA', 'Tst_project_1234',
-             'The_plate.820029517-3.E1'],
+             '', 'The_plate.820029517-3.E1'],
         ]
 
         exp = pd.DataFrame(columns=columns, data=data)
@@ -911,17 +912,17 @@ class SampleSheetWorkflow(BaseTests):
         data = (
             [1, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
              'AGCCTTCGTCGC', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00180471.A1'],
+             '', 'THDMI_10317_PUK2.X00180471.A1'],
             [1, 'X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1',
              '515rcbc12', 'CGTATAAATGCG', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00180199.C1'],
+             '', 'THDMI_10317_PUK2.X00180199.C1'],
             [1, 'X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1',
              '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00179789.E1'],
+             '', 'THDMI_10317_PUK2.X00179789.E1'],
         )
         keys = ['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
                 'well_id_384', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
-                'Sample_Project', 'Well_description']
+                'Sample_Project', 'syndna_pool_number', 'Well_description']
 
         for sample, row in zip(obs.samples, data):
             exp = sample_sheet.Sample(dict(zip(keys, row)))

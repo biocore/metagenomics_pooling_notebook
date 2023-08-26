@@ -17,7 +17,8 @@ _KL_SAMPLE_SHEET_SECTIONS = [
 
 _KL_SAMPLE_SHEET_DATA_COLUMNS = [
     'Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384', 'I7_Index_ID',
-    'index', 'I5_Index_ID', 'index2', 'Sample_Project', 'Well_description'
+    'index', 'I5_Index_ID', 'index2', 'Sample_Project', 'syndna_pool_number',
+    'Well_description'
 ]
 
 _KL_SAMPLE_SHEET_COLUMN_ALTS = {'well_description': 'Well_description',
