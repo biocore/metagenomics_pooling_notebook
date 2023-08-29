@@ -1443,23 +1443,24 @@ def add_syndna(plate_df, syndna_pool_number=None, syndna_concentration=None,
     plate_df_['synDNA pool number'] = syndna_pool_number
     if syndna_pool_number is None:
         print('Returning input plate dataframe;'
-            'no synDNA will be added to this prep')
+              'no synDNA will be added to this prep')
         return (plate_df_)
 
     else:
         if 'Normalized DNA volume' not in plate_df_.columns:
             raise Exception("The plate dataframe (plate_df) must have input "
-                "normalization values already calculated before calculating "
-                "synDNA addition")
+                            "normalization values already calculated before "
+                            "calculating synDNA addition")
 
         plate_df_['Input DNA'] = plate_df_['Sample DNA Concentration'] * \
             plate_df_['Normalized DNA volume']/1000
         # synDNA volume is in nL
-        if syndna_concentration == None:
+        if syndna_concentration is None:
             raise Exception("Specify the concentration of the synDNA"
                             " spike-in pool")
 
         plate_df_['synDNA volume'] = 1000*(plate_df_['Input DNA'] *
-            (syndna_percentage*10**-2)/syndna_concentration)
+                                           (syndna_percentage*10**-2) /
+                                           syndna_concentration)
 
         return (plate_df_)
