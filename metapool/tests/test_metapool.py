@@ -969,12 +969,21 @@ class Tests(TestCase):
 
         self.assertEqual(obs, exp)
 
-    def test_identify_invalid_sample_names(self):
+    def test_sanitize_plate_map_sample_names(self):
+        # construct an example DataFrame w/sample-names containing leading
+        # and/or trailing whitespace.
+        sample_names = ['  A  ', 'b', ' C', 'D ', '\te\t']
+        some_row = [1, 2, 3, 4, 5]
+        df = pd.DataFrame(list(zip(sample_names, some_row)),
+                          columns=['Sample', 'AnotherRow'])
 
-        df = pd.DataFrame(['ABCD.1234', 'ABCD', '1234', '1234.ABCD',
-                           '1234_abcD', '1234-abcd', "1234L'Oreal",
-                           '1234L"Oreal'],
-                          columns=['Sample'])
+        # sanitize the input DataFrame and confirm that the contents of the
+        # Sample column are as we expect they should be.
+        obs = list(sanitize_plate_map_sample_names(df)['Sample'])
+
+        exp = ['A', 'b', 'C', 'D', 'e']
+
+        self.assertEqual(obs, exp)
 
     def test_add_syndna_no_spikein(self):
 
