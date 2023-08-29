@@ -999,23 +999,6 @@ class Tests(TestCase):
 
         test_df_ = add_syndna(test_df)
 
-        pd.testing.assert_frame_equal(test_df_,exp_plate_df,
-                              check_like=True)
-
-    def test_add_syndna_no_spikein(self):
-
-        # construct an example DataFrame
-        test_df = pd.DataFrame({'Sample':['sample_1','sample_2',
-            'sample_3','sample_4','sample5'],
-            'Well':['A1','B1','C1','D1','E1'],
-            'Sample DNA Concentration':[20,10,5,1,0.5],
-            'Normalized DNA volume':[250.0,500.0,1000.0,3500.0,3500.0],
-            'Normalized water volume':[3250.0,3000.0,2500.0,0.0,0.0],
-            'Diluted':[False,False,False,False,False]
-            })
-
-        test_df_ = add_syndna(test_df)
-
         #expected results
         exp_plate_df = pd.DataFrame({'Sample':['sample_1','sample_2',
             'sample_3','sample_4','sample5'],
