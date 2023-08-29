@@ -66,7 +66,7 @@ jobs:
         run: |
           # we need to download qiita directly so we have "easy" access to
           # all config files
-          wget https://github.com/biocore/qiita/archive/dev.zip
+          wget https://github.com/biocore/qiita/archive/dev.zip --secure-protocol=TLSv1_2
           unzip dev.zip
 
           # pull out the port so we can modify the configuration file easily
