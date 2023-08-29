@@ -1420,8 +1420,8 @@ def estimate_read_depth(plate_df,
 
 def add_syndna(plate_df, syndna_pool_number=None, syndna_concentration=None,
                syndna_percentage=5):
-    """Calculates nanoliters of synDNA spike-in to add to each sample to 
-    achieve desired sequencing percentage (% of reads per sample). 
+    """Calculates nanoliters of synDNA spike-in to add to each sample to
+    achieve desired sequencing percentage (% of reads per sample).
 
     Parameters
     ----------
@@ -1438,13 +1438,13 @@ def add_syndna(plate_df, syndna_pool_number=None, syndna_concentration=None,
     -------
     plate_df : pd.DataFrame
         returns a pandas dataframe with extra columns"""
-    
+
     plate_df_ = plate_df.copy()
     plate_df_['synDNA pool number'] = syndna_pool_number
-    if syndna_pool_number==None:
-        print('Returning input plate dataframe;'+ 
+    if syndna_pool_number is None:
+        print('Returning input plate dataframe;'
             'no synDNA will be added to this prep')
-        return(plate_df_)
+        return (plate_df_)
 
     else:
         if 'Normalized DNA volume' not in plate_df_.columns:
@@ -1452,13 +1452,14 @@ def add_syndna(plate_df, syndna_pool_number=None, syndna_concentration=None,
                 "normalization values already calculated before calculating "
                 "synDNA addition")
 
-        plate_df_['Input DNA'] = plate_df_['Sample DNA Concentration']*\
-                                 plate_df_['Normalized DNA volume']/1000
-        #synDNA volume is in nL
+        plate_df_['Input DNA'] = plate_df_['Sample DNA Concentration'] * \
+            plate_df_['Normalized DNA volume']/1000
+        # synDNA volume is in nL
         if syndna_concentration == None:
             raise Exception("Specify the concentration of the synDNA"
                             " spike-in pool")
 
-        plate_df_['synDNA volume'] = 1000*(plate_df_['Input DNA'] *\
+        plate_df_['synDNA volume'] = 1000*(plate_df_['Input DNA'] *
             (syndna_percentage*10**-2)/syndna_concentration)
-        return(plate_df_)
+
+        return (plate_df_)

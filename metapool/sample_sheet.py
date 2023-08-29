@@ -46,7 +46,7 @@ _KL_METAGENOMIC_REMAPPER = {
     'i5 name': 'I5_Index_ID',
     'i5 sequence': 'index2',
     'Project Name': 'Sample_Project',
-    'synDNA pool number':'syndna_pool_number'
+    'synDNA pool number': 'syndna_pool_number'
 }
 
 _KL_METATRANSCRIPTOMIC_REMAPPER = {
@@ -59,7 +59,7 @@ _KL_METATRANSCRIPTOMIC_REMAPPER = {
     'i5 name': 'I5_Index_ID',
     'i5 sequence': 'index2',
     'Project Name': 'Sample_Project',
-    'synDNA pool number':'syndna_pool_number'
+    'synDNA pool number': 'syndna_pool_number'
 }
 
 _AMPLICON = 'TruSeq HT'
