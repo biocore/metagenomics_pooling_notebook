@@ -1433,8 +1433,6 @@ def add_syndna(plate_df, syndna_pool_number=None, syndna_concentration=None,
         Concentration in ng/µL of synDNA spike-in
     syndna_percentage : float (Default:5%)
         Percentage of input in sample allocated for synDNA spike-in.
-    syndna_well: str (Default: A1)
-        Well location of synDNA spike-in stock in echo compatible plate. 
 
     Returns
     -------
@@ -1447,17 +1445,20 @@ def add_syndna(plate_df, syndna_pool_number=None, syndna_concentration=None,
         print('Returning input plate dataframe;'+ 
             'no synDNA will be added to this prep')
         return(plate_df_)
+
     else:
         if 'Normalized DNA volume' not in plate_df_.columns:
-            raise Exception("The plate dataframe (plate_df) must have input " +
-                "normalization values already calculated before calculating "+
+            raise Exception("The plate dataframe (plate_df) must have input "
+                "normalization values already calculated before calculating "
                 "synDNA addition")
+
         plate_df_['Input DNA'] = plate_df_['Sample DNA Concentration']*\
                                  plate_df_['Normalized DNA volume']/1000
         #synDNA volume is in nL
         if syndna_concentration == None:
-            raise Exception("Specify the concentration of the synDNA"+
+            raise Exception("Specify the concentration of the synDNA"
                             " spike-in pool")
+
         plate_df_['synDNA volume'] = 1000*(plate_df_['Input DNA'] *\
             (syndna_percentage*10**-2)/syndna_concentration)
         return(plate_df_)

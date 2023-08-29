@@ -986,6 +986,9 @@ class Tests(TestCase):
         self.assertEqual(obs, exp)
 
     def test_add_syndna_no_spikein(self):
+        #tests running the add_syndna() function
+        #with default arguments, which should just
+        #return a dataframe with None in synDNA pool number
 
         # construct an example DataFrame
         test_df = pd.DataFrame({'Sample':['sample_1','sample_2',
@@ -1013,6 +1016,8 @@ class Tests(TestCase):
                               check_like=True)
 
     def test_add_syndna_pool1(self):
+        #testing for correct functionality when appropriate inputs
+        #are passed to function. 
 
         # construct an example DataFrame
         test_df = pd.DataFrame({'Sample':['sample_1','sample_2',
@@ -1023,10 +1028,9 @@ class Tests(TestCase):
             'Normalized water volume':[3250.0,3000.0,2500.0,0.0,0.0],
             'Diluted':[False,False,False,False,False]
             })
-        syndna_pool_number = 'pool1'
-        syndna_pool_concentration = 2.35
-        test_df_ = add_syndna(test_df,syndna_pool_number=syndna_pool_number,
-            syndna_pool_concentration=syndna_pool_concentration)
+
+        test_df_ = add_syndna(test_df,syndna_pool_number='pool1',
+            syndna_concentration=2.35)
 
         exp_plate_df = pd.DataFrame({'Sample':['sample_1','sample_2',
             'sample_3','sample_4','sample5'],
@@ -1046,6 +1050,8 @@ class Tests(TestCase):
             rtol=1e-3)
 
     def test_add_syndna_pool1_noconcentration_exc(self):
+        #testing a raised exception when user forgets to input
+        #synDNA pool concentration
 
         # construct an example DataFrame
         test_df = pd.DataFrame({'Sample':['sample_1','sample_2',
@@ -1056,12 +1062,10 @@ class Tests(TestCase):
             'Normalized water volume':[3250.0,3000.0,2500.0,0.0,0.0],
             'Diluted':[False,False,False,False,False]
             })
-        syndna_pool_number = 'pool1'
-        syndna_pool_concentration = None
 
         with self.assertRaises(Exception):
-            test_df_ = add_syndna(test_df,syndna_pool_number=syndna_pool_number,
-            syndna_pool_concentration=syndna_pool_concentration)
+            test_df_ = add_syndna(test_df,syndna_pool_number='pool1',
+            syndna_concentration=None)
         
 
 if __name__ == "__main__":
