@@ -79,6 +79,7 @@ class SeqproTests(unittest.TestCase):
             # present.
             exp = {'200318_A00953_0082_AH5TWYDSXY.Project_1111.1.tsv': {
                 0: {'experiment_design_description': 'Eqiiperiment',
+                    'syndna_pool_number': 'pool_1',
                     'well_description': 'FooBar_666_p1.sample1.A1',
                     'library_construction_protocol': 'Knight Lab Kapa HP',
                     'platform': 'Illumina', 'run_center': 'IGM',
@@ -98,6 +99,7 @@ class SeqproTests(unittest.TestCase):
                     'fraction_passing_quality_filter': 1.08,
                     'fraction_non_human': 10.293703703703704},
                 1: {'experiment_design_description': 'Eqiiperiment',
+                    'syndna_pool_number': 'pool_1',
                     'well_description': 'FooBar_666_p1.sample2.A2',
                     'library_construction_protocol': 'Knight Lab Kapa HP',
                     'platform': 'Illumina', 'run_center': 'IGM',
@@ -118,6 +120,7 @@ class SeqproTests(unittest.TestCase):
                     'fraction_non_human': 4.521057260113348}},
                    '200318_A00953_0082_AH5TWYDSXY.Project_1111.3.tsv': {
                        0: {'experiment_design_description': 'Eqiiperiment',
+                           'syndna_pool_number': 'pool_1',
                            'well_description': 'FooBar_666_p1.sample1.A3',
                            'library_construction_protocol': ('Knight Lab Kapa '
                                                              'HP'),
@@ -140,6 +143,7 @@ class SeqproTests(unittest.TestCase):
                            'fraction_passing_quality_filter': 3.35996,
                            'fraction_non_human': 3.477050322027643},
                        1: {'experiment_design_description': 'Eqiiperiment',
+                           'syndna_pool_number': 'pool_1',
                            'well_description': 'FooBar_666_p1.sample2.A4',
                            'library_construction_protocol': ('Knight Lab Kapa '
                                                              'HP'),
@@ -164,6 +168,7 @@ class SeqproTests(unittest.TestCase):
                            'fraction_non_human': 0.0695003809731141}},
                    '200318_A00953_0082_AH5TWYDSXY.Trojecp_666.3.tsv': {
                        0: {'experiment_design_description': 'SomethingWitty',
+                           'syndna_pool_number': 'pool_1',
                            'well_description': 'FooBar_666_p1.sample3.A5',
                            'library_construction_protocol': ('Knight Lab Kapa '
                                                              'HP'),
@@ -186,6 +191,7 @@ class SeqproTests(unittest.TestCase):
                            'fraction_passing_quality_filter': 0.01564,
                            'fraction_non_human': 7.067774936061381},
                        1: {'experiment_design_description': 'SomethingWitty',
+                           'syndna_pool_number': 'pool_1',
                            'well_description': 'FooBar_666_p1.sample4.B6',
                            'library_construction_protocol': ('Knight Lab Kapa '
                                                              'HP'),
@@ -208,6 +214,7 @@ class SeqproTests(unittest.TestCase):
                            'fraction_passing_quality_filter': 0.0024,
                            'fraction_non_human': 2.892708333333333},
                        2: {'experiment_design_description': 'SomethingWitty',
+                           'syndna_pool_number': 'pool_1',
                            'well_description': 'FooBar_666_p1.sample5.B8',
                            'library_construction_protocol': ('Knight Lab Kapa '
                                                              'HP'),

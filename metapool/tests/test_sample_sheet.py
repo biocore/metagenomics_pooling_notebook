@@ -117,18 +117,7 @@ class KLSampleSheetTests(BaseTests):
                     filename = self.good_ss
 
                 with open(filename) as expected:
-                    obs = observed.split()
-                    exp = expected.read().split()
-
-                    with open('xobs', 'w') as f:
-                        for line in obs:
-                            f.write(line + '\n')
-
-                    with open('xexp', 'w') as f:
-                        for line in exp:
-                            f.write(line + '\n')
-
-                    self.assertEqual(obs, exp,
+                    self.assertEqual(observed.split(), expected.read().split(),
                                      f'Problem found with {old_filename}')
 
     def test_empty_write(self):
