@@ -100,25 +100,30 @@ class KLSampleSheetTests(BaseTests):
         sheets = {sheet: KLSampleSheet(sheet) for sheet in sheets}
 
         for filename, sheet in sheets.items():
+            # write each KLSampleSheet object out to disk and compare the text
+            # against the original.
             with tempfile.NamedTemporaryFile('w+') as tmp:
                 sheet.write(tmp)
                 tmp.seek(0)
                 observed = tmp.read()
 
-                # The sample sheets with comments are identical to
-                # good-sample-sheet.csv except for the comments and new lines.
-                # After parsing, the contents of the written file are the same
-                # because comments and empty lines are ignored in the current
-                # API.
-                old_filename = filename
+                # the following sample-sheets are identical to self.good_ss,
+                # except for comments and/or empty lines. For these files,
+                # observed needs to be compared to self.good_ss, since
+                # comments and empty lines are ignored by metapool.
                 if filename in {self.with_comments,
                                 self.with_new_lines,
                                 self.with_comments_and_new_lines}:
-                    filename = self.good_ss
+                    expected = self.good_ss
+                else:
+                    expected = filename
 
-                with open(filename) as expected:
-                    self.assertEqual(observed.split(), expected.read().split(),
-                                     f'Problem found with {old_filename}')
+                with open(expected) as f:
+                    # if the assertion fails, metapool is not processing
+                    # filename as intended.
+                    self.assertEqual(observed.split(),
+                                     f.read().split(),
+                                     f'Problem found with {filename}')
 
     def test_empty_write(self):
         exp = [
