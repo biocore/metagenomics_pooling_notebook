@@ -859,8 +859,6 @@ class SampleSheetWorkflow(BaseTests):
 
         self.assertEqual(len(obs), 3)
 
-        obs.to_csv('fobs')
-        exp.to_csv('fexp')
         pd.testing.assert_frame_equal(obs, exp, check_like=True)
 
     def test_remap_table_metatranscriptomics(self):
