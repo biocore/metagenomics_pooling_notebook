@@ -22,7 +22,8 @@ from metapool.metapool import (read_plate_map_csv, read_pico_csv,
                                linear_transform, estimate_read_depth,
                                calculate_iseqnorm_pooling_volumes,
                                identify_invalid_sample_names,
-                               sanitize_plate_map_sample_names)
+                               sanitize_plate_map_sample_names,
+                               add_syndna)
 
 
 class Tests(TestCase):
@@ -983,6 +984,123 @@ class Tests(TestCase):
         exp = ['A', 'b', 'C', 'D', 'e']
 
         self.assertEqual(obs, exp)
+
+    def test_add_syndna_no_spikein(self):
+        # tests running the add_syndna() function
+        # with default arguments, which should just
+        # return a dataframe with None in synDNA pool number
+
+        # construct an example DataFrame
+        test_df = pd.DataFrame({'Sample': ['sample_1', 'sample_2',
+                                           'sample_3', 'sample_4',
+                                           'sample5'],
+                                'Well': ['A1', 'B1', 'C1', 'D1', 'E1'],
+                                'Sample DNA Concentration': [20, 10, 5, 1,
+                                                             0.5],
+                                'Normalized DNA volume': [250.0, 500.0,
+                                                          1000.0, 3500.0,
+                                                          3500.0],
+                                'Normalized water volume': [3250.0, 3000.0,
+                                                            2500.0, 0.0, 0.0],
+                                'Diluted': [False, False, False, False, False]
+                                })
+
+        test_df_ = add_syndna(test_df)
+
+        # expected results
+        exp_plate_df = pd.DataFrame({'Sample': ['sample_1', 'sample_2',
+                                                'sample_3', 'sample_4',
+                                                'sample5'],
+                                     'Well': ['A1', 'B1', 'C1', 'D1', 'E1'],
+                                     'Sample DNA Concentration': [20, 10, 5, 1,
+                                                                  0.5],
+                                     'Normalized DNA volume': [250.0, 500.0,
+                                                               1000.0, 3500.0,
+                                                               3500.0],
+                                     'Normalized water volume': [3250.0,
+                                                                 3000.0,
+                                                                 2500.0, 0.0,
+                                                                 0.0],
+                                     'Diluted': [False, False, False, False,
+                                                 False],
+                                     'synDNA pool number': [None, None, None,
+                                                            None, None]})
+
+        pd.testing.assert_frame_equal(test_df_, exp_plate_df,
+                                      check_like=True)
+
+    def test_add_syndna_pool1(self):
+        # testing for correct functionality when appropriate inputs
+        # are passed to function.
+
+        # construct an example DataFrame
+        test_df = pd.DataFrame({'Sample': ['sample_1', 'sample_2',
+                                           'sample_3', 'sample_4',
+                                           'sample5'],
+                                'Well': ['A1', 'B1', 'C1', 'D1', 'E1'],
+                                'Sample DNA Concentration': [20, 10, 5, 1,
+                                                             0.5],
+                                'Normalized DNA volume': [250.0, 500.0,
+                                                          1000.0, 3500.0,
+                                                          3500.0],
+                                'Normalized water volume': [3250.0, 3000.0,
+                                                            2500.0, 0.0, 0.0],
+                                'Diluted': [False, False, False, False, False]
+                                })
+
+        test_df_ = add_syndna(test_df, syndna_pool_number='pool1',
+                              syndna_concentration=2.35)
+
+        exp_plate_df = pd.DataFrame({'Sample': ['sample_1', 'sample_2',
+                                                'sample_3', 'sample_4',
+                                                'sample5'],
+                                     'Well': ['A1', 'B1', 'C1', 'D1', 'E1'],
+                                     'Sample DNA Concentration': [20, 10, 5, 1,
+                                                                  0.5],
+                                     'Normalized DNA volume': [250.0, 500.0,
+                                                               1000.0, 3500.0,
+                                                               3500.0],
+                                     'Normalized water volume': [3250.0,
+                                                                 3000.0,
+                                                                 2500.0,
+                                                                 0.0, 0.0],
+                                     'Diluted': [False, False, False, False,
+                                                 False],
+                                     'synDNA pool number': ['pool1', 'pool1',
+                                                            'pool1', 'pool1',
+                                                            'pool1'],
+                                     'Input DNA': [5.0, 5.0, 5.0, 3.50, 1.75],
+                                     'synDNA volume': [106.38, 106.38, 106.38,
+                                                       74.46, 37.23]
+                                     })
+
+        pd.testing.assert_frame_equal(test_df_, exp_plate_df,
+                                      check_exact=False,
+                                      check_like=True,
+                                      rtol=1e-3)
+
+    def test_add_syndna_pool1_noconcentration_exc(self):
+        # testing a raised exception when user forgets to input
+        # synDNA pool concentration
+
+        # construct an example DataFrame
+        test_df = pd.DataFrame({'Sample': ['sample_1', 'sample_2',
+                                           'sample_3', 'sample_4',
+                                           'sample5'],
+                                'Well': ['A1', 'B1', 'C1', 'D1', 'E1'],
+                                'Sample DNA Concentration': [20, 10, 5, 1,
+                                                             0.5],
+                                'Normalized DNA volume': [250.0, 500.0,
+                                                          1000.0, 3500.0,
+                                                          3500.0],
+                                'Normalized water volume': [3250.0, 3000.0,
+                                                            2500.0, 0.0, 0.0],
+                                'Diluted': [False, False, False, False, False]
+                                })
+
+        with self.assertRaises(Exception):
+            add_syndna(test_df, syndna_pool_number='pool1',
+                       syndna_concentration=None)
 
 
 if __name__ == "__main__":
