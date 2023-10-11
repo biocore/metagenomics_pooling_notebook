@@ -1010,12 +1010,12 @@ def combine_dfs(qpcr_df, dna_picklist, index_picklist):
     combined_df.set_index('Well', inplace=True)
 
     b = dna_picklist.loc[
-        dna_picklist['Source Plate Name'] != 'water',].set_index(
+        dna_picklist['Source Plate Name'] != 'water', ].set_index(
         'Destination Well')
     c = index_picklist.loc[index_picklist['Source Plate Name'] ==
-                           'i7 Source Plate',].set_index('Destination Well')
+                           'i7 Source Plate', ].set_index('Destination Well')
     d = index_picklist.loc[index_picklist['Source Plate Name'] ==
-                           'i5 Source Plate',].set_index('Destination Well')
+                           'i5 Source Plate', ].set_index('Destination Well')
 
     # Add DNA conc columns
     combined_df['DNA Concentration'] = b['Concentration']
@@ -1040,7 +1040,7 @@ def combine_dfs(qpcr_df, dna_picklist, index_picklist):
 def parse_dna_conc_csv(fp):
     dna_df = pd.read_excel(fp, skiprows=4, parse_cols=[1, 2, 3, 4, 5])
 
-    dna_df = dna_df.loc[list(range(384)),]
+    dna_df = dna_df.loc[list(range(384)), ]
 
     dna_df['pico_conc'] = pd.to_numeric(
         dna_df['[Concentration]'], errors='Coerce')
