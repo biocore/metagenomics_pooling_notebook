@@ -912,7 +912,7 @@ def demux_pre_prep(pre_prep):
 
     pre_prep['quad'] = pre_prep.apply(lambda row:
                                       plate.get_96_well_location_and_quadrant(
-                                          row.destination_well_id)[0], axis=1)
+                                          row.well_id_384)[0], axis=1)
 
     res = []
 
