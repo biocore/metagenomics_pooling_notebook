@@ -17,7 +17,8 @@ _KL_SAMPLE_SHEET_SECTIONS = [
 
 _KL_SAMPLE_SHEET_DATA_COLUMNS = [
     'Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384', 'I7_Index_ID',
-    'index', 'I5_Index_ID', 'index2', 'Sample_Project', 'Well_description'
+    'index', 'I5_Index_ID', 'index2', 'Sample_Project', 'syndna_pool_number',
+    'Well_description'
 ]
 
 _KL_SAMPLE_SHEET_COLUMN_ALTS = {'well_description': 'Well_description',
@@ -45,6 +46,7 @@ _KL_METAGENOMIC_REMAPPER = {
     'i5 name': 'I5_Index_ID',
     'i5 sequence': 'index2',
     'Project Name': 'Sample_Project',
+    'synDNA pool number': 'syndna_pool_number'
 }
 
 _KL_METATRANSCRIPTOMIC_REMAPPER = {
@@ -57,6 +59,7 @@ _KL_METATRANSCRIPTOMIC_REMAPPER = {
     'i5 name': 'I5_Index_ID',
     'i5 sequence': 'index2',
     'Project Name': 'Sample_Project',
+    'synDNA pool number': 'syndna_pool_number'
 }
 
 _AMPLICON = 'TruSeq HT'
@@ -619,7 +622,8 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
         sheet Sample_ID'), forward and reverse barcodes ('i5 sequence', 'i7
         sequence'), forward and reverse barcode names ('i5 name', 'i7
         name'), description ('Sample'), well identifier ('Well'), project
-        plate ('Project Plate'), and project name ('Project Name').
+        plate ('Project Plate'), project name ('Project Name'), and synthetic
+        DNA pool number ('synDNA pool number').
     sequencer: string
         A string representing the sequencer used.
     lanes: list of integers

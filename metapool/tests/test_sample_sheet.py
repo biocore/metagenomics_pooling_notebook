@@ -100,23 +100,29 @@ class KLSampleSheetTests(BaseTests):
         sheets = {sheet: KLSampleSheet(sheet) for sheet in sheets}
 
         for filename, sheet in sheets.items():
+            # write each KLSampleSheet object out to disk and compare the text
+            # against the original.
             with tempfile.NamedTemporaryFile('w+') as tmp:
                 sheet.write(tmp)
                 tmp.seek(0)
                 observed = tmp.read()
 
-                # The sample sheets with comments are identical to
-                # good-sample-sheet.csv except for the comments and new lines.
-                # After parsing, the contents of the written file are the same
-                # because comments and empty lines are ignored in the current
-                # API.
+                # the following sample-sheets are identical to self.good_ss,
+                # except for comments and/or empty lines. For these files,
+                # observed needs to be compared to self.good_ss, since
+                # comments and empty lines are ignored by metapool.
                 if filename in {self.with_comments,
                                 self.with_new_lines,
                                 self.with_comments_and_new_lines}:
-                    filename = self.good_ss
+                    expected = self.good_ss
+                else:
+                    expected = filename
 
-                with open(filename) as expected:
-                    self.assertEqual(observed.split(), expected.read().split(),
+                with open(expected) as f:
+                    # if the assertion fails, metapool is not processing
+                    # filename as intended.
+                    self.assertEqual(observed.split(),
+                                     f.read().split(),
                                      f'Problem found with {filename}')
 
     def test_empty_write(self):
@@ -194,33 +200,33 @@ class KLSampleSheetTests(BaseTests):
 
         data = (
             '1,sample_1,sample.1,FooBar_666_p1,A1,iTru7_107_07,CCGACTAT,'
-            'iTru5_01_A,ACCGACAA,Baz,importantsample1,'
+            'iTru5_01_A,ACCGACAA,Baz,pool1,importantsample1,'
             'KnightLabKapaHP,Eqiiperiment\n'
             '1,sample_2,sample.2,FooBar_666_p1,A2,iTru7_107_08,CCGACTAT,'
-            'iTru5_01_A,CTTCGCAA,Baz,importantsample2,'
+            'iTru5_01_A,CTTCGCAA,Baz,pool1,importantsample2,'
             'KnightLabKapaHP,Eqiiperiment\n'
             '3,sample_1,sample.1,FooBar_666_p1,A3,iTru7_107_09,GCCTTGTT,'
-            'iTru5_01_A,AACACCAC,Baz,importantsample1,'
+            'iTru5_01_A,AACACCAC,Baz,pool1,importantsample1,'
             'KnightLabKapaHP,Eqiiperiment\n'
             '3,sample_2,sample.2,FooBar_666_p1,A4,iTru7_107_10,AACTTGCC,'
-            'iTru5_01_A,CGTATCTC,Baz,importantsample2,'
+            'iTru5_01_A,CGTATCTC,Baz,pool1,importantsample2,'
             'KnightLabKapaHP,Eqiiperiment\n'
             '3,sample_31,sample.31,FooBar_666_p1,A5,iTru7_107_11,CAATGTGG,'
-            'iTru5_01_A,GGTACGAA,FooBar_666,importantsample31,'
+            'iTru5_01_A,GGTACGAA,FooBar_666,pool1,importantsample31,'
             'KnightLabKapaHP,SomethingWitty\n'
             '3,sample_32,sample.32,FooBar_666_p1,B6,iTru7_107_12,AAGGCTGA,'
-            'iTru5_01_A,CGATCGAT,FooBar_666,importantsample32,'
+            'iTru5_01_A,CGATCGAT,FooBar_666,pool1,importantsample32,'
             'KnightLabKapaHP,SomethingWitty\n'
             '3,sample_34,sample.34,FooBar_666_p1,B8,iTru7_107_13,TTACCGAG,'
-            'iTru5_01_A,AAGACACC,FooBar_666,importantsample34,'
+            'iTru5_01_A,AAGACACC,FooBar_666,pool1,importantsample34,'
             'KnightLabKapaHP,SomethingWitty\n'
             '3,sample_44,sample.44,Baz_p3,B99,iTru7_107_14,GTCCTAAG,'
-            'iTru5_01_A,CATCTGCT,Baz,importantsample44,'
+            'iTru5_01_A,CATCTGCT,Baz,pool1,importantsample44,'
             'KnightLabKapaHP,Eqiiperiment\n'
         )
         keys = ['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
                 'well_id_384', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
-                'Sample_Project', 'Well_description',
+                'Sample_Project', 'syndna_pool_number', 'Well_description',
                 'library_construction_protocol', 'experiment_design_protocol']
 
         for sample, line in zip(sheet.samples, data.split()):
@@ -530,6 +536,7 @@ class KLSampleSheetTests(BaseTests):
                'I5_Index_ID',
                'index2',
                'Sample_Project',
+               'syndna_pool_number',
                'Well_description']
 
         self.assertEqual(set(obs), set(exp))
@@ -577,7 +584,7 @@ class SampleSheetWorkflow(BaseTests):
              '515rcbc0', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'AGCCTTCGTCGC',
              'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
              'AATGATACGGCGACCACCGAGATCTACACGCTAGCCTTCGTCGCTATGGTAATTGTGTGYCAG'
-             'CMGCCGCGGTAA'],
+             'CMGCCGCGGTAA', 'pool1'],
             ['X00180199',
              'X00180199', 'C', 1, False, 'THDMI_10317_PUK2', 'THDMI_10317',
              'THDMI_10317_UK2-US6', 'C1', '1', '1', 'SF', '166032128',
@@ -586,7 +593,7 @@ class SampleSheetWorkflow(BaseTests):
              '515rcbc12', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'CGTATAAATGCG',
              'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
              'AATGATACGGCGACCACCGAGATCTACACGCTCGTATAAATGCGTATGGTAATTGTGTGYCAG'
-             'CMGCCGCGGTAA'],
+             'CMGCCGCGGTAA', 'pool1'],
             ['X00179789',
              'X00179789', 'E', 1, False, 'THDMI_10317_PUK2', 'THDMI_10317',
              'THDMI_10317_UK2-US6', 'E1', '1', '1', 'SF', '166032128',
@@ -595,7 +602,7 @@ class SampleSheetWorkflow(BaseTests):
              '515rcbc24', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'TGACTAATGGCC',
              'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
              'AATGATACGGCGACCACCGAGATCTACACGCTTGACTAATGGCCTATGGTAATTGTGTGYCAG'
-             'CMGCCGCGGTAA'],
+             'CMGCCGCGGTAA', 'pool1'],
         ]
 
         self.table = pd.DataFrame(
@@ -609,7 +616,8 @@ class SampleSheetWorkflow(BaseTests):
                      'Original Name', 'Plate', 'EMP Primer Plate Well', 'Name',
                      "Illumina 5' Adapter", 'Golay Barcode',
                      'Forward Primer Pad', 'Forward Primer Linker',
-                     '515FB Forward Primer (Parada)', 'Primer For PCR'],
+                     '515FB Forward Primer (Parada)', 'Primer For PCR',
+                     'syndna_pool_number'],
             data=data
         )
 
@@ -682,26 +690,26 @@ class SampleSheetWorkflow(BaseTests):
         data = (
             [5, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
              'AGCCTTCGTCGC', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00180471.A1'],
+             'pool1', 'THDMI_10317_PUK2.X00180471.A1'],
             [5, 'X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1',
              '515rcbc12', 'CGTATAAATGCG', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00180199.C1'],
+             'pool1', 'THDMI_10317_PUK2.X00180199.C1'],
             [5, 'X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1',
              '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00179789.E1'],
+             'pool1', 'THDMI_10317_PUK2.X00179789.E1'],
             [7, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
              'AGCCTTCGTCGC', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00180471.A1'],
+             'pool1', 'THDMI_10317_PUK2.X00180471.A1'],
             [7, 'X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1',
              '515rcbc12', 'CGTATAAATGCG', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00180199.C1'],
+             'pool1', 'THDMI_10317_PUK2.X00180199.C1'],
             [7, 'X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1',
              '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00179789.E1'],
+             'pool1', 'THDMI_10317_PUK2.X00179789.E1'],
         )
         keys = ['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
                 'well_id_384', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
-                'Sample_Project', 'Well_description']
+                'Sample_Project', 'syndna_pool_number', 'Well_description']
 
         for sample, row in zip(obs.samples, data):
             exp = sample_sheet.Sample(dict(zip(keys, row)))
@@ -722,26 +730,26 @@ class SampleSheetWorkflow(BaseTests):
         data = (
             [5, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
              'AGCCTTCGTCGC', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00180471.A1'],
+             'pool1', 'THDMI_10317_PUK2.X00180471.A1'],
             [5, 'X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1',
              '515rcbc12', 'CGTATAAATGCG', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00180199.C1'],
+             'pool1', 'THDMI_10317_PUK2.X00180199.C1'],
             [5, 'X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1',
              '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00179789.E1'],
+             'pool1', 'THDMI_10317_PUK2.X00179789.E1'],
             [7, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
              'AGCCTTCGTCGC', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00180471.A1'],
+             'pool1', 'THDMI_10317_PUK2.X00180471.A1'],
             [7, 'X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1',
              '515rcbc12', 'CGTATAAATGCG', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00180199.C1'],
+             'pool1', 'THDMI_10317_PUK2.X00180199.C1'],
             [7, 'X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1',
              '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00179789.E1'],
+             'pool1', 'THDMI_10317_PUK2.X00179789.E1'],
         )
         keys = ['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
                 'well_id_384', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
-                'Sample_Project', 'Well_description']
+                'Sample_Project', 'syndna_pool_number', 'Well_description']
 
         for sample, row in zip(obs.samples, data):
             exp = sample_sheet.Sample(dict(zip(keys, row)))
@@ -779,18 +787,18 @@ class SampleSheetWorkflow(BaseTests):
     def test_remap_table_amplicon(self):
         columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
                    'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
-                   'Sample_Project', 'Well_description']
+                   'Sample_Project', 'syndna_pool_number', 'Well_description']
 
         data = [
             ['X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
              'AGCCTTCGTCGC', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00180471.A1'],
+             'pool1', 'THDMI_10317_PUK2.X00180471.A1'],
             ['X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1', '515rcbc12',
              'CGTATAAATGCG', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00180199.C1'],
+             'pool1', 'THDMI_10317_PUK2.X00180199.C1'],
             ['X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1', '515rcbc24',
              'TGACTAATGGCC', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00179789.E1'],
+             'pool1', 'THDMI_10317_PUK2.X00179789.E1'],
         ]
 
         exp = pd.DataFrame(columns=columns, data=data)
@@ -810,37 +818,39 @@ class SampleSheetWorkflow(BaseTests):
         data = [
             ['33-A1', 'A', 1, True, 'A1', 0, 0, 'AACGCACACTCGTCTT',
              'iTru5_19_A', 'AACGCACA', 'A1', 'iTru5_plate', 'iTru7_109_01',
-             'CTCGTCTT', 'A22', 'iTru7_plate', '33-A1', 'The_plate.33-A1.A1'],
+             'CTCGTCTT', 'A22', 'iTru7_plate', '33-A1', 'pool1',
+             'The_plate.33-A1.A1'],
             ['820072905-2', 'C', 1, False, 'C1', 1, 1, 'ATGCCTAGCGAACTGT',
              'iTru5_19_B', 'ATGCCTAG', 'B1', 'iTru5_plate', 'iTru7_109_02',
              'CGAACTGT', 'B22', 'iTru7_plate', '820072905-2',
-             'The_plate.820072905-2.C1'],
+             'pool1', 'The_plate.820072905-2.C1'],
             ['820029517-3', 'E', 1, False, 'E1', 2, 2, 'CATACGGACATTCGGT',
              'iTru5_19_C', 'CATACGGA', 'C1', 'iTru5_plate', 'iTru7_109_03',
              'CATTCGGT', 'C22', 'iTru7_plate', '820029517-3',
-             'The_plate.820029517-3.E1']
+             'pool1', 'The_plate.820029517-3.E1']
         ]
         columns = ['Sample', 'Row', 'Col', 'Blank', 'Well', 'index',
                    'index combo', 'index combo seq', 'i5 name', 'i5 sequence',
                    'i5 well', 'i5 plate', 'i7 name', 'i7 sequence', 'i7 well',
-                   'i7 plate', 'sample sheet Sample_ID', 'Well_description']
+                   'i7 plate', 'sample sheet Sample_ID', 'syndna_pool_number',
+                   'Well_description']
         self.table = pd.DataFrame(data=data, columns=columns)
         self.table['Project Name'] = 'Tst_project_1234'
         self.table['Project Plate'] = 'The_plate'
 
         columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
                    'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
-                   'Sample_Project', 'Well_description']
+                   'Sample_Project', 'syndna_pool_number', 'Well_description']
         data = [
             ['33-A1', '33-A1', 'The_plate', 'A1', 'iTru7_109_01',
              'CTCGTCTT', 'iTru5_19_A', 'AACGCACA', 'Tst_project_1234',
-             'The_plate.33-A1.A1'],
+             'pool1', 'The_plate.33-A1.A1'],
             ['820072905-2', '820072905-2', 'The_plate', 'C1', 'iTru7_109_02',
              'CGAACTGT', 'iTru5_19_B', 'ATGCCTAG', 'Tst_project_1234',
-             'The_plate.820072905-2.C1'],
+             'pool1', 'The_plate.820072905-2.C1'],
             ['820029517-3', '820029517-3', 'The_plate', 'E1', 'iTru7_109_03',
              'CATTCGGT', 'iTru5_19_C', 'CATACGGA', 'Tst_project_1234',
-             'The_plate.820029517-3.E1'],
+             'pool1', 'The_plate.820029517-3.E1'],
         ]
 
         exp = pd.DataFrame(columns=columns, data=data)
@@ -857,42 +867,48 @@ class SampleSheetWorkflow(BaseTests):
         data = [
             ['33-A1', 'A', 1, True, 'A1', 0, 0, 'AACGCACACTCGTCTT',
              'iTru5_19_A', 'AACGCACA', 'A1', 'iTru5_plate', 'iTru7_109_01',
-             'CTCGTCTT', 'A22', 'iTru7_plate', '33-A1', 'The_plate.33-A1.A1'],
+             'CTCGTCTT', 'A22', 'iTru7_plate', '33-A1',
+             'pool1', 'The_plate.33-A1.A1'],
             ['820072905-2', 'C', 1, False, 'C1', 1, 1, 'ATGCCTAGCGAACTGT',
              'iTru5_19_B', 'ATGCCTAG', 'B1', 'iTru5_plate', 'iTru7_109_02',
              'CGAACTGT', 'B22', 'iTru7_plate', '820072905-2',
-             'The_plate.820072905-2.C1'],
+             'pool1', 'The_plate.820072905-2.C1'],
             ['820029517-3', 'E', 1, False, 'E1', 2, 2, 'CATACGGACATTCGGT',
              'iTru5_19_C', 'CATACGGA', 'C1', 'iTru5_plate', 'iTru7_109_03',
              'CATTCGGT', 'C22', 'iTru7_plate', '820029517-3',
-             'The_plate.820029517-3.E1']
+             'pool1', 'The_plate.820029517-3.E1']
         ]
         columns = ['Sample', 'Row', 'Col', 'Blank', 'Well', 'index',
                    'index combo', 'index combo seq', 'i5 name', 'i5 sequence',
                    'i5 well', 'i5 plate', 'i7 name', 'i7 sequence', 'i7 well',
-                   'i7 plate', 'sample sheet Sample_ID', 'Well_description']
+                   'i7 plate', 'sample sheet Sample_ID', 'syndna_pool_number',
+                   'Well_description']
         self.table = pd.DataFrame(data=data, columns=columns)
         self.table['Project Name'] = 'Tst_project_1234'
         self.table['Project Plate'] = 'The_plate'
 
         columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
                    'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
-                   'Sample_Project', 'Well_description']
+                   'Sample_Project', 'syndna_pool_number', 'Well_description']
         data = [
             ['33-A1', '33-A1', 'The_plate', 'A1', 'iTru7_109_01',
              'CTCGTCTT', 'iTru5_19_A', 'AACGCACA', 'Tst_project_1234',
-             'The_plate.33-A1.A1'],
+             'pool1', 'The_plate.33-A1.A1'],
             ['820072905-2', '820072905-2', 'The_plate', 'C1', 'iTru7_109_02',
              'CGAACTGT', 'iTru5_19_B', 'ATGCCTAG', 'Tst_project_1234',
-             'The_plate.820072905-2.C1'],
+             'pool1', 'The_plate.820072905-2.C1'],
             ['820029517-3', '820029517-3', 'The_plate', 'E1', 'iTru7_109_03',
              'CATTCGGT', 'iTru5_19_C', 'CATACGGA', 'Tst_project_1234',
-             'The_plate.820029517-3.E1'],
+             'pool1', 'The_plate.820029517-3.E1'],
         ]
 
         exp = pd.DataFrame(columns=columns, data=data)
 
         obs = _remap_table(self.table, 'Metatranscriptomic', strict=False)
+
+        obs = obs[['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
+                   'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                   'Sample_Project', 'syndna_pool_number', 'Well_description']]
 
         self.assertEqual(len(obs), 3)
         pd.testing.assert_frame_equal(obs, exp, check_like=True)
@@ -911,17 +927,17 @@ class SampleSheetWorkflow(BaseTests):
         data = (
             [1, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
              'AGCCTTCGTCGC', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00180471.A1'],
+             'pool1', 'THDMI_10317_PUK2.X00180471.A1'],
             [1, 'X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1',
              '515rcbc12', 'CGTATAAATGCG', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00180199.C1'],
+             'pool1', 'THDMI_10317_PUK2.X00180199.C1'],
             [1, 'X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1',
              '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00179789.E1'],
+             'pool1', 'THDMI_10317_PUK2.X00179789.E1'],
         )
         keys = ['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
                 'well_id_384', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
-                'Sample_Project', 'Well_description']
+                'Sample_Project', 'syndna_pool_number', 'Well_description']
 
         for sample, row in zip(obs.samples, data):
             exp = sample_sheet.Sample(dict(zip(keys, row)))
@@ -1259,7 +1275,7 @@ class ValidateSampleSheetTests(BaseTests):
 
         columns = ['lane', 'sample_name', 'sample_plate', 'well_id_384',
                    'i7_index_id', 'index', 'i5_index_id', 'index2',
-                   'sample_project', 'well_description',
+                   'sample_project', 'syndna_pool_number', 'well_description',
                    'library_construction_protocol',
                    'experiment_design_description']
         index = ['sample_1', 'sample_2', 'sample_1', 'sample_2', 'sample_31',
@@ -1375,28 +1391,28 @@ class DemuxReplicatesTests(BaseTests):
 
 DF_DATA = [
     ['1', 'sample.1', 'FooBar_666_p1', 'A1', 'iTru7_107_07', 'CCGACTAT',
-     'iTru5_01_A', 'ACCGACAA', 'Baz', 'importantsample1',
+     'iTru5_01_A', 'ACCGACAA', 'Baz', 'pool1', 'importantsample1',
      'Knight Lab Kapa HP', 'Eqiiperiment'],
     ['1', 'sample.2', 'FooBar_666_p1', 'A2', 'iTru7_107_08', 'CCGACTAT',
-     'iTru5_01_A', 'CTTCGCAA', 'Baz', 'importantsample2',
+     'iTru5_01_A', 'CTTCGCAA', 'Baz', 'pool1', 'importantsample2',
      'Knight Lab Kapa HP', 'Eqiiperiment'],
     ['3', 'sample.1', 'FooBar_666_p1', 'A3', 'iTru7_107_09', 'GCCTTGTT',
-     'iTru5_01_A', 'AACACCAC', 'Baz', 'importantsample1',
+     'iTru5_01_A', 'AACACCAC', 'Baz', 'pool1', 'importantsample1',
      'Knight Lab Kapa HP', 'Eqiiperiment'],
     ['3', 'sample.2', 'FooBar_666_p1', 'A4', 'iTru7_107_10', 'AACTTGCC',
-     'iTru5_01_A', 'CGTATCTC', 'Baz', 'importantsample2',
+     'iTru5_01_A', 'CGTATCTC', 'Baz', 'pool1', 'importantsample2',
      'Knight Lab Kapa HP', 'Eqiiperiment'],
     ['3', 'sample.31', 'FooBar_666_p1', 'A5', 'iTru7_107_11', 'CAATGTGG',
-     'iTru5_01_A', 'GGTACGAA', 'FooBar_666', 'importantsample31',
+     'iTru5_01_A', 'GGTACGAA', 'FooBar_666', 'pool1', 'importantsample31',
      'Knight Lab Kapa HP', 'SomethingWitty'],
     ['3', 'sample.32', 'FooBar_666_p1', 'B6', 'iTru7_107_12', 'AAGGCTGA',
-     'iTru5_01_A', 'CGATCGAT', 'FooBar_666', 'importantsample32',
+     'iTru5_01_A', 'CGATCGAT', 'FooBar_666', 'pool1', 'importantsample32',
      'Knight Lab Kapa HP', 'SomethingWitty'],
     ['3', 'sample.34', 'FooBar_666_p1', 'B8', 'iTru7_107_13', 'TTACCGAG',
-     'iTru5_01_A', 'AAGACACC', 'FooBar_666', 'importantsample34',
+     'iTru5_01_A', 'AAGACACC', 'FooBar_666', 'pool1', 'importantsample34',
      'Knight Lab Kapa HP', 'SomethingWitty'],
     ['3', 'sample.44', 'Baz_p3', 'B99', 'iTru7_107_14', 'GTCCTAAG',
-     'iTru5_01_A', 'CATCTGCT', 'Baz', 'importantsample44',
+     'iTru5_01_A', 'CATCTGCT', 'Baz', 'pool1', 'importantsample44',
      'Knight Lab Kapa HP', 'Eqiiperiment']]
 
 

@@ -26,11 +26,12 @@ REQUIRED_MF_COLUMNS = {'sample_name', 'barcode', 'primer', 'primer_plate',
                        'center_name', 'center_project_name', 'well_id_96',
                        'instrument_model', 'runid'}
 
-PREP_COLUMNS = ['experiment_design_description', 'well_description',
-                'library_construction_protocol', 'platform', 'run_center',
-                'run_date', 'run_prefix', 'sequencing_meth', 'center_name',
-                'center_project_name', 'instrument_model', 'runid',
-                'lane', 'sample_project'] + list(REQUIRED_COLUMNS)
+PREP_COLUMNS = ['experiment_design_description', 'syndna_pool_number',
+                'well_description', 'library_construction_protocol',
+                'platform', 'run_center', 'run_date', 'run_prefix',
+                'sequencing_meth', 'center_name', 'center_project_name',
+                'instrument_model', 'runid', 'lane',
+                'sample_project'] + list(REQUIRED_COLUMNS)
 
 PREP_MF_COLUMNS = ['sample_name', 'barcode', 'center_name',
                    'center_project_name', 'experiment_design_description',
@@ -504,6 +505,7 @@ def preparations_for_run(run_path, sheet, pipeline='fastp-and-minimap2'):
                 row["index2"] = sample['index2']
                 row["lane"] = lane
                 row["sample_project"] = project
+                row["syndna_pool_number"] = sample['syndna_pool_number']
                 row["well_description"] = '%s.%s.%s' % (sample.sample_plate,
                                                         sample.sample_name,
                                                         sample.well_id_384)
@@ -910,7 +912,7 @@ def demux_pre_prep(pre_prep):
 
     pre_prep['quad'] = pre_prep.apply(lambda row:
                                       plate.get_96_well_location_and_quadrant(
-                                          row.destination_well_id)[0], axis=1)
+                                          row.well_id_384)[0], axis=1)
 
     res = []
 
