@@ -95,7 +95,7 @@ _HEADER = {
 
 _BIOINFORMATICS_COLUMNS = {
     'Sample_Project', 'QiitaID', 'BarcodesAreRC', 'ForwardAdapter',
-    'ReverseAdapter', 'HumanFiltering',
+    'ReverseAdapter', 'HumanFiltering', 'contains_replicates',
     'library_construction_protocol', 'experiment_design_description'
 }
 
