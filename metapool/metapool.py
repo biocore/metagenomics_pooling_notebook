@@ -1464,3 +1464,202 @@ def add_syndna(plate_df, syndna_pool_number=None, syndna_concentration=None,
                                            syndna_concentration)
 
         return (plate_df_)
+
+
+def add_controls(plate_df, blanks_dir, katharoseq_dir):
+    """Compiles negative and positive controls into plate_df.
+    Loops through "blank" and "katharoseq" directories and concatenates all
+    files into a single DataFrame, "controls".
+    Merges "plate_df" to "controls" based on tube IDs present in plate_df.
+    Assigns sample name to each control in plate_df.
+
+    Args:
+        plate_df (pd.DataFrame): Pandas DataFrame object.
+        blanks_dir (str): Directory containing "*.tsv" files of tube IDs
+            assigned to blank tubes.
+        katharoseq_dir (str): Directory containing "*_tube_ids.tsv", which
+            contains tube IDs of tubes containing katharoseq samples.
+
+    Returns:
+        pd.DataFrame: DataFrame with control data assigned to tubes in this
+        prep.
+    """
+    # Check whether controls have already been added
+    if 'Blank' in plate_df.columns:
+        print('Plate DataFrame input already had controls. Returning '
+              'unmodified input')
+        return plate_df
+    else:
+        # Loop through BLANK folder and assign sample_preparation_type
+        # "negative_control"
+        blank_file_paths = glob.glob(f'{blanks_dir}*.tsv')
+        blanks = []
+        for file_path in blank_file_paths:
+            dff = pd.read_csv(file_path, dtype={'TubeCode': str}, sep='\t')
+            blanks.append(dff)
+
+        blanks = pd.concat(blanks, ignore_index=True)
+        blanks['sample_preparation_type'] = 'negative_control'
+
+        # Build a master table with katharoseq tube IDs and assign
+        # sample_preparation_type "positive_control"
+        katharoseq_file_paths = glob.glob(f'{katharoseq_dir}*_tube_ids.tsv')
+        katharoseq = []
+        for file_path in katharoseq_file_paths:
+            df = pd.read_csv(file_path, dtype={'TubeCode': str,
+                                               'Kathseq_RackID': str}, sep='\t')
+            katharoseq.append(df)
+
+        katharoseq = pd.concat(katharoseq, ignore_index=True)
+        katharoseq['sample_preparation_type'] = 'positive_control'
+
+        # Find katharoseq rackid and merge cell counts & strain name
+
+        # Add katharoseq_cell_counts and assign to each tube based on the
+        # row location
+        katharoseq_cell_counts_file_paths = glob.glob(f'{katharoseq_dir}'
+                                                      '*_cell_counts.tsv')
+        katharoseq_cell_counts = []
+        for file_path in katharoseq_cell_counts_file_paths:
+            cell_counts_df = pd.read_csv(file_path,
+                                         dtype={'Kathseq_RackID': str},
+                                         sep='\t')
+            katharoseq_cell_counts.append(cell_counts_df)
+
+        katharoseq_cell_counts = pd.concat(katharoseq_cell_counts,
+                                           ignore_index=True)
+        print(katharoseq_cell_counts)
+        katharoseq_merged = pd.merge(katharoseq, katharoseq_cell_counts,
+                                     on=['LocationRow', 'Kathseq_RackID'],
+                                     how='left')
+
+        # Concatenate controls into a "Controls" table and add a column
+        # named "control_sample"
+        controls = pd.concat([blanks, katharoseq_merged])
+        controls = controls.drop(['LocationCell', 'LocationColumn',
+                                  'LocationRow'], axis=1)
+
+        # Merge plate_df with controls table
+        plate_df = pd.merge(plate_df, controls, on='TubeCode', how='left')
+
+        # Assign sample_names ('Sample') to controls
+        plate_df['Sample'] = np.where(
+            (plate_df['Sample'].isna()) &
+            (plate_df == 'negative_control').any(axis=1),
+            "BLANK." + plate_df['Project Abbreviation'] +
+            "." + plate_df['Project Plate'].str.split('_').str.get(-1) +
+            "." + plate_df['Col'].astype(str) +
+            plate_df['Row'],
+            plate_df['Sample']
+        )
+
+        plate_df['Sample'] = np.where(
+            (plate_df['Sample'].isna()) &
+            (plate_df == 'positive_control').any(axis=1),
+            "KATHARO." + plate_df['Project Abbreviation'] +
+            "." + plate_df['Project Plate'].str.split('_').str.get(-1) +
+            "." + plate_df['Col'].astype(str) +
+            plate_df['Row'] + "." + plate_df['number_of_cells'].astype(str),
+            plate_df['Sample']
+        )
+
+        # Assign BLANK column
+        plate_df['Blank'] = np.where(plate_df['Sample'].str.contains('BLANK'),
+                                     True, False)
+
+        # Assign sample_preparation_type to real samples
+        plate_df['sample_preparation_type'] = \
+            plate_df['sample_preparation_type'].fillna("real_sample")
+
+        print('Controls added')
+
+        return plate_df
+
+
+def compress_plates(compression_layout, sample_accession_df, well_col='Well'):
+    """
+    Takes the plate map file output from VisionMate of up to 4 racks
+    containing tube IDs and tube positions in a 96 well format. Assigns each
+    tube to a new position in a 384 well format according to the quadrant
+    position of each plate, creating a 384 plate map. It merges the sample
+    accession files to the plate map, which links the sample names to the tube
+    IDs. It renames columns for legacy e.g. 'LocationColumn': 'Col',
+    'LocationRow': 'Row', 'sample_name': 'Sample' Assigns a
+    compressed_plate_name based on the project name and project plates.
+
+    Args:
+        compression_layout (dict): Dictionary containing data related to
+            compression layout. It contains a plate map file in .tsv format and
+            quadrant position of each plate.
+        sample_accession_df (pandas DataFrame): Contains sample names and
+            corresponding Tube IDs.
+        well_col (str): Name of the column with well IDs, in 'A1,P24' format.
+
+    Returns:
+        plate_df (pandas DataFrame): DataFrame of samples compressed into 384
+            format with tube IDs corresponding to sample names. A column "Well"
+            indicates 384 positions, and well_id_96 indicates 96 well positions.
+    """
+    compressed_plate_df = pd.DataFrame([])
+    well_mapper = PlateReplication(well_col)
+    
+    for plate_dict_index in range(len(compression_layout)):
+        fp = compression_layout[plate_dict_index]['Plate map file']
+        position = compression_layout[plate_dict_index]['Plate Position']
+        
+        plate_map = pd.read_csv(fp,
+            dtype={'TubeCode': str, 'RackID': str},
+            sep='\t')
+        
+        plate_map['Project Name'] = \
+            compression_layout[plate_dict_index]['Project Name']
+        plate_map['Plate Position'] = position
+        plate_map['Project Plate'] = \
+            compression_layout[plate_dict_index]['Project Plate']
+        plate_map['Project Abbreviation'] = \
+            compression_layout[plate_dict_index]['Project Abbreviation']
+
+        well_mapper._reset()
+        for well_96_id in plate_map['LocationCell']:
+            well_384_id = \
+                well_mapper.get_384_well_location(well_96_id, position)
+            plate_map.loc[plate_map['LocationCell'] == well_96_id, well_col] = \
+                well_384_id
+
+        compressed_plate_df = pd.concat([compressed_plate_df, plate_map])
+
+    compressed_plate_df_merged = compressed_plate_df.merge(
+        sample_accession_df[['sample_name', 'TubeCode']],
+        on='TubeCode', how='left'
+    )
+
+    compressed_plate_df_merged.rename(columns={
+        'LocationCell': 'well_id_96',
+        'LocationColumn': 'Col',
+        'LocationRow': 'Row',
+        'sample_name': 'Sample'
+    }, inplace=True)
+
+    compressed_plate_df_merged['Compressed Plate Name'] = (
+        compressed_plate_df_merged['Project Plate'].str.rsplit('_', n=1).str[-1]
+    )
+
+    unique_project_plate = '_'.join(
+        compressed_plate_df_merged['Compressed Plate Name'].unique()
+    )
+    unique_project_name = \
+        '_'.join(compressed_plate_df_merged['Project Name'].unique())
+
+    compressed_plate_df_merged['Compressed Plate Name'] = (
+        unique_project_name + "_" + unique_project_plate
+    )
+
+    compressed_plate_df_merged = compressed_plate_df_merged[[
+        'Sample'
+    ] + list(compressed_plate_df_merged.columns.difference(['Sample']))]
+
+    return compressed_plate_df_merged
+
+
+
+

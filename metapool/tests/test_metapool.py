@@ -23,7 +23,7 @@ from metapool.metapool import (read_plate_map_csv, read_pico_csv,
                                calculate_iseqnorm_pooling_volumes,
                                identify_invalid_sample_names,
                                sanitize_plate_map_sample_names,
-                               add_syndna)
+                               add_syndna, add_controls, compress_plates)
 
 
 class Tests(TestCase):
@@ -54,6 +54,14 @@ class Tests(TestCase):
         no_blanks_fp = os.path.join(path, 'data/test_no_blanks.tsv')
         blanks_fp = os.path.join(path, 'data/test_blanks.tsv')
         with_nan_fp = os.path.join(path, 'data/test_nan.tsv')
+        sa_fp = os.path.join(path, 'data/sa_file.tsv')
+
+        self.comp_plate_exp = os.path.join(path, 
+            'data/compress_plates_expected_out.csv')
+        self.add_controls_exp = os.path.join(path,
+            'data/add_controls_expected_out.csv')
+        self.katharoseq_dir = os.path.join(path, 'data/katharo')
+        self.blanks_dir = os.path.join(path, 'data/blanks')
 
         self.plate_df = pd.read_csv(plate_fp, sep=',')
         self.counts_df = pd.read_csv(counts_fp, sep=',')
@@ -61,7 +69,9 @@ class Tests(TestCase):
         self.no_blanks = pd.read_csv(no_blanks_fp, sep='\t')
         self.with_nan = pd.read_csv(with_nan_fp, sep='\t')
         self.blanks = pd.read_csv(blanks_fp, sep='\t')
+        self.sa_df = pd.read_csv(sa_fp, sep='\t')
         self.fp = path
+
 
     # def test_compute_shotgun_normalization_values(self):
     #     input_vol = 3.5
@@ -95,6 +105,57 @@ class Tests(TestCase):
 
     #     npt.assert_almost_equal(obs_sample, exp_sample)
     #     npt.assert_almost_equal(obs_water, exp_water)
+
+    def test_compress_plates(self):
+
+        compression = [
+            {   # top left plate
+                'Plate Position': 1, #as int
+                'Plate map file': 'data/plate_map1.tsv',
+                'Project Plate': 'Celeste_Adaptation_12986_Plate_16',
+                'Project Name': 'Celeste_Adaptation_12986',
+                'Project Abbreviation' : 'ADAPT',
+            }, {
+                # top right plate
+                'Plate Position': 2,
+                'Plate map file': 'data/plate_map2.tsv',
+                'Project Plate': 'Celeste_Adaptation_12986_Plate_17',
+                'Project Name': 'Celeste_Adaptation_12986',
+                'Project Abbreviation' : 'ADAPT', # PROJECT ABBREVIATION
+            }, {
+                # bottom left plate
+                'Plate Position': 3,
+                'Plate map file': 'data/plate_map3.tsv',
+                'Project Plate': 'Celeste_Adaptation_12986_Plate_18',
+                'Project Name': 'Celeste_Adaptation_12986',
+                'Project Abbreviation' : 'ADAPT', # PROJECT ABBREVIATION
+            }, {
+                # bottom right plate
+                'Plate Position': 4,
+                'Plate map file': 'data/plate_map4.tsv',
+                'Project Plate': 'Celeste_Adaptation_12986_21',
+                'Project Name': 'Celeste_Adaptation_12986',
+                'Project Abbreviation' : 'ADAPT', # PROJECT ABBREVIATION
+            }
+        ]
+
+        plate_df_obs = compress_plates(compression,
+            self.sa_df, well_col='Well')
+
+        plate_df_exp = pd.read_csv(self.comp_plate_exp, sep='\t')
+
+        pd.assert_frame_equal(plate_df_obs, plate_df_exp)
+
+    def test_add_controls(self):
+
+        plate_df_exp = pd.read_csv(self.comp_plate_exp, sep='\t')
+        add_controls_obs = add_controls(plate_df_exp,
+            self.blanks_dir, self.katharoseq_dir)
+
+        add_controls_exp = pd.read_csv(self.add_controls_exp, sep='\t')
+
+        pd.assert_frame_equal(add_controls_obs, add_controls_exp)
+
     def test_read_plate_map_csv(self):
         plate_map_csv = \
             'Sample\tRow\tCol\tBlank\tProject Name\twell_id_96\n' + \
