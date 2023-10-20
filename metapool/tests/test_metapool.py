@@ -55,6 +55,10 @@ class Tests(TestCase):
         blanks_fp = os.path.join(path, 'data/test_blanks.tsv')
         with_nan_fp = os.path.join(path, 'data/test_nan.tsv')
         sa_fp = os.path.join(path, 'data/sa_file.tsv')
+        p1 = os.path.join(path, 'data/plate_map1.tsv')
+        p2 = os.path.join(path, 'data/plate_map2.tsv')
+        p3 = os.path.join(path, 'data/plate_map3.tsv')
+        p4 = os.path.join(path, 'data/plate_map4.tsv')
 
         self.comp_plate_exp = os.path.join(path, 
             'data/compress_plates_expected_out.csv')
@@ -71,6 +75,7 @@ class Tests(TestCase):
         self.blanks = pd.read_csv(blanks_fp, sep='\t')
         self.sa_df = pd.read_csv(sa_fp, sep='\t')
         self.fp = path
+        self.plates = [p1, p2, p3, p4]
 
 
     # def test_compute_shotgun_normalization_values(self):
@@ -111,28 +116,28 @@ class Tests(TestCase):
         compression = [
             {   # top left plate
                 'Plate Position': 1, #as int
-                'Plate map file': os.path.join(self.fp, 'data/plate_map1.tsv'),
+                'Plate map file': self.plates[1],
                 'Project Plate': 'Celeste_Adaptation_12986_Plate_16',
                 'Project Name': 'Celeste_Adaptation_12986',
                 'Project Abbreviation' : 'ADAPT',
             }, {
                 # top right plate
                 'Plate Position': 2,
-                'Plate map file': os.path.join(self.fp, 'data/plate_map2.tsv'),
+                'Plate map file': self.plates[2],
                 'Project Plate': 'Celeste_Adaptation_12986_Plate_17',
                 'Project Name': 'Celeste_Adaptation_12986',
                 'Project Abbreviation' : 'ADAPT', # PROJECT ABBREVIATION
             }, {
                 # bottom left plate
                 'Plate Position': 3,
-                'Plate map file': os.path.join(self.fp, 'data/plate_map3.tsv'),
+                'Plate map file': self.plates[3],
                 'Project Plate': 'Celeste_Adaptation_12986_Plate_18',
                 'Project Name': 'Celeste_Adaptation_12986',
                 'Project Abbreviation' : 'ADAPT', # PROJECT ABBREVIATION
             }, {
                 # bottom right plate
                 'Plate Position': 4,
-                'Plate map file': os.path.join(self.fp, 'data/plate_map4.tsv'),
+                'Plate map file': self.plates[4],
                 'Project Plate': 'Celeste_Adaptation_12986_21',
                 'Project Name': 'Celeste_Adaptation_12986',
                 'Project Abbreviation' : 'ADAPT', # PROJECT ABBREVIATION
