@@ -12,6 +12,8 @@ from qiita_client import QiitaClient
 from .prep import remove_qiita_id
 from .plate import _validate_well_id_96
 from string import ascii_letters, digits
+from metapool.plate import PlateReplication
+import glob
 
 REVCOMP_SEQUENCERS = ['HiSeq4000', 'MiniSeq', 'NextSeq', 'HiSeq3000',
                       'iSeq', 'NovaSeq']
