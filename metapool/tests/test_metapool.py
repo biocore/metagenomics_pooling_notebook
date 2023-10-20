@@ -116,28 +116,28 @@ class Tests(TestCase):
         compression = [
             {   # top left plate
                 'Plate Position': 1, #as int
-                'Plate map file': self.plates[1],
+                'Plate map file': self.plates[0],
                 'Project Plate': 'Celeste_Adaptation_12986_Plate_16',
                 'Project Name': 'Celeste_Adaptation_12986',
                 'Project Abbreviation' : 'ADAPT',
             }, {
                 # top right plate
                 'Plate Position': 2,
-                'Plate map file': self.plates[2],
+                'Plate map file': self.plates[1],
                 'Project Plate': 'Celeste_Adaptation_12986_Plate_17',
                 'Project Name': 'Celeste_Adaptation_12986',
                 'Project Abbreviation' : 'ADAPT', # PROJECT ABBREVIATION
             }, {
                 # bottom left plate
                 'Plate Position': 3,
-                'Plate map file': self.plates[3],
+                'Plate map file': self.plates[2],
                 'Project Plate': 'Celeste_Adaptation_12986_Plate_18',
                 'Project Name': 'Celeste_Adaptation_12986',
                 'Project Abbreviation' : 'ADAPT', # PROJECT ABBREVIATION
             }, {
                 # bottom right plate
                 'Plate Position': 4,
-                'Plate map file': self.plates[4],
+                'Plate map file': self.plates[3],
                 'Project Plate': 'Celeste_Adaptation_12986_21',
                 'Project Name': 'Celeste_Adaptation_12986',
                 'Project Abbreviation' : 'ADAPT', # PROJECT ABBREVIATION
