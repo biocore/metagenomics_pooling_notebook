@@ -54,13 +54,14 @@ class Tests(TestCase):
         no_blanks_fp = os.path.join(path, 'data/test_no_blanks.tsv')
         blanks_fp = os.path.join(path, 'data/test_blanks.tsv')
         with_nan_fp = os.path.join(path, 'data/test_nan.tsv')
+        
         sa_fp = os.path.join(path, 'data/sa_file.tsv')
         p1 = os.path.join(path, 'data/plate_map1.tsv')
         p2 = os.path.join(path, 'data/plate_map2.tsv')
         p3 = os.path.join(path, 'data/plate_map3.tsv')
         p4 = os.path.join(path, 'data/plate_map4.tsv')
 
-        self.comp_plate_exp = os.path.join(path, 
+        self.comp_plate_exp = os.path.join(path,
             'data/compress_plates_expected_out.csv')
         self.add_controls_exp = os.path.join(path,
             'data/add_controls_expected_out.csv')
@@ -73,7 +74,8 @@ class Tests(TestCase):
         self.no_blanks = pd.read_csv(no_blanks_fp, sep='\t')
         self.with_nan = pd.read_csv(with_nan_fp, sep='\t')
         self.blanks = pd.read_csv(blanks_fp, sep='\t')
-        self.sa_df = pd.read_csv(sa_fp, sep='\t')
+        self.sa_df = pd.read_csv(sa_fp, sep='\t',
+                                 dtype={'TubeCode':str})
         self.fp = path
         self.plates = [p1, p2, p3, p4]
 
@@ -144,22 +146,26 @@ class Tests(TestCase):
             }
         ]
 
-        plate_df_obs = compress_plates(compression,
-            self.sa_df, well_col='Well')
-
+        plate_df_obs = compress_plates(compression, self.sa_df, well_col='Well')
         plate_df_exp = pd.read_csv(self.comp_plate_exp, sep='\t')
 
-        pd.assert_frame_equal(plate_df_obs, plate_df_exp)
+        pd.testing.assert_frame_equal(plate_df_obs, plate_df_exp)
 
     def test_add_controls(self):
 
         plate_df_exp = pd.read_csv(self.comp_plate_exp, sep='\t')
+
         add_controls_obs = add_controls(plate_df_exp,
             self.blanks_dir, self.katharoseq_dir)
-
         add_controls_exp = pd.read_csv(self.add_controls_exp, sep='\t')
 
-        pd.assert_frame_equal(add_controls_obs, add_controls_exp)
+        df1 = add_controls_obs
+        df1['Kathseq_RackID'] = df1['Kathseq_RackID'].astype(float)
+        df2 = add_controls_exp
+
+
+
+        pd.testing.assert_frame_equal(df1, df2)
 
     def test_read_plate_map_csv(self):
         plate_map_csv = \

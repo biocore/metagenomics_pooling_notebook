@@ -14,6 +14,8 @@ from .plate import _validate_well_id_96
 from string import ascii_letters, digits
 from metapool.plate import PlateReplication
 import glob
+import os
+
 
 REVCOMP_SEQUENCERS = ['HiSeq4000', 'MiniSeq', 'NextSeq', 'HiSeq3000',
                       'iSeq', 'NovaSeq']
@@ -1494,18 +1496,23 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir):
     else:
         # Loop through BLANK folder and assign sample_preparation_type
         # "negative_control"
-        blank_file_paths = glob.glob(f'{blanks_dir}*.tsv')
+        all_blanks = glob.glob(os.path.join(blanks_dir, "*"))
+        blank_file_paths = [file for file in all_blanks if re.search(r"tsv", os.path.basename(file))]
+
         blanks = []
         for file_path in blank_file_paths:
             dff = pd.read_csv(file_path, dtype={'TubeCode': str}, sep='\t')
             blanks.append(dff)
-
-        blanks = pd.concat(blanks, ignore_index=True)
-        blanks['sample_preparation_type'] = 'negative_control'
+        all_blanks_df = pd.concat(blanks, ignore_index=True)
+        all_blanks_df['sample_preparation_type'] = 'negative_control'
 
         # Build a master table with katharoseq tube IDs and assign
         # sample_preparation_type "positive_control"
-        katharoseq_file_paths = glob.glob(f'{katharoseq_dir}*_tube_ids.tsv')
+        # katharoseq_file_paths = glob.glob(f'{katharoseq_dir}*_tube_ids.tsv')
+
+        all_katharo = glob.glob(os.path.join(katharoseq_dir, "*"))
+        katharoseq_file_paths = [file for file in all_katharo if re.search(r"_tube_ids", os.path.basename(file))]
+
         katharoseq = []
         for file_path in katharoseq_file_paths:
             df = pd.read_csv(file_path, dtype={'TubeCode': str,
@@ -1519,8 +1526,9 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir):
 
         # Add katharoseq_cell_counts and assign to each tube based on the
         # row location
-        katharoseq_cell_counts_file_paths = glob.glob(f'{katharoseq_dir}'
-                                                      '*_cell_counts.tsv')
+
+        katharoseq_cell_counts_file_paths = [file for file in all_katharo if re.search(r"_cell_counts", os.path.basename(file))]
+
         katharoseq_cell_counts = []
         for file_path in katharoseq_cell_counts_file_paths:
             cell_counts_df = pd.read_csv(file_path,
@@ -1537,11 +1545,14 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir):
 
         # Concatenate controls into a "Controls" table and add a column
         # named "control_sample"
-        controls = pd.concat([blanks, katharoseq_merged])
+
+        to_concat = [all_blanks_df, katharoseq_merged]
+        controls = pd.concat(to_concat, axis=0, ignore_index=True)
         controls = controls.drop(['LocationCell', 'LocationColumn',
                                   'LocationRow'], axis=1)
 
         # Merge plate_df with controls table
+        controls['TubeCode'] = controls['TubeCode'].astype(int)
         plate_df = pd.merge(plate_df, controls, on='TubeCode', how='left')
 
         # Assign sample_names ('Sample') to controls
@@ -1656,12 +1667,10 @@ def compress_plates(compression_layout, sample_accession_df, well_col='Well'):
         unique_project_name + "_" + unique_project_plate
     )
 
-    compressed_plate_df_merged = compressed_plate_df_merged[[
-        'Sample'
-    ] + list(compressed_plate_df_merged.columns.difference(['Sample']))]
+    column_order = ['Sample'] + list(compressed_plate_df_merged.columns.difference(['Sample']))
+    compressed_plate_df_merged = compressed_plate_df_merged[column_order]
+
+    compressed_plate_df_merged['TubeCode'] = \
+        compressed_plate_df_merged['TubeCode'].astype(int)
 
     return compressed_plate_df_merged
-
-
-
-

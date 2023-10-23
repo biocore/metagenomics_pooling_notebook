@@ -8,7 +8,7 @@ Experiment Name,RKL_experiment
 Date,2017-08-13
 Workflow,GenerateFASTQ
 Application,FASTQ Only
-Assay,Metagenomic
+Assay,Metagenomics
 Description,
 Chemistry,Default
 
