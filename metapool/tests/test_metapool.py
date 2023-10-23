@@ -54,16 +54,18 @@ class Tests(TestCase):
         no_blanks_fp = os.path.join(path, 'data/test_no_blanks.tsv')
         blanks_fp = os.path.join(path, 'data/test_blanks.tsv')
         with_nan_fp = os.path.join(path, 'data/test_nan.tsv')
-        
+
         sa_fp = os.path.join(path, 'data/sa_file.tsv')
         p1 = os.path.join(path, 'data/plate_map1.tsv')
         p2 = os.path.join(path, 'data/plate_map2.tsv')
         p3 = os.path.join(path, 'data/plate_map3.tsv')
         p4 = os.path.join(path, 'data/plate_map4.tsv')
 
-        self.comp_plate_exp = os.path.join(path,
+        self.comp_plate_exp = os.path.join(
+            path,
             'data/compress_plates_expected_out.csv')
-        self.add_controls_exp = os.path.join(path,
+        self.add_controls_exp = os.path.join(
+            path,
             'data/add_controls_expected_out.csv')
         self.katharoseq_dir = os.path.join(path, 'data/katharo')
         self.blanks_dir = os.path.join(path, 'data/blanks')
@@ -75,10 +77,9 @@ class Tests(TestCase):
         self.with_nan = pd.read_csv(with_nan_fp, sep='\t')
         self.blanks = pd.read_csv(blanks_fp, sep='\t')
         self.sa_df = pd.read_csv(sa_fp, sep='\t',
-                                 dtype={'TubeCode':str})
+                                 dtype={'TubeCode': str})
         self.fp = path
         self.plates = [p1, p2, p3, p4]
-
 
     # def test_compute_shotgun_normalization_values(self):
     #     input_vol = 3.5
@@ -116,37 +117,34 @@ class Tests(TestCase):
     def test_compress_plates(self):
 
         compression = [
-            {   # top left plate
-                'Plate Position': 1, #as int
-                'Plate map file': self.plates[0],
-                'Project Plate': 'Celeste_Adaptation_12986_Plate_16',
-                'Project Name': 'Celeste_Adaptation_12986',
-                'Project Abbreviation' : 'ADAPT',
-            }, {
-                # top right plate
-                'Plate Position': 2,
-                'Plate map file': self.plates[1],
-                'Project Plate': 'Celeste_Adaptation_12986_Plate_17',
-                'Project Name': 'Celeste_Adaptation_12986',
-                'Project Abbreviation' : 'ADAPT', # PROJECT ABBREVIATION
-            }, {
-                # bottom left plate
-                'Plate Position': 3,
-                'Plate map file': self.plates[2],
-                'Project Plate': 'Celeste_Adaptation_12986_Plate_18',
-                'Project Name': 'Celeste_Adaptation_12986',
-                'Project Abbreviation' : 'ADAPT', # PROJECT ABBREVIATION
-            }, {
-                # bottom right plate
-                'Plate Position': 4,
-                'Plate map file': self.plates[3],
-                'Project Plate': 'Celeste_Adaptation_12986_21',
-                'Project Name': 'Celeste_Adaptation_12986',
-                'Project Abbreviation' : 'ADAPT', # PROJECT ABBREVIATION
-            }
+            # top left plate
+            {'Plate Position': 1,  # as int
+             'Plate map file': self.plates[0],
+             'Project Plate': 'Celeste_Adaptation_12986_Plate_16',
+             'Project Name': 'Celeste_Adaptation_12986',
+             'Project Abbreviation': 'ADAPT'},
+            # top right plate
+            {'Plate Position': 2,
+             'Plate map file': self.plates[1],
+             'Project Plate': 'Celeste_Adaptation_12986_Plate_17',
+             'Project Name': 'Celeste_Adaptation_12986',
+             'Project Abbreviation': 'ADAPT'},
+            {'Plate Position': 3,
+             'Plate map file': self.plates[2],
+             'Project Plate': 'Celeste_Adaptation_12986_Plate_18',
+             'Project Name': 'Celeste_Adaptation_12986',
+             'Project Abbreviation': 'ADAPT'},
+            {'Plate Position': 4,
+             'Plate map file': self.plates[3],
+             'Project Plate': 'Celeste_Adaptation_12986_21',
+             'Project Name': 'Celeste_Adaptation_12986',
+             'Project Abbreviation': 'ADAPT'}
         ]
 
-        plate_df_obs = compress_plates(compression, self.sa_df, well_col='Well')
+        plate_df_obs = compress_plates(
+            compression,
+            self.sa_df,
+            well_col='Well')
         plate_df_exp = pd.read_csv(self.comp_plate_exp, sep='\t')
 
         pd.testing.assert_frame_equal(plate_df_obs, plate_df_exp)
@@ -155,15 +153,15 @@ class Tests(TestCase):
 
         plate_df_exp = pd.read_csv(self.comp_plate_exp, sep='\t')
 
-        add_controls_obs = add_controls(plate_df_exp,
-            self.blanks_dir, self.katharoseq_dir)
+        add_controls_obs = add_controls(
+            plate_df_exp,
+            self.blanks_dir,
+            self.katharoseq_dir)
         add_controls_exp = pd.read_csv(self.add_controls_exp, sep='\t')
 
         df1 = add_controls_obs
         df1['Kathseq_RackID'] = df1['Kathseq_RackID'].astype(float)
         df2 = add_controls_exp
-
-
 
         pd.testing.assert_frame_equal(df1, df2)
 

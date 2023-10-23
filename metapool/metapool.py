@@ -1497,7 +1497,10 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir):
         # Loop through BLANK folder and assign sample_preparation_type
         # "negative_control"
         all_blanks = glob.glob(os.path.join(blanks_dir, "*"))
-        blank_file_paths = [file for file in all_blanks if re.search(r"tsv", os.path.basename(file))]
+        blank_file_paths = [
+            file
+            for file in all_blanks
+            if re.search(r"tsv", os.path.basename(file))]
 
         blanks = []
         for file_path in blank_file_paths:
@@ -1511,12 +1514,17 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir):
         # katharoseq_file_paths = glob.glob(f'{katharoseq_dir}*_tube_ids.tsv')
 
         all_katharo = glob.glob(os.path.join(katharoseq_dir, "*"))
-        katharoseq_file_paths = [file for file in all_katharo if re.search(r"_tube_ids", os.path.basename(file))]
+        katharoseq_file_paths = [
+            file
+            for file in all_katharo
+            if re.search(r"_tube_ids", os.path.basename(file))]
 
         katharoseq = []
         for file_path in katharoseq_file_paths:
-            df = pd.read_csv(file_path, dtype={'TubeCode': str,
-                                               'Kathseq_RackID': str}, sep='\t')
+            df = pd.read_csv(file_path,
+                             dtype={'TubeCode': str,
+                                    'Kathseq_RackID': str},
+                             sep='\t')
             katharoseq.append(df)
 
         katharoseq = pd.concat(katharoseq, ignore_index=True)
@@ -1527,7 +1535,10 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir):
         # Add katharoseq_cell_counts and assign to each tube based on the
         # row location
 
-        katharoseq_cell_counts_file_paths = [file for file in all_katharo if re.search(r"_cell_counts", os.path.basename(file))]
+        katharoseq_cell_counts_file_paths = [
+            file
+            for file in all_katharo
+            if re.search(r"_cell_counts", os.path.basename(file))]
 
         katharoseq_cell_counts = []
         for file_path in katharoseq_cell_counts_file_paths:
@@ -1610,20 +1621,22 @@ def compress_plates(compression_layout, sample_accession_df, well_col='Well'):
 
     Returns:
         plate_df (pandas DataFrame): DataFrame of samples compressed into 384
-            format with tube IDs corresponding to sample names. A column "Well"
-            indicates 384 positions, and well_id_96 indicates 96 well positions.
+            format with tube IDs corresponding to sample names.
+            A column "Well" indicates 384 positions,
+            and well_id_96 indicates 96 well positions.
     """
     compressed_plate_df = pd.DataFrame([])
     well_mapper = PlateReplication(well_col)
-    
+
     for plate_dict_index in range(len(compression_layout)):
         fp = compression_layout[plate_dict_index]['Plate map file']
         position = compression_layout[plate_dict_index]['Plate Position']
-        
-        plate_map = pd.read_csv(fp,
+
+        plate_map = pd.read_csv(
+            fp,
             dtype={'TubeCode': str, 'RackID': str},
             sep='\t')
-        
+
         plate_map['Project Name'] = \
             compression_layout[plate_dict_index]['Project Name']
         plate_map['Plate Position'] = position
@@ -1633,10 +1646,11 @@ def compress_plates(compression_layout, sample_accession_df, well_col='Well'):
             compression_layout[plate_dict_index]['Project Abbreviation']
 
         well_mapper._reset()
-        for well_96_id in plate_map['LocationCell']:
+        col = 'LocationCell'
+        for well_96_id in plate_map[col]:
             well_384_id = \
                 well_mapper.get_384_well_location(well_96_id, position)
-            plate_map.loc[plate_map['LocationCell'] == well_96_id, well_col] = \
+            plate_map.loc[plate_map[col] == well_96_id, well_col] = \
                 well_384_id
 
         compressed_plate_df = pd.concat([compressed_plate_df, plate_map])
@@ -1653,8 +1667,9 @@ def compress_plates(compression_layout, sample_accession_df, well_col='Well'):
         'sample_name': 'Sample'
     }, inplace=True)
 
+    col = 'Project Plate'
     compressed_plate_df_merged['Compressed Plate Name'] = (
-        compressed_plate_df_merged['Project Plate'].str.rsplit('_', n=1).str[-1]
+        compressed_plate_df_merged[col].str.rsplit('_', n=1).str[-1]
     )
 
     unique_project_plate = '_'.join(
@@ -1667,7 +1682,9 @@ def compress_plates(compression_layout, sample_accession_df, well_col='Well'):
         unique_project_name + "_" + unique_project_plate
     )
 
-    column_order = ['Sample'] + list(compressed_plate_df_merged.columns.difference(['Sample']))
+    col = 'Project Plate'
+    column_order = ['Sample'] + \
+        list(compressed_plate_df_merged.columns.difference([col]))
     compressed_plate_df_merged = compressed_plate_df_merged[column_order]
 
     compressed_plate_df_merged['TubeCode'] = \
