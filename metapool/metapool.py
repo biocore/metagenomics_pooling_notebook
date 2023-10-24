@@ -1554,11 +1554,12 @@ def compress_plates(compression_layout, sample_accession_df,
         unique_project_name + "_" + unique_project_plate
 
     # Arrange plate_df so sample col is first
+    diff = compressed_plate_df_merged.columns.difference(['Sample'])
     compressed_plate_df_merged = \
-        compressed_plate_df_merged[['Sample'] +
-        list(compressed_plate_df_merged.columns.difference(['Sample']))]
+        compressed_plate_df_merged[['Sample'] + list(diff)]
 
     return compressed_plate_df_merged
+
 
 def add_controls(plate_df, blanks_dir, katharoseq_dir):
     """
@@ -1607,7 +1608,7 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir):
             df = pd.read_csv(
                 file_path,
                 dtype={'TubeCode': str,
-                       'Kathseq_RackID': str}, 
+                       'Kathseq_RackID': str},
                 sep='\t')
             katharoseq.append(df)
 
