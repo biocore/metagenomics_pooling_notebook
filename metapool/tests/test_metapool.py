@@ -23,7 +23,9 @@ from metapool.metapool import (read_plate_map_csv, read_pico_csv,
                                calculate_iseqnorm_pooling_volumes,
                                identify_invalid_sample_names,
                                sanitize_plate_map_sample_names,
-                               add_syndna, add_controls, compress_plates)
+                               add_syndna,
+                               # add_controls, compress_plates
+                               )
 
 
 class Tests(TestCase):
