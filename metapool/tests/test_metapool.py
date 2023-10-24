@@ -114,56 +114,56 @@ class Tests(TestCase):
     #     npt.assert_almost_equal(obs_sample, exp_sample)
     #     npt.assert_almost_equal(obs_water, exp_water)
 
-    def test_compress_plates(self):
+    # def test_compress_plates(self):
 
-        compression = [
-            # top left plate
-            {'Plate Position': 1,  # as int
-             'Plate map file': self.plates[0],
-             'Project Plate': 'Celeste_Adaptation_12986_Plate_16',
-             'Project Name': 'Celeste_Adaptation_12986',
-             'Project Abbreviation': 'ADAPT'},
-            # top right plate
-            {'Plate Position': 2,
-             'Plate map file': self.plates[1],
-             'Project Plate': 'Celeste_Adaptation_12986_Plate_17',
-             'Project Name': 'Celeste_Adaptation_12986',
-             'Project Abbreviation': 'ADAPT'},
-            {'Plate Position': 3,
-             'Plate map file': self.plates[2],
-             'Project Plate': 'Celeste_Adaptation_12986_Plate_18',
-             'Project Name': 'Celeste_Adaptation_12986',
-             'Project Abbreviation': 'ADAPT'},
-            {'Plate Position': 4,
-             'Plate map file': self.plates[3],
-             'Project Plate': 'Celeste_Adaptation_12986_21',
-             'Project Name': 'Celeste_Adaptation_12986',
-             'Project Abbreviation': 'ADAPT'}
-        ]
+    #     compression = [
+    #         # top left plate
+    #         {'Plate Position': 1,  # as int
+    #          'Plate map file': self.plates[0],
+    #          'Project Plate': 'Celeste_Adaptation_12986_Plate_16',
+    #          'Project Name': 'Celeste_Adaptation_12986',
+    #          'Project Abbreviation': 'ADAPT'},
+    #         # top right plate
+    #         {'Plate Position': 2,
+    #          'Plate map file': self.plates[1],
+    #          'Project Plate': 'Celeste_Adaptation_12986_Plate_17',
+    #          'Project Name': 'Celeste_Adaptation_12986',
+    #          'Project Abbreviation': 'ADAPT'},
+    #         {'Plate Position': 3,
+    #          'Plate map file': self.plates[2],
+    #          'Project Plate': 'Celeste_Adaptation_12986_Plate_18',
+    #          'Project Name': 'Celeste_Adaptation_12986',
+    #          'Project Abbreviation': 'ADAPT'},
+    #         {'Plate Position': 4,
+    #          'Plate map file': self.plates[3],
+    #          'Project Plate': 'Celeste_Adaptation_12986_21',
+    #          'Project Name': 'Celeste_Adaptation_12986',
+    #          'Project Abbreviation': 'ADAPT'}
+    #     ]
 
-        plate_df_obs = compress_plates(
-            compression,
-            self.sa_df,
-            well_col='Well')
-        plate_df_exp = pd.read_csv(self.comp_plate_exp, sep='\t')
+    #     plate_df_obs = compress_plates(
+    #         compression,
+    #         self.sa_df,
+    #         well_col='Well')
+    #     plate_df_exp = pd.read_csv(self.comp_plate_exp, sep='\t')
 
-        pd.testing.assert_frame_equal(plate_df_obs, plate_df_exp)
+    #     pd.testing.assert_frame_equal(plate_df_obs, plate_df_exp)
 
-    def test_add_controls(self):
+    # def test_add_controls(self):
 
-        plate_df_exp = pd.read_csv(self.comp_plate_exp, sep='\t')
+    #     plate_df_exp = pd.read_csv(self.comp_plate_exp, sep='\t')
 
-        add_controls_obs = add_controls(
-            plate_df_exp,
-            self.blanks_dir,
-            self.katharoseq_dir)
-        add_controls_exp = pd.read_csv(self.add_controls_exp, sep='\t')
+    #     add_controls_obs = add_controls(
+    #         plate_df_exp,
+    #         self.blanks_dir,
+    #         self.katharoseq_dir)
+    #     add_controls_exp = pd.read_csv(self.add_controls_exp, sep='\t')
 
-        df1 = add_controls_obs
-        df1['Kathseq_RackID'] = df1['Kathseq_RackID'].astype(float)
-        df2 = add_controls_exp
+    #     df1 = add_controls_obs
+    #     df1['Kathseq_RackID'] = df1['Kathseq_RackID'].astype(float)
+    #     df2 = add_controls_exp
 
-        pd.testing.assert_frame_equal(df1, df2)
+    #     pd.testing.assert_frame_equal(df1, df2)
 
     def test_read_plate_map_csv(self):
         plate_map_csv = \

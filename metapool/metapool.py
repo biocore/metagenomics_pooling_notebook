@@ -10,11 +10,8 @@ from random import choices
 from configparser import ConfigParser
 from qiita_client import QiitaClient
 from .prep import remove_qiita_id
-from .plate import _validate_well_id_96
-from string import ascii_letters, digits
-from metapool.plate import PlateReplication
+from .plate import PlateReplication
 import glob
-import os
 
 
 REVCOMP_SEQUENCERS = ['HiSeq4000', 'MiniSeq', 'NextSeq', 'HiSeq3000',
@@ -175,51 +172,6 @@ def sum_lanes(multi_lane_df, lanes_to_sum):
     return total
 
 
-def identify_invalid_sample_names(plate_df):
-    '''
-    Returns a list of invalid sample_names. Based on QIIME mapping-file docs.
-    Taken from Qiita's util.py:get_invalid_sample_names().
-
-    :param plate_df: A DataFrame representing a plate-map file.
-    :return: List of invalid sample-names.
-    '''
-
-    # convert all values to strings to handle instances when values like
-    # NaN are used as sample-names. Currently 'NaN' is an acceptable name.
-    sample_names = [str(x) for x in list(plate_df['Sample'])]
-    valid_chars = set(ascii_letters + digits + '.' + '-')
-    return sorted([ch for ch in sample_names if set(ch) - valid_chars])
-
-
-def sanitize_plate_map_sample_names(plate_df):
-    '''
-    Remove leading and/or trailing whitespace from sample-names.
-    :param plate_df: A DataFrame representing a plate-map file.
-    :return: List of invalid sample-names.
-    '''
-
-    # remove any leading and/or trailing whitespace from sample-names only.
-    plate_df['tmp'] = plate_df.Sample.str.strip()
-
-    # note which columns needed cleaning. We'll be returning this info to the
-    # user.
-    plate_df['changed'] = plate_df['Sample'] != plate_df['tmp']
-    repaired_names = plate_df.loc[plate_df['changed']]['Sample'].to_list()
-
-    # replace all sample-names w/their sanitized versions and drop the temp
-    # columns.
-    plate_df['Sample'] = plate_df['tmp']
-    plate_df.drop(columns={'tmp', 'changed'}, inplace=True)
-
-    if repaired_names:
-        # when values such as NaN are used in Sample column:
-        repaired_names = [str(x) for x in repaired_names]
-        warnings.warn("Leading and/or trailing whitespace was removed from the"
-                      " following sample-names: %s" % ','.join(repaired_names))
-
-    return plate_df
-
-
 def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
     """
     reads tab-delimited plate map into a Pandas dataframe and if
@@ -264,38 +216,15 @@ def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
         warnings.warn('No qiita_oauth2_conf_fp set so not checking plate_map '
                       'and Qiita study overlap')
 
-    plate_df = pd.read_csv(f, sep=sep, dtype={'Sample': str})
+    plate_df = pd.read_csv(f, sep=sep)
     if 'Project Name' not in plate_df.columns:
         raise ValueError('Missing `Project Name` column.')
-
-    if 'well_id_96' not in plate_df.columns:
-        raise ValueError('Missing `well_id_96` column.')
-
-    invalid_well_ids = [x for x in list(plate_df.well_id_96) if
-                        _validate_well_id_96(x) is None]
-
-    if invalid_well_ids:
-        raise ValueError('`well_id_96` column contains the following invalid '
-                         'values: %s' % ','.join(invalid_well_ids))
-
     plate_df['Well'] = plate_df['Row'] + plate_df['Col'].map(str)
-
-    # remove any leading and/or trailing whitespace before determining if
-    # any of the sample-names are invalid or duplicates.
-    # Needed in case validation against Qiita is not requested.
-    plate_df = sanitize_plate_map_sample_names(plate_df)
-
-    invalid_sample_names = identify_invalid_sample_names(plate_df)
-
-    if invalid_sample_names:
-        raise ValueError(
-            'The following sample names are invalid: %s' % ','.join(
-                invalid_sample_names))
 
     null_samples = plate_df.Sample.isnull()
     if null_samples.any():
         warnings.warn(('This plate map contains %d empty wells, these will be '
-                       'ignored') % null_samples.sum())
+                      'ignored') % null_samples.sum())
 
         # slice to the non-null samples and reset the index so samples are
         # still indexed with a continuous list of integers
@@ -310,10 +239,6 @@ def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
     if qiita_validate:
         errors = []
         for project, _df in plate_df.groupby(['Project Name']):
-            # if project is a tuple, force to string
-            if isinstance(project, tuple):
-                project = project[0]
-
             project_name = remove_qiita_id(project)
             qiita_id = project.replace(f'{project_name}_', '')
             qurl = f'/api/v1/study/{qiita_id}/samples'
@@ -365,8 +290,7 @@ def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
 
 
 # method to read minipico output
-def read_pico_csv(f, sep='\t', plate_reader='SpectraMax_i3x',
-                  min_conc=0, max_conc=150,
+def read_pico_csv(f, sep='\t', plate_reader='Synergy_HT',
                   conc_col_name='Sample DNA Concentration'):
     """
     reads tab-delimited pico quant
@@ -380,12 +304,6 @@ def read_pico_csv(f, sep='\t', plate_reader='SpectraMax_i3x',
     plate_reader: str
         plate reader used to generate quant file ['Synergy_HT',
         'SpectraMax_i3x']
-    min_conc: int
-        minimum concentration allowed. Values lower than this
-        will be clipped
-    max_conc: int
-        maximum concentration allowed. Values higher than
-        this will be clipped
     conc_col_name: str
         name to use for concentration column output
 
@@ -419,9 +337,8 @@ def read_pico_csv(f, sep='\t', plate_reader='SpectraMax_i3x',
     pico_df[conc_col_name] = \
         pd.to_numeric(pico_df[conc_col_name], errors='coerce')
     if plate_reader == 'SpectraMax_i3x':
-        # limit concentration range (min_conc - max_conc )
-        pico_df[conc_col_name] = np.clip(pico_df[conc_col_name], min_conc,
-                                         max_conc)
+        # limit concentration range (0 - 60 )
+        pico_df[conc_col_name] = np.clip(pico_df[conc_col_name], 0, 60)
 
     return pico_df
 
@@ -459,8 +376,8 @@ def calculate_norm_vol(dna_concs, ng=5, min_vol=2.5, max_vol=3500,
 def format_dna_norm_picklist(dna_vols, water_vols, wells, dest_wells=None,
                              dna_concs=None, sample_names=None,
                              sample_plates=None, water_plate_name='Water',
-                             dna_plate_type='384PP_AQ_BP2',
-                             water_plate_type='384PP_AQ_BP2',
+                             dna_plate_type='384PP_AQ_BP2_HT',
+                             water_plate_type='384PP_AQ_BP2_HT',
                              dest_plate_name='NormalizedDNA'):
     """
     Writes Echo-format pick list to achieve a normalized input DNA pool
@@ -506,13 +423,13 @@ def format_dna_norm_picklist(dna_vols, water_vols, wells, dest_wells=None,
     if isinstance(sample_plates, str):
         sample_plates = np.full_like(dna_vols, sample_plates, dtype=object)
     if dna_plate_type is None:
-        dna_plate_type = '384PP_AQ_BP2'
+        dna_plate_type = '384PP_AQ_BP2_HT'
     if isinstance(dna_plate_type, str):
         dna_plate_type = np.full_like(dna_vols, dna_plate_type, dtype=object)
     if dna_concs is None:
         dna_concs = np.empty(dna_vols.shape) * np.nan
     if (dna_concs.shape != sample_names.shape != dna_vols.shape
-            != sample_plates.shape != dna_plate_type.shape):
+       != sample_plates.shape != dna_plate_type.shape):
         raise ValueError(('dna_vols %r has a size different from dna_concs %r'
                           ' or sample_names %r') %
                          (dna_vols.shape, dna_concs.shape, sample_names.shape))
@@ -524,20 +441,19 @@ def format_dna_norm_picklist(dna_vols, water_vols, wells, dest_wells=None,
                  'Concentration\tTransfer Volume\tDestination Plate Name\t'
                  'Destination Well')
 
-    # DNA additions
-    for index, sample in np.ndenumerate(sample_names):
-        picklist += '\n' + '\t'.join([str(sample), str(sample_plates[index]),
-                                      str(dna_plate_type[index]),
-                                      str(wells[index]), str(dna_concs[index]),
-                                      str(dna_vols[index]),
-                                      dest_plate_name, str(dest_wells[index])])
-
     # water additions
     for index, sample in np.ndenumerate(sample_names):
         picklist += '\n' + '\t'.join([str(sample), water_plate_name,
                                       water_plate_type, str(wells[index]),
                                       str(dna_concs[index]),
                                       str(water_vols[index]),
+                                      dest_plate_name, str(dest_wells[index])])
+    # DNA additions
+    for index, sample in np.ndenumerate(sample_names):
+        picklist += '\n' + '\t'.join([str(sample), str(sample_plates[index]),
+                                      str(dna_plate_type[index]),
+                                      str(wells[index]), str(dna_concs[index]),
+                                      str(dna_vols[index]),
                                       dest_plate_name, str(dest_wells[index])])
 
     return picklist
@@ -569,8 +485,8 @@ def assign_index(samples, index_df, start_idx=0):
 
 def format_index_picklist(sample_names, sample_wells, indices,
                           i5_vol=250, i7_vol=250,
-                          i5_plate_type='384LDV_AQ_B2',
-                          i7_plate_type='384LDV_AQ_B2',
+                          i5_plate_type='384LDV_AQ_B2_HT',
+                          i7_plate_type='384LDV_AQ_B2_HT',
                           dest_plate_name='IndexPCRPlate'):
     """
     Writes Echo-format pick list to achieve a normalized input DNA pool
@@ -608,18 +524,18 @@ def format_index_picklist(sample_names, sample_wells, indices,
         picklist += '\n' + '\t'.join([str(sample), indices.iloc[i]['i5 plate'],
                                       i5_plate_type,
                                       indices.iloc[i]['i5 well'], str(
-                i5_vol), indices.iloc[i]['i5 name'],
+                                          i5_vol), indices.iloc[i]['i5 name'],
                                       indices.iloc[i]['i5 sequence'], str(
-                indices.iloc[i]['index combo']),
+                                          indices.iloc[i]['index combo']),
                                       dest_plate_name, well])
     # i7 additions
     for i, (sample, well) in enumerate(zip(sample_names, sample_wells)):
         picklist += '\n' + '\t'.join([str(sample), indices.iloc[i]['i7 plate'],
                                       i7_plate_type,
                                       indices.iloc[i]['i7 well'], str(
-                i7_vol), indices.iloc[i]['i7 name'],
+                                          i7_vol), indices.iloc[i]['i7 name'],
                                       indices.iloc[i]['i7 sequence'], str(
-                indices.iloc[i]['index combo']),
+                                          indices.iloc[i]['index combo']),
                                       dest_plate_name, well])
 
     return picklist
@@ -724,7 +640,7 @@ def compute_shotgun_pooling_values_qpcr(sample_concs, sample_fracs=None,
     sample_fracs_pass[sample_concs <= min_conc] = 0
 
     # renormalize to exclude lost samples
-    sample_fracs_pass *= 1 / sample_fracs_pass.sum()
+    sample_fracs_pass *= 1/sample_fracs_pass.sum()
 
     # floor concentration value
     sample_concs_floor = sample_concs.copy()
@@ -734,7 +650,7 @@ def compute_shotgun_pooling_values_qpcr(sample_concs, sample_fracs=None,
     sample_vols = (total_nmol * sample_fracs_pass) / sample_concs_floor
 
     # convert L to nL
-    sample_vols *= 10 ** 9
+    sample_vols *= 10**9
 
     return sample_vols
 
@@ -791,7 +707,7 @@ def compute_shotgun_pooling_values_qpcr_minvol(sample_concs, sample_fracs=None,
     sample_vols = (total_nmol * sample_fracs) / sample_concs
 
     # convert L to nL
-    sample_vols *= 10 ** 9
+    sample_vols *= 10**9
 
     # drop volumes for samples below floor concentration to floor_vol
     sample_vols[sample_concs < floor_conc] = floor_vol
@@ -817,7 +733,7 @@ def estimate_pool_conc_vol(sample_vols, sample_concs):
         The total volume of the pool, in nL
     """
     # scalar to adjust nL to L for molarity calculations
-    nl_scalar = 10 ** -9
+    nl_scalar = 10**-9
 
     # calc total pool pmols
     total_pmols = np.multiply(sample_concs, sample_vols) * nl_scalar
@@ -857,7 +773,7 @@ def format_pooling_echo_pick_list(vol_sample,
     d = 1
     for i in range(rows):
         for j in range(cols):
-            well_name = "%s%d" % (chr(ord('A') + i), j + 1)
+            well_name = "%s%d" % (chr(ord('A') + i), j+1)
             # Machine will round, so just give it enough info to do the
             # correct rounding.
             val = "%.2f" % pool_vols[i][j]
@@ -870,11 +786,11 @@ def format_pooling_echo_pick_list(vol_sample,
                 running_tot += pool_vols[i][j]
 
             dest = "%s%d" % (chr(ord('A') +
-                                 int(np.floor(d / dest_plate_shape[0]))),
+                                 int(np.floor(d/dest_plate_shape[0]))),
                              (d % dest_plate_shape[1]))
 
             contents.append(
-                ",".join(['1', '384LDV_AQ_B2', well_name, "",
+                ",".join(['1', '384LDV_AQ_B2_HT', well_name, "",
                           val, 'NormalizedDNA', dest]))
 
     return "\n".join(contents)
@@ -916,7 +832,7 @@ def plot_plate_vals(dataset, color_map='YlGnBu', annot_str=None,
                         ax=ax1,
                         xticklabels=[x + 1 for x in range(dataset.shape[1])],
                         yticklabels=list(string.ascii_uppercase)[
-                                    0:dataset.shape[0]],
+                            0:dataset.shape[0]],
                         # square = True,
                         annot=True,
                         fmt='.0f',
@@ -927,7 +843,7 @@ def plot_plate_vals(dataset, color_map='YlGnBu', annot_str=None,
                         ax=ax1,
                         xticklabels=[x + 1 for x in range(dataset.shape[1])],
                         yticklabels=list(string.ascii_uppercase)[
-                                    0:dataset.shape[0]],
+                            0:dataset.shape[0]],
                         # square = True,
                         annot=annot_str,
                         fmt=annot_fmt,
@@ -1013,13 +929,12 @@ def combine_dfs(qpcr_df, dna_picklist, index_picklist):
 
     combined_df.set_index('Well', inplace=True)
 
-    b = dna_picklist.loc[
-        dna_picklist['Source Plate Name'] != 'water',].set_index(
-        'Destination Well')
+    b = dna_picklist.loc[dna_picklist['Source Plate Name'] != 'water',
+                         ].set_index('Destination Well')
     c = index_picklist.loc[index_picklist['Source Plate Name'] ==
-                           'i7 Source Plate',].set_index('Destination Well')
+                           'i7 Source Plate', ].set_index('Destination Well')
     d = index_picklist.loc[index_picklist['Source Plate Name'] ==
-                           'i5 Source Plate',].set_index('Destination Well')
+                           'i5 Source Plate', ].set_index('Destination Well')
 
     # Add DNA conc columns
     combined_df['DNA Concentration'] = b['Concentration']
@@ -1044,11 +959,10 @@ def combine_dfs(qpcr_df, dna_picklist, index_picklist):
 def parse_dna_conc_csv(fp):
     dna_df = pd.read_excel(fp, skiprows=4, parse_cols=[1, 2, 3, 4, 5])
 
-    dna_df = dna_df.loc[list(range(384)),]
+    dna_df = dna_df.loc[list(range(384)), ]
 
     dna_df['pico_conc'] = pd.to_numeric(
         dna_df['[Concentration]'], errors='Coerce')
-
     return dna_df
 
 
@@ -1080,7 +994,7 @@ def compute_pico_concentration(dna_vals, size=400):
     np.array of floats
         A 2D array of floats
     """
-    lib_concentration = (dna_vals / (660 * float(size))) * 10 ** 6
+    lib_concentration = (dna_vals / (660 * float(size))) * 10**6
 
     return lib_concentration
 
@@ -1114,6 +1028,7 @@ def rc(seq):
 
 
 def sequencer_i5_index(sequencer, indices):
+
     if sequencer in REVCOMP_SEQUENCERS:
         print('%s: i5 barcodes are output as reverse compliments' % sequencer)
         return [rc(x) for x in indices]
@@ -1184,510 +1099,161 @@ def reformat_interleaved_to_columns(wells):
     return new_wells
 
 
-def merge_read_counts(plate_df, counts_df, reads_column_name='Filtered Reads'):
-    """ Merges reads counts from FASTQC report or per_sample_FASTQ summary
-    :param plate_df: A DataFrame containing the growing plate dataframe.
-    :param counts_df: A DataFrame containing the counts.
-    :param reads_column_name: A string column header for
-    the merged read counts column.
-    :return: A DataFrame containing the read counts
-    from the input file in a column
-    with the reads_column_name.
-    """
-
-    # Map unwanted characters to other characters
-    plate_df['sample sheet Sample_ID'] = plate_df['Sample'].map(bcl_scrub_name)
-
-    # Logic for multiple input_file format support
-    if 'Category' in counts_df.columns:
-        sample_column = 'Category'
-        file_type = 'FastQC'
-    elif 'filename' in counts_df.columns:
-        sample_column = 'filename'
-        file_type = 'per_sample_FASTQ'
-    else:
-        raise Exception("Unsupported input file type.")
-
-    # Parse table to find sample names, and sum forward and rev reads.
-    for i in counts_df.index:
-        filename = counts_df.loc[i, sample_column]
-        match = re.match(r'^(.*)_S\d+_L00\d', filename)
-        if not match:
-            raise LookupError(f'id not found in {filename}')
-        sample_id = match.group(1)
-        counts_df.loc[i, 'Sample'] = sample_id
-    counts_df = counts_df.groupby('Sample').sum(numeric_only=True)
-
-    # Logic for multiple input_file format support
-    if file_type == 'FastQC':
-        counts_df[reads_column_name] = counts_df['Unique Reads'] + \
-                                       counts_df['Duplicate Reads']
-    elif file_type == 'per_sample_FASTQ':
-        counts_df.rename(columns={'reads': reads_column_name},
-                         inplace=True)
-
-    # Merge reads with plate_df
-    to_merge = counts_df[[reads_column_name]]
-    plate_df_w_reads = plate_df.merge(to_merge,
-                                      left_on='sample sheet Sample_ID',
-                                      right_on='Sample', how='left')
-
-    return plate_df_w_reads
-
-
-def read_survival(reads, label='Remaining', rmin=0, rmax=10 ** 6, rsteps=100):
-    """
-    Calculates a sample_retention curve from a read distribution
-    :param reads: A DataFrame Series of a distribution of reads.
-    :param label: A string label for the column that counts samples retained.
-    :param rmin: An integer that counts the minimum number of reads
-    for the sample_retention curve
-    :param rmax: An integer that counts the maximum number of reads
-    for the sample_retention curve
-    :param rsteps: An integer that counts the steps between
-    rmin and rmax to compute the sample_retention.
-    :return: A DataFrame containing the sample_retention data
-    for a survival curve.
-    with the reads_column_name.
-    """
-    rstep = int((rmax - rmin) / rsteps)
-    steps = list(range(rmin, rmax, rstep))
-    remaining = np.zeros(rsteps)
-    for i, t in enumerate(steps):
-        remaining[i] = np.greater_equal(reads, t).sum()
-
-    remaining_df = pd.DataFrame(remaining,
-                                index=steps, columns=[label])
-    return remaining_df
-
-
-def linear_transform(input_values, output_min=100, output_max=1000):
-    """
-    Calculates a linear transformation between a range of
-    input_values and output_min and output_max parameters
-    :param input_values: A DataFrame Series of a distribution of values.
-    :param output_min: An integer that specifies the minimum value
-    for the transformed output
-    :param output_max: An integer that specifies the maximum value
-    for the transformed output
-    :return: An array of linearly transformed values.
-    """
-
-    input_range = input_values.max() - input_values.min()
-    input_min = input_values.min()
-
-    diff1 = input_values - input_min
-    diff2 = output_max - output_min
-    transformed_values = (((diff1)) * (diff2) / input_range) + output_min
-    return transformed_values
-
-
-def calculate_iseqnorm_pooling_volumes(plate_df,
-                                       normalization_column='Filtered Reads',
-                                       dynamic_range=100, lower_bound=1,
-                                       min_pool_vol=40, max_pool_vol=500):
-    """
-    Calculates optimal iseq normalization pooling volumes
-    from a given set of parameters.
-    :param plate_df: A DataFrame with ----need to add description----
-    :param normalization_column: A string indicating the column name for a
-    distribution of read counts used for normalization
-    :param dynamic_range: The ratio between the read counts of the
-    lower and high end of a clipped distribution of
-    Loading Factors for normalization.
-    Used to shape normalized distribution
-    :param lower_bound: An integer that specifies the lower end of the clipped
-    distribution of Loading Factors for normalization.
-    Used to shape normalized distribution
-    :param min_pool_vol: An integer that specifies the
-    minimum pooling volume (nL) per sample for acoustic droplet ejection.
-    :param min_pool_vol: An integer that specifies the
-    maximum pooling volume (nL) per sample for acoustic droplet ejection.
-    :return: A DataFrame with iSeqnorm pooling volumes.
-    """
-    try:
-        norm = plate_df[normalization_column]
-        plate_df['proportion'] = norm / (norm.sum())
-        plate_df['LoadingFactor'] = plate_df['proportion'].max() / \
-            plate_df['proportion']
-        nblanks = plate_df.loc[plate_df['Blank']].shape[0]
-        if (nblanks == 0):
-            warnings.warn("There are no BLANKS in this plate")
-        # May 5 2023 meeting about blanks agreed to treat them
-        # agnostically. No underpooling.
-        # else:
-        #     plate_df.loc[plate_df['Blank'], 'LoadingFactor'] = \
-        #         plate_df.loc[plate_df['Blank'], 'LoadingFactor'] / 2
-        #
-        plate_df.loc[plate_df['LoadingFactor'].isnull(),
-                     'LoadingFactor'] = plate_df['LoadingFactor'].max()
-    except ValueError:
-        raise ValueError(f'Function expects dataframe with merged, \
-                         per_sample read counts [\'{normalization_column}\']')
-
-    # Calculate proportion of samples not normalized (unnorm_proportion)
-    n = plate_df.shape[0]
-    upper_bound = lower_bound * dynamic_range
-    lf = plate_df['LoadingFactor']
-    unnorm_proportion = sum((lf < lower_bound) | (lf > upper_bound)) / n
-
-    # Transforming LoadingFactors into Pooling Volumes
-    # with linear transformation
-    plate_df['LoadingFactor'] = np.clip(plate_df['LoadingFactor'],
-                                        lower_bound, upper_bound)
-    norm_name = 'iSeq normpool volume'
-    plate_df[norm_name] = linear_transform(plate_df['LoadingFactor'],
-                                           output_min=min_pool_vol,
-                                           output_max=max_pool_vol)
-
-    # Underpooling BLANKS
-    nblanks = plate_df.loc[plate_df['Blank']].shape[0]
-    if (nblanks == 0):
-        warnings.warn("There are no BLANKS in this plate")
-    else:
-        plate_df.loc[plate_df['Blank'], 'iSeq normpool volume'] = \
-            plate_df.loc[plate_df['Blank'], 'iSeq normpool volume'] / 5
-
-    # Plotting
-    f, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, figsize=(5, 8), sharex=True)
-
-    ax1.set_title(
-        f'{unnorm_proportion * 100:.2f}% of sample set not normalized')
-    sns.scatterplot(x=normalization_column,
-                    y='iSeq normpool volume',
-                    hue='Blank',
-                    data=plate_df,
-                    alpha=0.5, ax=ax1)
-    plt.xscale('log')
-    sns.histplot(plate_df[normalization_column], ax=ax2)
-    plt.tight_layout()
-
-    return plate_df
-
-
-def estimate_read_depth(plate_df,
-                        estimated_total_output=4e9,
-                        on_target_column='Filtered Reads',
-                        off_target_column='Raw Reads'):
-    """
-    Builds a figure to estimate read depth per sample when
-    given a DataFrame with iSeq normalization pooling volumes.
-    :param plate_df: A DataFrame containing the growing plate dataframe.
-    :param estimated_total_output: An integer (reads) that
-    estimates the total output of the projected sequencing run.
-    :param on_target_column: A string formated column name specifying which
-    column was used for normalization, and as the numerator in the proportions.
-    :param off_target_column: A string formated column name specifying
-    which column to use as denominator in the proportions, typically Raw Reads.
-    :return: A figure with proportions of reads on and off target and an
-    estimate of average reads on target per sample.
-    """
-
-    plate_df['projected_reads'] = \
-        plate_df[off_target_column] * plate_df['LoadingFactor']
-
-    plate_df['projected_proportion'] = \
-        plate_df['projected_reads'] / (plate_df['projected_reads'].sum())
-
-    plate_df['projected_HO_reads'] = \
-        plate_df['projected_proportion'] * estimated_total_output
-
-    plate_df.sort_values(by='projected_HO_reads',
-                         ascending=False, inplace=True)
-
-    plate_df['on_target_proportion'] = \
-        plate_df[on_target_column] / plate_df[off_target_column]
-
-    plate_df['projected_off_target_reads'] = \
-        plate_df['projected_HO_reads'] * (1 - plate_df['on_target_proportion'])
-
-    plate_df['projected_on_target_reads'] = \
-        plate_df['projected_HO_reads'] * plate_df['on_target_proportion']
-
-    # PLOT
-    plt.subplots(figsize=(11, 6))
-    plot_df = plate_df.loc[~plate_df['projected_HO_reads'].isnull()]
-    plot_df = plot_df.reset_index()
-    plt.bar(range(plot_df.shape[0]),
-            plot_df['projected_on_target_reads'], width=1, color='r')
-    plt.bar(range(plot_df.shape[0]),
-            plot_df['projected_off_target_reads'],
-            bottom=plot_df['projected_on_target_reads'],
-            width=1, align='center', color='gray')
-
-    plt.title('Average reads on target per sample: ' +
-              "{:,}".format(int(plate_df['projected_on_target_reads'].mean())))
-    plt.show()
-
-    return plate_df
-
-
-def add_syndna(plate_df, syndna_pool_number=None, syndna_concentration=None,
-               syndna_percentage=5):
-    """Calculates nanoliters of synDNA spike-in to add to each sample to
-    achieve desired sequencing percentage (% of reads per sample).
-
-    Parameters
+def compress_plates(compression_layout,sample_accession_df,well_col='Well'):
+    """Takes the plate map file output from VisionMate of up to 4 racks containing tube IDs and tube positions
+    in a 96 well format. Assigns each tube to a new position in a 384 well format according to the quadrant
+    position of each plate, creating a 384 plate map. 
+    It merges the sample accession files to the plate map, which links the sample names to the tube IDs. 
+    It renames columns for legacy e.g. LocationColumn':'Col', LocationRow':'Row', 'sample_name':'Sample''
+    Assigns a compressed_plate_name based on the project name and project plates
     ----------
-    plate_df : pd.DataFrame
-        Growing plate dataframe with calculated gDNA input normalization values
-    syndna_pool_number : str (Default:None)
-        String formatted name for synDNA pool. Typically a number.
-    syndna_concentration : float (Default:None)
-        Concentration in ng/µL of synDNA spike-in
-    syndna_percentage : float (Default:5%)
-        Percentage of input in sample allocated for synDNA spike-in.
-
+    Args:
+    compression_layout: dict
+        This is a dictionary containing data related to compression layout.
+        It contains plate map file in .tsv format and quadrant position of each plate.
+    sample_accession_df: pandas DataFrame object
+        Contains sample names and corresponding Tube IDs
+    well_col: str
+      name of column with well IDs, in 'A1,P24' format
+    
     Returns
     -------
-    plate_df : pd.DataFrame
-        returns a pandas dataframe with extra columns"""
+    plate_df: pandas DataFrame object of samples compressed into 384 format with tube IDs corresponding to sample names. A column "Well" indicates 384 positions and well_id_96 indicates 96 well positions. 
+    """
+    #write a test to check that the compression_layout dictionary input matches the format we expect
+    
+    # Start a PlateReplication instance
+    compressed_plate_df = pd.DataFrame([])
+    well_mapper = PlateReplication(well_col)
+    for plate_dict_index in range(len(compression_layout)):
+        #iterables
+        fp = compression_layout[plate_dict_index]['Plate map file']
+        position = compression_layout[plate_dict_index]['Plate Position']
+      
+        #populate plate map
+        plate_map = pd.read_csv(fp,
+            dtype={'TubeCode':str, 'RackID':str}, sep='\t')
+        plate_map['Project Name'] = compression_layout[plate_dict_index]['Project Name']
+        plate_map['Plate Position'] = position
+        plate_map['Project Plate'] = compression_layout[plate_dict_index]['Project Plate']
 
-    plate_df_ = plate_df.copy()
-    plate_df_['synDNA pool number'] = syndna_pool_number
-    if syndna_pool_number is None:
-        print('Returning input plate dataframe;'
-              'no synDNA will be added to this prep')
-        return (plate_df_)
+        #assign 384 well from compressed plate position
+        well_mapper._reset()
+        for well_96_id in plate_map['LocationCell']:
+            well_384_id = well_mapper.get_384_well_location(well_96_id,position)
+            plate_map.loc[plate_map['LocationCell']==well_96_id, well_col] = well_384_id
 
-    else:
-        if 'Normalized DNA volume' not in plate_df_.columns:
-            raise Exception("The plate dataframe (plate_df) must have input "
-                            "normalization values already calculated before "
-                            "calculating synDNA addition")
+        compressed_plate_df = pd.concat([compressed_plate_df,plate_map])
+        
+    #merging sample_accesion
+    compressed_plate_df_merged = compressed_plate_df.merge(sample_accession_df[['sample_name','TubeCode']],
+                                                           on='TubeCode',how='left')
+    #renaming columns for legacy 
+    compressed_plate_df_merged.rename(columns={'LocationCell':'well_id_96',
+                                               'LocationColumn':'Col',
+                                               'LocationRow':'Row',
+                                       'sample_name':'Sample'},inplace=True)
+    
+    #ASSIGN COMPRESSED PLATE NAME BASED OFF PROJECT PLATE
+    compressed_plate_df_merged['Compressed Plate Name'] = compressed_plate_df_merged['Project Plate'].str.rsplit('_', n=1).str[-1]
 
-        plate_df_['Input DNA'] = plate_df_['Sample DNA Concentration'] * \
-            plate_df_['Normalized DNA volume']/1000
-        # synDNA volume is in nL
-        if syndna_concentration is None:
-            raise Exception("Specify the concentration of the synDNA"
-                            " spike-in pool")
+    # Concatenate the values with "_" separating each value
+    unique_project_plate = '_'.join(compressed_plate_df_merged['Compressed Plate Name'].unique())
+    unique_project_name = '_'.join(compressed_plate_df_merged['Project Name'].unique())
 
-        plate_df_['synDNA volume'] = 1000*(plate_df_['Input DNA'] *
-                                           (syndna_percentage*10**-2) /
-                                           syndna_concentration)
+    compressed_plate_df_merged['Compressed Plate Name'] = unique_project_name + "_" + unique_project_plate
 
-        return (plate_df_)
+    #Arrange plate_df so sample col is first
+    compressed_plate_df_merged = compressed_plate_df_merged[['Sample'] + list(compressed_plate_df_merged.columns.difference(['Sample']))]
+
+    return(compressed_plate_df_merged)
 
 
-def add_controls(plate_df, blanks_dir, katharoseq_dir):
-    """Compiles negative and positive controls into plate_df.
-    Loops through "blank" and "katharoseq" directories and concatenates all
-    files into a single DataFrame, "controls".
+def add_controls(plate_df,blanks_dir,katharoseq_dir):
+    """"Compiles negative and positive controls into plate_df. 
+    Loops through "blank" and "katharoseq" directories and concatenates all files into a single df, "controls".
     Merges "plate_df" to "controls" based on tube IDs present in plate_df.
     Assigns sample name to each control in plate_df.
-
+    ----------
     Args:
-        plate_df (pd.DataFrame): Pandas DataFrame object.
-        blanks_dir (str): Directory containing "*.tsv" files of tube IDs
-            assigned to blank tubes.
-        katharoseq_dir (str): Directory containing "*_tube_ids.tsv", which
-            contains tube IDs of tubes containing katharoseq samples.
-
-    Returns:
-        pd.DataFrame: DataFrame with control data assigned to tubes in this
-        prep.
+    plate_df: 
+        pandas DataFrame object
+    blanks dir: dir
+        "*.tsv" files of tube IDs assigned to blank tubes
+    katharoseq_dir: dir
+        "*_tube_ids.tsv", contains tube ids of tubes containing katharoseq sample
+        "*_cells_counts.tsv", contains cell counts of each katharoseq sample
+    
+    Returns
+    -------
+    pandas DataFrame object with control data assigned to tubes in this prep
     """
-    # Check whether controls have already been added
+    #Check wether controls have already been added
     if 'Blank' in plate_df.columns:
-        print('Plate DataFrame input already had controls. Returning '
-              'unmodified input')
-        return plate_df
+        print('Plate dataframe input already had controls. Returning unmodified input')
+        return(plate_df)
+    
     else:
-        # Loop through BLANK folder and assign sample_preparation_type
-        # "negative_control"
-        all_blanks = glob.glob(os.path.join(blanks_dir, "*"))
-        blank_file_paths = [
-            file
-            for file in all_blanks
-            if re.search(r"tsv", os.path.basename(file))]
-
+        #loop through BLANK folder and assign description "negative_control"
+        blank_file_paths = glob.glob(f'{blanks_dir}*.tsv')
         blanks = []
         for file_path in blank_file_paths:
-            dff = pd.read_csv(file_path, dtype={'TubeCode': str}, sep='\t')
+            dff = pd.read_csv(file_path, dtype={'TubeCode':str}, sep='\t')
             blanks.append(dff)
-        all_blanks_df = pd.concat(blanks, ignore_index=True)
-        all_blanks_df['sample_preparation_type'] = 'negative_control'
 
-        # Build a master table with katharoseq tube IDs and assign
-        # sample_preparation_type "positive_control"
-        # katharoseq_file_paths = glob.glob(f'{katharoseq_dir}*_tube_ids.tsv')
+        blanks = pd.concat(blanks, ignore_index=True)
+        blanks['description'] = 'negative_control'
 
-        all_katharo = glob.glob(os.path.join(katharoseq_dir, "*"))
-        katharoseq_file_paths = [
-            file
-            for file in all_katharo
-            if re.search(r"_tube_ids", os.path.basename(file))]
 
+
+        #build a master table with katharoseq tube ids and assign description "positive_control"
+        katharoseq_file_paths = glob.glob(f'{katharoseq_dir}*_tube_ids.tsv')
         katharoseq = []
         for file_path in katharoseq_file_paths:
-            df = pd.read_csv(file_path,
-                             dtype={'TubeCode': str,
-                                    'Kathseq_RackID': str},
-                             sep='\t')
+            df = pd.read_csv(file_path, dtype={'TubeCode':str, 'Kathseq_RackID': str}, sep='\t')
             katharoseq.append(df)
 
         katharoseq = pd.concat(katharoseq, ignore_index=True)
-        katharoseq['sample_preparation_type'] = 'positive_control'
+        katharoseq['description'] = 'positive_control'
 
-        # Find katharoseq rackid and merge cell counts & strain name
+        #Find katharoseq rackid and merge cell counts
 
-        # Add katharoseq_cell_counts and assign to each tube based on the
-        # row location
-
-        katharoseq_cell_counts_file_paths = [
-            file
-            for file in all_katharo
-            if re.search(r"_cell_counts", os.path.basename(file))]
-
+        #add katharoseq_cell_counts and assign to each tube based on the row location 
+        katharoseq_cell_counts_file_paths = glob.glob(f'{katharoseq_dir}*_cell_counts.tsv')
         katharoseq_cell_counts = []
         for file_path in katharoseq_cell_counts_file_paths:
-            cell_counts_df = pd.read_csv(file_path,
-                                         dtype={'Kathseq_RackID': str},
-                                         sep='\t')
+            cell_counts_df = pd.read_csv(file_path, dtype={'Kathseq_RackID':str}, sep='\t')
             katharoseq_cell_counts.append(cell_counts_df)
 
-        katharoseq_cell_counts = pd.concat(katharoseq_cell_counts,
-                                           ignore_index=True)
-        print(katharoseq_cell_counts)
-        katharoseq_merged = pd.merge(katharoseq, katharoseq_cell_counts,
-                                     on=['LocationRow', 'Kathseq_RackID'],
-                                     how='left')
+        katharoseq_cell_counts = pd.concat(katharoseq_cell_counts, ignore_index=True)
 
-        # Concatenate controls into a "Controls" table and add a column
-        # named "control_sample"
+        katharoseq_merged = pd.merge(katharoseq, katharoseq_cell_counts[['LocationRow', 'Kathseq_RackID', 'number_of_cells']],
+                             on=['LocationRow', 'Kathseq_RackID'], how='left')
 
-        to_concat = [all_blanks_df, katharoseq_merged]
-        controls = pd.concat(to_concat, axis=0, ignore_index=True)
-        controls = controls.drop(['LocationCell', 'LocationColumn',
-                                  'LocationRow'], axis=1)
+        #concatenate controls into a "Controls" table and add a column named "control_sample"    
+        controls = pd.concat([blanks, katharoseq_merged])
+        controls = controls.drop(['LocationCell', 'LocationColumn', 'LocationRow'], axis=1)
 
-        # Merge plate_df with controls table
-        controls['TubeCode'] = controls['TubeCode'].astype(int)
+        #merge plate_df with controls table
         plate_df = pd.merge(plate_df, controls, on='TubeCode', how='left')
 
-        # Assign sample_names ('Sample') to controls
-        plate_df['Sample'] = np.where(
-            (plate_df['Sample'].isna()) &
-            (plate_df == 'negative_control').any(axis=1),
-            "BLANK." + plate_df['Project Abbreviation'] +
-            "." + plate_df['Project Plate'].str.split('_').str.get(-1) +
-            "." + plate_df['Col'].astype(str) +
-            plate_df['Row'],
-            plate_df['Sample']
-        )
 
-        plate_df['Sample'] = np.where(
-            (plate_df['Sample'].isna()) &
-            (plate_df == 'positive_control').any(axis=1),
-            "KATHARO." + plate_df['Project Abbreviation'] +
-            "." + plate_df['Project Plate'].str.split('_').str.get(-1) +
-            "." + plate_df['Col'].astype(str) +
-            plate_df['Row'] + "." + plate_df['number_of_cells'].astype(str),
-            plate_df['Sample']
-        )
 
-        # Assign BLANK column
-        plate_df['Blank'] = np.where(plate_df['Sample'].str.contains('BLANK'),
-                                     True, False)
+        #assign sample_names ('Sample') to controls
+        plate_df['Sample'] = np.where((plate_df['Sample'].isna()) & (plate_df == 'negative_control').any(axis=1), "BLANK" 
+                                      + plate_df['Project Plate'].str.split('_').str.get(-1) 
+                                      + "." 
+                                      + plate_df['Row'] 
+                                      + plate_df['Col'].astype(str), plate_df['Sample'])
+        plate_df['Sample'] = np.where((plate_df['Sample'].isna()) & (plate_df == 'positive_control').any(axis=1), "kathseq." 
+                                      + plate_df['number_of_cells'].astype(str)
+                                      +"."
+                                      + plate_df['Row']
+                                      + plate_df['Col'].astype(str), plate_df['Sample'])
 
-        # Assign sample_preparation_type to real samples
-        plate_df['sample_preparation_type'] = \
-            plate_df['sample_preparation_type'].fillna("real_sample")
-
+        #assign BLANK column
+        plate_df['Blank'] = np.where(plate_df['Sample'].str.contains('BLANK'), True, False)
+        
         print('Controls added')
 
-        return plate_df
-
-
-def compress_plates(compression_layout, sample_accession_df, well_col='Well'):
-    """
-    Takes the plate map file output from VisionMate of up to 4 racks
-    containing tube IDs and tube positions in a 96 well format. Assigns each
-    tube to a new position in a 384 well format according to the quadrant
-    position of each plate, creating a 384 plate map. It merges the sample
-    accession files to the plate map, which links the sample names to the tube
-    IDs. It renames columns for legacy e.g. 'LocationColumn': 'Col',
-    'LocationRow': 'Row', 'sample_name': 'Sample' Assigns a
-    compressed_plate_name based on the project name and project plates.
-
-    Args:
-        compression_layout (dict): Dictionary containing data related to
-            compression layout. It contains a plate map file in .tsv format and
-            quadrant position of each plate.
-        sample_accession_df (pandas DataFrame): Contains sample names and
-            corresponding Tube IDs.
-        well_col (str): Name of the column with well IDs, in 'A1,P24' format.
-
-    Returns:
-        plate_df (pandas DataFrame): DataFrame of samples compressed into 384
-            format with tube IDs corresponding to sample names.
-            A column "Well" indicates 384 positions,
-            and well_id_96 indicates 96 well positions.
-    """
-    compressed_plate_df = pd.DataFrame([])
-    well_mapper = PlateReplication(well_col)
-
-    for plate_dict_index in range(len(compression_layout)):
-        fp = compression_layout[plate_dict_index]['Plate map file']
-        position = compression_layout[plate_dict_index]['Plate Position']
-
-        plate_map = pd.read_csv(
-            fp,
-            dtype={'TubeCode': str, 'RackID': str},
-            sep='\t')
-
-        plate_map['Project Name'] = \
-            compression_layout[plate_dict_index]['Project Name']
-        plate_map['Plate Position'] = position
-        plate_map['Project Plate'] = \
-            compression_layout[plate_dict_index]['Project Plate']
-        plate_map['Project Abbreviation'] = \
-            compression_layout[plate_dict_index]['Project Abbreviation']
-
-        well_mapper._reset()
-        col = 'LocationCell'
-        for well_96_id in plate_map[col]:
-            well_384_id = \
-                well_mapper.get_384_well_location(well_96_id, position)
-            plate_map.loc[plate_map[col] == well_96_id, well_col] = \
-                well_384_id
-
-        compressed_plate_df = pd.concat([compressed_plate_df, plate_map])
-
-    compressed_plate_df_merged = compressed_plate_df.merge(
-        sample_accession_df[['sample_name', 'TubeCode']],
-        on='TubeCode', how='left'
-    )
-
-    compressed_plate_df_merged.rename(columns={
-        'LocationCell': 'well_id_96',
-        'LocationColumn': 'Col',
-        'LocationRow': 'Row',
-        'sample_name': 'Sample'
-    }, inplace=True)
-
-    col = 'Project Plate'
-    compressed_plate_df_merged['Compressed Plate Name'] = (
-        compressed_plate_df_merged[col].str.rsplit('_', n=1).str[-1]
-    )
-
-    unique_project_plate = '_'.join(
-        compressed_plate_df_merged['Compressed Plate Name'].unique()
-    )
-    unique_project_name = \
-        '_'.join(compressed_plate_df_merged['Project Name'].unique())
-
-    compressed_plate_df_merged['Compressed Plate Name'] = (
-        unique_project_name + "_" + unique_project_plate
-    )
-
-    col = 'Project Plate'
-    column_order = ['Sample'] + \
-        list(compressed_plate_df_merged.columns.difference([col]))
-    compressed_plate_df_merged = compressed_plate_df_merged[column_order]
-
-    compressed_plate_df_merged['TubeCode'] = \
-        compressed_plate_df_merged['TubeCode'].astype(int)
-
-    return compressed_plate_df_merged
+        return(plate_df)
