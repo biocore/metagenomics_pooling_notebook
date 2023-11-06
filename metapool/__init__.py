@@ -12,7 +12,8 @@ from .plate import (validate_plate_metadata, requires_dilution, dilute_gDNA,
 from .amplipool import assign_emp_index
 from .igm import IGMManifest
 from .count import run_counts
-from .metapool import extract_stats_metadata, sum_lanes
+from .metapool import (extract_stats_metadata, sum_lanes,
+                       compress_plates, add_controls)
 
 
 __credits__ = ("https://github.com/biocore/metagenomics_pooling_notebook/"
@@ -26,7 +27,8 @@ __all__ = ['preparations_for_run', 'parse_prep',
            'requires_dilution', 'dilute_gDNA', 'autopool', 'find_threshold',
            'extract_stats_metadata', 'sum_lanes', 'remove_qiita_id',
            'preparations_for_run_mapping_file', 'demux_sample_sheet',
-           'demux_pre_prep', 'sheet_needs_demuxing', 'pre_prep_needs_demuxing']
+           'demux_pre_prep', 'sheet_needs_demuxing', 'pre_prep_needs_demuxing',
+           'compress_plates', 'add_controls']
 
 from . import _version
 
