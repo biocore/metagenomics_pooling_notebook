@@ -1686,7 +1686,7 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None):
         return plate_df
 
 
-def validate_plate_df(plate_df, metadata, blanks_dir, sample_accession_df,
+def validate_plate_df(plate_df, metadata, sample_accession_df, blanks_dir,
                       katharoseq_dir=None):
     """"Function checks that all the samples names recorded in the plate_df
     have metadata associated with them. It also checks that all the matrix
@@ -1769,8 +1769,8 @@ def validate_plate_df(plate_df, metadata, blanks_dir, sample_accession_df,
             plate_df[~((plate_df['TubeCode'].isin(
                     sample_accession_df['TubeCode'])) |
                     (plate_df['TubeCode'].isin(blanks['TubeCode'])) |
-                    (plate_df['TubeCode'].isin(katharoseq['TubeCode']))),
-                     'TubeCode']
+                    (plate_df['TubeCode'].isin(
+                        katharoseq['TubeCode'])))]['TubeCode']
 
     elif katharoseq_dir is None:
         missing_samples_tubecode = \
