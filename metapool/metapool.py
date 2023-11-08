@@ -1561,7 +1561,7 @@ def compress_plates(compression_layout, sample_accession_df,
     return compressed_plate_df_merged
 
 
-def add_controls(plate_df, blanks_dir, katharoseq_dir):
+def add_controls(plate_df, blanks_dir, katharoseq_dir=None):
     """
     Compiles negative and positive controls into plate_df.
 
@@ -1599,71 +1599,83 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir):
         blanks = pd.concat(blanks, ignore_index=True)
         blanks['description'] = 'negative_control'
 
-        # Build a master table with katharoseq tube ids and
-        # assign description "positive_control"
-        katharoseq_file_paths = glob.glob(f'{katharoseq_dir}*_tube_ids.tsv')
-        katharoseq = []
+        if katharoseq_dir is not None:
 
-        for file_path in katharoseq_file_paths:
-            df = pd.read_csv(
-                file_path,
-                dtype={'TubeCode': str,
-                       'Kathseq_RackID': str},
-                sep='\t')
-            katharoseq.append(df)
+            # Build a master table with katharoseq tube ids and
+            # assign description "positive_control"
+            katharoseq_file_paths = \
+                glob.glob(f'{katharoseq_dir}*_tube_ids.tsv')
+            katharoseq = []
 
-        katharoseq = pd.concat(katharoseq, ignore_index=True)
-        katharoseq['description'] = 'positive_control'
+            for file_path in katharoseq_file_paths:
+                df = pd.read_csv(
+                    file_path,
+                    dtype={'TubeCode': str,
+                           'Kathseq_RackID': str},
+                    sep='\t')
+                katharoseq.append(df)
 
-        # Find katharoseq rackid and merge cell counts
+            katharoseq = pd.concat(katharoseq, ignore_index=True)
+            katharoseq['description'] = 'positive_control'
 
-        # Add katharoseq_cell_counts and assign to each tube based on the row
-        # location
-        katharoseq_cell_counts_file_paths = \
-            glob.glob(f'{katharoseq_dir}*_cell_counts.tsv')
-        katharoseq_cell_counts = []
+            # Find katharoseq rackid and merge cell counts
+            # Add katharoseq_cell_counts and assign to each tube based on
+            # the row location
 
-        for file_path in katharoseq_cell_counts_file_paths:
-            cell_counts_df = pd.read_csv(
-                file_path,
-                dtype={'Kathseq_RackID': str},
-                sep='\t')
-            katharoseq_cell_counts.append(cell_counts_df)
+            katharoseq_cell_counts_file_paths = \
+                glob.glob(f'{katharoseq_dir}*_cell_counts.tsv')
+            katharoseq_cell_counts = []
 
-        katharoseq_cell_counts = pd.concat(
-            katharoseq_cell_counts,
-            ignore_index=True)
+            for file_path in katharoseq_cell_counts_file_paths:
+                cell_counts_df = pd.read_csv(
+                    file_path,
+                    dtype={'Kathseq_RackID': str},
+                    sep='\t')
+                katharoseq_cell_counts.append(cell_counts_df)
 
-        katharoseq_merged = pd.merge(
-            katharoseq,
-            katharoseq_cell_counts[['LocationRow',
-                                    'Kathseq_RackID',
-                                    'number_of_cells']],
-            on=['LocationRow', 'Kathseq_RackID'],
-            how='left')
+            katharoseq_cell_counts = pd.concat(
+                katharoseq_cell_counts,
+                ignore_index=True)
 
-        # Concatenate controls into a "Controls" table and add a column named
-        # "control_sample"
-        controls = pd.concat([blanks, katharoseq_merged])
-        controls = controls.drop(['LocationCell', 'LocationColumn',
-                                  'LocationRow'], axis=1)
+            katharoseq_merged = pd.merge(
+                katharoseq,
+                katharoseq_cell_counts[['LocationRow',
+                                        'Kathseq_RackID',
+                                        'number_of_cells']],
+                on=['LocationRow', 'Kathseq_RackID'],
+                how='left')
 
-        # Merge plate_df with controls table
-        plate_df = pd.merge(plate_df, controls, on='TubeCode', how='left')
+            # Concatenate controls into a "Controls" table and add a
+            # column named "control_sample"
+            controls = pd.concat([blanks, katharoseq_merged])
+            controls = controls.drop(['LocationCell', 'LocationColumn',
+                                      'LocationRow'], axis=1)
+
+            # Merge plate_df with controls table
+            plate_df = pd.merge(plate_df, controls, on='TubeCode', how='left')
+
+            # Assign sample_names ('Sample') to controls
+            # Katharoseq
+            plate_df['Sample'] = np.where(
+                (plate_df['Sample'].isna()) &
+                (plate_df == 'positive_control').any(axis=1),
+                "kathseq." + plate_df['number_of_cells'].astype(str) + "." +
+                plate_df['Row'] + plate_df['Col'].astype(str),
+                plate_df['Sample'])
+
+        elif katharoseq_dir is None:
+
+            # Merge plate_df with controls table
+            plate_df = pd.merge(plate_df, blanks, on='TubeCode', how='left')
 
         # Assign sample_names ('Sample') to controls
+        # BLANKS
         plate_df['Sample'] = np.where(
             (plate_df['Sample'].isna()) &
             (plate_df == 'negative_control').any(axis=1),
             "BLANK" + plate_df['Project Plate'].str.split('_').str.get(-1) +
             "." + plate_df['Row'] + plate_df['Col'].astype(str),
             plate_df['Sample'])
-
-        plate_df['Sample'] = np.where(
-            (plate_df['Sample'].isna()) &
-            (plate_df == 'positive_control').any(axis=1),
-            "kathseq." + plate_df['number_of_cells'].astype(str) + "." +
-            plate_df['Row'] + plate_df['Col'].astype(str), plate_df['Sample'])
 
         # Assign BLANK column
         plate_df['Blank'] = np.where(plate_df['Sample'].str.contains('BLANK'),
@@ -1672,3 +1684,142 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir):
         print('Controls added')
 
         return plate_df
+
+
+def validate_plate_df(plate_df, metadata, blanks_dir, sample_accession_df,
+                      katharoseq_dir=None):
+    """"Function checks that all the samples names recorded in the plate_df
+    have metadata associated with them. It also checks that all the matrix
+    tubes in the plate_df are indeed located in the sample accesion file or
+    controls lists.Checks for duplicate sample names and makes sure the
+    Katharoseq Dilution curve has the full dilution series (8-point serial
+    dilution)
+    ----------
+    Args:
+    plate_df:
+        pandas DataFrame object
+    metadata:
+        pandas DataFrame of qiita metadata associated with study
+    blanks dir: dir
+        "*.tsv" files of tube IDs assigned to blank tubes
+    katharoseq_dir: dir (default:None)
+        "*_tube_ids.tsv", contains tube ids of katharoseq samples
+        "*_cells_counts.tsv", contains cell counts of katharoseq samples
+
+    Returns
+    -------
+    Returns 0 (zero)
+    """
+
+    # This checks that all the samples names recored in the plate_df have
+    # metadata associated with them
+    str_ = 'positive_control|negative_control'
+    control_samples = \
+        set(plate_df.loc[(plate_df['description'].str.contains(str_)) |
+                         (plate_df['description'].isna()), 'Sample'])
+
+    print(f"There are {len(control_samples)} control samples in this plate")
+    samples_in_metadata = []
+    if 'tube_id' in metadata.columns:
+        mask = plate_df['Sample'].isin(metadata['sample_name'].str[6:]) |\
+               plate_df['Sample'].isin(metadata['tube_id'])
+    else:
+        mask = plate_df['Sample'].isin(metadata['sample_name'].str[6:])
+
+    samples_in_metadata = set(plate_df.loc[mask, 'Sample'])
+    print(f"There are {len(samples_in_metadata)} samples with associated"
+          " metadata in this plate")
+
+    valid_samples = control_samples.union(samples_in_metadata)
+    missing_samples = plate_df.loc[~plate_df['Sample'].isin(valid_samples),
+                                   'Sample']
+
+    if missing_samples.empty:
+        print("All samples have associated metadata :D")
+    else:
+        missing_str = ', '.join(missing_samples.astype(str))
+        warning_message = \
+            f"The following samples are missing metadata: {missing_str}"
+        raise ValueError(warning_message)
+
+    # This repeats the code in the add_controls function to get a controls
+    # list to compare against our tubes in the plate_df file. This checks
+    # that all the tubes in our plate_df files are indeed located in the SA
+    # file / controls list
+
+    blank_file_paths = glob.glob(f'{blanks_dir}*.tsv')
+    blanks = []
+    for file_path in blank_file_paths:
+        dff = pd.read_csv(file_path, dtype={'TubeCode': str}, sep='\t')
+        blanks.append(dff)
+
+    blanks = pd.concat(blanks, ignore_index=True)
+
+    # katharoseq chunk
+    if katharoseq_dir is not None:
+        katharoseq_file_paths = glob.glob(f'{katharoseq_dir}*_tube_ids.tsv')
+        katharoseq = []
+        for file_path in katharoseq_file_paths:
+            df = pd.read_csv(file_path, dtype={'TubeCode': str}, sep='\t')
+            katharoseq.append(df)
+
+        katharoseq = pd.concat(katharoseq, ignore_index=True)
+
+        missing_samples_tubecode = \
+            plate_df[~((plate_df['TubeCode'].isin(
+                    sample_accession_df['TubeCode'])) |
+                    (plate_df['TubeCode'].isin(blanks['TubeCode'])) |
+                    (plate_df['TubeCode'].isin(katharoseq['TubeCode']))),
+                     'TubeCode']
+
+    elif katharoseq_dir is None:
+        missing_samples_tubecode = \
+            plate_df[~((plate_df['TubeCode'].isin(
+                sample_accession_df['TubeCode'])) |
+                (plate_df['TubeCode'].isin(blanks['TubeCode'])))]['TubeCode']
+
+    if missing_samples_tubecode.empty:
+        print("All TubeCodes have associated data :D")
+    else:
+        missing_samples_str = ', '.join(missing_samples_tubecode.astype(str))
+        warning_message = "The following TubeCodes are missing sample" + \
+            f" identity information (metadata): {missing_samples_str}"
+        raise ValueError(warning_message)
+
+    # Checks that a full katharoseq 8-point serial dilution was added, when
+    # appropriate
+    if 'Kathseq_RackID' in plate_df.columns:
+        dilutions_ = \
+            plate_df.loc[~plate_df['number_of_cells'].isnull(),
+                         'number_of_cells'].nunique()
+        if dilutions_ < 8:
+            raise ValueError(f"There should be 8 dilution points of katharoseq"
+                             f" controls and your plate_df only has"
+                             f" {dilutions_}")
+
+    # remove any leading and/or trailing whitespace before determining if
+    # any of the sample-names are invalid or duplicates.
+    # copied from read_plate_map_csv()
+    plate_df = sanitize_plate_map_sample_names(plate_df)
+
+    invalid_sample_names = identify_invalid_sample_names(plate_df)
+
+    if invalid_sample_names:
+        raise ValueError(
+            'The following sample names are invalid: %s' % ','.join(
+                invalid_sample_names))
+
+    null_samples = plate_df.Sample.isnull()
+    if null_samples.any():
+        warnings.warn(('This plate map contains %d empty wells, these will be '
+                       'ignored') % null_samples.sum())
+
+        # slice to the non-null samples and reset the index so samples are
+        # still indexed with a continuous list of integers
+        plate_df = plate_df[~null_samples]
+        plate_df.reset_index(inplace=True, drop=True)
+
+    duplicated_samples = plate_df.Sample[plate_df.Sample.duplicated()]
+    if len(duplicated_samples):
+        raise ValueError('The following sample names are duplicated %s' %
+                         ', '.join(sorted(duplicated_samples)))
