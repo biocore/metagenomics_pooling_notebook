@@ -23,8 +23,8 @@ from metapool.metapool import (read_plate_map_csv, read_pico_csv,
                                calculate_iseqnorm_pooling_volumes,
                                identify_invalid_sample_names,
                                sanitize_plate_map_sample_names,
-                               add_syndna,
-                               # add_controls, compress_plates
+                               add_syndna, validate_plate_df,
+                               add_controls, compress_plates
                                )
 
 
@@ -56,6 +56,7 @@ class Tests(TestCase):
         no_blanks_fp = os.path.join(path, 'data/test_no_blanks.tsv')
         blanks_fp = os.path.join(path, 'data/test_blanks.tsv')
         with_nan_fp = os.path.join(path, 'data/test_nan.tsv')
+        metadata_fp = os.path.join(path, 'data/metadata_for_test.txt')
 
         sa_fp = os.path.join(path, 'data/sa_file.tsv')
         p1 = os.path.join(path, 'data/plate_map1.tsv')
@@ -63,12 +64,12 @@ class Tests(TestCase):
         p3 = os.path.join(path, 'data/plate_map3.tsv')
         p4 = os.path.join(path, 'data/plate_map4.tsv')
 
-        self.comp_plate_exp = os.path.join(
+        self.comp_plate_exp_fp = os.path.join(
             path,
-            'data/compress_plates_expected_out.csv')
-        self.add_controls_exp = os.path.join(
+            'data/compress_plates_expected_out.tsv')
+        self.add_controls_exp_fp = os.path.join(
             path,
-            'data/add_controls_expected_out.csv')
+            'data/add_controls_expected_out.tsv')
         self.katharoseq_dir = os.path.join(path, 'data/katharo')
         self.blanks_dir = os.path.join(path, 'data/blanks')
 
@@ -80,6 +81,7 @@ class Tests(TestCase):
         self.blanks = pd.read_csv(blanks_fp, sep='\t')
         self.sa_df = pd.read_csv(sa_fp, sep='\t',
                                  dtype={'TubeCode': str})
+        self.metadata = pd.read_csv(metadata_fp, sep='\t')
         self.fp = path
         self.plates = [p1, p2, p3, p4]
 
@@ -116,56 +118,107 @@ class Tests(TestCase):
     #     npt.assert_almost_equal(obs_sample, exp_sample)
     #     npt.assert_almost_equal(obs_water, exp_water)
 
-    # def test_compress_plates(self):
+    def test_compress_plates(self):
+        compression = [
+            # top left plate
+            {'Plate Position': 1,  # as int
+             'Plate map file': self.plates[0],
+             'Project Plate': 'Celeste_Adaptation_12986_Plate_16',
+             'Project Name': 'Celeste_Adaptation_12986',
+             'Project Abbreviation': 'ADAPT'},
+            # top right plate
+            {'Plate Position': 2,
+             'Plate map file': self.plates[1],
+             'Project Plate': 'Celeste_Adaptation_12986_Plate_17',
+             'Project Name': 'Celeste_Adaptation_12986',
+             'Project Abbreviation': 'ADAPT'},
+            {'Plate Position': 3,
+             'Plate map file': self.plates[2],
+             'Project Plate': 'Celeste_Adaptation_12986_Plate_18',
+             'Project Name': 'Celeste_Adaptation_12986',
+             'Project Abbreviation': 'ADAPT'},
+            {'Plate Position': 4,
+             'Plate map file': self.plates[3],
+             'Project Plate': 'Celeste_Adaptation_12986_21',
+             'Project Name': 'Celeste_Adaptation_12986',
+             'Project Abbreviation': 'ADAPT'}
+        ]
 
-    #     compression = [
-    #         # top left plate
-    #         {'Plate Position': 1,  # as int
-    #          'Plate map file': self.plates[0],
-    #          'Project Plate': 'Celeste_Adaptation_12986_Plate_16',
-    #          'Project Name': 'Celeste_Adaptation_12986',
-    #          'Project Abbreviation': 'ADAPT'},
-    #         # top right plate
-    #         {'Plate Position': 2,
-    #          'Plate map file': self.plates[1],
-    #          'Project Plate': 'Celeste_Adaptation_12986_Plate_17',
-    #          'Project Name': 'Celeste_Adaptation_12986',
-    #          'Project Abbreviation': 'ADAPT'},
-    #         {'Plate Position': 3,
-    #          'Plate map file': self.plates[2],
-    #          'Project Plate': 'Celeste_Adaptation_12986_Plate_18',
-    #          'Project Name': 'Celeste_Adaptation_12986',
-    #          'Project Abbreviation': 'ADAPT'},
-    #         {'Plate Position': 4,
-    #          'Plate map file': self.plates[3],
-    #          'Project Plate': 'Celeste_Adaptation_12986_21',
-    #          'Project Name': 'Celeste_Adaptation_12986',
-    #          'Project Abbreviation': 'ADAPT'}
-    #     ]
+        plate_df_obs = compress_plates(
+            compression,
+            self.sa_df,
+            well_col='Well')
+        plate_df_exp = pd.read_csv(self.comp_plate_exp_fp,
+                                   dtype={'TubeCode': str}, sep='\t')
 
-    #     plate_df_obs = compress_plates(
-    #         compression,
-    #         self.sa_df,
-    #         well_col='Well')
-    #     plate_df_exp = pd.read_csv(self.comp_plate_exp, sep='\t')
+        pd.testing.assert_frame_equal(plate_df_obs, plate_df_exp)
 
-    #     pd.testing.assert_frame_equal(plate_df_obs, plate_df_exp)
+    def test_add_controls(self):
+        plate_df = pd.read_csv(self.comp_plate_exp_fp,
+                               dtype={'TubeCode': str}, sep='\t')
 
-    # def test_add_controls(self):
+        add_controls_obs = add_controls(plate_df,
+                                        self.blanks_dir,
+                                        self.katharoseq_dir)
 
-    #     plate_df_exp = pd.read_csv(self.comp_plate_exp, sep='\t')
+        add_controls_exp = pd.read_csv(self.add_controls_exp_fp,
+                                       dtype={'TubeCode': str,
+                                              'Kathseq_RackID': str},
+                                       sep='\t')
 
-    #     add_controls_obs = add_controls(
-    #         plate_df_exp,
-    #         self.blanks_dir,
-    #         self.katharoseq_dir)
-    #     add_controls_exp = pd.read_csv(self.add_controls_exp, sep='\t')
+        pd.testing.assert_frame_equal(add_controls_obs,
+                                      add_controls_exp)
 
-    #     df1 = add_controls_obs
-    #     df1['Kathseq_RackID'] = df1['Kathseq_RackID'].astype(float)
-    #     df2 = add_controls_exp
+        # Testing edge case that technician reruns the
+        # module on the same dataframe
+        add_controls_obs = add_controls(add_controls_exp,
+                                        self.blanks_dir,
+                                        self.katharoseq_dir)
 
-    #     pd.testing.assert_frame_equal(df1, df2)
+        pd.testing.assert_frame_equal(add_controls_obs,
+                                      add_controls_exp)
+
+    def test_validate_plate_df(self):
+        # Validator function. No return so just asserting
+        # that errors are raised when expected
+        plate_df = pd.read_csv(self.add_controls_exp_fp,
+                               dtype={'TubeCode': str,
+                                      'Kathseq_RackID': str},
+                               sep='\t')
+        # Test with no errors
+        validate_plate_df(plate_df, self.metadata, self.sa_df,
+                          self.blanks_dir, self.katharoseq_dir)
+        # Test for errors
+        # Raises error for lack of katharoseq dir, tubes with no
+        # metadata
+        with self.assertRaises(ValueError):
+            validate_plate_df(plate_df, self.metadata, self.sa_df,
+                              self.blanks_dir)
+        # Raises error for sample not represented in metadata
+        with self.assertRaises(ValueError):
+            validate_plate_df(plate_df.replace('41B.Month6.1',
+                                               'not_in_metadata'),
+                              self.metadata, self.sa_df,
+                              self.blanks_dir)
+        # Raises error for TubeCode with no associated
+        # information
+        with self.assertRaises(ValueError):
+            validate_plate_df(plate_df.replace('0363132553',
+                                               '0000000000'),
+                              self.metadata, self.sa_df,
+                              self.blanks_dir)
+        # Raisees error for duplicate sample 41B.Month6.10
+        with self.assertRaises(ValueError):
+            validate_plate_df(plate_df.replace('41B.Month6.1',
+                                               '41B.Month6.10'),
+                              self.metadata, self.sa_df,
+                              self.blanks_dir)
+        # Raises error for incomplete katharoseq dilution series
+        with self.assertRaises(ValueError):
+            validate_plate_df(plate_df.replace(240000.0,
+                                               1200000.0),
+                              self.metadata, self.sa_df,
+                              self.blanks_dir)
 
     def test_read_plate_map_csv(self):
         plate_map_csv = \

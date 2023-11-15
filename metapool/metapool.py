@@ -1515,6 +1515,8 @@ def compress_plates(compression_layout, sample_accession_df,
         plate_map['Plate Position'] = position
         plate_map['Project Plate'] = \
             compression_layout[plate_dict_index]['Project Plate']
+        plate_map['Project Abbreviation'] = \
+            compression_layout[plate_dict_index]['Project Abbreviation']
 
         # Assign 384 well from compressed plate position
         well_mapper._reset()
