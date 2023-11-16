@@ -155,8 +155,7 @@ def _read_config_metadata(config_fp: str = None) -> dict:
     """
     if config_fp is None:
         curr_dir = os.path.dirname(os.path.abspath(__file__))
-        parent_dir = os.path.join(curr_dir, os.pardir)
-        config_fp = os.path.join(parent_dir, DEFAULT_CONFIG_FNAME)
+        config_fp = os.path.join(curr_dir, "data", DEFAULT_CONFIG_FNAME)
 
     with open(config_fp, "r") as f:
         config_dict = yaml.safe_load(f)
