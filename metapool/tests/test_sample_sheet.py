@@ -57,7 +57,8 @@ class BaseTests(unittest.TestCase):
              'ReverseAdapter': 'CATCAT',
              'HumanFiltering': 'False',
              'library_construction_protocol': 'Knight Lab Kapa HP',
-             'experiment_design_description': 'Eqiiperiment'
+             'experiment_design_description': 'Eqiiperiment',
+             'contains_replicates': False
             },
             {
              'Sample_Project': 'Yanomani_2008_10052',
@@ -67,7 +68,8 @@ class BaseTests(unittest.TestCase):
              'ReverseAdapter': 'CATCAT',
              'HumanFiltering': 'False',
              'library_construction_protocol': 'Knight Lab Kapa HP',
-             'experiment_design_description': 'Eqiiperiment'
+             'experiment_design_description': 'Eqiiperiment',
+             'contains_replicates': False
             }
         ]
 
@@ -423,16 +425,17 @@ class KLSampleSheetTests(BaseTests):
             columns=['Sample_Project', 'QiitaID', 'BarcodesAreRC',
                      'ForwardAdapter', 'ReverseAdapter', 'HumanFiltering',
                      'library_construction_protocol',
-                     'experiment_design_description'],
+                     'experiment_design_description', 'contains_replicates'],
             data=[
                 ['Koening_ITS_101', '101', 'False', 'GATACA', 'CATCAT',
-                 'False', 'Knight Lab Kapa HP', 'Eqiiperiment'],
+                 'False', 'Knight Lab Kapa HP', 'Eqiiperiment', False],
                 ['Yanomani_2008_10052', '10052', 'False', 'GATACA', 'CATCAT',
-                 'False', 'Knight Lab Kapa HP', 'Eqiiperiment'],
+                 'False', 'Knight Lab Kapa HP', 'Eqiiperiment', False],
                 ['paco_Koening_ITS_101', '101', 'False', 'GATACA', 'CATCAT',
-                 'False', 'Knight Lab Kapa HP', 'Eqiiperiment'],
+                 'False', 'Knight Lab Kapa HP', 'Eqiiperiment', False],
                 ['paco_Yanomani_2008_10052', '10052', 'False', 'GATACA',
-                 'CATCAT', 'False', 'Knight Lab Kapa HP', 'Eqiiperiment']
+                 'CATCAT', 'False', 'Knight Lab Kapa HP', 'Eqiiperiment',
+                 False]
             ]
         )
 
@@ -517,6 +520,7 @@ class KLSampleSheetTests(BaseTests):
                             ' have exactly these keys BarcodesAreRC, '
                             'ForwardAdapter, HumanFiltering, QiitaID, '
                             'ReverseAdapter, Sample_Project, '
+                            'contains_replicates, '
                             'experiment_design_description, '
                             'library_construction_protocol')]
         obs = _validate_sample_sheet_metadata(self.metadata)
@@ -726,6 +730,8 @@ class SampleSheetWorkflow(BaseTests):
                                 'HiSeq4000',
                                 [5, 7],
                                 strict=False)
+
+        self.assertIsNotNone(obs, msg="make_sample_sheet() failed")
 
         data = (
             [5, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
