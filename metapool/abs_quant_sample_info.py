@@ -74,7 +74,6 @@ def add_abs_quant_metadata(
         input_df: pandas.DataFrame, sample_density_g_ml_key: str,
         storage_liquid_type: str, config_fp: Optional[str] = None) \
         -> pandas.DataFrame:
-
     """
     Add metadata for absolute quantification calculations to the dataframe.
 
@@ -167,7 +166,6 @@ def _add_config_metadata(
         calc_df: pandas.DataFrame, config_dict: dict,
         sample_density_g_ml_key: str, storage_liquid_type: str) \
         -> pandas.DataFrame:
-
     """
     Add metadata from the config file to the dataframe.
 
@@ -291,12 +289,14 @@ def _calc_abs_quant_metadata(calc_df: pandas.DataFrame) -> pandas.DataFrame:
     # Calculate volume of storage liquid only and
     # volume of sample in storage tube
     calc_df[CALC_VOL_STORAGE_LIQUID_ONLY_ML_KEY] = (
-        calc_df[CALC_MASS_STORAGE_LIQUID_ONLY_G_KEY] /
-        calc_df[DENSITY_STORAGE_LIQUID_G_ML_KEY])
+            calc_df[CALC_MASS_STORAGE_LIQUID_ONLY_G_KEY] /
+            calc_df[DENSITY_STORAGE_LIQUID_G_ML_KEY])
     calc_df[CALC_VOL_SAMPLE_IN_STORAGE_TUBE_ML_KEY] = ((
-        calc_df[MASS_STORAGE_TUBE_AND_STORAGE_LIQUID_AFTER_SAMPLE_G_KEY] -
-        calc_df[MASS_STORAGE_TUBE_AND_STORAGE_LIQUID_BEFORE_SAMPLE_G_KEY]) /
-        calc_df[DENSITY_SAMPLE_G_ML_KEY])
+                                                               calc_df[
+                                                                   MASS_STORAGE_TUBE_AND_STORAGE_LIQUID_AFTER_SAMPLE_G_KEY] -
+                                                               calc_df[
+                                                                   MASS_STORAGE_TUBE_AND_STORAGE_LIQUID_BEFORE_SAMPLE_G_KEY]) /
+                                                       calc_df[DENSITY_SAMPLE_G_ML_KEY])
 
     # Calculate volume of homogenate in storage tube
     calc_df[CALC_VOL_HOMOGENATE_IN_STORAGE_TUBE_ML_KEY] = \
@@ -305,9 +305,10 @@ def _calc_abs_quant_metadata(calc_df: pandas.DataFrame) -> pandas.DataFrame:
 
     # Calculate density of homogenate
     calc_df[CALC_DENSITY_HOMOGENATE_G_ML_KEY] = ((
-        calc_df[MASS_STORAGE_TUBE_AND_STORAGE_LIQUID_AFTER_SAMPLE_G_KEY] -
-        calc_df[MASS_STORAGE_TUBE_ONLY_G_KEY]) /
-        calc_df[CALC_VOL_HOMOGENATE_IN_STORAGE_TUBE_ML_KEY])
+                                                         calc_df[
+                                                             MASS_STORAGE_TUBE_AND_STORAGE_LIQUID_AFTER_SAMPLE_G_KEY] -
+                                                         calc_df[MASS_STORAGE_TUBE_ONLY_G_KEY]) /
+                                                 calc_df[CALC_VOL_HOMOGENATE_IN_STORAGE_TUBE_ML_KEY])
 
     # Calculate mass of the homogenate aliquotted into the matrix tube and
     # mass of the sample aliquotted into the matrix tube
@@ -315,14 +316,14 @@ def _calc_abs_quant_metadata(calc_df: pandas.DataFrame) -> pandas.DataFrame:
         calc_df[CALC_DENSITY_HOMOGENATE_G_ML_KEY] * \
         calc_df[VOL_HOMOGENATE_ALIQUOT_INPUT_ML_KEY]
     calc_df[CALC_MASS_SAMPLE_ALIQUOT_INPUT_G_KEY] = ((
-        (calc_df[DENSITY_SAMPLE_G_ML_KEY] *
-         calc_df[DENSITY_STORAGE_LIQUID_G_ML_KEY] *
-         calc_df[VOL_HOMOGENATE_ALIQUOT_INPUT_ML_KEY]) -
-        (calc_df[DENSITY_SAMPLE_G_ML_KEY] *
-         calc_df[CALC_DENSITY_HOMOGENATE_G_ML_KEY] *
-         calc_df[VOL_HOMOGENATE_ALIQUOT_INPUT_ML_KEY])) /
-        (calc_df[DENSITY_STORAGE_LIQUID_G_ML_KEY] -
-         calc_df[DENSITY_SAMPLE_G_ML_KEY]))
+                                                             (calc_df[DENSITY_SAMPLE_G_ML_KEY] *
+                                                              calc_df[DENSITY_STORAGE_LIQUID_G_ML_KEY] *
+                                                              calc_df[VOL_HOMOGENATE_ALIQUOT_INPUT_ML_KEY]) -
+                                                             (calc_df[DENSITY_SAMPLE_G_ML_KEY] *
+                                                              calc_df[CALC_DENSITY_HOMOGENATE_G_ML_KEY] *
+                                                              calc_df[VOL_HOMOGENATE_ALIQUOT_INPUT_ML_KEY])) /
+                                                     (calc_df[DENSITY_STORAGE_LIQUID_G_ML_KEY] -
+                                                      calc_df[DENSITY_SAMPLE_G_ML_KEY]))
 
     # Calculate mg of sample aliquotted into matrix tube and
     # mass of the storage liquid aliquotted into the matrix tube
