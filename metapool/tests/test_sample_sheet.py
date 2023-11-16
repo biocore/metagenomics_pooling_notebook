@@ -1230,7 +1230,8 @@ class ValidateSampleSheetTests(BaseTests):
             'bcl2fastq compatibility. If the same invalid characters are also '
             'found in the Bioinformatics and Contacts sections those will be '
             'automatically scrubbed too:\n'
-            "NYU's Tisch Art Microbiome 13059, The x.x microbiome project 11661"
+            "NYU's Tisch Art Microbiome 13059, The x.x microbiome project"
+            ' 11661'
         )
         self.assertStdOutEqual(message)
         self.assertIsNotNone(obs)

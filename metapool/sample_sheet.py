@@ -772,7 +772,6 @@ def quiet_validate_and_scrub_sample_sheet(sheet):
                           'be included in the Contact section.') %
                          ', '.join(sorted(contact - projects))))
 
-
     # confirm qiita_ids that append fully-qualified project_names have the
     # same qiita-id as is in the adjacent column.
     for index, row in sheet.Bioinformatics.iterrows():
