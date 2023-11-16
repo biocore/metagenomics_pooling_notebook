@@ -5,9 +5,13 @@ on:
   # Triggers the workflow on pull request and push events, only on the master
   # branch
   pull_request:
-    branches: [ master ]
+    branches:
+      - master
+      - dev
   push:
-    branches: [ master ]
+    branches: 
+      - master
+      - dev
 
 jobs:
   # name of job
