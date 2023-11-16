@@ -205,8 +205,10 @@ class TestAbsQuantSampleInfo(TestCase):
 
     def test__calc_abs_quant_metadata(self):
         single_calc_input_dict = {
-            MASS_STORAGE_TUBE_AND_STORAGE_LIQUID_BEFORE_SAMPLE_G_KEY: [17.0416],
-            MASS_STORAGE_TUBE_AND_STORAGE_LIQUID_BEFORE_SAMPLE_MG_KEY: [17041.6],
+            MASS_STORAGE_TUBE_AND_STORAGE_LIQUID_BEFORE_SAMPLE_G_KEY:
+                [17.0416],
+            MASS_STORAGE_TUBE_AND_STORAGE_LIQUID_BEFORE_SAMPLE_MG_KEY:
+                [17041.6],
             MASS_STORAGE_TUBE_AND_STORAGE_LIQUID_AFTER_SAMPLE_MG_KEY: [20478],
             MASS_STORAGE_TUBE_AND_STORAGE_LIQUID_AFTER_SAMPLE_G_KEY: [20.478],
             DENSITY_SAMPLE_G_ML_KEY: [1.06],
