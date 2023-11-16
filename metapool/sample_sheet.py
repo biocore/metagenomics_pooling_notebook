@@ -9,6 +9,7 @@ import pandas as pd
 from metapool.metapool import (bcl_scrub_name, sequencer_i5_index,
                                REVCOMP_SEQUENCERS)
 from metapool.plate import ErrorMessage, WarningMessage, PlateReplication
+from metapool.prep import remove_qiita_id
 
 
 _KL_SAMPLE_SHEET_SECTIONS = [
@@ -770,6 +771,26 @@ def quiet_validate_and_scrub_sample_sheet(sheet):
                           'the Data and Bioinformatics section in order to '
                           'be included in the Contact section.') %
                          ', '.join(sorted(contact - projects))))
+
+
+    # confirm qiita_ids that append fully-qualified project_names have the
+    # same qiita-id as is in the adjacent column.
+    for index, row in sheet.Bioinformatics.iterrows():
+        project_name = row['Sample_Project']
+        qiita_id = row['QiitaID']
+        tmp = project_name.replace("%s_" % remove_qiita_id(project_name), '')
+
+        if tmp != qiita_id:
+            msgs.append(ErrorMessage("The Qiita ID of '%s' does not match "
+                                     "'%s'" % (project_name, qiita_id)))
+
+    # confirm that each project defined in the sample-sheet has its own
+    # unique Qiita ID. Two projects cannot share the same ID.
+    counts = collections.Counter(sheet.Bioinformatics['QiitaID'])
+    for qid in counts:
+        if counts[qid] > 1:
+            msgs.append(ErrorMessage("The Qiita ID '%s' was assigned to more "
+                                     "than one project" % qid))
 
     # if there are no error messages then return the sheet
     if not any([isinstance(m, ErrorMessage) for m in msgs]):

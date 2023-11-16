@@ -29,6 +29,7 @@ class BaseTests(unittest.TestCase):
                            'good-sample-sheet-with-alt-col-names.csv')
 
         self.good_ss = join(data_dir, 'good-sample-sheet.csv')
+        self.ss_w_dupl_proj = join(data_dir, 'bad_sheet_bad_meta.csv')
         self.with_comments = join(data_dir, 'good-sample-sheet-but-'
                                             'with-comments.csv')
 
@@ -1212,7 +1213,7 @@ class ValidateSampleSheetTests(BaseTests):
 
         remapper = {
             'NYU_BMS_Melanoma_13059': "NYU's Tisch Art Microbiome 13059",
-            'Feist_11661': "The x.x microbiome project 1337"
+            'Feist_11661': "The x.x microbiome project 11661"
         }
 
         for sample in sheet:
@@ -1229,14 +1230,14 @@ class ValidateSampleSheetTests(BaseTests):
             'bcl2fastq compatibility. If the same invalid characters are also '
             'found in the Bioinformatics and Contacts sections those will be '
             'automatically scrubbed too:\n'
-            "NYU's Tisch Art Microbiome 13059, The x.x microbiome project 1337"
+            "NYU's Tisch Art Microbiome 13059, The x.x microbiome project 11661"
         )
         self.assertStdOutEqual(message)
         self.assertIsNotNone(obs)
 
         scrubbed = {
             'NYU_s_Tisch_Art_Microbiome_13059',
-            'The_x_x_microbiome_project_1337',
+            'The_x_x_microbiome_project_11661',
             'Gerwick_6123'
         }
 
@@ -1252,12 +1253,14 @@ class ValidateSampleSheetTests(BaseTests):
 
     def test_validate_and_scrub_sample_sheet_bad_project_names(self):
         sheet = KLSampleSheet(self.bad_project_name_ss)
-
-        message = ('ErrorMessage: The following project names in the '
-                   'Sample_Project column are missing a Qiita study '
-                   'identifier: Feist, Gerwick')
+        message = ("ErrorMessage: The following project names in the Sample_"
+                   "Project column are missing a Qiita study identifier: "
+                   "Feist, Gerwick\nErrorMessage: The Qiita ID of 'Feist' "
+                   "does not match '11662'\nErrorMessage: The Qiita ID of "
+                   "'Gerwick' does not match '101'")
 
         sheet = validate_and_scrub_sample_sheet(sheet)
+
         self.assertStdOutEqual(message)
         self.assertIsNone(sheet)
 
@@ -1290,6 +1293,39 @@ class ValidateSampleSheetTests(BaseTests):
         exp = pd.DataFrame(index=index, data=DF_DATA, columns=columns)
         exp.index.name = 'sample_id'
         pd.testing.assert_frame_equal(obs, exp)
+
+    def test_catch_duplicate_qiita_id(self):
+        # ss_w_dupl_proj is a sample-sheet with two projects in the
+        # [Bioinformatics] section that have the same Qiita ID. Qiita IDs
+        # should be unique per project.
+        sheet = KLSampleSheet(self.ss_w_dupl_proj)
+        msgs, sheet = quiet_validate_and_scrub_sample_sheet(sheet)
+        print("MSGS: %s" % str(msgs))
+        for msg in msgs:
+            print(msg)
+        self.assertTrue(len(msgs) == 1)
+        self.assertEqual(str(msgs[0]), "ErrorMessage: The Qiita ID '14332' was"
+                                       " assigned to more than one project")
+
+    def test_catch_qiita_id_mismatch(self):
+        # reuse ss_w_dupl_proj from test_catch_duplicate_qiita_id() to test
+        # confirmation that Qiita IDs appended to project-names match those
+        # in the associated Qiita_ID column.
+        sheet = KLSampleSheet(self.ss_w_dupl_proj)
+        for sample in sheet.samples:
+            if sample['Sample_Project'] == 'Matrix_Tube_HBM_14332':
+                sample['Sample_Project'] = 'Matrix_Tube_HBM_14335'
+
+        # create a reference w/a shorter name.
+        ref = sheet.Bioinformatics
+
+        ref.loc[ref['Sample_Project'] == 'Matrix_Tube_HBM_14332',
+                'Sample_Project'] = 'Matrix_Tube_HBM_14335'
+
+        msgs, sheet = quiet_validate_and_scrub_sample_sheet(sheet)
+        msgs = {str(msg) for msg in msgs}
+        self.assertIn("ErrorMessage: The Qiita ID of 'Matrix_Tube_HBM_14335'"
+                      " does not match '14332'", msgs)
 
 
 class DemuxReplicatesTests(BaseTests):
