@@ -4,7 +4,8 @@ import yaml
 
 from typing import Optional
 
-DEFAULT_CONFIG_FNAME = 'abs_quant_sample_info_calc.yml'
+# Relative path to default config file
+DEFAULT_CONFIG_FP = 'data/abs_quant_sample_info_calc.yml'
 
 # TERMS for metadata columns:
 # sample: raw sample, i.e., stool
@@ -155,7 +156,7 @@ def _read_config_metadata(config_fp: str = None) -> dict:
     """
     if config_fp is None:
         curr_dir = os.path.dirname(os.path.abspath(__file__))
-        config_fp = os.path.join(curr_dir, "data", DEFAULT_CONFIG_FNAME)
+        config_fp = os.path.join(curr_dir, DEFAULT_CONFIG_FP)
 
     with open(config_fp, "r") as f:
         config_dict = yaml.safe_load(f)

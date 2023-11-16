@@ -51,7 +51,7 @@ jupyter nbextension enable toc2/main
 
 ## Use
 
-The notebooks themselves contains detailed usage instructions. 
+The notebooks themselves contain detailed usage instructions. 
 
 Ideally, when using a notebook, you will copy the original and 
 use it for each plate you create with the shotgun pipeline.
