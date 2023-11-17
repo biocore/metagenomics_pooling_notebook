@@ -11,9 +11,8 @@ from metapool.sample_sheet import (KLSampleSheet,
                                    validate_and_scrub_sample_sheet,
                                    quiet_validate_and_scrub_sample_sheet,
                                    sample_sheet_to_dataframe,
-                                   _add_metadata_to_sheet, _add_data_to_sheet,
+                                   _add_metadata_to_sheet, make_sample_sheet,
                                    _validate_sample_sheet_metadata,
-                                   _remap_table, make_sample_sheet,
                                    demux_sample_sheet, sheet_needs_demuxing)
 from metapool.plate import ErrorMessage, WarningMessage
 
@@ -233,7 +232,6 @@ class KLSampleSheetTests(BaseTests):
 
         for sample, line in zip(sheet.samples, data.split()):
             values = line.strip().split(',')
-            print(values)
             exp = sample_sheet.Sample(dict(zip(keys, values)))
             self.assertEqual(sample, exp)
 
@@ -920,15 +918,14 @@ class SampleSheetWorkflow(BaseTests):
         pd.testing.assert_frame_equal(obs, exp, check_like=True)
 
     def test_add_data_to_sheet(self):
-
         # for amplicon we expect the following three columns to not be there
         message = (r'The column (I5_Index_ID|index2|Well_description) '
                    r'in the sample sheet is empty')
         with self.assertWarnsRegex(UserWarning, message):
-            obs = _add_data_to_sheet(self.table, self.sheet, 'HiSeq4000', [1],
-                                     'TruSeq HT', strict=False)
+            self.sheet._add_data_to_sheet(self.table, 'HiSeq4000', [1],
+                                          'TruSeq HT', strict=False)
 
-        self.assertEqual(len(obs), 3)
+        self.assertEqual(len(self.sheet), 3)
 
         data = (
             [1, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
@@ -945,7 +942,7 @@ class SampleSheetWorkflow(BaseTests):
                 'well_id_384', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
                 'Sample_Project', 'syndna_pool_number', 'Well_description']
 
-        for sample, row in zip(obs.samples, data):
+        for sample, row in zip(self.sheet.samples, data):
             exp = sample_sheet.Sample(dict(zip(keys, row)))
 
             self.assertEqual(dict(sample), dict(exp))

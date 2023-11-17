@@ -11,57 +11,6 @@ from metapool.metapool import (bcl_scrub_name, sequencer_i5_index,
 from metapool.plate import ErrorMessage, WarningMessage, PlateReplication
 
 
-_KL_SAMPLE_SHEET_SECTIONS = [
-    'Header', 'Reads', 'Settings', 'Data', 'Bioinformatics', 'Contact'
-]
-
-_KL_SAMPLE_SHEET_DATA_COLUMNS = [
-    'Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384', 'I7_Index_ID',
-    'index', 'I5_Index_ID', 'index2', 'Sample_Project', 'syndna_pool_number',
-    'Well_description'
-]
-
-_KL_SAMPLE_SHEET_COLUMN_ALTS = {'well_description': 'Well_description',
-                                'description': 'Well_description',
-                                'Description': 'Well_description',
-                                'sample_plate': 'Sample_Plate'}
-
-_KL_AMPLICON_REMAPPER = {
-    'sample sheet Sample_ID': 'Sample_ID',
-    'Sample': 'Sample_Name',
-    'Project Plate': 'Sample_Plate',
-    'Well': 'well_id_384',
-    'Name': 'I7_Index_ID',
-    'Golay Barcode': 'index',
-    'Project Name': 'Sample_Project',
-}
-
-_KL_METAGENOMIC_REMAPPER = {
-    'sample sheet Sample_ID': 'Sample_ID',
-    'Sample': 'Sample_Name',
-    'Project Plate': 'Sample_Plate',
-    'Well': 'well_id_384',
-    'i7 name': 'I7_Index_ID',
-    'i7 sequence': 'index',
-    'i5 name': 'I5_Index_ID',
-    'i5 sequence': 'index2',
-    'Project Name': 'Sample_Project',
-    'synDNA pool number': 'syndna_pool_number'
-}
-
-_KL_METATRANSCRIPTOMIC_REMAPPER = {
-    'sample sheet Sample_ID': 'Sample_ID',
-    'Sample': 'Sample_Name',
-    'Project Plate': 'Sample_Plate',
-    'Well': 'well_id_384',
-    'i7 name': 'I7_Index_ID',
-    'i7 sequence': 'index',
-    'i5 name': 'I5_Index_ID',
-    'i5 sequence': 'index2',
-    'Project Name': 'Sample_Project',
-    'synDNA pool number': 'syndna_pool_number'
-}
-
 _AMPLICON = 'TruSeq HT'
 _METAGENOMIC = 'Metagenomic'
 _METATRANSCRIPTOMIC = 'Metatranscriptomic'
@@ -79,7 +28,6 @@ _SETTINGS = {
     'MaskShortReads': '1',
     'OverrideCycles': 'Y151;I8N2;I8N2;Y151'
 }
-
 
 _HEADER = {
     'IEMFileVersion': '4',
@@ -113,6 +61,22 @@ _ALL_METADATA = {**_HEADER, **_SETTINGS, **_READS,
 
 
 class KLSampleSheet(sample_sheet.SampleSheet):
+    sections = [
+        'Header', 'Reads', 'Settings', 'Data', 'Bioinformatics', 'Contact'
+    ]
+    _KL_SAMPLE_SHEET_DATA_COLUMNS = [
+        'Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
+        'I7_Index_ID',
+        'index', 'I5_Index_ID', 'index2', 'Sample_Project',
+        'syndna_pool_number',
+        'Well_description'
+    ]
+
+    column_alts = {'well_description': 'Well_description',
+                   'description': 'Well_description',
+                   'Description': 'Well_description',
+                   'sample_plate': 'Sample_Plate'}
+
     def __init__(self, path=None):
         """Knight Lab's SampleSheet subclass
 
@@ -144,6 +108,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         """
         # don't pass the path argument to avoid the superclass from parsing
         # the data
+        self.remapper = None
         super().__init__()
 
         self.Bioinformatics = None
@@ -208,7 +173,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                     section_name, *_ = header_match.groups()
                     if (
                         section_name not in self._sections
-                        and section_name not in _KL_SAMPLE_SHEET_SECTIONS
+                        and section_name not in KLSampleSheet.sections
                     ):
                         self.add_section(section_name)
 
@@ -261,9 +226,9 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
     def _process_section_header(self, columns):
         for i in range(0, len(columns)):
-            if columns[i] in _KL_SAMPLE_SHEET_COLUMN_ALTS:
+            if columns[i] in KLSampleSheet.column_alts:
                 # overwrite existing alternate name w/internal representation.
-                columns[i] = _KL_SAMPLE_SHEET_COLUMN_ALTS[columns[i]]
+                columns[i] = KLSampleSheet.column_alts[columns[i]]
         return columns
 
     def write(self, handle, blank_lines=1) -> None:
@@ -388,6 +353,145 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 else:
                     pass
 
+    def _remap_table(self, table, strict=True):
+        '''
+        if assay == _AMPLICON:
+            remapper = _KL_AMPLICON_REMAPPER
+        elif assay == _METAGENOMIC:
+            remapper = _KL_METAGENOMIC_REMAPPER
+        elif assay == _METATRANSCRIPTOMIC:
+            remapper = _KL_METATRANSCRIPTOMIC_REMAPPER
+        else:
+            raise ValueError(f"'{assay} is not a valid Assay type.")
+        '''
+
+        if self.remapper is None:
+            raise ValueError("sample-sheet does not contain a valid Assay"
+                             " type.")
+
+        # Well_description column is now defined here as the concatenation
+        # of the following columns. If the column existed previously it will
+        # be overwritten, otherwise it will be created here. Alternate versions
+        # of the column name have already been resolved at this point.
+
+        # Note that the amplicon notebook currently generates the same values
+        # for this column. If the functionality in the notebook changes, the
+        # output will continue to be redfined with the current values here.
+        well_description = table['Project Plate'].astype(str) + "." + table[
+            'Sample'].astype(str) + "." + table['Well'].astype(str)
+
+        if strict:
+            # legacy operation. All columns not defined in remapper will be
+            # filtered out.
+            out = table[self.remapper.keys()].copy()
+            out.rename(self.remapper, axis=1, inplace=True)
+        else:
+            out = table.copy(deep=True)
+
+            # if a column named 'index' is present in table, assume it is a
+            # numeric index and not a sequence of bases, which is required in
+            # the output. Assume the column that will become 'index' is
+            # defined in remapper.
+            if 'index' in set(out.columns):
+                out.drop(columns=['index'], inplace=True)
+
+            # if an alternate form of a column name defined in
+            # _KL_SAMPLE_SHEET_COLUMN_ALTS is found in table, assume it should
+            # be renamed to its proper form and be included in the output e.g.:
+            # 'sample_plate' -> 'Sample_Plate'.
+
+            # assume keys in _KL_SAMPLE_SHEET_COLUMN_ALTS do not overlap w/
+            # remapper (they currently do not). Define the full set of
+            # potential columns to rename in table.
+
+            # new syntax in 3.9 allows us to merge two dicts together w/OR.
+            remapper = KLSampleSheet.column_alts | self.remapper
+            out.rename(remapper, axis=1, inplace=True)
+
+            # out may contain additional columns that aren't allowed in the
+            # [Data] section of a sample-sheet e.g.: 'Extraction Kit Lot'.
+            # There may also be required columns that aren't defined in out.
+            subset = list(
+                set(KLSampleSheet._KL_SAMPLE_SHEET_DATA_COLUMNS) & set(
+                    out.columns))
+            out = out[subset]
+
+        # append the new 'Well_description' column, now that alternates have
+        # been removed and non-essential columns have been dropped.
+        out['Well_description'] = well_description
+
+        for column in KLSampleSheet._KL_SAMPLE_SHEET_DATA_COLUMNS:
+            if column not in out.columns:
+                warnings.warn('The column %s in the sample sheet is empty' %
+                              column)
+                out[column] = ''
+
+        return out
+
+    def _add_data_to_sheet(self, table, sequencer, lanes, assay, strict=True):
+        table = self._remap_table(table, strict)
+        if assay != _AMPLICON:
+            table['index2'] = sequencer_i5_index(sequencer, table['index2'])
+
+            self.Bioinformatics['BarcodesAreRC'] = str(
+                sequencer in REVCOMP_SEQUENCERS)
+
+        for lane in lanes:
+            for sample in table.to_dict(orient='records'):
+                sample['Lane'] = lane
+                self.add_sample(sample_sheet.Sample(sample))
+
+
+class AmpliconSampleSheet(KLSampleSheet):
+    def __init__(self, path=None):
+        super().__init__(path=path)
+        # _KL_AMPLICON_REMAPPER
+        self.remapper = {
+            'sample sheet Sample_ID': 'Sample_ID',
+            'Sample': 'Sample_Name',
+            'Project Plate': 'Sample_Plate',
+            'Well': 'well_id_384',
+            'Name': 'I7_Index_ID',
+            'Golay Barcode': 'index',
+            'Project Name': 'Sample_Project',
+        }
+
+
+class MetagenomicSampleSheet(KLSampleSheet):
+    def __init__(self, path=None):
+        super().__init__(path=path)
+        # _KL_METAGENOMIC_REMAPPER
+        self.remapper = {
+            'sample sheet Sample_ID': 'Sample_ID',
+            'Sample': 'Sample_Name',
+            'Project Plate': 'Sample_Plate',
+            'Well': 'well_id_384',
+            'i7 name': 'I7_Index_ID',
+            'i7 sequence': 'index',
+            'i5 name': 'I5_Index_ID',
+            'i5 sequence': 'index2',
+            'Project Name': 'Sample_Project',
+            'synDNA pool number': 'syndna_pool_number'
+        }
+
+
+class MetatranscriptomicSampleSheet(KLSampleSheet):
+    def __init__(self, path=None):
+        super().__init__(path=path)
+        # _KL_METATRANSCRIPTOMIC_REMAPPER
+        self.remapper = {
+            'sample sheet Sample_ID': 'Sample_ID',
+            'Sample': 'Sample_Name',
+            'Project Plate': 'Sample_Plate',
+            'Well': 'well_id_384',
+            'i7 name': 'I7_Index_ID',
+            'i7 sequence': 'index',
+            'i5 name': 'I5_Index_ID',
+            'i5 sequence': 'index2',
+            'Project Name': 'Sample_Project',
+            'synDNA pool number': 'syndna_pool_number'
+        }
+
 
 def _validate_sample_sheet_metadata(metadata):
     msgs = []
@@ -501,91 +605,6 @@ def _add_metadata_to_sheet(metadata, sheet, sequencer):
     return sheet
 
 
-def _remap_table(table, assay, strict=True):
-    if assay == _AMPLICON:
-        remapper = _KL_AMPLICON_REMAPPER
-    elif assay == _METAGENOMIC:
-        remapper = _KL_METAGENOMIC_REMAPPER
-    elif assay == _METATRANSCRIPTOMIC:
-        remapper = _KL_METATRANSCRIPTOMIC_REMAPPER
-    else:
-        raise ValueError(f"'{assay} is not a valid Assay type.")
-
-    # Well_description column is now defined here as the concatenation
-    # of the following columns. If the column existed previously it will
-    # be overwritten, otherwise it will be created here. Alternate versions
-    # of the column name have already been resolved at this point.
-
-    # Note that the amplicon notebook currently generates the same values for
-    # this column. If the functionality in the notebook changes, the output
-    # will continue to be redfined with the current values here.
-    well_description = table['Project Plate'].astype(str) + "." + \
-        table['Sample'].astype(str) + "." + table['Well'].astype(str)
-
-    if strict:
-        # legacy operation. All columns not defined in remapper will be
-        # filtered out.
-        out = table[remapper.keys()].copy()
-        out.rename(remapper, axis=1, inplace=True)
-    else:
-        out = table.copy(deep=True)
-
-        # if a column named 'index' is present in table, assume it is a
-        # numeric index and not a sequence of bases, which is required in
-        # the output. Assume the column that will become 'index' is
-        # defined in remapper.
-        if 'index' in set(out.columns):
-            out.drop(columns=['index'], inplace=True)
-
-        # if an alternate form of a column name defined in
-        # _KL_SAMPLE_SHEET_COLUMN_ALTS is found in table, assume it should
-        # be renamed to its proper form and be included in the output e.g.:
-        # 'sample_plate' -> 'Sample_Plate'.
-
-        # assume keys in _KL_SAMPLE_SHEET_COLUMN_ALTS do not overlap w/
-        # remapper (they currently do not). Define the full set of potential
-        # columns to rename in table.
-
-        # new syntax in 3.9 allows us to merge two dicts together w/OR.
-        remapper = _KL_SAMPLE_SHEET_COLUMN_ALTS | remapper
-        out.rename(remapper, axis=1, inplace=True)
-
-        # out may contain additional columns that aren't allowed in the [Data]
-        # section of a sample-sheet e.g.: 'Extraction Kit Lot'. There may also
-        # be required columns that aren't defined in out.
-        subset = list(set(_KL_SAMPLE_SHEET_DATA_COLUMNS) & set(out.columns))
-        out = out[subset]
-
-    # append the new 'Well_description' column, now that alternates have been
-    # removed and non-essential columns have been dropped.
-    out['Well_description'] = well_description
-
-    for column in _KL_SAMPLE_SHEET_DATA_COLUMNS:
-        if column not in out.columns:
-            warnings.warn('The column %s in the sample sheet is empty' %
-                          column)
-            out[column] = ''
-
-    return out
-
-
-def _add_data_to_sheet(table, sheet, sequencer, lanes, assay, strict=True):
-    table = _remap_table(table, assay, strict)
-
-    if assay != _AMPLICON:
-        table['index2'] = sequencer_i5_index(sequencer, table['index2'])
-
-        sheet.Bioinformatics['BarcodesAreRC'] = str(
-            sequencer in REVCOMP_SEQUENCERS)
-
-    for lane in lanes:
-        for sample in table.to_dict(orient='records'):
-            sample['Lane'] = lane
-            sheet.add_sample(sample_sheet.Sample(sample))
-
-    return sheet
-
-
 def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
     """Write a valid sample sheet
 
@@ -647,10 +666,18 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
     messages = _validate_sample_sheet_metadata(metadata)
 
     if len(messages) == 0:
-        sheet = KLSampleSheet()
+        if metadata['Assay'] == 'TruSeq HT':
+            sheet = AmpliconSampleSheet()
+        elif metadata['Assay'] == 'Metagenomic':
+            sheet = AmpliconSampleSheet()
+        elif metadata['Assay'] == 'Metagenomic':
+            sheet = AmpliconSampleSheet()
+        else:
+            raise ValueError("'%s' is a bad Assay type!" % metadata['Assay'])
+
         sheet = _add_metadata_to_sheet(metadata, sheet, sequencer)
-        sheet = _add_data_to_sheet(table, sheet, sequencer, lanes,
-                                   metadata['Assay'], strict)
+        sheet._add_data_to_sheet(table, sequencer, lanes, metadata['Assay'],
+                                 strict)
         return sheet
     else:
         for message in messages:
@@ -680,7 +707,7 @@ def quiet_validate_and_scrub_sample_sheet(sheet):
 
     # we print an error return None and exit when this happens otherwise we
     # won't be able to run some of the other checks
-    for column in _KL_SAMPLE_SHEET_DATA_COLUMNS:
+    for column in KLSampleSheet._KL_SAMPLE_SHEET_DATA_COLUMNS:
         if column not in sheet.all_sample_keys:
             msgs.append(
                 ErrorMessage('The %s column in the Data section is missing' %
