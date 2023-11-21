@@ -420,7 +420,7 @@ def _validate_sample_sheet_metadata(metadata):
                         msgs.append(ErrorMessage(message))
                     if (project['experiment_design_description'] is None or
                             project['experiment_design_description'] == '' or
-                            project['experiment_design_description'] == ' ' ):
+                            project['experiment_design_description'] == ' '):
                         message = (('In the %s section Project #%d does not '
                                     'have experiment_design_description '
                                     'specified') % (section, i+1))
