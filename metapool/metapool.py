@@ -1574,7 +1574,7 @@ def read_file(file_path_, cast_as_str, sep='\t'):
     """
     dtype_dict = dict(zip(cast_as_str,
                           np.repeat('str', len(cast_as_str))))
-    file_ = pd.read_csv(file_path_, dtype_dict, sep)
+    file_ = pd.read_csv(file_path_, dtype=dtype_dict, sep=sep)
     return file_
 
 
