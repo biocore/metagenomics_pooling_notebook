@@ -1,4 +1,4 @@
-LocationRow	number_of_cells	katharoseq_strain	Kathseq_RackID	katharoseq_aliquot_volume_ul	katharoseq_batch_information		 
+LocationRow	number_of_cells	katharoseq_strain	RackID	katharoseq_aliquot_volume_ul	katharoseq_batch_information		 
 A	1200000	Variovorax_paradoxus	12345678	200	12/16/2022, 0.5B lysobacter cells in 50mL of 1xDPBS+0.5uM CCCP + 25% glycerol
 B	240000	Variovorax_paradoxus	12345678	200	12/16/2022, 0.5B lysobacter cells in 50mL of 1xDPBS+0.5uM CCCP + 25% glycerol
 C	18000	Variovorax_paradoxus	12345678	200	12/16/2022, 0.5B lysobacter cells in 50mL of 1xDPBS+0.5uM CCCP + 25% glycerol

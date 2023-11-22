@@ -24,7 +24,8 @@ from metapool.metapool import (read_plate_map_csv, read_pico_csv,
                                identify_invalid_sample_names,
                                sanitize_plate_map_sample_names,
                                add_syndna, validate_plate_df,
-                               add_controls, compress_plates
+                               add_controls, compress_plates,
+                               read_visionmate_file
                                )
 
 
@@ -63,6 +64,9 @@ class Tests(TestCase):
         p2 = os.path.join(path, 'data/plate_map2.tsv')
         p3 = os.path.join(path, 'data/plate_map3.tsv')
         p4 = os.path.join(path, 'data/plate_map4.tsv')
+
+        self.plate_error_fp = os.path.join(path,
+                                           'data/plate_map1_error.tsv')
 
         self.comp_plate_exp_fp = os.path.join(
             path,
@@ -117,6 +121,11 @@ class Tests(TestCase):
 
     #     npt.assert_almost_equal(obs_sample, exp_sample)
     #     npt.assert_almost_equal(obs_water, exp_water)
+    def test_read_visionmate_file(self):
+        # Raises error when tries to validate that all expected
+        # columns from VisionMate file are present.
+        with self.assertRaises(ValueError):
+            read_visionmate_file(self.plate_error_fp, ['TubeCode'])
 
     def test_compress_plates(self):
         compression = [
@@ -163,6 +172,7 @@ class Tests(TestCase):
 
         add_controls_exp = pd.read_csv(self.add_controls_exp_fp,
                                        dtype={'TubeCode': str,
+                                              'RackID': str,
                                               'Kathseq_RackID': str},
                                        sep='\t')
 
@@ -183,7 +193,7 @@ class Tests(TestCase):
         # that errors are raised when expected
         plate_df = pd.read_csv(self.add_controls_exp_fp,
                                dtype={'TubeCode': str,
-                                      'Kathseq_RackID': str},
+                                      'RackID': str},
                                sep='\t')
         # Test with no errors
         validate_plate_df(plate_df, self.metadata, self.sa_df,

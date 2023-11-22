@@ -1443,9 +1443,10 @@ def add_syndna(plate_df, syndna_pool_number=None, syndna_concentration=None,
     plate_df_ = plate_df.copy()
     plate_df_['synDNA pool number'] = syndna_pool_number
     if syndna_pool_number is None:
-        print('Returning input plate dataframe;'
-              'no synDNA will be added to this prep')
-        return (plate_df_)
+        warnings.warn('Returning input plate dataframe;'
+                      'no synDNA will be added to this prep')
+
+        return plate_df_
 
     else:
         if 'Normalized DNA volume' not in plate_df_.columns:
@@ -1464,7 +1465,36 @@ def add_syndna(plate_df, syndna_pool_number=None, syndna_concentration=None,
                                            (syndna_percentage*10**-2) /
                                            syndna_concentration)
 
-        return (plate_df_)
+        return plate_df_
+
+
+def read_visionmate_file(file_path_, cast_as_str, sep='\t', validate=True):
+    """
+    Helper function. Imports and validates files exported from VisionMate
+    Args:
+    file_path_: str path for input file
+    cast_as_str: list of columns in input file to cast as str dtype.
+    sep: delimiter for text file, separator for pd.read_csv()
+    validate: bool for validating that the file has the expected columns
+    (default == True)
+
+    Returns:
+    pandas DataFrame object imported from file
+    """
+    dtype_dict = dict(zip(cast_as_str,
+                          np.repeat('str', len(cast_as_str))))
+    vm_file = pd.read_csv(file_path_, dtype=dtype_dict, sep=sep)
+
+    if validate is True:
+        expected_columns = {'Date', 'Time', 'LocationCell',
+                            'LocationColumn', 'LocationRow',
+                            'TubeCode', 'RackID'}
+        # Validating input plate_maps
+        missing_columns = expected_columns-set(vm_file.columns)
+        if len(missing_columns) > 0:
+            raise ValueError(f"The following columns are missing from "
+                             f"file {file_path_}: {missing_columns}")
+    return vm_file
 
 
 def compress_plates(compression_layout, sample_accession_df,
@@ -1508,8 +1538,7 @@ def compress_plates(compression_layout, sample_accession_df,
         position = compression_layout[plate_dict_index]['Plate Position']
 
         # Populate plate map
-        plate_map = pd.read_csv(fp, dtype={'TubeCode': str, 'RackID': str},
-                                sep='\t')
+        plate_map = read_visionmate_file(fp, ['TubeCode', 'RackID'])
         plate_map['Project Name'] = \
             compression_layout[plate_dict_index]['Project Name']
         plate_map['Plate Position'] = position
@@ -1563,21 +1592,6 @@ def compress_plates(compression_layout, sample_accession_df,
     return compressed_plate_df_merged
 
 
-def read_file(file_path_, cast_as_str, sep='\t'):
-    """
-    helper function
-    file_path_: str path for input file
-    cast_as_str: list of columns in input file to cast as str dtype.
-
-    Returns:
-    pandas DataFrame object imported from file
-    """
-    dtype_dict = dict(zip(cast_as_str,
-                          np.repeat('str', len(cast_as_str))))
-    file_ = pd.read_csv(file_path_, dtype=dtype_dict, sep=sep)
-    return file_
-
-
 def add_controls(plate_df, blanks_dir, katharoseq_dir=None):
     """
     Compiles negative and positive controls into plate_df.
@@ -1610,8 +1624,8 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None):
     blanks = []
 
     for file_path in blank_file_paths:
-        dff = read_file(file_path, ['TubeCode'])
-        blanks.append(dff)
+        dff = read_visionmate_file(file_path, ['TubeCode'])
+        blanks.append(dff.drop(['Time', 'Date','RackID'], axis=1))
 
     blanks = pd.concat(blanks, ignore_index=True)
     blanks['description'] = 'negative_control'
@@ -1625,8 +1639,9 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None):
         katharoseq = []
 
         for file_path in katharoseq_file_paths:
-            df = read_file(file_path, ['TubeCode', 'Kathseq_RackID'])
-            katharoseq.append(df)
+            df = read_visionmate_file(file_path, ['TubeCode',
+                                                  'RackID'])
+            katharoseq.append(df.drop(['Time', 'Date'], axis=1))
 
         katharoseq = pd.concat(katharoseq, ignore_index=True)
         katharoseq['description'] = 'positive_control'
@@ -1640,7 +1655,20 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None):
         katharoseq_cell_counts = []
 
         for file_path in katharoseq_cell_counts_file_paths:
-            cell_counts_df = read_file(file_path, ['Kathseq_RackID'])
+            cell_counts_df = read_visionmate_file(file_path, ['RackID'],
+                                                  validate=False)
+            # Validating cell counts files
+            expected_columns = {'LocationRow', 'RackID',
+                                'number_of_cells',
+                                'katharoseq_strain',
+                                'katharoseq_batch_information',
+                                'katharoseq_aliquot_volume_ul'}
+
+            missing_columns = expected_columns-set(cell_counts_df.columns)
+            if len(missing_columns) > 0:
+                raise ValueError(f"The following columns are missing from "
+                                 f"file {file_path}: {missing_columns}")
+
             katharoseq_cell_counts.append(cell_counts_df)
 
         katharoseq_cell_counts = pd.concat(
@@ -1650,10 +1678,12 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None):
         katharoseq_merged = pd.merge(
             katharoseq,
             katharoseq_cell_counts[['LocationRow',
-                                    'Kathseq_RackID',
+                                    'RackID',
                                     'number_of_cells']],
-            on=['LocationRow', 'Kathseq_RackID'],
+            on=['LocationRow', 'RackID'],
             how='left')
+        katharoseq_merged.rename(columns={'RackID':'Kathseq_RackID'},
+            inplace=True)
 
         # Concatenate controls into a "Controls" table and add a
         # column named "control_sample"
@@ -1690,6 +1720,10 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None):
                                  True, False)
 
     warnings.warn('Controls added')
+    n_blanks = plate_df['Blank'].sum()
+    if n_blanks < 6:
+        warnings.warn(f'There are only {n_blanks} in this prep. The'
+                      'recommended minimum number of blanks is 6')
 
     return plate_df
 
@@ -1760,7 +1794,7 @@ def validate_plate_df(plate_df, metadata, sample_accession_df, blanks_dir,
     blank_file_paths = glob.glob(f'{blanks_dir}/*.tsv')
     blanks = []
     for file_path in blank_file_paths:
-        dff = read_file(file_path, ['TubeCode'])
+        dff = read_visionmate_file(file_path, ['TubeCode'])
         blanks.append(dff)
 
     blanks = pd.concat(blanks, ignore_index=True)
@@ -1770,7 +1804,7 @@ def validate_plate_df(plate_df, metadata, sample_accession_df, blanks_dir,
         katharoseq_file_paths = glob.glob(f'{katharoseq_dir}/*_tube_ids.tsv')
         katharoseq = []
         for file_path in katharoseq_file_paths:
-            df = read_file(file_path, ['TubeCode', 'Kathseq_RackID'])
+            df = read_visionmate_file(file_path, ['TubeCode', 'RackID'])
             katharoseq.append(df)
 
         katharoseq = pd.concat(katharoseq, ignore_index=True)
@@ -1798,7 +1832,7 @@ def validate_plate_df(plate_df, metadata, sample_accession_df, blanks_dir,
 
     # Checks that a full katharoseq 8-point serial dilution was added, when
     # appropriate
-    if 'Kathseq_RackID' in plate_df.columns:
+    if 'number_of_cells' in plate_df.columns:
         dilutions_ = \
             plate_df.loc[~plate_df['number_of_cells'].isnull(),
                          'number_of_cells'].nunique()
