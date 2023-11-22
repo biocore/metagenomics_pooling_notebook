@@ -1625,7 +1625,7 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None):
 
     for file_path in blank_file_paths:
         dff = read_visionmate_file(file_path, ['TubeCode'])
-        blanks.append(dff.drop(['Time', 'Date','RackID'], axis=1))
+        blanks.append(dff.drop(['Time', 'Date', 'RackID'], axis=1))
 
     blanks = pd.concat(blanks, ignore_index=True)
     blanks['description'] = 'negative_control'
@@ -1682,8 +1682,8 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None):
                                     'number_of_cells']],
             on=['LocationRow', 'RackID'],
             how='left')
-        katharoseq_merged.rename(columns={'RackID':'Kathseq_RackID'},
-            inplace=True)
+        katharoseq_merged.rename(columns={'RackID': 'Kathseq_RackID'},
+                                 inplace=True)
 
         # Concatenate controls into a "Controls" table and add a
         # column named "control_sample"
