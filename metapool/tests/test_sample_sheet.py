@@ -8,8 +8,9 @@ import pandas as pd
 import sample_sheet
 
 from metapool.sample_sheet import (KLSampleSheet, AmpliconSampleSheet,
-                                   MetagenomicSampleSheet,
+                                   MetagenomicSampleSheetv100,
                                    MetatranscriptomicSampleSheet,
+                                   AbsQuantSampleSheetv10,
                                    validate_and_scrub_sample_sheet,
                                    quiet_validate_and_scrub_sample_sheet,
                                    sample_sheet_to_dataframe,
@@ -862,7 +863,7 @@ class SampleSheetWorkflow(BaseTests):
 
         exp = pd.DataFrame(columns=columns, data=data)
 
-        sheet = MetagenomicSampleSheet()
+        sheet = MetagenomicSampleSheetv100()
 
         obs = sheet._remap_table(self.table, strict=False)
 
@@ -989,7 +990,7 @@ class SampleSheetWorkflow(BaseTests):
         self.assertEqual(len(obs.samples), 0)
 
     def test_add_metadata_to_sheet_most_defaults(self):
-        sheet = MetagenomicSampleSheet()
+        sheet = MetagenomicSampleSheetv100()
 
         self.metadata['Assay'] = 'Metagenomic'
         exp_bfx = pd.DataFrame(self.metadata['Bioinformatics'])
@@ -1026,7 +1027,7 @@ class SampleSheetWorkflow(BaseTests):
         self.assertEqual(len(obs.samples), 0)
 
     def test_add_metadata_to_sheet_some_defaults(self):
-        sheet = MetagenomicSampleSheet()
+        sheet = MetagenomicSampleSheetv100()
 
         # add a sample to make sure we can keep data around
         sheet.add_sample(sample_sheet.Sample({
@@ -1063,7 +1064,7 @@ class SampleSheetWorkflow(BaseTests):
         self.assertEqual(len(obs.samples), 1)
 
     def test_remove_options_for_iseq(self):
-        sheet = MetagenomicSampleSheet()
+        sheet = MetagenomicSampleSheetv100()
         self.metadata['Assay'] = 'Metagenomic'
         obs = sheet._add_metadata_to_sheet(self.metadata, 'iSeq')
 
@@ -1295,6 +1296,18 @@ class ValidateSampleSheetTests(BaseTests):
         exp = pd.DataFrame(index=index, data=DF_DATA, columns=columns)
         exp.index.name = 'sample_id'
         pd.testing.assert_frame_equal(obs, exp)
+
+
+class ProfileTests(BaseTests):
+    def test_profile(self):
+        sheet = AbsQuantSampleSheetv10()
+
+        # confirm that AbsQuantSampleSheetv10() contains the right values
+        # for sheet-type and sheet-version, not the default values inherited
+        # from its parent.
+        self.assertEqual(sheet._HEADER['SheetType'], 'abs_quant_metag')
+        self.assertEqual(sheet._HEADER['SheetVersion'], '10')
+        self.assertIn('mass_syndna_input_ng', sheet.data_columns)
 
 
 class DemuxReplicatesTests(BaseTests):

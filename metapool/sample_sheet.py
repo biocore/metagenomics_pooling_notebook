@@ -11,10 +11,14 @@ from metapool.metapool import (bcl_scrub_name, sequencer_i5_index,
 from metapool.plate import ErrorMessage, WarningMessage, PlateReplication
 
 
+_AMPLICON = 'TruSeq HT'
+_METAGENOMIC = 'Metagenomic'
+_METATRANSCRIPTOMIC = 'Metatranscriptomic'
+_STANDARD_SHEET_TYPE = 'standard_metag'
+_ABSQUANT_SHEET_TYPE = 'abs_quant_metag'
+
+
 class KLSampleSheet(sample_sheet.SampleSheet):
-    _AMPLICON = 'TruSeq HT'
-    _METAGENOMIC = 'Metagenomic'
-    _METATRANSCRIPTOMIC = 'Metatranscriptomic'
     _ASSAYS = {_AMPLICON, _METAGENOMIC, _METATRANSCRIPTOMIC}
     _BIOINFORMATICS_AND_CONTACT = {
         'Bioinformatics': None,
@@ -27,12 +31,14 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
     _BIOINFORMATICS_COLUMNS = {
         'Sample_Project', 'QiitaID', 'BarcodesAreRC', 'ForwardAdapter',
-        'ReverseAdapter', 'HumanFiltering', 'contains_replicates',
-        'library_construction_protocol', 'experiment_design_description'
+        'ReverseAdapter', 'HumanFiltering', 'library_construction_protocol',
+        'experiment_design_description'
     }
 
     _HEADER = {
         'IEMFileVersion': '4',
+        'SheetType': None,
+        'SheetVersion': None,
         'Investigator Name': 'Knight',
         'Experiment Name': 'RKL_experiment',
         'Date': None,
@@ -50,23 +56,19 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
     _SETTINGS = {
         'ReverseComplement': '0',
-
-        # these are needed ever since we moved from bcl2fastq -> bclconvert
         'MaskShortReads': '1',
         'OverrideCycles': 'Y151;I8N2;I8N2;Y151'
     }
 
-    _ALL_METADATA = {**_HEADER, **_SETTINGS,
-                     **_READS,
+    _ALL_METADATA = {**_HEADER, **_SETTINGS, **_READS,
                      **_BIOINFORMATICS_AND_CONTACT}
 
-    sections = [
-        'Header', 'Reads', 'Settings', 'Data', 'Bioinformatics', 'Contact'
-    ]
-    data_columns = [
-        'Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
-        'I7_Index_ID', 'index', 'I5_Index_ID', 'index2', 'Sample_Project',
-        'syndna_pool_number', 'Well_description']
+    sections = ['Header', 'Reads', 'Settings', 'Data', 'Bioinformatics',
+                'Contact']
+
+    data_columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'Sample_Well',
+                    'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                    'Sample_Project', 'Well_description']
 
     column_alts = {'well_description': 'Well_description',
                    'description': 'Well_description',
@@ -426,7 +428,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
     def _add_data_to_sheet(self, table, sequencer, lanes, assay, strict=True):
         table = self._remap_table(table, strict)
-        if assay != KLSampleSheet._AMPLICON:
+        if assay != _AMPLICON:
             table['index2'] = sequencer_i5_index(sequencer, table['index2'])
 
             self.Bioinformatics['BarcodesAreRC'] = str(
@@ -471,7 +473,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
         # Per MacKenzie's request for 16S don't include Investigator Name and
         # Experiment Name
-        if metadata['Assay'] == KLSampleSheet._AMPLICON:
+        if metadata['Assay'] == _AMPLICON:
             del self.Header['Investigator Name']
             del self.Header['Experiment Name']
 
@@ -507,9 +509,22 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
 
 class AmpliconSampleSheet(KLSampleSheet):
+    _HEADER = {
+        'IEMFileVersion': '4',
+        'SheetType': _STANDARD_SHEET_TYPE,
+        'SheetVersion': '0',
+        'Investigator Name': 'Knight',
+        'Experiment Name': 'RKL_experiment',
+        'Date': None,
+        'Workflow': 'GenerateFASTQ',
+        'Application': 'FASTQ Only',
+        'Assay': _AMPLICON,
+        'Description': '',
+        'Chemistry': 'Default',
+    }
+
     def __init__(self, path=None):
         super().__init__(path=path)
-        # _KL_AMPLICON_REMAPPER
         self.remapper = {
             'sample sheet Sample_ID': 'Sample_ID',
             'Sample': 'Sample_Name',
@@ -521,10 +536,81 @@ class AmpliconSampleSheet(KLSampleSheet):
         }
 
 
-class MetagenomicSampleSheet(KLSampleSheet):
+class MetagenomicSampleSheetv100(KLSampleSheet):
+    _HEADER = {
+        'IEMFileVersion': '4',
+        'SheetType': _STANDARD_SHEET_TYPE,
+        'SheetVersion': '100',
+        'Investigator Name': 'Knight',
+        'Experiment Name': 'RKL_experiment',
+        'Date': None,
+        'Workflow': 'GenerateFASTQ',
+        'Application': 'FASTQ Only',
+        'Assay': _METAGENOMIC,
+        'Description': '',
+        'Chemistry': 'Default',
+    }
+
+    # Note that there doesn't appear to be a difference between 95, 99, and 100
+    # beyond the value observed in 'Well_description' column. The real
+    # difference is between standard_metag and abs_quant_metag.
+
+    # Marks change from 'Metagenomics' to 'Metagenomic' - encapsulate this
+    # change: TODO.
+
+    # Note: Remove syndna_pool_number as that was part of the purpose of
+    # making this change. Also, it's always going to be empty or worse have
+    # a value that won't be checked.
+    data_columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
+                    'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                    'Sample_Project', 'Well_description']
+
+    _BIOINFORMATICS_COLUMNS = {
+        'Sample_Project', 'QiitaID', 'BarcodesAreRC', 'ForwardAdapter',
+        'ReverseAdapter', 'HumanFiltering', 'contains_replicates',
+        'library_construction_protocol', 'experiment_design_description'
+    }
+
     def __init__(self, path=None):
         super().__init__(path=path)
-        # _KL_METAGENOMIC_REMAPPER
+        self.remapper = {
+            'sample sheet Sample_ID': 'Sample_ID',
+            'Sample': 'Sample_Name',
+            'Project Plate': 'Sample_Plate',
+            'Well': 'well_id_384',
+            'i7 name': 'I7_Index_ID',
+            'i7 sequence': 'index',
+            'i5 name': 'I5_Index_ID',
+            'i5 sequence': 'index2',
+            'Project Name': 'Sample_Project',
+            'synDNA pool number': 'syndna_pool_number'
+        }
+
+
+class AbsQuantSampleSheetv10(KLSampleSheet):
+    _HEADER = {
+        'IEMFileVersion': '4',
+        'SheetType': _ABSQUANT_SHEET_TYPE,
+        'SheetVersion': '10',
+        'Investigator Name': 'Knight',
+        'Experiment Name': 'RKL_experiment',
+        'Date': None,
+        'Workflow': 'GenerateFASTQ',
+        'Application': 'FASTQ Only',
+        'Assay': _METAGENOMIC,
+        'Description': '',
+        'Chemistry': 'Default',
+    }
+
+    data_columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
+                    'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                    'Sample_Project', 'mass_syndna_input_ng',
+                    'extracted_gdna_concentration_ng_ul',
+                    'vol_extracted_elution_ul', 'syndna_pool_number',
+                    'Well_description']
+
+    def __init__(self, path=None):
+        super().__init__(path=path)
         self.remapper = {
             'sample sheet Sample_ID': 'Sample_ID',
             'Sample': 'Sample_Name',
@@ -540,9 +626,22 @@ class MetagenomicSampleSheet(KLSampleSheet):
 
 
 class MetatranscriptomicSampleSheet(KLSampleSheet):
+    _HEADER = {
+        'IEMFileVersion': '4',
+        'SheetType': _STANDARD_SHEET_TYPE,
+        'SheetVersion': '0',
+        'Investigator Name': 'Knight',
+        'Experiment Name': 'RKL_experiment',
+        'Date': None,
+        'Workflow': 'GenerateFASTQ',
+        'Application': 'FASTQ Only',
+        'Assay': _METATRANSCRIPTOMIC,
+        'Description': '',
+        'Chemistry': 'Default',
+    }
+
     def __init__(self, path=None):
         super().__init__(path=path)
-        # _KL_METATRANSCRIPTOMIC_REMAPPER
         self.remapper = {
             'sample sheet Sample_ID': 'Sample_ID',
             'Sample': 'Sample_Name',
@@ -606,12 +705,18 @@ def _validate_sample_sheet_metadata(metadata):
     return msgs
 
 
-def create_sample_sheet(assay_type):
-    if assay_type == KLSampleSheet._AMPLICON:
+def create_sample_sheet(sheet_type, assay_type):
+    if assay_type == _AMPLICON:
         return AmpliconSampleSheet()
-    elif assay_type == KLSampleSheet._METAGENOMIC:
-        return MetagenomicSampleSheet()
-    elif assay_type == KLSampleSheet._METATRANSCRIPTOMIC:
+    elif assay_type == _METAGENOMIC:
+        if sheet_type == _STANDARD_SHEET_TYPE:
+            return MetagenomicSampleSheetv100()
+        elif sheet_type == _ABSQUANT_SHEET_TYPE:
+            return AbsQuantSampleSheetv10()
+        else:
+            raise ValueError(f"'{sheet_type}' is not a valid sheet-type.")
+
+    elif assay_type == _METATRANSCRIPTOMIC:
         return MetatranscriptomicSampleSheet()
     else:
         raise ValueError(f"'{assay_type}' is not a valid assay-type.")
@@ -681,7 +786,7 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
         if metadata['Assay'] == 'TruSeq HT':
             sheet = AmpliconSampleSheet()
         elif metadata['Assay'] == 'Metagenomic':
-            sheet = MetagenomicSampleSheet()
+            sheet = MetagenomicSampleSheetv100()
         elif metadata['Assay'] == 'Metagenomic':
             sheet = MetatranscriptomicSampleSheet()
         else:
@@ -980,7 +1085,9 @@ def demux_sample_sheet(sheet):
     # replicate of plate 1, BLANKS and all), we can split replicates
     # according to their destination quadrant number.
     for df in _demux_sample_sheet(sheet):
-        new_sheet = create_sample_sheet(sheet.Header['Assay'])
+        # TODO: Handle _ABSQUANT_SHEET_TYPE
+        new_sheet = create_sample_sheet(_STANDARD_SHEET_TYPE,
+                                        sheet.Header['Assay'])
         new_sheet.Header = sheet.Header
         new_sheet.Reads = sheet.Reads
         new_sheet.Settings = sheet.Settings
