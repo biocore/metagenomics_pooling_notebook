@@ -11,13 +11,11 @@ from metapool.metapool import (bcl_scrub_name, sequencer_i5_index,
 from metapool.plate import ErrorMessage, WarningMessage, PlateReplication
 
 
-_AMPLICON = 'TruSeq HT'
-_METAGENOMIC = 'Metagenomic'
-_METATRANSCRIPTOMIC = 'Metatranscriptomic'
-_ASSAYS = {_AMPLICON, _METAGENOMIC, _METATRANSCRIPTOMIC}
-
-
 class KLSampleSheet(sample_sheet.SampleSheet):
+    _AMPLICON = 'TruSeq HT'
+    _METAGENOMIC = 'Metagenomic'
+    _METATRANSCRIPTOMIC = 'Metatranscriptomic'
+    _ASSAYS = {_AMPLICON, _METAGENOMIC, _METATRANSCRIPTOMIC}
     _BIOINFORMATICS_AND_CONTACT = {
         'Bioinformatics': None,
         'Contact': None
@@ -428,7 +426,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
     def _add_data_to_sheet(self, table, sequencer, lanes, assay, strict=True):
         table = self._remap_table(table, strict)
-        if assay != _AMPLICON:
+        if assay != KLSampleSheet._AMPLICON:
             table['index2'] = sequencer_i5_index(sequencer, table['index2'])
 
             self.Bioinformatics['BarcodesAreRC'] = str(
@@ -473,7 +471,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
         # Per MacKenzie's request for 16S don't include Investigator Name and
         # Experiment Name
-        if metadata['Assay'] == _AMPLICON:
+        if metadata['Assay'] == KLSampleSheet._AMPLICON:
             del self.Header['Investigator Name']
             del self.Header['Experiment Name']
 
@@ -594,7 +592,8 @@ def _validate_sample_sheet_metadata(metadata):
                                     'have experiment_design_description '
                                     'specified') % (section, i+1))
                         msgs.append(ErrorMessage(message))
-    if metadata.get('Assay') is not None and metadata['Assay'] not in _ASSAYS:
+    if metadata.get('Assay') is not None and metadata['Assay'] \
+            not in KLSampleSheet._ASSAYS:
         msgs.append(ErrorMessage('%s is not a supported Assay' %
                                  metadata['Assay']))
 
@@ -605,6 +604,17 @@ def _validate_sample_sheet_metadata(metadata):
                                  % ', '.join(extra)))
 
     return msgs
+
+
+def create_sample_sheet(assay_type):
+    if assay_type == KLSampleSheet._AMPLICON:
+        return AmpliconSampleSheet()
+    elif assay_type == KLSampleSheet._METAGENOMIC:
+        return MetagenomicSampleSheet()
+    elif assay_type == KLSampleSheet._METATRANSCRIPTOMIC:
+        return MetatranscriptomicSampleSheet()
+    else:
+        raise ValueError(f"'{assay_type}' is not a valid assay-type.")
 
 
 def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
@@ -970,7 +980,7 @@ def demux_sample_sheet(sheet):
     # replicate of plate 1, BLANKS and all), we can split replicates
     # according to their destination quadrant number.
     for df in _demux_sample_sheet(sheet):
-        new_sheet = KLSampleSheet()
+        new_sheet = create_sample_sheet(sheet.Header['Assay'])
         new_sheet.Header = sheet.Header
         new_sheet.Reads = sheet.Reads
         new_sheet.Settings = sheet.Settings
