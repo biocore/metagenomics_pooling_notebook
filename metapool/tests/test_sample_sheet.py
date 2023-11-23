@@ -7,11 +7,13 @@ from os.path import join, dirname
 import pandas as pd
 import sample_sheet
 
-from metapool.sample_sheet import (KLSampleSheet,
+from metapool.sample_sheet import (KLSampleSheet, AmpliconSampleSheet,
+                                   MetagenomicSampleSheet,
+                                   MetatranscriptomicSampleSheet,
                                    validate_and_scrub_sample_sheet,
                                    quiet_validate_and_scrub_sample_sheet,
                                    sample_sheet_to_dataframe,
-                                   _add_metadata_to_sheet, make_sample_sheet,
+                                   make_sample_sheet,
                                    _validate_sample_sheet_metadata,
                                    demux_sample_sheet, sheet_needs_demuxing)
 from metapool.plate import ErrorMessage, WarningMessage
@@ -548,7 +550,7 @@ class SampleSheetWorkflow(BaseTests):
     def setUp(self):
         super().setUp()
 
-        self.sheet = KLSampleSheet()
+        self.sheet = AmpliconSampleSheet()
         self.sheet.Header['IEM4FileVersion'] = 4
         self.sheet.Header['Investigator Name'] = 'Knight'
         self.sheet.Header['Experiment Name'] = 'RKO_experiment'
@@ -814,7 +816,8 @@ class SampleSheetWorkflow(BaseTests):
             # because obs is generated from self.table (a pre-prep df), we
             # expect 'Well_description' to be empty since it is created and
             # populated before _remap_table() is called.
-            obs = _remap_table(self.table, 'TruSeq HT', strict=False)
+            sheet = AmpliconSampleSheet()
+            obs = sheet._remap_table(self.table, strict=False)
             self.assertEqual(len(obs), 3)
             pd.testing.assert_frame_equal(obs, exp, check_like=True)
 
@@ -859,7 +862,9 @@ class SampleSheetWorkflow(BaseTests):
 
         exp = pd.DataFrame(columns=columns, data=data)
 
-        obs = _remap_table(self.table, 'Metagenomic', strict=False)
+        sheet = MetagenomicSampleSheet()
+
+        obs = sheet._remap_table(self.table, strict=False)
 
         self.assertEqual(len(obs), 3)
 
@@ -908,7 +913,9 @@ class SampleSheetWorkflow(BaseTests):
 
         exp = pd.DataFrame(columns=columns, data=data)
 
-        obs = _remap_table(self.table, 'Metatranscriptomic', strict=False)
+        sheet = MetatranscriptomicSampleSheet()
+
+        obs = sheet._remap_table(self.table, strict=False)
 
         obs = obs[['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
                    'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
@@ -921,6 +928,7 @@ class SampleSheetWorkflow(BaseTests):
         # for amplicon we expect the following three columns to not be there
         message = (r'The column (I5_Index_ID|index2|Well_description) '
                    r'in the sample sheet is empty')
+        # CHARLIE
         with self.assertWarnsRegex(UserWarning, message):
             self.sheet._add_data_to_sheet(self.table, 'HiSeq4000', [1],
                                           'TruSeq HT', strict=False)
@@ -948,13 +956,13 @@ class SampleSheetWorkflow(BaseTests):
             self.assertEqual(dict(sample), dict(exp))
 
     def test_add_metadata_to_sheet_all_defaults_amplicon(self):
-        sheet = KLSampleSheet()
+        sheet = AmpliconSampleSheet()
 
         self.metadata['Assay'] = 'TruSeq HT'
         exp_bfx = pd.DataFrame(self.metadata['Bioinformatics'])
         exp_contact = pd.DataFrame(self.metadata['Contact'])
 
-        obs = _add_metadata_to_sheet(self.metadata, sheet, 'HiSeq4000')
+        obs = sheet._add_metadata_to_sheet(self.metadata, 'HiSeq4000')
 
         self.assertEqual(obs.Reads, [151, 151])
 
@@ -981,13 +989,13 @@ class SampleSheetWorkflow(BaseTests):
         self.assertEqual(len(obs.samples), 0)
 
     def test_add_metadata_to_sheet_most_defaults(self):
-        sheet = KLSampleSheet()
+        sheet = MetagenomicSampleSheet()
 
         self.metadata['Assay'] = 'Metagenomic'
         exp_bfx = pd.DataFrame(self.metadata['Bioinformatics'])
         exp_contact = pd.DataFrame(self.metadata['Contact'])
 
-        obs = _add_metadata_to_sheet(self.metadata, sheet, 'HiSeq4000')
+        obs = sheet._add_metadata_to_sheet(self.metadata, 'HiSeq4000')
 
         self.assertEqual(obs.Reads, [151, 151])
 
@@ -1018,7 +1026,7 @@ class SampleSheetWorkflow(BaseTests):
         self.assertEqual(len(obs.samples), 0)
 
     def test_add_metadata_to_sheet_some_defaults(self):
-        sheet = KLSampleSheet()
+        sheet = MetagenomicSampleSheet()
 
         # add a sample to make sure we can keep data around
         sheet.add_sample(sample_sheet.Sample({
@@ -1032,7 +1040,7 @@ class SampleSheetWorkflow(BaseTests):
         exp_contact = pd.DataFrame(self.metadata['Contact'])
         self.metadata['Date'] = '1970-01-01'
 
-        obs = _add_metadata_to_sheet(self.metadata, sheet, 'HiSeq4000')
+        obs = sheet._add_metadata_to_sheet(self.metadata, 'HiSeq4000')
 
         self.assertEqual(obs.Reads, [151, 151])
         self.assertEqual(obs.Settings, {'ReverseComplement': '0'})
@@ -1055,9 +1063,9 @@ class SampleSheetWorkflow(BaseTests):
         self.assertEqual(len(obs.samples), 1)
 
     def test_remove_options_for_iseq(self):
-        sheet = KLSampleSheet()
+        sheet = MetagenomicSampleSheet()
         self.metadata['Assay'] = 'Metagenomic'
-        obs = _add_metadata_to_sheet(self.metadata, sheet, 'iSeq')
+        obs = sheet._add_metadata_to_sheet(self.metadata, 'iSeq')
 
         settings = {
             'ReverseComplement': '0'

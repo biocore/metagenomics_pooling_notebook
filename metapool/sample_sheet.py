@@ -16,61 +16,59 @@ _METAGENOMIC = 'Metagenomic'
 _METATRANSCRIPTOMIC = 'Metatranscriptomic'
 _ASSAYS = {_AMPLICON, _METAGENOMIC, _METATRANSCRIPTOMIC}
 
-_READS = {
-    'Read1': 151,
-    'Read2': 151
-}
-
-_SETTINGS = {
-    'ReverseComplement': '0',
-
-    # these are needed ever since we moved from bcl2fastq -> bclconvert
-    'MaskShortReads': '1',
-    'OverrideCycles': 'Y151;I8N2;I8N2;Y151'
-}
-
-_HEADER = {
-    'IEMFileVersion': '4',
-    'Investigator Name': 'Knight',
-    'Experiment Name': 'RKL_experiment',
-    'Date': None,
-    'Workflow': 'GenerateFASTQ',
-    'Application': 'FASTQ Only',
-    'Assay': None,
-    'Description': '',
-    'Chemistry': 'Default',
-}
-
-_BIOINFORMATICS_COLUMNS = {
-    'Sample_Project', 'QiitaID', 'BarcodesAreRC', 'ForwardAdapter',
-    'ReverseAdapter', 'HumanFiltering', 'contains_replicates',
-    'library_construction_protocol', 'experiment_design_description'
-}
-
-_CONTACT_COLUMNS = {
-    'Sample_Project', 'Email'
-}
-
-_BIOINFORMATICS_AND_CONTACT = {
-    'Bioinformatics': None,
-    'Contact': None
-}
-
-_ALL_METADATA = {**_HEADER, **_SETTINGS, **_READS,
-                 **_BIOINFORMATICS_AND_CONTACT}
-
 
 class KLSampleSheet(sample_sheet.SampleSheet):
+    _BIOINFORMATICS_AND_CONTACT = {
+        'Bioinformatics': None,
+        'Contact': None
+    }
+
+    _CONTACT_COLUMNS = {
+        'Sample_Project', 'Email'
+    }
+
+    _BIOINFORMATICS_COLUMNS = {
+        'Sample_Project', 'QiitaID', 'BarcodesAreRC', 'ForwardAdapter',
+        'ReverseAdapter', 'HumanFiltering', 'contains_replicates',
+        'library_construction_protocol', 'experiment_design_description'
+    }
+
+    _HEADER = {
+        'IEMFileVersion': '4',
+        'Investigator Name': 'Knight',
+        'Experiment Name': 'RKL_experiment',
+        'Date': None,
+        'Workflow': 'GenerateFASTQ',
+        'Application': 'FASTQ Only',
+        'Assay': None,
+        'Description': '',
+        'Chemistry': 'Default',
+    }
+
+    _READS = {
+        'Read1': 151,
+        'Read2': 151
+    }
+
+    _SETTINGS = {
+        'ReverseComplement': '0',
+
+        # these are needed ever since we moved from bcl2fastq -> bclconvert
+        'MaskShortReads': '1',
+        'OverrideCycles': 'Y151;I8N2;I8N2;Y151'
+    }
+
+    _ALL_METADATA = {**_HEADER, **_SETTINGS,
+                     **_READS,
+                     **_BIOINFORMATICS_AND_CONTACT}
+
     sections = [
         'Header', 'Reads', 'Settings', 'Data', 'Bioinformatics', 'Contact'
     ]
-    _KL_SAMPLE_SHEET_DATA_COLUMNS = [
+    data_columns = [
         'Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
-        'I7_Index_ID',
-        'index', 'I5_Index_ID', 'index2', 'Sample_Project',
-        'syndna_pool_number',
-        'Well_description'
-    ]
+        'I7_Index_ID', 'index', 'I5_Index_ID', 'index2', 'Sample_Project',
+        'syndna_pool_number', 'Well_description']
 
     column_alts = {'well_description': 'Well_description',
                    'description': 'Well_description',
@@ -412,7 +410,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             # [Data] section of a sample-sheet e.g.: 'Extraction Kit Lot'.
             # There may also be required columns that aren't defined in out.
             subset = list(
-                set(KLSampleSheet._KL_SAMPLE_SHEET_DATA_COLUMNS) & set(
+                set(KLSampleSheet.data_columns) & set(
                     out.columns))
             out = out[subset]
 
@@ -420,7 +418,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         # been removed and non-essential columns have been dropped.
         out['Well_description'] = well_description
 
-        for column in KLSampleSheet._KL_SAMPLE_SHEET_DATA_COLUMNS:
+        for column in KLSampleSheet.data_columns:
             if column not in out.columns:
                 warnings.warn('The column %s in the sample sheet is empty' %
                               column)
@@ -440,6 +438,74 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             for sample in table.to_dict(orient='records'):
                 sample['Lane'] = lane
                 self.add_sample(sample_sheet.Sample(sample))
+
+    def _add_metadata_to_sheet(self, metadata, sequencer):
+        # set the default to avoid index errors if only one of the two is
+        # provided.
+        self.Reads = [KLSampleSheet._READS['Read1'],
+                      KLSampleSheet._READS['Read2']]
+
+        for key in KLSampleSheet._ALL_METADATA:
+            if key in KLSampleSheet._READS:
+                if key == 'Read1':
+                    self.Reads[0] = metadata.get(key, self.Reads[0])
+                else:
+                    self.Reads[1] = metadata.get(key, self.Reads[1])
+
+            elif key in KLSampleSheet._SETTINGS:
+                self.Settings[key] = metadata.get(key,
+                                                  KLSampleSheet._SETTINGS[key])
+
+            elif key in KLSampleSheet._HEADER:
+                if key == 'Date':
+                    # we set the default value here and not in the global
+                    # _HEADER dictionary to make sure the date is when the
+                    # metadata is written not when the module is imported.
+                    self.Header[key] = metadata.get(
+                        key, datetime.today().strftime('%Y-%m-%d'))
+                else:
+                    self.Header[key] = metadata.get(key,
+                                                    KLSampleSheet._HEADER[key])
+
+            elif key in KLSampleSheet._BIOINFORMATICS_AND_CONTACT:
+                # TODO: Revisit
+                setattr(self, key, pd.DataFrame(metadata[key]))
+
+        # Per MacKenzie's request for 16S don't include Investigator Name and
+        # Experiment Name
+        if metadata['Assay'] == _AMPLICON:
+            del self.Header['Investigator Name']
+            del self.Header['Experiment Name']
+
+            # these are only relevant for metagenomics because they are used in
+            # bclconvert
+            del self.Settings['MaskShortReads']
+            del self.Settings['OverrideCycles']
+
+        # 'MaskShortReads' and 'OverrideCycles' are not relevant for iSeq runs,
+        # and can cause issues downstream.
+
+        # Note: 'iseq' should remain at the tail of this list, since it
+        # is a substring of the others.
+        sequencer_types = ['novaseq', 'hiseq', 'miseq', 'miniseq', 'iseq']
+        type_found = None
+        for sequencer_type in sequencer_types:
+            if sequencer_type in sequencer.lower():
+                type_found = sequencer_type
+                break
+
+        if type_found is None:
+            # if even the 'iSeq' substring could not be found, this is an
+            # unlikely and unexpected value for sequencer.
+            raise ErrorMessage(f"{sequencer} isn't a known sequencer")
+        elif type_found == 'iseq':
+            #   Verify the settings exist before deleting them.
+            if 'MaskShortReads' in self.Settings:
+                del self.Settings['MaskShortReads']
+            if 'OverrideCycles' in self.Settings:
+                del self.Settings['OverrideCycles']
+
+        return self
 
 
 class AmpliconSampleSheet(KLSampleSheet):
@@ -505,9 +571,9 @@ def _validate_sample_sheet_metadata(metadata):
     if 'Bioinformatics' in metadata and 'Contact' in metadata:
         for section in ['Bioinformatics', 'Contact']:
             if section == 'Bioinformatics':
-                columns = _BIOINFORMATICS_COLUMNS
+                columns = KLSampleSheet._BIOINFORMATICS_COLUMNS
             else:
-                columns = _CONTACT_COLUMNS
+                columns = KLSampleSheet._CONTACT_COLUMNS
 
             for i, project in enumerate(metadata[section]):
                 if set(project.keys()) != columns:
@@ -533,76 +599,12 @@ def _validate_sample_sheet_metadata(metadata):
                                  metadata['Assay']))
 
     keys = set(metadata.keys())
-    if not keys.issubset(_ALL_METADATA):
-        extra = sorted(keys - set(_ALL_METADATA))
+    if not keys.issubset(KLSampleSheet._ALL_METADATA):
+        extra = sorted(keys - set(KLSampleSheet._ALL_METADATA))
         msgs.append(ErrorMessage('These metadata keys are not supported: %s'
                                  % ', '.join(extra)))
 
     return msgs
-
-
-def _add_metadata_to_sheet(metadata, sheet, sequencer):
-    # set the default to avoid index errors if only one of the two is provided
-    sheet.Reads = [_READS['Read1'], _READS['Read2']]
-
-    for key in _ALL_METADATA:
-        if key in _READS:
-            if key == 'Read1':
-                sheet.Reads[0] = metadata.get(key, sheet.Reads[0])
-            else:
-                sheet.Reads[1] = metadata.get(key, sheet.Reads[1])
-
-        elif key in _SETTINGS:
-            sheet.Settings[key] = metadata.get(key, _SETTINGS[key])
-
-        elif key in _HEADER:
-            if key == 'Date':
-                # we set the default value here and not in the global _HEADER
-                # dictionary to make sure the date is when the metadata is
-                # written not when the module is imported
-                sheet.Header[key] = metadata.get(
-                    key, datetime.today().strftime('%Y-%m-%d'))
-            else:
-                sheet.Header[key] = metadata.get(key, _HEADER[key])
-
-        elif key in _BIOINFORMATICS_AND_CONTACT:
-            setattr(sheet, key, pd.DataFrame(metadata[key]))
-
-    # Per MacKenzie's request for 16S don't include Investigator Name and
-    # Experiment Name
-    if metadata['Assay'] == _AMPLICON:
-        del sheet.Header['Investigator Name']
-        del sheet.Header['Experiment Name']
-
-        # these are only relevant for metagenomics because they are used in
-        # bclconvert
-        del sheet.Settings['MaskShortReads']
-        del sheet.Settings['OverrideCycles']
-
-    # 'MaskShortReads' and 'OverrideCycles' are not relevant for iSeq runs,
-    # and can cause issues downstream.
-
-    # Note: 'iseq' should remain at the tail of this list, since it
-    # is a substring of the others.
-    sequencer_types = ['novaseq', 'hiseq', 'miseq', 'miniseq', 'iseq']
-    type_found = None
-    for sequencer_type in sequencer_types:
-        if sequencer_type in sequencer.lower():
-            type_found = sequencer_type
-            break
-
-    if type_found is None:
-        # if even the 'iSeq' substring could not be found, this is an
-        # unlikely and unexpected value for sequencer.
-        raise ErrorMessage(f"{sequencer} isn't a known sequencer")
-    elif type_found == 'iseq':
-        #   Verify the settings exist before deleting them.
-        if 'MaskShortReads' in sheet.Settings:
-            del sheet.Settings['MaskShortReads']
-        if 'OverrideCycles' in sheet.Settings:
-            del sheet.Settings['OverrideCycles']
-
-    return sheet
 
 
 def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
@@ -669,13 +671,13 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
         if metadata['Assay'] == 'TruSeq HT':
             sheet = AmpliconSampleSheet()
         elif metadata['Assay'] == 'Metagenomic':
-            sheet = AmpliconSampleSheet()
+            sheet = MetagenomicSampleSheet()
         elif metadata['Assay'] == 'Metagenomic':
-            sheet = AmpliconSampleSheet()
+            sheet = MetatranscriptomicSampleSheet()
         else:
             raise ValueError("'%s' is a bad Assay type!" % metadata['Assay'])
 
-        sheet = _add_metadata_to_sheet(metadata, sheet, sequencer)
+        sheet._add_metadata_to_sheet(metadata, sequencer)
         sheet._add_data_to_sheet(table, sequencer, lanes, metadata['Assay'],
                                  strict)
         return sheet
@@ -707,7 +709,7 @@ def quiet_validate_and_scrub_sample_sheet(sheet):
 
     # we print an error return None and exit when this happens otherwise we
     # won't be able to run some of the other checks
-    for column in KLSampleSheet._KL_SAMPLE_SHEET_DATA_COLUMNS:
+    for column in KLSampleSheet.data_columns:
         if column not in sheet.all_sample_keys:
             msgs.append(
                 ErrorMessage('The %s column in the Data section is missing' %
