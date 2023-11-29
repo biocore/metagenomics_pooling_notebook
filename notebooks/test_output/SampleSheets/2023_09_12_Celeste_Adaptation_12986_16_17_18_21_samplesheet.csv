@@ -2,7 +2,7 @@
 IEMFileVersion,4,,,,,,,,,,
 Investigator Name,Knight,,,,,,,,,,
 Experiment Name,RKL_experiment,,,,,,,,,,
-Date,2023-10-24,,,,,,,,,,
+Date,2023-11-07,,,,,,,,,,
 Workflow,GenerateFASTQ,,,,,,,,,,
 Application,FASTQ Only,,,,,,,,,,
 Assay,Metagenomic,,,,,,,,,,
@@ -401,7 +401,7 @@ kathseq_1200000_0_H8,kathseq.1200000.0.H8,Celeste_Adaptation_12986_21,P16,iTru7_
 kathseq_1200000_0_H9,kathseq.1200000.0.H9,Celeste_Adaptation_12986_21,P18,iTru7_112_08,CCTACTGA,iTru5_121_H,GTAGCATC,Celeste_Adaptation_12986,,Celeste_Adaptation_12986_21.kathseq.1200000.0.H9.P18,1
 kathseq_1200000_0_H10,kathseq.1200000.0.H10,Celeste_Adaptation_12986_21,P20,iTru7_112_09,TGTGAAGC,iTru5_122_H,AACCGTTC,Celeste_Adaptation_12986,,Celeste_Adaptation_12986_21.kathseq.1200000.0.H10.P20,1
 kathseq_1200000_0_H11,kathseq.1200000.0.H11,Celeste_Adaptation_12986_21,P22,iTru7_112_10,GTCTGATC,iTru5_123_H,GACAAGAG,Celeste_Adaptation_12986,,Celeste_Adaptation_12986_21.kathseq.1200000.0.H11.P22,1
-kathseq_1200000_0_H12,kathseq.1200000.0.H12,Celeste_Adaptation_12986_21,P24,iTru7_112_11,TTCAGGAG,iTru5_124_H,AAGGCGTT,Celeste_Adaptation_12986,,Celeste_Adaptation_12986_21.kathseq.1200000.0.H12.P24,1
+kathseq_240000_0_H12,kathseq.240000.0.H12,Celeste_Adaptation_12986_21,P24,iTru7_112_11,TTCAGGAG,iTru5_124_H,AAGGCGTT,Celeste_Adaptation_12986,,Celeste_Adaptation_12986_21.kathseq.240000.0.H12.P24,1
 ,,,,,,,,,,,
 [Bioinformatics],,,,,,,,,,,
 Sample_Project,QiitaID,BarcodesAreRC,ForwardAdapter,ReverseAdapter,HumanFiltering,library_construction_protocol,experiment_design_description,contains_replicates,,,
