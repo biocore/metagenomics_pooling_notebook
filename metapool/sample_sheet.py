@@ -171,6 +171,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                     section_name, *_ = header_match.groups()
                     if (
                         section_name not in self._sections
+                    # TODO: is KLSampleSheet.sections right? why not self.sections?
                         and section_name not in KLSampleSheet.sections
                     ):
                         self.add_section(section_name)
@@ -352,17 +353,6 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                     pass
 
     def _remap_table(self, table, strict=True):
-        '''
-        if assay == _AMPLICON:
-            remapper = _KL_AMPLICON_REMAPPER
-        elif assay == _METAGENOMIC:
-            remapper = _KL_METAGENOMIC_REMAPPER
-        elif assay == _METATRANSCRIPTOMIC:
-            remapper = _KL_METATRANSCRIPTOMIC_REMAPPER
-        else:
-            raise ValueError(f"'{assay} is not a valid Assay type.")
-        '''
-
         if self.remapper is None:
             raise ValueError("sample-sheet does not contain a valid Assay"
                              " type.")
@@ -410,15 +400,16 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             # [Data] section of a sample-sheet e.g.: 'Extraction Kit Lot'.
             # There may also be required columns that aren't defined in out.
             subset = list(
-                set(KLSampleSheet.data_columns) & set(
+                set(self.data_columns) & set(
                     out.columns))
+
             out = out[subset]
 
         # append the new 'Well_description' column, now that alternates have
         # been removed and non-essential columns have been dropped.
         out['Well_description'] = well_description
 
-        for column in KLSampleSheet.data_columns:
+        for column in self.data_columns:
             if column not in out.columns:
                 warnings.warn('The column %s in the sample sheet is empty' %
                               column)
@@ -442,21 +433,21 @@ class KLSampleSheet(sample_sheet.SampleSheet):
     def _add_metadata_to_sheet(self, metadata, sequencer):
         # set the default to avoid index errors if only one of the two is
         # provided.
-        self.Reads = [KLSampleSheet._READS['Read1'],
-                      KLSampleSheet._READS['Read2']]
+        self.Reads = [self._READS['Read1'],
+                      self._READS['Read2']]
 
-        for key in KLSampleSheet._ALL_METADATA:
-            if key in KLSampleSheet._READS:
+        for key in self._ALL_METADATA:
+            if key in self._READS:
                 if key == 'Read1':
                     self.Reads[0] = metadata.get(key, self.Reads[0])
                 else:
                     self.Reads[1] = metadata.get(key, self.Reads[1])
 
-            elif key in KLSampleSheet._SETTINGS:
+            elif key in self._SETTINGS:
                 self.Settings[key] = metadata.get(key,
-                                                  KLSampleSheet._SETTINGS[key])
+                                                  self._SETTINGS[key])
 
-            elif key in KLSampleSheet._HEADER:
+            elif key in self._HEADER:
                 if key == 'Date':
                     # we set the default value here and not in the global
                     # _HEADER dictionary to make sure the date is when the
@@ -465,10 +456,9 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                         key, datetime.today().strftime('%Y-%m-%d'))
                 else:
                     self.Header[key] = metadata.get(key,
-                                                    KLSampleSheet._HEADER[key])
+                                                    self._HEADER[key])
 
-            elif key in KLSampleSheet._BIOINFORMATICS_AND_CONTACT:
-                # TODO: Revisit
+            elif key in self._BIOINFORMATICS_AND_CONTACT:
                 setattr(self, key, pd.DataFrame(metadata[key]))
 
         # Per MacKenzie's request for 16S don't include Investigator Name and
@@ -506,6 +496,211 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 del self.Settings['OverrideCycles']
 
         return self
+
+    def validate_and_scrub_sample_sheet(self):
+        """Validate the sample sheet and scrub invalid characters
+
+        The character scrubbing is only applied to the Sample_Project and the
+        Sample_ID columns. The main difference between this function and
+        quiet_validate_and_scrub_sample_sheet is that this function will *always*
+        print errors and warnings to standard output.
+
+        Parameters
+        ----------
+        sheet: sample_sheet.KLSampleSheet
+            The sample sheet object to validate and scrub.
+
+        Returns
+        -------
+        sample_sheet.SampleSheet
+            Corrected and validated sample sheet if no errors are found.
+        """
+        msgs, sheet = self.quiet_validate_and_scrub_sample_sheet()
+
+        [msg.echo() for msg in msgs]
+
+        if sheet is not None:
+            return sheet
+
+    def quiet_validate_and_scrub_sample_sheet(self):
+        """Quietly validate the sample sheet and scrub invalid characters
+
+        The character scrubbing is only applied to the Sample_Project and the
+        Sample_ID columns.
+
+        Parameters
+        ----------
+        sheet: sample_sheet.KLSampleSheet
+            The sample sheet object to validate and scrub.
+
+        Returns
+        -------
+        list
+            List of error or warning messages.
+        sample_sheet.SampleSheet or None
+            Corrected and validated sample sheet if no errors are found. Otherwise
+            None is returned.
+        """
+        msgs = []
+
+        # we print an error return None and exit when this happens otherwise we
+        # won't be able to run some of the other checks
+        for column in self.data_columns:
+            if column not in self.all_sample_keys:
+                msgs.append(
+                    ErrorMessage(
+                        'The %s column in the Data section is missing' %
+                        column))
+        for section in ['Bioinformatics', 'Contact']:
+            if getattr(self, section) is None:
+                msgs.append(ErrorMessage('The %s section cannot be empty' %
+                                         section))
+
+        # if any errors are found up to this point then we can't continue with the
+        # validation
+        if msgs:
+            return msgs, None
+
+        # we track the updated projects as a dictionary so we can propagate these
+        # changes to the Bioinformatics and Contact sections
+        updated_samples, updated_projects = [], {}
+        for sample in self.samples:
+            new_sample = bcl_scrub_name(sample.Sample_ID)
+            new_project = bcl_scrub_name(sample.Sample_Project)
+
+            if new_sample != sample.Sample_ID:
+                updated_samples.append(sample.Sample_ID)
+                sample.Sample_ID = new_sample
+            if new_project != sample.Sample_Project:
+                updated_projects[sample.Sample_Project] = new_project
+                sample['Sample_Project'] = new_project
+
+        if updated_samples:
+            msgs.append(
+                WarningMessage('The following sample names were scrubbed for'
+                               ' bcl2fastq compatibility:\n%s' %
+                               ', '.join(updated_samples)))
+        if updated_projects:
+            msgs.append(
+                WarningMessage('The following project names were scrubbed for'
+                               ' bcl2fastq compatibility. If the same invalid '
+                               'characters are also found in the Bioinformatics '
+                               'and Contacts sections those will be automatically '
+                               'scrubbed too:\n%s' %
+                               ', '.join(sorted(updated_projects))))
+
+            # make the changes to prevent useless errors where the scurbbed names
+            # fail to match between sections.
+            self.Contact.Sample_Project.replace(updated_projects,
+                                                 inplace=True)
+            self.Bioinformatics.Sample_Project.replace(updated_projects,
+                                                        inplace=True)
+
+        pairs = collections.Counter([(s.Lane, s.Sample_Project)
+                                     for s in self.samples])
+        # warn users when there's missing lane values
+        empty_projects = [project for lane, project in pairs
+                          if str(lane).strip() == '']
+        if empty_projects:
+            msgs.append(
+                ErrorMessage(
+                    'The following projects are missing a Lane value: '
+                    '%s' % ', '.join(sorted(empty_projects))))
+
+        projects = {s.Sample_Project for s in self.samples}
+
+        # project identifiers are digit groups at the end of the project name
+        # preceded by an underscore CaporasoIllumina_550
+        qiita_id_re = re.compile(r'(.+)_(\d+)$')
+        bad_projects = []
+        for project_name in projects:
+            if re.search(qiita_id_re, project_name) is None:
+                bad_projects.append(project_name)
+        if bad_projects:
+            msgs.append(
+                ErrorMessage(
+                    'The following project names in the Sample_Project '
+                    'column are missing a Qiita study '
+                    'identifier: %s' % ', '.join(sorted(bad_projects))))
+
+        # check Sample_project values match across sections
+        bfx = set(self.Bioinformatics['Sample_Project'])
+        contact = set(self.Contact['Sample_Project'])
+        not_shared = projects ^ bfx
+        if not_shared:
+            msgs.append(
+                ErrorMessage(
+                    'The following projects need to be in the Data and '
+                    'Bioinformatics sections %s' %
+                    ', '.join(sorted(not_shared))))
+        elif not contact.issubset(projects):
+            msgs.append(
+                ErrorMessage(('The following projects were only found in the '
+                              'Contact section: %s projects need to be listed in '
+                              'the Data and Bioinformatics section in order to '
+                              'be included in the Contact section.') %
+                             ', '.join(sorted(contact - projects))))
+
+        # if there are no error messages then return the sheet
+        if not any([isinstance(m, ErrorMessage) for m in msgs]):
+            return msgs, self
+        else:
+            return msgs, None
+
+    def _validate_sample_sheet_metadata(self, metadata):
+        msgs = []
+
+        for req in ['Assay', 'Bioinformatics', 'Contact']:
+            if req not in metadata:
+                msgs.append(ErrorMessage('%s is a required attribute' % req))
+
+        # if both sections are found, then check that all the columns are present,
+        # checks for the contents are done in the sample sheet validation routine
+        if 'Bioinformatics' in metadata and 'Contact' in metadata:
+            for section in ['Bioinformatics', 'Contact']:
+                if section == 'Bioinformatics':
+                    columns = self._BIOINFORMATICS_COLUMNS
+                else:
+                    columns = self._CONTACT_COLUMNS
+
+                for i, project in enumerate(metadata[section]):
+                    if set(project.keys()) != columns:
+                        message = ((
+                                       'In the %s section Project #%d does not have '
+                                       'exactly these keys %s') %
+                                   (
+                                   section, i + 1, ', '.join(sorted(columns))))
+                        msgs.append(ErrorMessage(message))
+                    if section == 'Bioinformatics':
+                        if (project['library_construction_protocol'] is None or
+                                project[
+                                    'library_construction_protocol'] == ''):
+                            message = ((
+                                           'In the %s section Project #%d does not '
+                                           'have library_construction_protocol '
+                                           'specified') % (section, i + 1))
+                            msgs.append(ErrorMessage(message))
+                        if (project['experiment_design_description'] is None or
+                                project[
+                                    'experiment_design_description'] == ''):
+                            message = ((
+                                           'In the %s section Project #%d does not '
+                                           'have experiment_design_description '
+                                           'specified') % (section, i + 1))
+                            msgs.append(ErrorMessage(message))
+        if metadata.get('Assay') is not None and metadata['Assay'] \
+                not in self._ASSAYS:
+            msgs.append(ErrorMessage('%s is not a supported Assay' %
+                                     metadata['Assay']))
+
+        keys = set(metadata.keys())
+        if not keys.issubset(self._ALL_METADATA):
+            extra = sorted(keys - set(self._ALL_METADATA))
+            msgs.append(
+                ErrorMessage('These metadata keys are not supported: %s'
+                             % ', '.join(extra)))
+
+        return msgs
 
 
 class AmpliconSampleSheet(KLSampleSheet):
@@ -565,11 +760,14 @@ class MetagenomicSampleSheetv100(KLSampleSheet):
                     'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
                     'Sample_Project', 'Well_description']
 
-    _BIOINFORMATICS_COLUMNS = {
-        'Sample_Project', 'QiitaID', 'BarcodesAreRC', 'ForwardAdapter',
-        'ReverseAdapter', 'HumanFiltering', 'contains_replicates',
-        'library_construction_protocol', 'experiment_design_description'
-    }
+    # For now, assume only MetagenomicSampleSheetv100 (and v95, v99) contains
+    # 'contains_replicates' column. Assume AbsQuantSampleSheetv10 doesn't.
+
+    _BIOINFORMATICS_COLUMNS = { 'Sample_Project', 'QiitaID', 'BarcodesAreRC',
+                                'ForwardAdapter', 'ReverseAdapter',
+                                'HumanFiltering', 'contains_replicates',
+                                'library_construction_protocol',
+                                'experiment_design_description' }
 
     def __init__(self, path=None):
         super().__init__(path=path)
@@ -640,6 +838,10 @@ class MetatranscriptomicSampleSheet(KLSampleSheet):
         'Chemistry': 'Default',
     }
 
+    data_columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
+                    'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                    'Sample_Project', 'Well_description']
+
     def __init__(self, path=None):
         super().__init__(path=path)
         self.remapper = {
@@ -656,53 +858,7 @@ class MetatranscriptomicSampleSheet(KLSampleSheet):
         }
 
 
-def _validate_sample_sheet_metadata(metadata):
-    msgs = []
 
-    for req in ['Assay', 'Bioinformatics', 'Contact']:
-        if req not in metadata:
-            msgs.append(ErrorMessage('%s is a required attribute' % req))
-
-    # if both sections are found, then check that all the columns are present,
-    # checks for the contents are done in the sample sheet validation routine
-    if 'Bioinformatics' in metadata and 'Contact' in metadata:
-        for section in ['Bioinformatics', 'Contact']:
-            if section == 'Bioinformatics':
-                columns = KLSampleSheet._BIOINFORMATICS_COLUMNS
-            else:
-                columns = KLSampleSheet._CONTACT_COLUMNS
-
-            for i, project in enumerate(metadata[section]):
-                if set(project.keys()) != columns:
-                    message = (('In the %s section Project #%d does not have '
-                               'exactly these keys %s') %
-                               (section, i+1, ', '.join(sorted(columns))))
-                    msgs.append(ErrorMessage(message))
-                if section == 'Bioinformatics':
-                    if (project['library_construction_protocol'] is None or
-                            project['library_construction_protocol'] == ''):
-                        message = (('In the %s section Project #%d does not '
-                                    'have library_construction_protocol '
-                                    'specified') % (section, i+1))
-                        msgs.append(ErrorMessage(message))
-                    if (project['experiment_design_description'] is None or
-                            project['experiment_design_description'] == ''):
-                        message = (('In the %s section Project #%d does not '
-                                    'have experiment_design_description '
-                                    'specified') % (section, i+1))
-                        msgs.append(ErrorMessage(message))
-    if metadata.get('Assay') is not None and metadata['Assay'] \
-            not in KLSampleSheet._ASSAYS:
-        msgs.append(ErrorMessage('%s is not a supported Assay' %
-                                 metadata['Assay']))
-
-    keys = set(metadata.keys())
-    if not keys.issubset(KLSampleSheet._ALL_METADATA):
-        extra = sorted(keys - set(KLSampleSheet._ALL_METADATA))
-        msgs.append(ErrorMessage('These metadata keys are not supported: %s'
-                                 % ', '.join(extra)))
-
-    return msgs
 
 
 def create_sample_sheet(sheet_type, assay_type):
@@ -780,18 +936,19 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
     SampleSheetError
         If one of the required columns is missing.
     """
-    messages = _validate_sample_sheet_metadata(metadata)
+
+    if metadata['Assay'] == 'TruSeq HT':
+        sheet = AmpliconSampleSheet()
+    elif metadata['Assay'] == 'Metagenomic':
+        sheet = MetagenomicSampleSheetv100()
+    elif metadata['Assay'] == 'Metagenomic':
+        sheet = MetatranscriptomicSampleSheet()
+    else:
+        raise ValueError("'%s' is a bad Assay type!" % metadata['Assay'])
+
+    messages = sheet._validate_sample_sheet_metadata(metadata)
 
     if len(messages) == 0:
-        if metadata['Assay'] == 'TruSeq HT':
-            sheet = AmpliconSampleSheet()
-        elif metadata['Assay'] == 'Metagenomic':
-            sheet = MetagenomicSampleSheetv100()
-        elif metadata['Assay'] == 'Metagenomic':
-            sheet = MetatranscriptomicSampleSheet()
-        else:
-            raise ValueError("'%s' is a bad Assay type!" % metadata['Assay'])
-
         sheet._add_metadata_to_sheet(metadata, sequencer)
         sheet._add_data_to_sheet(table, sequencer, lanes, metadata['Assay'],
                                  strict)
@@ -799,154 +956,6 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
     else:
         for message in messages:
             message.echo()
-
-
-def quiet_validate_and_scrub_sample_sheet(sheet):
-    """Quietly validate the sample sheet and scrub invalid characters
-
-    The character scrubbing is only applied to the Sample_Project and the
-    Sample_ID columns.
-
-    Parameters
-    ----------
-    sheet: sample_sheet.KLSampleSheet
-        The sample sheet object to validate and scrub.
-
-    Returns
-    -------
-    list
-        List of error or warning messages.
-    sample_sheet.SampleSheet or None
-        Corrected and validated sample sheet if no errors are found. Otherwise
-        None is returned.
-    """
-    msgs = []
-
-    # we print an error return None and exit when this happens otherwise we
-    # won't be able to run some of the other checks
-    for column in KLSampleSheet.data_columns:
-        if column not in sheet.all_sample_keys:
-            msgs.append(
-                ErrorMessage('The %s column in the Data section is missing' %
-                             column))
-    for section in ['Bioinformatics', 'Contact']:
-        if getattr(sheet, section) is None:
-            msgs.append(ErrorMessage('The %s section cannot be empty' %
-                                     section))
-
-    # if any errors are found up to this point then we can't continue with the
-    # validation
-    if msgs:
-        return msgs, None
-
-    # we track the updated projects as a dictionary so we can propagate these
-    # changes to the Bioinformatics and Contact sections
-    updated_samples, updated_projects = [], {}
-    for sample in sheet.samples:
-        new_sample = bcl_scrub_name(sample.Sample_ID)
-        new_project = bcl_scrub_name(sample.Sample_Project)
-
-        if new_sample != sample.Sample_ID:
-            updated_samples.append(sample.Sample_ID)
-            sample.Sample_ID = new_sample
-        if new_project != sample.Sample_Project:
-            updated_projects[sample.Sample_Project] = new_project
-            sample['Sample_Project'] = new_project
-
-    if updated_samples:
-        msgs.append(
-            WarningMessage('The following sample names were scrubbed for'
-                           ' bcl2fastq compatibility:\n%s' %
-                           ', '.join(updated_samples)))
-    if updated_projects:
-        msgs.append(
-            WarningMessage('The following project names were scrubbed for'
-                           ' bcl2fastq compatibility. If the same invalid '
-                           'characters are also found in the Bioinformatics '
-                           'and Contacts sections those will be automatically '
-                           'scrubbed too:\n%s' %
-                           ', '.join(sorted(updated_projects))))
-
-        # make the changes to prevent useless errors where the scurbbed names
-        # fail to match between sections.
-        sheet.Contact.Sample_Project.replace(updated_projects, inplace=True)
-        sheet.Bioinformatics.Sample_Project.replace(updated_projects,
-                                                    inplace=True)
-
-    pairs = collections.Counter([(s.Lane, s.Sample_Project)
-                                 for s in sheet.samples])
-    # warn users when there's missing lane values
-    empty_projects = [project for lane, project in pairs
-                      if str(lane).strip() == '']
-    if empty_projects:
-        msgs.append(
-            ErrorMessage('The following projects are missing a Lane value: '
-                         '%s' % ', '.join(sorted(empty_projects))))
-
-    projects = {s.Sample_Project for s in sheet.samples}
-
-    # project identifiers are digit groups at the end of the project name
-    # preceded by an underscore CaporasoIllumina_550
-    qiita_id_re = re.compile(r'(.+)_(\d+)$')
-    bad_projects = []
-    for project_name in projects:
-        if re.search(qiita_id_re, project_name) is None:
-            bad_projects.append(project_name)
-    if bad_projects:
-        msgs.append(
-            ErrorMessage('The following project names in the Sample_Project '
-                         'column are missing a Qiita study '
-                         'identifier: %s' % ', '.join(sorted(bad_projects))))
-
-    # check Sample_project values match across sections
-    bfx = set(sheet.Bioinformatics['Sample_Project'])
-    contact = set(sheet.Contact['Sample_Project'])
-    not_shared = projects ^ bfx
-    if not_shared:
-        msgs.append(
-            ErrorMessage('The following projects need to be in the Data and '
-                         'Bioinformatics sections %s' %
-                         ', '.join(sorted(not_shared))))
-    elif not contact.issubset(projects):
-        msgs.append(
-            ErrorMessage(('The following projects were only found in the '
-                          'Contact section: %s projects need to be listed in '
-                          'the Data and Bioinformatics section in order to '
-                          'be included in the Contact section.') %
-                         ', '.join(sorted(contact - projects))))
-
-    # if there are no error messages then return the sheet
-    if not any([isinstance(m, ErrorMessage) for m in msgs]):
-        return msgs, sheet
-    else:
-        return msgs, None
-
-
-def validate_and_scrub_sample_sheet(sheet):
-    """Validate the sample sheet and scrub invalid characters
-
-    The character scrubbing is only applied to the Sample_Project and the
-    Sample_ID columns. The main difference between this function and
-    quiet_validate_and_scrub_sample_sheet is that this function will *always*
-    print errors and warnings to standard output.
-
-    Parameters
-    ----------
-    sheet: sample_sheet.KLSampleSheet
-        The sample sheet object to validate and scrub.
-
-    Returns
-    -------
-    sample_sheet.SampleSheet
-        Corrected and validated sample sheet if no errors are found.
-    """
-    msgs, sheet = quiet_validate_and_scrub_sample_sheet(sheet)
-
-    [msg.echo() for msg in msgs]
-
-    if sheet is not None:
-        return sheet
-
 
 def sample_sheet_to_dataframe(sheet):
     """Converts the [Data] section of a sample sheet into a DataFrame
