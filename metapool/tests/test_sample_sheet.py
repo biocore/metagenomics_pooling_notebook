@@ -91,7 +91,6 @@ class BaseTests(unittest.TestCase):
         }
 
 
-
 class KLSampleSheetTests(BaseTests):
     def test_sample_sheet_roundtripping(self):
         # testing with all the sheets we have access to
@@ -425,17 +424,16 @@ class KLSampleSheetTests(BaseTests):
             columns=['Sample_Project', 'QiitaID', 'BarcodesAreRC',
                      'ForwardAdapter', 'ReverseAdapter', 'HumanFiltering',
                      'library_construction_protocol',
-                     'experiment_design_description', 'contains_replicates'],
+                     'experiment_design_description'],
             data=[
                 ['Koening_ITS_101', '101', 'False', 'GATACA', 'CATCAT',
-                 'False', 'Knight Lab Kapa HP', 'Eqiiperiment', False],
+                 'False', 'Knight Lab Kapa HP', 'Eqiiperiment'],
                 ['Yanomani_2008_10052', '10052', 'False', 'GATACA', 'CATCAT',
-                 'False', 'Knight Lab Kapa HP', 'Eqiiperiment', False],
+                 'False', 'Knight Lab Kapa HP', 'Eqiiperiment'],
                 ['paco_Koening_ITS_101', '101', 'False', 'GATACA', 'CATCAT',
-                 'False', 'Knight Lab Kapa HP', 'Eqiiperiment', False],
+                 'False', 'Knight Lab Kapa HP', 'Eqiiperiment'],
                 ['paco_Yanomani_2008_10052', '10052', 'False', 'GATACA',
-                 'CATCAT', 'False', 'Knight Lab Kapa HP', 'Eqiiperiment',
-                 False]
+                 'CATCAT', 'False', 'Knight Lab Kapa HP', 'Eqiiperiment']
             ]
         )
 
@@ -525,7 +523,6 @@ class KLSampleSheetTests(BaseTests):
                             ' have exactly these keys BarcodesAreRC, '
                             'ForwardAdapter, HumanFiltering, QiitaID, '
                             'ReverseAdapter, Sample_Project, '
-                            'contains_replicates, '
                             'experiment_design_description, '
                             'library_construction_protocol')]
         obs = sheet._validate_sample_sheet_metadata(self.metadata)
@@ -703,6 +700,8 @@ class SampleSheetWorkflow(BaseTests):
             obs = make_sample_sheet(self.metadata, self.table, 'HiSeq4000',
                                     [5, 7], strict=False)
 
+        self.assertIsInstance(obs, AmpliconSampleSheet)
+
         self.assertEqual(obs.Reads, [151, 151])
         self.assertEqual(obs.Settings, {'ReverseComplement': '0'})
 
@@ -711,6 +710,8 @@ class SampleSheetWorkflow(BaseTests):
 
         header = {
             'IEMFileVersion': '4',
+            'SheetType': 'standard_metag',
+            'SheetVersion': '0',
             'Date': datetime.today().strftime('%Y-%m-%d'),
             'Workflow': 'GenerateFASTQ',
             'Application': 'FASTQ Only',
@@ -720,32 +721,31 @@ class SampleSheetWorkflow(BaseTests):
         }
 
         self.assertEqual(obs.Header, header)
-
         self.assertEqual(len(obs.samples), 6)
 
         data = (
             [5, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
              'AGCCTTCGTCGC', '', '', 'THDMI_10317',
-             'pool1', 'THDMI_10317_PUK2.X00180471.A1'],
+             'THDMI_10317_PUK2.X00180471.A1'],
             [5, 'X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1',
              '515rcbc12', 'CGTATAAATGCG', '', '', 'THDMI_10317',
-             'pool1', 'THDMI_10317_PUK2.X00180199.C1'],
+             'THDMI_10317_PUK2.X00180199.C1'],
             [5, 'X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1',
              '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317',
-             'pool1', 'THDMI_10317_PUK2.X00179789.E1'],
+             'THDMI_10317_PUK2.X00179789.E1'],
             [7, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
              'AGCCTTCGTCGC', '', '', 'THDMI_10317',
-             'pool1', 'THDMI_10317_PUK2.X00180471.A1'],
+             'THDMI_10317_PUK2.X00180471.A1'],
             [7, 'X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1',
              '515rcbc12', 'CGTATAAATGCG', '', '', 'THDMI_10317',
-             'pool1', 'THDMI_10317_PUK2.X00180199.C1'],
+             'THDMI_10317_PUK2.X00180199.C1'],
             [7, 'X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1',
              '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317',
-             'pool1', 'THDMI_10317_PUK2.X00179789.E1'],
+             'THDMI_10317_PUK2.X00179789.E1'],
         )
         keys = ['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
-                'well_id_384', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
-                'Sample_Project', 'syndna_pool_number', 'Well_description']
+                'Sample_Well', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                'Sample_Project', 'Well_description']
 
         for sample, row in zip(obs.samples, data):
             exp = sample_sheet.Sample(dict(zip(keys, row)))
@@ -764,30 +764,31 @@ class SampleSheetWorkflow(BaseTests):
                                 strict=False)
 
         self.assertIsNotNone(obs, msg="make_sample_sheet() failed")
+        self.assertIsInstance(obs, AmpliconSampleSheet)
 
         data = (
             [5, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
              'AGCCTTCGTCGC', '', '', 'THDMI_10317',
-             'pool1', 'THDMI_10317_PUK2.X00180471.A1'],
+             'THDMI_10317_PUK2.X00180471.A1'],
             [5, 'X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1',
              '515rcbc12', 'CGTATAAATGCG', '', '', 'THDMI_10317',
-             'pool1', 'THDMI_10317_PUK2.X00180199.C1'],
+             'THDMI_10317_PUK2.X00180199.C1'],
             [5, 'X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1',
              '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317',
-             'pool1', 'THDMI_10317_PUK2.X00179789.E1'],
+             'THDMI_10317_PUK2.X00179789.E1'],
             [7, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
              'AGCCTTCGTCGC', '', '', 'THDMI_10317',
-             'pool1', 'THDMI_10317_PUK2.X00180471.A1'],
+             'THDMI_10317_PUK2.X00180471.A1'],
             [7, 'X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1',
              '515rcbc12', 'CGTATAAATGCG', '', '', 'THDMI_10317',
-             'pool1', 'THDMI_10317_PUK2.X00180199.C1'],
+             'THDMI_10317_PUK2.X00180199.C1'],
             [7, 'X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1',
              '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317',
-             'pool1', 'THDMI_10317_PUK2.X00179789.E1'],
+             'THDMI_10317_PUK2.X00179789.E1'],
         )
         keys = ['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
-                'well_id_384', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
-                'Sample_Project', 'syndna_pool_number', 'Well_description']
+                'Sample_Well', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                'Sample_Project', 'Well_description']
 
         for sample, row in zip(obs.samples, data):
             exp = sample_sheet.Sample(dict(zip(keys, row)))
@@ -931,15 +932,15 @@ class SampleSheetWorkflow(BaseTests):
                    'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
                    'Sample_Project', 'Well_description']
         data = [
-            ['33-A1', '33-A1', 'The_plate', 'A1', 'iTru7_109_01',
-             'CTCGTCTT', 'iTru5_19_A', 'AACGCACA', 'Tst_project_1234',
-            'The_plate.33-A1.A1'],
+            ['33-A1', '33-A1', 'The_plate', 'A1', 'iTru7_109_01', 'CTCGTCTT',
+             'iTru5_19_A', 'AACGCACA', 'Tst_project_1234',
+             'The_plate.33-A1.A1'],
             ['820072905-2', '820072905-2', 'The_plate', 'C1', 'iTru7_109_02',
              'CGAACTGT', 'iTru5_19_B', 'ATGCCTAG', 'Tst_project_1234',
-            'The_plate.820072905-2.C1'],
+             'The_plate.820072905-2.C1'],
             ['820029517-3', '820029517-3', 'The_plate', 'E1', 'iTru7_109_03',
              'CATTCGGT', 'iTru5_19_C', 'CATACGGA', 'Tst_project_1234',
-              'The_plate.820029517-3.E1'],
+             'The_plate.820029517-3.E1'],
         ]
 
         exp = pd.DataFrame(columns=columns, data=data)
@@ -958,7 +959,7 @@ class SampleSheetWorkflow(BaseTests):
         # for amplicon we expect the following three columns to not be there
         message = (r'The column (I5_Index_ID|index2|Well_description) '
                    r'in the sample sheet is empty')
-        # CHARLIE
+
         with self.assertWarnsRegex(UserWarning, message):
             self.sheet._add_data_to_sheet(self.table, 'HiSeq4000', [1],
                                           'TruSeq HT', strict=False)
@@ -968,21 +969,20 @@ class SampleSheetWorkflow(BaseTests):
         data = (
             [1, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
              'AGCCTTCGTCGC', '', '', 'THDMI_10317',
-             'pool1', 'THDMI_10317_PUK2.X00180471.A1'],
+             'THDMI_10317_PUK2.X00180471.A1'],
             [1, 'X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1',
              '515rcbc12', 'CGTATAAATGCG', '', '', 'THDMI_10317',
-             'pool1', 'THDMI_10317_PUK2.X00180199.C1'],
+             'THDMI_10317_PUK2.X00180199.C1'],
             [1, 'X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1',
              '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317',
-             'pool1', 'THDMI_10317_PUK2.X00179789.E1'],
+             'THDMI_10317_PUK2.X00179789.E1'],
         )
         keys = ['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
-                'well_id_384', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
-                'Sample_Project', 'syndna_pool_number', 'Well_description']
+                'Sample_Well', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                'Sample_Project', 'Well_description']
 
         for sample, row in zip(self.sheet.samples, data):
             exp = sample_sheet.Sample(dict(zip(keys, row)))
-
             self.assertEqual(dict(sample), dict(exp))
 
     def test_add_metadata_to_sheet_all_defaults_amplicon(self):
@@ -1042,6 +1042,8 @@ class SampleSheetWorkflow(BaseTests):
 
         header = {
             'IEMFileVersion': '4',
+            'SheetType': 'standard_metag',
+            'SheetVersion': '100',
             'Investigator Name': 'Knight',
             'Experiment Name': 'RKL_experiment',
             'Date': datetime.today().strftime('%Y-%m-%d'),
@@ -1053,7 +1055,6 @@ class SampleSheetWorkflow(BaseTests):
         }
 
         self.assertEqual(obs.Header, header)
-
         self.assertEqual(len(obs.samples), 0)
 
     def test_add_metadata_to_sheet_some_defaults(self):
@@ -1081,6 +1082,8 @@ class SampleSheetWorkflow(BaseTests):
 
         header = {
             'IEMFileVersion': '4',
+            'SheetType': 'standard_metag',
+            'SheetVersion': '100',
             'Date': '1970-01-01',
             'Workflow': 'GenerateFASTQ',
             'Application': 'FASTQ Only',
@@ -1090,7 +1093,6 @@ class SampleSheetWorkflow(BaseTests):
         }
 
         self.assertEqual(obs.Header, header)
-
         self.assertEqual(len(obs.samples), 1)
 
     def test_remove_options_for_iseq(self):
