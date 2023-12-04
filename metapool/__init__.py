@@ -25,7 +25,7 @@ __all__ = ['preparations_for_run', 'parse_prep', 'generate_qiita_prep_file',
            'find_threshold', 'extract_stats_metadata', 'sum_lanes',
            'remove_qiita_id', 'preparations_for_run_mapping_file',
            'demux_sample_sheet', 'demux_pre_prep', 'sheet_needs_demuxing',
-           'pre_prep_needs_demuxing']
+           'compress_plates', 'add_controls', 'pre_prep_needs_demuxing']
 
 from . import _version
 
