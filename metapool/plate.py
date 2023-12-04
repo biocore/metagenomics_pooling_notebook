@@ -265,6 +265,8 @@ def dilute_gDNA(plate_df, threshold=15):
 
     # return a copy of the input data. Do not overwrite the input data by
     # default.
+    plate_df['extracted_dna_concentration_ng_ul'] = \
+        plate_df['Sample DNA Concentration'].copy()
     df = plate_df.copy()
     df['Diluted'] = True
 

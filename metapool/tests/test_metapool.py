@@ -132,25 +132,29 @@ class Tests(TestCase):
             # top left plate
             {'Plate Position': 1,  # as int
              'Plate map file': self.plates[0],
-             'Project Plate': 'Celeste_Adaptation_12986_Plate_16',
+             'Project Plate': 'Plate_16',
              'Project Name': 'Celeste_Adaptation_12986',
-             'Project Abbreviation': 'ADAPT'},
+             'Project Abbreviation': 'ADAPT',
+             'Plate elution volume': 70},
             # top right plate
             {'Plate Position': 2,
              'Plate map file': self.plates[1],
-             'Project Plate': 'Celeste_Adaptation_12986_Plate_17',
+             'Project Plate': 'Plate_17',
              'Project Name': 'Celeste_Adaptation_12986',
-             'Project Abbreviation': 'ADAPT'},
+             'Project Abbreviation': 'ADAPT',
+             'Plate elution volume': 70},
             {'Plate Position': 3,
              'Plate map file': self.plates[2],
-             'Project Plate': 'Celeste_Adaptation_12986_Plate_18',
+             'Project Plate': 'Plate_18',
              'Project Name': 'Celeste_Adaptation_12986',
-             'Project Abbreviation': 'ADAPT'},
+             'Project Abbreviation': 'ADAPT',
+             'Plate elution volume': 70},
             {'Plate Position': 4,
              'Plate map file': self.plates[3],
-             'Project Plate': 'Celeste_Adaptation_12986_21',
+             'Project Plate': 'Plate_21',
              'Project Name': 'Celeste_Adaptation_12986',
-             'Project Abbreviation': 'ADAPT'}
+             'Project Abbreviation': 'ADAPT',
+             'Plate elution volume': 70}
         ]
 
         plate_df_obs = compress_plates(
@@ -1158,7 +1162,7 @@ class Tests(TestCase):
                                                                  0.0],
                                      'Diluted': [False, False, False, False,
                                                  False],
-                                     'synDNA pool number': [None, None, None,
+                                     'syndna_pool_number': [None, None, None,
                                                             None, None]})
 
         pd.testing.assert_frame_equal(test_df_, exp_plate_df,
@@ -1184,7 +1188,7 @@ class Tests(TestCase):
                                 })
 
         test_df_ = add_syndna(test_df, syndna_pool_number='pool1',
-                              syndna_concentration=2.35)
+                              syndna_concentration=2.22)
 
         exp_plate_df = pd.DataFrame({'Sample': ['sample_1', 'sample_2',
                                                 'sample_3', 'sample_4',
@@ -1201,12 +1205,14 @@ class Tests(TestCase):
                                                                  0.0, 0.0],
                                      'Diluted': [False, False, False, False,
                                                  False],
-                                     'synDNA pool number': ['pool1', 'pool1',
+                                     'syndna_pool_number': ['pool1', 'pool1',
                                                             'pool1', 'pool1',
                                                             'pool1'],
                                      'Input DNA': [5.0, 5.0, 5.0, 3.50, 1.75],
-                                     'synDNA volume': [106.38, 106.38, 106.38,
-                                                       74.46, 37.23]
+                                     'synDNA volume': [112.61, 112.61, 112.61,
+                                                       78.82, 39.41],
+                                     'mass_syndna_input_ng': [0.25, 0.25, 0.25,
+                                                              0.175,0.0875]
                                      })
 
         pd.testing.assert_frame_equal(test_df_, exp_plate_df,
