@@ -11,11 +11,13 @@ from .plate import (validate_plate_metadata, requires_dilution, dilute_gDNA,
 from .amplipool import assign_emp_index
 from .igm import IGMManifest
 from .count import run_counts
-from .metapool import extract_stats_metadata, sum_lanes
+from .metapool import (extract_stats_metadata, sum_lanes,
+                       compress_plates, add_controls)
 
 
 __credits__ = ("https://github.com/biocore/metagenomics_pooling_notebook/"
                "graphs/contributors")
+
 __all__ = ['preparations_for_run', 'parse_prep', 'generate_qiita_prep_file',
            'sample_sheet_to_dataframe', 'KLSampleSheet', 'make_sample_sheet',
            'validate_plate_metadata', 'assign_emp_index', 'IGMManifest',
