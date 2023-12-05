@@ -1,9 +1,9 @@
-LocationRow	number_of_cells	Kathseq_RackID
-A	600000	98765432
-B	120000	98765432
-C	24000	98765432
-D	4800	98765432
-E	960	98765432
-F	192	98765432
-G	38.40	98765432
-H	7.68	98765432
+LocationRow	number_of_cells	katharoseq_strain	RackID	katharoseq_aliquot_volume_ul	katharoseq_batch_information
+A	600000	Variovorax_paradoxus	98765432	200	06/16/2022, 0.5B variovorax cells in 50mL of 1xDPBS+0.5uM CCCP + 25% glycerol
+B	120000	Variovorax_paradoxus	98765432	200	06/16/2022, 0.5B variovorax cells in 50mL of 1xDPBS+0.5uM CCCP + 25% glycerol
+C	24000	Variovorax_paradoxus	98765432	200	06/16/2022, 0.5B variovorax cells in 50mL of 1xDPBS+0.5uM CCCP + 25% glycerol
+D	4800	Variovorax_paradoxus	98765432	200	06/16/2022, 0.5B variovorax cells in 50mL of 1xDPBS+0.5uM CCCP + 25% glycerol
+E	960	Variovorax_paradoxus	98765432	200	06/16/2022, 0.5B variovorax cells in 50mL of 1xDPBS+0.5uM CCCP + 25% glycerol
+F	192	Variovorax_paradoxus	98765432	200	06/16/2022, 0.5B variovorax cells in 50mL of 1xDPBS+0.5uM CCCP + 25% glycerol
+G	38.40	Variovorax_paradoxus	98765432	200	06/16/2022, 0.5B variovorax cells in 50mL of 1xDPBS+0.5uM CCCP + 25% glycerol
+H	7.68	Variovorax_paradoxus	98765432	200	06/16/2022, 0.5B variovorax cells in 50mL of 1xDPBS+0.5uM CCCP + 25% glycerol

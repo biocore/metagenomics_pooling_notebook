@@ -1,4 +1,4 @@
-LocationCell	LocationColumn	LocationRow	TubeCode	Kathseq_RackID
+LocationCell	LocationColumn	LocationRow	TubeCode	RackID	Time	Date
 A1	1	A	0363159675	12345678
 A2	2	A	0363159666	12345678
 A3	3	A	0363159642	12345678
