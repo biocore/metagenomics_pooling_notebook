@@ -182,7 +182,7 @@ def _add_config_metadata(
             <storage_liquid_type>: {
                 STORAGE_LIQUID_LOT_NUM_STR_KEY: {
                     <storage_liquid_lot_num>: {
-                        MASS_STORAGE_TUBE_ONLY_G_KEY: ##.##,
+                        MASS_STORAGE_TUBE_AND_STORAGE_LIQUID_BEFORE_SAMPLE_G_KEY: ##.##,  # noqa: E501
                         DENSITY_STORAGE_LIQUID_G_ML_KEY: ##.##
                     },
             MASS_STORAGE_TUBE_ONLY_G_KEY: ##.##
