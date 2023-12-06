@@ -4,7 +4,8 @@ import pandas
 import pandas as pd
 
 from unittest import TestCase, main
-from metapool.sample_sheet import KLSampleSheet, sample_sheet_to_dataframe
+from metapool.sample_sheet import (MetagenomicSampleSheetv90,
+                                   sample_sheet_to_dataframe)
 from metapool.prep import (preparations_for_run, remove_qiita_id,
                            get_run_prefix, is_nonempty_gz_file,
                            get_machine_code, get_model_and_center,
@@ -192,7 +193,7 @@ class TestPrep(TestCase):
         pd.testing.assert_frame_equal(obs_df, exp_df)
 
     def test_preparations_for_run(self):
-        ss = sample_sheet_to_dataframe(KLSampleSheet(self.ss))
+        ss = sample_sheet_to_dataframe(MetagenomicSampleSheetv90(self.ss))
 
         # obs will be a dictionary of dataframes, with the keys being
         # a triplet of strings, rather than a single string.
@@ -204,7 +205,7 @@ class TestPrep(TestCase):
     def test_preparations_for_run_missing_columns(self):
         # Check that warnings are raised whenever we overwrite the
         # "well_description" column with the "description" column
-        ss = sample_sheet_to_dataframe(KLSampleSheet(self.ss))
+        ss = sample_sheet_to_dataframe(MetagenomicSampleSheetv90(self.ss))
         ss['description'] = ss['well_description'].copy()
         ss.drop('well_description', axis=1, inplace=True)
 
@@ -246,7 +247,15 @@ class TestPrep(TestCase):
             preparations_for_run_mapping_file(self.amplicon_run, mf)
 
     def test_invalid_sample_names_show_warning(self):
-        ss = sample_sheet_to_dataframe(KLSampleSheet(self.ss))
+        print("Hello")
+        ss = MetagenomicSampleSheetv90(self.ss)
+
+        print(type(ss))
+        print(ss.path)
+
+        self.assertIsNotNone(ss)
+
+        ss = sample_sheet_to_dataframe(ss)
 
         ss['well_description'] = ss['well_description'].str.replace(
             'importantsample44', 'important-sample44')

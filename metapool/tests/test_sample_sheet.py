@@ -9,13 +9,11 @@ import sample_sheet
 
 from metapool.sample_sheet import (KLSampleSheet, AmpliconSampleSheet,
                                    MetagenomicSampleSheetv100,
+                                   MetagenomicSampleSheetv90,
                                    MetatranscriptomicSampleSheet,
                                    AbsQuantSampleSheetv10,
-
-
                                    sample_sheet_to_dataframe,
                                    make_sample_sheet,
-
                                    demux_sample_sheet, sheet_needs_demuxing)
 from metapool.plate import ErrorMessage, WarningMessage
 
@@ -99,7 +97,7 @@ class KLSampleSheetTests(BaseTests):
                   self.scrubbable_ss, self.bad_project_name_ss,
                   self.with_comments, self.with_comments_and_new_lines,
                   self.with_new_lines]
-        sheets = {sheet: KLSampleSheet(sheet) for sheet in sheets}
+        sheets = {sheet: MetagenomicSampleSheetv100(sheet) for sheet in sheets}
 
         for filename, sheet in sheets.items():
             # write each KLSampleSheet object out to disk and compare the text
@@ -144,7 +142,7 @@ class KLSampleSheetTests(BaseTests):
             ',',
             '']
 
-        empty = KLSampleSheet()
+        empty = MetagenomicSampleSheetv100()
         with tempfile.NamedTemporaryFile('w+') as tmp:
             empty.write(tmp)
             tmp.seek(0)
@@ -172,7 +170,7 @@ class KLSampleSheetTests(BaseTests):
             for line in empty:
                 tmp.write(line + '\n')
 
-            sheet = KLSampleSheet(tmp.name)
+            sheet = MetagenomicSampleSheetv100(tmp.name)
 
             self.assertEqual(sheet.samples, [])
             self.assertEqual(sheet.Settings, {})
@@ -182,7 +180,7 @@ class KLSampleSheetTests(BaseTests):
             self.assertIsNone(sheet.Contact)
 
     def test_parse(self):
-        sheet = KLSampleSheet(self.ss)
+        sheet = MetagenomicSampleSheetv90(self.ss)
 
         exp = {
             'IEMFileVersion': '4',
@@ -263,9 +261,9 @@ class KLSampleSheetTests(BaseTests):
 
     def test_parse_with_comments(self):
         # the two sample sheets are identical except for the comments
-        exp = KLSampleSheet(self.good_ss)
+        exp = MetagenomicSampleSheetv100(self.good_ss)
         with self.assertWarnsRegex(UserWarning, 'Comments at the beginning '):
-            obs = KLSampleSheet(self.with_comments)
+            obs = MetagenomicSampleSheetv100(self.with_comments)
 
             self.assertEqual(obs.Header, exp.Header)
             self.assertEqual(obs.Settings, exp.Settings)
@@ -281,7 +279,7 @@ class KLSampleSheetTests(BaseTests):
             self.assertEqual(len(obs), 783)
 
     def test_merge(self):
-        base = KLSampleSheet()
+        base = MetagenomicSampleSheetv100()
         base.Reads = [151, 151]
         base.add_sample(sample_sheet.Sample({
             'Sample_ID': 'y',
@@ -291,7 +289,7 @@ class KLSampleSheetTests(BaseTests):
         }))
         base.Contact = pd.DataFrame(self.metadata['Contact'])
 
-        hugo = KLSampleSheet()
+        hugo = MetagenomicSampleSheetv100()
         hugo.Reads = [151, 151]
         hugo.add_sample(sample_sheet.Sample({
             'Sample_ID': 'a',
@@ -301,7 +299,7 @@ class KLSampleSheetTests(BaseTests):
         }))
         hugo.Contact = pd.DataFrame(self.metadata['Contact'])
 
-        paco = KLSampleSheet()
+        paco = MetagenomicSampleSheetv100()
         paco.Reads = [151, 151]
         paco.add_sample(sample_sheet.Sample({
             'Sample_ID': 'b',
@@ -310,7 +308,7 @@ class KLSampleSheetTests(BaseTests):
             'Sample_Name': 'b.sample'
         }))
 
-        luis = KLSampleSheet()
+        luis = MetagenomicSampleSheetv100()
         luis.Reads = [151, 151]
         luis.add_sample(sample_sheet.Sample({
                 'Sample_ID': 'c',
@@ -357,7 +355,7 @@ class KLSampleSheetTests(BaseTests):
                                       pd.DataFrame(self.metadata['Contact']))
 
     def test_merge_bioinformatics(self):
-        base = KLSampleSheet()
+        base = MetagenomicSampleSheetv100()
         base.Reads = [151, 151]
         base.add_sample(sample_sheet.Sample({
             'Sample_ID': 'y',
@@ -367,7 +365,7 @@ class KLSampleSheetTests(BaseTests):
         }))
         base.Bioinformatics = pd.DataFrame(self.metadata['Bioinformatics'])
 
-        hugo = KLSampleSheet()
+        hugo = MetagenomicSampleSheetv100()
         hugo.Reads = [151, 151]
         hugo.add_sample(sample_sheet.Sample({
             'Sample_ID': 'a',
@@ -377,7 +375,7 @@ class KLSampleSheetTests(BaseTests):
         }))
         hugo.Bioinformatics = pd.DataFrame(self.metadata['Bioinformatics'])
 
-        paco = KLSampleSheet()
+        paco = MetagenomicSampleSheetv100()
         paco.Reads = [151, 151]
         paco.add_sample(sample_sheet.Sample({
             'Sample_ID': 'b',
@@ -441,12 +439,12 @@ class KLSampleSheetTests(BaseTests):
         pd.testing.assert_frame_equal(base.Bioinformatics, exp)
 
     def test_merge_error(self):
-        base = KLSampleSheet()
+        base = MetagenomicSampleSheetv100()
         base.Reads = [151, 151]
         base.Settings = {'ReverseComplement': 0,
                          'SomethingElse': '100'}
 
-        hugo = KLSampleSheet()
+        hugo = MetagenomicSampleSheetv100()
         hugo.add_sample(sample_sheet.Sample({
             'Sample_ID': 'a',
             'index': 'GATACA',
@@ -459,11 +457,11 @@ class KLSampleSheetTests(BaseTests):
             base.merge([hugo])
 
     def test_merge_different_dates(self):
-        base = KLSampleSheet()
+        base = MetagenomicSampleSheetv100()
         base.Header['Date'] = '08-01-1989'
         base.Settings = {'ReverseComplement': 0}
 
-        hugo = KLSampleSheet()
+        hugo = MetagenomicSampleSheetv100()
         hugo.Header['Date'] = '04-26-2021'
         hugo.Settings = {'ReverseComplement': 0}
 
@@ -530,7 +528,7 @@ class KLSampleSheetTests(BaseTests):
 
     def test_alt_sample_sheet(self):
         # testing with all the sheets we have access to
-        obs = KLSampleSheet(self.alt_ss).all_sample_keys
+        obs = MetagenomicSampleSheetv90(self.alt_ss).all_sample_keys
 
         exp = ['Lane',
                'Sample_ID',
@@ -1316,7 +1314,7 @@ class ValidateSampleSheetTests(BaseTests):
         self.assertIsNone(sheet)
 
     def test_sample_sheet_to_dataframe(self):
-        ss = KLSampleSheet(self.ss)
+        ss = MetagenomicSampleSheetv100(self.ss)
         obs = sample_sheet_to_dataframe(ss)
 
         columns = ['lane', 'sample_name', 'sample_plate', 'well_id_384',
@@ -1353,8 +1351,8 @@ class DemuxReplicatesTests(BaseTests):
         # bad_sheet_w_replicates.csv contains two projects, one of which
         # doesn't contain replicates. By convention, all projects in the sheet
         # must either contain replicates or not contain replicates.
-        self.bad_sheet_w_replicates_path = join(self.data_dir,
-                                                'bad_sheet_w_replicates.csv')
+        self.bad_sht_w_replicates_path = join(self.data_dir,
+                                              'bad_sheet_w_replicates.csv')
 
         self.sheet_wo_replicates_path = join(self.data_dir,
                                              'sheet_wo_replicates.csv')
@@ -1372,7 +1370,7 @@ class DemuxReplicatesTests(BaseTests):
         # confirm legacy sample-sheets w/out contains_replicates column will
         # return False, instead of raising an Error. For processing purposes,
         # it's only critical to know whether the sheet needs demuxing or not.
-        sheet = KLSampleSheet(self.legacy_sheet_path)
+        sheet = MetagenomicSampleSheetv90(self.legacy_sheet_path)
         self.assertFalse(sheet_needs_demuxing(sheet))
 
         # confirm bad sample-sheet raises a ValueError for containing projects
@@ -1381,15 +1379,15 @@ class DemuxReplicatesTests(BaseTests):
                                                 "Bioinformatics section must "
                                                 "either contain replicates or "
                                                 "not."):
-            sheet = KLSampleSheet(self.bad_sheet_w_replicates_path)
+            sheet = MetagenomicSampleSheetv100(self.bad_sht_w_replicates_path)
             sheet_needs_demuxing(sheet)
 
         # test a valid sample-sheet with replicates.
-        sheet = KLSampleSheet(self.sheet_w_replicates_path)
+        sheet = MetagenomicSampleSheetv100(self.sheet_w_replicates_path)
         self.assertTrue(sheet_needs_demuxing(sheet))
 
         # test a valid sample-sheet w/out replicates.
-        sheet = KLSampleSheet(self.sheet_wo_replicates_path)
+        sheet = MetagenomicSampleSheetv100(self.sheet_wo_replicates_path)
         self.assertFalse(sheet_needs_demuxing(sheet))
 
     def test_demux_sample_sheet(self):
@@ -1398,7 +1396,7 @@ class DemuxReplicatesTests(BaseTests):
         # called.
         with self.assertRaisesRegex(ValueError, "sample-sheet does not contain"
                                                 " replicates"):
-            sheet = KLSampleSheet(self.legacy_sheet_path)
+            sheet = MetagenomicSampleSheetv90(self.legacy_sheet_path)
             demux_sample_sheet(sheet)
 
         # by convention, all replication is done at the plate level, and all
@@ -1409,7 +1407,7 @@ class DemuxReplicatesTests(BaseTests):
         with self.assertRaisesRegex(ValueError, "all projects in Bioinfor"
                                                 "matics section must either "
                                                 "contain replicates or not."):
-            sheet = KLSampleSheet(self.bad_sheet_w_replicates_path)
+            sheet = MetagenomicSampleSheetv100(self.bad_sht_w_replicates_path)
             demux_sample_sheet(sheet)
 
         # as mentioned above, sheet_needs_demuxing() should be used to
@@ -1420,14 +1418,14 @@ class DemuxReplicatesTests(BaseTests):
         with self.assertRaisesRegex(ValueError, "all projects in Bioinfor"
                                                 "matics section do not contain"
                                                 " replicates"):
-            sheet = KLSampleSheet(self.sheet_wo_replicates_path)
+            sheet = MetagenomicSampleSheetv100(self.sheet_wo_replicates_path)
             demux_sample_sheet(sheet)
 
         # this test will need to compare the four completed sample-sheets
         # made using self.sheet_w_replicates_path against an expected result.
 
         # test sample-sheet w/both projects w/replicates and not.
-        sheet = KLSampleSheet(self.sheet_w_replicates_path)
+        sheet = MetagenomicSampleSheetv100(self.sheet_w_replicates_path)
         results = demux_sample_sheet(sheet)
 
         # assert that the proper number of KLSampleSheets were returned.
@@ -1436,7 +1434,7 @@ class DemuxReplicatesTests(BaseTests):
         # assert that each sample-sheet appears in the correct order and
         # matches known results.
         for replicate_output_path in self.replicate_output_paths:
-            exp = KLSampleSheet(replicate_output_path)
+            exp = MetagenomicSampleSheetv100(replicate_output_path)
             obs = results.pop(0)
             self.assertEqual(obs.Header, exp.Header)
             self.assertEqual(obs.Reads, exp.Reads)

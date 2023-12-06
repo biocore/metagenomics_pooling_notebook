@@ -75,7 +75,18 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                    'Description': 'Well_description',
                    'sample_plate': 'Sample_Plate'}
 
-    def __init__(self, path=None):
+    def __new__(cls, path=None, *args, **kwargs):
+        """
+            Override new() so that base class cannot be instantiated.
+        """
+        if cls is KLSampleSheet:
+            raise TypeError(
+                f"only children of '{cls.__name__}' may be instantiated")
+
+        instance = super(KLSampleSheet, cls).__new__(cls, *args, **kwargs)
+        return instance
+
+    def __init__(self, path, *args, **kwargs):
         """Knight Lab's SampleSheet subclass
 
         Includes a number of parsing and writing changes to allow for the
@@ -105,9 +116,9 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             File path where the data was parsed from.
         """
         # don't pass the path argument to avoid the superclass from parsing
-        # the data
-        self.remapper = None
+        # the data.
         super().__init__()
+        self.remapper = None
 
         self.Bioinformatics = None
         self.Contact = None
@@ -720,7 +731,7 @@ class AmpliconSampleSheet(KLSampleSheet):
     }
 
     def __init__(self, path=None):
-        super().__init__(path=path)
+        super().__init__(path)
         self.remapper = {
             'sample sheet Sample_ID': 'Sample_ID',
             'Sample': 'Sample_Name',
@@ -783,6 +794,45 @@ class MetagenomicSampleSheetv100(KLSampleSheet):
             'i5 sequence': 'index2',
             'Project Name': 'Sample_Project',
             'synDNA pool number': 'syndna_pool_number'
+        }
+
+
+class MetagenomicSampleSheetv90(KLSampleSheet):
+    '''
+    MetagenomicSampleSheetv90 is meant to be a class to handle legacy
+    Metagenomic type sample-sheets, since KLSampleSheet() itself can't be
+    instantiated anymore. What makes it unique is that it specifies a version
+    number and defines the classic values for self.remapper.
+    '''
+    _HEADER = {
+        'IEMFileVersion': '4',
+        'SheetType': _STANDARD_SHEET_TYPE,
+        'SheetVersion': '90',
+        'Investigator Name': 'Knight',
+        'Experiment Name': 'RKL_experiment',
+        'Date': None,
+        'Workflow': 'GenerateFASTQ',
+        'Application': 'FASTQ Only',
+        'Assay': _METAGENOMIC,
+        'Description': '',
+        'Chemistry': 'Default',
+    }
+
+    # data_columns are the same as base KLSampleSheet so they will not be
+    # overridden here. _BIOINFORMATICS_COLUMNS as well.
+
+    def __init__(self, path=None):
+        super().__init__(path=path)
+        self.remapper = {
+            'sample sheet Sample_ID': 'Sample_ID',
+            'Sample': 'Sample_Name',
+            'Project Plate': 'Sample_Plate',
+            'Well': 'Sample_Well',
+            'i7 name': 'I7_Index_ID',
+            'i7 sequence': 'index',
+            'i5 name': 'I5_Index_ID',
+            'i5 sequence': 'index2',
+            'Project Name': 'Sample_Project'
         }
 
 
