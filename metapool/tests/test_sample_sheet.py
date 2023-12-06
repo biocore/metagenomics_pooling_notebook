@@ -82,10 +82,20 @@ class BaseTests(unittest.TestCase):
             }
         ]
 
-        self.metadata = {
+        self.md_ampl = {
             'Bioinformatics': bfx,
             'Contact': contact,
             'Assay': 'TruSeq HT',
+            'SheetType': 'standard_metag',
+            'SheetVersion': '0'
+        }
+
+        self.md_metag = {
+            'Bioinformatics': bfx,
+            'Contact': contact,
+            'Assay': 'Metagenomic',
+            'SheetType': 'standard_metag',
+            'SheetVersion': '100'
         }
 
 
@@ -287,7 +297,7 @@ class KLSampleSheetTests(BaseTests):
             'index2': 'GGCGCC',
             'Sample_Name': 'y.sample'
         }))
-        base.Contact = pd.DataFrame(self.metadata['Contact'])
+        base.Contact = pd.DataFrame(self.md_metag['Contact'])
 
         hugo = MetagenomicSampleSheetv100()
         hugo.Reads = [151, 151]
@@ -297,7 +307,7 @@ class KLSampleSheetTests(BaseTests):
             'index2': 'GCCGCC',
             'Sample_Name': 'a.sample'
         }))
-        hugo.Contact = pd.DataFrame(self.metadata['Contact'])
+        hugo.Contact = pd.DataFrame(self.md_metag['Contact'])
 
         paco = MetagenomicSampleSheetv100()
         paco.Reads = [151, 151]
@@ -351,8 +361,8 @@ class KLSampleSheetTests(BaseTests):
             self.assertEqual(obs, exp)
 
         # checks the items haven't been repeated
-        pd.testing.assert_frame_equal(base.Contact,
-                                      pd.DataFrame(self.metadata['Contact']))
+        contact = self.md_metag['Contact']
+        pd.testing.assert_frame_equal(base.Contact, pd.DataFrame(contact))
 
     def test_merge_bioinformatics(self):
         base = MetagenomicSampleSheetv100()
@@ -363,7 +373,7 @@ class KLSampleSheetTests(BaseTests):
             'index2': 'GGCGCC',
             'Sample_Name': 'y.sample'
         }))
-        base.Bioinformatics = pd.DataFrame(self.metadata['Bioinformatics'])
+        base.Bioinformatics = pd.DataFrame(self.md_metag['Bioinformatics'])
 
         hugo = MetagenomicSampleSheetv100()
         hugo.Reads = [151, 151]
@@ -373,7 +383,7 @@ class KLSampleSheetTests(BaseTests):
             'index2': 'GCCGCC',
             'Sample_Name': 'a.sample'
         }))
-        hugo.Bioinformatics = pd.DataFrame(self.metadata['Bioinformatics'])
+        hugo.Bioinformatics = pd.DataFrame(self.md_metag['Bioinformatics'])
 
         paco = MetagenomicSampleSheetv100()
         paco.Reads = [151, 151]
@@ -383,7 +393,7 @@ class KLSampleSheetTests(BaseTests):
             'index2': 'GCCACC',
             'Sample_Name': 'b.sample'
         }))
-        paco.Bioinformatics = pd.DataFrame(self.metadata['Bioinformatics'])
+        paco.Bioinformatics = pd.DataFrame(self.md_metag['Bioinformatics'])
         paco.Bioinformatics['Sample_Project'] = (
                 'paco_' + paco.Bioinformatics['Sample_Project'])
 
@@ -487,43 +497,43 @@ class KLSampleSheetTests(BaseTests):
 
     def test_validate(self):
         sheet = AmpliconSampleSheet()
-        obs = sheet._validate_sample_sheet_metadata(self.metadata)
+        obs = sheet._validate_sample_sheet_metadata(self.md_ampl)
         self.assertEqual(obs, [])
 
     def test_more_attributes(self):
         sheet = AmpliconSampleSheet()
-        self.metadata['Ride'] = 'the lightning'
+        self.md_ampl['Ride'] = 'the lightning'
 
-        obs = sheet._validate_sample_sheet_metadata(self.metadata)
+        obs = sheet._validate_sample_sheet_metadata(self.md_ampl)
         exp = [ErrorMessage('These metadata keys are not supported: Ride')]
         self.assertEqual(obs, exp)
 
     def test_validate_missing_assay(self):
         sheet = AmpliconSampleSheet()
-        self.metadata['Assay'] = 'NewAssayType'
+        self.md_ampl['Assay'] = 'NewAssayType'
 
-        obs = sheet._validate_sample_sheet_metadata(self.metadata)
+        obs = sheet._validate_sample_sheet_metadata(self.md_ampl)
         exp = [ErrorMessage('NewAssayType is not a supported Assay')]
         self.assertEqual(obs, exp)
 
     def test_validate_missing_bioinformatics_data(self):
         sheet = AmpliconSampleSheet()
-        del self.metadata['Bioinformatics']
+        del self.md_ampl['Bioinformatics']
 
-        obs = sheet._validate_sample_sheet_metadata(self.metadata)
+        obs = sheet._validate_sample_sheet_metadata(self.md_ampl)
         exp = [ErrorMessage('Bioinformatics is a required attribute')]
         self.assertEqual(obs, exp)
 
     def test_validate_missing_column_in_bioinformatics(self):
         sheet = AmpliconSampleSheet()
-        del self.metadata['Bioinformatics'][0]['Sample_Project']
+        del self.md_ampl['Bioinformatics'][0]['Sample_Project']
         exp = [ErrorMessage('In the Bioinformatics section Project #1 does not'
                             ' have exactly these keys BarcodesAreRC, '
                             'ForwardAdapter, HumanFiltering, QiitaID, '
                             'ReverseAdapter, Sample_Project, '
                             'experiment_design_description, '
                             'library_construction_protocol')]
-        obs = sheet._validate_sample_sheet_metadata(self.metadata)
+        obs = sheet._validate_sample_sheet_metadata(self.md_ampl)
         self.assertEqual(str(obs[0]), str(exp[0]))
 
     def test_alt_sample_sheet(self):
@@ -639,8 +649,8 @@ class SampleSheetWorkflow(BaseTests):
 
     def test_validate_sample_sheet_metadata_not_supported(self):
         sheet = AmpliconSampleSheet()
-        self.metadata['Rush'] = 'XYZ'
-        messages = sheet._validate_sample_sheet_metadata(self.metadata)
+        self.md_ampl['Rush'] = 'XYZ'
+        messages = sheet._validate_sample_sheet_metadata(self.md_ampl)
 
         exp = [
                 ErrorMessage('These metadata keys are not supported: Rush'),
@@ -649,9 +659,9 @@ class SampleSheetWorkflow(BaseTests):
         self.assertEqual(messages, exp)
 
     def test_validate_sample_sheet_metadata_good(self):
-        # self.metadata is patterned after legacy amplicon sample-sheet.
+        # self.md_ampl is patterned after legacy amplicon sample-sheet.
         sheet = AmpliconSampleSheet()
-        messages = sheet._validate_sample_sheet_metadata(self.metadata)
+        messages = sheet._validate_sample_sheet_metadata(self.md_ampl)
         self.assertEqual(messages, [])
 
         # test _validate_sample_sheet_metadata() against a
@@ -660,7 +670,7 @@ class SampleSheetWorkflow(BaseTests):
         # self.metadata does not contain this extra column, ErrorMessage()s
         # should be returned saying as much.
         sheet = MetagenomicSampleSheetv100()
-        messages = sheet._validate_sample_sheet_metadata(self.metadata)
+        messages = sheet._validate_sample_sheet_metadata(self.md_metag)
 
         exp_msgs = ['In the Bioinformatics section Project #1 does not have '
                     'exactly these keys BarcodesAreRC, ForwardAdapter, Human'
@@ -682,20 +692,20 @@ class SampleSheetWorkflow(BaseTests):
         invalid_types = ['SomeType', 'Metagenomics', 'Metatranscriptomics']
 
         for invalid_type in invalid_types:
-            self.metadata['Assay'] = invalid_type
-            messages = sheet._validate_sample_sheet_metadata(self.metadata)
+            self.md_ampl['Assay'] = invalid_type
+            messages = sheet._validate_sample_sheet_metadata(self.md_ampl)
             exp = f'ErrorMessage: {invalid_type} is not a supported Assay'
             self.assertEqual(str(messages[0]), exp)
 
     def test_make_sample_sheet(self):
-        exp_bfx = pd.DataFrame(self.metadata['Bioinformatics'])
-        exp_contact = pd.DataFrame(self.metadata['Contact'])
+        exp_bfx = pd.DataFrame(self.md_ampl['Bioinformatics'])
+        exp_contact = pd.DataFrame(self.md_ampl['Contact'])
 
         # for amplicon we expect the following three columns to not be there
         message = (r'The column (I5_Index_ID|index2|Well_description) '
                    r'in the sample sheet is empty')
         with self.assertWarnsRegex(UserWarning, message):
-            obs = make_sample_sheet(self.metadata, self.table, 'HiSeq4000',
+            obs = make_sample_sheet(self.md_ampl, self.table, 'HiSeq4000',
                                     [5, 7], strict=False)
 
         self.assertIsInstance(obs, AmpliconSampleSheet)
@@ -755,7 +765,7 @@ class SampleSheetWorkflow(BaseTests):
         table2['Well_description'] = ['Row A', 'Row B', 'Row C']
 
         # allow 'Well_description' column to pass through to obs.
-        obs = make_sample_sheet(self.metadata,
+        obs = make_sample_sheet(self.md_ampl,
                                 table2,
                                 'HiSeq4000',
                                 [5, 7],
@@ -797,7 +807,7 @@ class SampleSheetWorkflow(BaseTests):
         table2.rename({'Well_description': 'well_description'},
                       axis=1, inplace=True)
 
-        obs = make_sample_sheet(self.metadata,
+        obs = make_sample_sheet(self.md_ampl,
                                 table2,
                                 'HiSeq4000',
                                 [5, 7],
@@ -811,7 +821,7 @@ class SampleSheetWorkflow(BaseTests):
         table2.rename({'well_description': 'description'},
                       axis=1, inplace=True)
 
-        obs = make_sample_sheet(self.metadata,
+        obs = make_sample_sheet(self.md_ampl,
                                 table2,
                                 'HiSeq4000',
                                 [5, 7],
@@ -986,11 +996,11 @@ class SampleSheetWorkflow(BaseTests):
     def test_add_metadata_to_sheet_all_defaults_amplicon(self):
         sheet = AmpliconSampleSheet()
 
-        self.metadata['Assay'] = 'TruSeq HT'
-        exp_bfx = pd.DataFrame(self.metadata['Bioinformatics'])
-        exp_contact = pd.DataFrame(self.metadata['Contact'])
+        self.md_ampl['Assay'] = 'TruSeq HT'
+        exp_bfx = pd.DataFrame(self.md_ampl['Bioinformatics'])
+        exp_contact = pd.DataFrame(self.md_ampl['Contact'])
 
-        obs = sheet._add_metadata_to_sheet(self.metadata, 'HiSeq4000')
+        obs = sheet._add_metadata_to_sheet(self.md_ampl, 'HiSeq4000')
 
         self.assertEqual(obs.Reads, [151, 151])
 
@@ -1019,12 +1029,11 @@ class SampleSheetWorkflow(BaseTests):
 
     def test_add_metadata_to_sheet_most_defaults(self):
         sheet = MetagenomicSampleSheetv100()
+        exp_bfx = pd.DataFrame(self.md_metag['Bioinformatics'])
+        exp_contact = pd.DataFrame(self.md_metag['Contact'])
 
-        self.metadata['Assay'] = 'Metagenomic'
-        exp_bfx = pd.DataFrame(self.metadata['Bioinformatics'])
-        exp_contact = pd.DataFrame(self.metadata['Contact'])
-
-        obs = sheet._add_metadata_to_sheet(self.metadata, 'HiSeq4000')
+        obs = sheet._add_metadata_to_sheet(self.md_metag,
+                                           'HiSeq4000')
 
         self.assertEqual(obs.Reads, [151, 151])
 
@@ -1066,14 +1075,17 @@ class SampleSheetWorkflow(BaseTests):
             'index2': 'ACCGACCA',
         }))
 
-        exp_bfx = pd.DataFrame(self.metadata['Bioinformatics'])
-        exp_contact = pd.DataFrame(self.metadata['Contact'])
-        self.metadata['Date'] = '1970-01-01'
+        exp_bfx = pd.DataFrame(self.md_metag['Bioinformatics'])
+        exp_contact = pd.DataFrame(self.md_metag['Contact'])
+        self.md_metag['Date'] = '1970-01-01'
 
-        obs = sheet._add_metadata_to_sheet(self.metadata, 'HiSeq4000')
+        obs = sheet._add_metadata_to_sheet(self.md_metag, 'HiSeq4000')
 
         self.assertEqual(obs.Reads, [151, 151])
-        self.assertEqual(obs.Settings, {'ReverseComplement': '0'})
+        self.assertDictEqual(dict(obs.Settings),
+                             {'ReverseComplement': '0',
+                              'MaskShortReads': '1',
+                              'OverrideCycles': 'Y151;I8N2;I8N2;Y151'})
 
         pd.testing.assert_frame_equal(obs.Bioinformatics, exp_bfx)
         pd.testing.assert_frame_equal(obs.Contact, exp_contact)
@@ -1085,18 +1097,20 @@ class SampleSheetWorkflow(BaseTests):
             'Date': '1970-01-01',
             'Workflow': 'GenerateFASTQ',
             'Application': 'FASTQ Only',
-            'Assay': 'TruSeq HT',
+            'Assay': 'Metagenomic',
             'Description': '',
             'Chemistry': 'Default',
+            'Investigator Name': 'Knight',
+            'Experiment Name': 'RKL_experiment'
         }
 
-        self.assertEqual(obs.Header, header)
+        self.assertDictEqual(dict(obs.Header), header)
         self.assertEqual(len(obs.samples), 1)
 
     def test_remove_options_for_iseq(self):
         sheet = MetagenomicSampleSheetv100()
-        self.metadata['Assay'] = 'Metagenomic'
-        obs = sheet._add_metadata_to_sheet(self.metadata, 'iSeq')
+        self.md_metag['Assay'] = 'Metagenomic'
+        obs = sheet._add_metadata_to_sheet(self.md_metag, 'iSeq')
 
         settings = {
             'ReverseComplement': '0'

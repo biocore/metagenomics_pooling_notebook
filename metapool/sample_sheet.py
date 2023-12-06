@@ -16,6 +16,7 @@ _METAGENOMIC = 'Metagenomic'
 _METATRANSCRIPTOMIC = 'Metatranscriptomic'
 _STANDARD_SHEET_TYPE = 'standard_metag'
 _ABSQUANT_SHEET_TYPE = 'abs_quant_metag'
+SHEET_TYPES = [_STANDARD_SHEET_TYPE, _ABSQUANT_SHEET_TYPE]
 
 
 class KLSampleSheet(sample_sheet.SampleSheet):
@@ -984,15 +985,36 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
     SampleSheetError
         If one of the required columns is missing.
     """
+    required_attributes = ['SheetType', 'SheetVersion', 'Assay']
 
-    if metadata['Assay'] == 'TruSeq HT':
-        sheet = AmpliconSampleSheet()
-    elif metadata['Assay'] == 'Metagenomic':
-        sheet = MetagenomicSampleSheetv100()
-    elif metadata['Assay'] == 'Metagenomic':
-        sheet = MetatranscriptomicSampleSheet()
+    for attribute in required_attributes:
+        if attribute not in metadata:
+            raise ValueError("'%s' is not defined in metadata" % attribute)
+
+    sheet_type = metadata['SheetType']
+    sheet_version = metadata['SheetVersion']
+    assay_type = metadata['Assay']
+
+    if sheet_type == _STANDARD_SHEET_TYPE:
+        if assay_type == _AMPLICON:
+            sheet = AmpliconSampleSheet()
+        elif assay_type == _METAGENOMIC:
+            if sheet_version == '90':
+                sheet = MetagenomicSampleSheetv90()
+            elif sheet_version in ['95', '99', '100']:
+                # 95, 99, and v100 are functionally the same type.
+                sheet = MetagenomicSampleSheetv100()
+            else:
+                raise ValueError(f"'{assay_type}' is an unrecognized Sheet"
+                                 f"Version for '{sheet_type}'")
+        elif assay_type == _METATRANSCRIPTOMIC:
+            sheet = MetatranscriptomicSampleSheet()
+        else:
+            raise ValueError("'%s' is an unrecognized Assay type" % assay_type)
+    elif sheet_type == _ABSQUANT_SHEET_TYPE:
+        sheet = AbsQuantSampleSheetv10()
     else:
-        raise ValueError("'%s' is a bad Assay type!" % metadata['Assay'])
+        raise ValueError("'%s' is an unrecognized SheetType" % sheet_type)
 
     messages = sheet._validate_sample_sheet_metadata(metadata)
 
