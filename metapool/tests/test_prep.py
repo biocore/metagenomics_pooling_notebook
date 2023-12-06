@@ -247,11 +247,7 @@ class TestPrep(TestCase):
             preparations_for_run_mapping_file(self.amplicon_run, mf)
 
     def test_invalid_sample_names_show_warning(self):
-        print("Hello")
         ss = MetagenomicSampleSheetv90(self.ss)
-
-        print(type(ss))
-        print(ss.path)
 
         self.assertIsNotNone(ss)
 
