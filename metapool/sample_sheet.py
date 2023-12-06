@@ -87,7 +87,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         instance = super(KLSampleSheet, cls).__new__(cls, *args, **kwargs)
         return instance
 
-    def __init__(self, path, *args, **kwargs):
+    def __init__(self, path=None, *args, **kwargs):
         """Knight Lab's SampleSheet subclass
 
         Includes a number of parsing and writing changes to allow for the

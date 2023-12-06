@@ -100,6 +100,17 @@ class BaseTests(unittest.TestCase):
 
 
 class KLSampleSheetTests(BaseTests):
+    def test_instantiation(self):
+        # base class can no longer be instantiated
+        with self.assertRaises(TypeError, msg="TypeError: only children of "
+                                              "'KLSampleSheet' may be insta"
+                                              "ntiated"):
+            KLSampleSheet()
+
+        # child class should instantiate successfully.
+        sheet = MetagenomicSampleSheetv100(self.good_ss)
+        self.assertIsNotNone(sheet)
+
     def test_sample_sheet_roundtripping(self):
         # testing with all the sheets we have access to
         sheets = [self.ss, self.good_ss,
