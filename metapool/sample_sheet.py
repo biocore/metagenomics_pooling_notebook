@@ -30,11 +30,11 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         'Sample_Project', 'Email'
     }
 
-    _BIOINFORMATICS_COLUMNS = {
+    _BIOINFORMATICS_COLUMNS = frozenset({
         'Sample_Project', 'QiitaID', 'BarcodesAreRC', 'ForwardAdapter',
         'ReverseAdapter', 'HumanFiltering', 'library_construction_protocol',
         'experiment_design_description'
-    }
+    })
 
     _HEADER = {
         'IEMFileVersion': '4',
