@@ -16,7 +16,7 @@ _METAGENOMIC = 'Metagenomic'
 _METATRANSCRIPTOMIC = 'Metatranscriptomic'
 _STANDARD_SHEET_TYPE = 'standard_metag'
 _ABSQUANT_SHEET_TYPE = 'abs_quant_metag'
-SHEET_TYPES = [_STANDARD_SHEET_TYPE, _ABSQUANT_SHEET_TYPE]
+SHEET_TYPES = (_STANDARD_SHEET_TYPE, _ABSQUANT_SHEET_TYPE)
 
 
 class KLSampleSheet(sample_sheet.SampleSheet):
