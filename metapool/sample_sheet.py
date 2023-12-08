@@ -64,12 +64,12 @@ class KLSampleSheet(sample_sheet.SampleSheet):
     _ALL_METADATA = {**_HEADER, **_SETTINGS, **_READS,
                      **_BIOINFORMATICS_AND_CONTACT}
 
-    sections = ['Header', 'Reads', 'Settings', 'Data', 'Bioinformatics',
-                'Contact']
+    sections = ('Header', 'Reads', 'Settings', 'Data', 'Bioinformatics',
+                'Contact')
 
-    data_columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'Sample_Well',
+    data_columns = ('Sample_ID', 'Sample_Name', 'Sample_Plate', 'Sample_Well',
                     'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
-                    'Sample_Project', 'Well_description']
+                    'Sample_Project', 'Well_description')
 
     column_alts = {'well_description': 'Well_description',
                    'description': 'Well_description',
