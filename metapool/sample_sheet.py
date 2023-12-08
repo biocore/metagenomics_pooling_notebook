@@ -26,9 +26,9 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         'Contact': None
     }
 
-    _CONTACT_COLUMNS = {
+    _CONTACT_COLUMNS = frozenset({
         'Sample_Project', 'Email'
-    }
+    })
 
     _BIOINFORMATICS_COLUMNS = frozenset({
         'Sample_Project', 'QiitaID', 'BarcodesAreRC', 'ForwardAdapter',
