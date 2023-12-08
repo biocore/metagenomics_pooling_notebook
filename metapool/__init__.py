@@ -1,12 +1,12 @@
 #!/usr/bin/env python
-from .prep import (preparations_for_run, parse_prep,
-                   generate_qiita_prep_file,
+from .prep import (preparations_for_run, parse_prep, generate_qiita_prep_file,
                    preparations_for_run_mapping_file, remove_qiita_id,
                    demux_pre_prep, pre_prep_needs_demuxing)
-from .sample_sheet import (sample_sheet_to_dataframe, KLSampleSheet,
-                           validate_and_scrub_sample_sheet, make_sample_sheet,
-                           quiet_validate_and_scrub_sample_sheet,
-                           demux_sample_sheet, sheet_needs_demuxing)
+from .sample_sheet import (sample_sheet_to_dataframe, make_sample_sheet,
+                           AmpliconSampleSheet, MetagenomicSampleSheetv90,
+                           MetagenomicSampleSheetv100, AbsQuantSampleSheetv10,
+                           MetatranscriptomicSampleSheet, demux_sample_sheet,
+                           sheet_needs_demuxing, KLSampleSheet)
 from .plate import (validate_plate_metadata, requires_dilution, dilute_gDNA,
                     autopool, find_threshold)
 from .amplipool import assign_emp_index
@@ -18,17 +18,19 @@ from .metapool import (extract_stats_metadata, sum_lanes,
 
 __credits__ = ("https://github.com/biocore/metagenomics_pooling_notebook/"
                "graphs/contributors")
-__all__ = ['preparations_for_run', 'parse_prep',
-           'generate_qiita_prep_file',
-           'sample_sheet_to_dataframe', 'KLSampleSheet',
-           'validate_and_scrub_sample_sheet', 'make_sample_sheet',
-           'quiet_validate_and_scrub_sample_sheet', 'validate_plate_metadata',
-           'assign_emp_index', 'IGMManifest', 'run_counts',
-           'requires_dilution', 'dilute_gDNA', 'autopool', 'find_threshold',
-           'extract_stats_metadata', 'sum_lanes', 'remove_qiita_id',
-           'preparations_for_run_mapping_file', 'demux_sample_sheet',
-           'demux_pre_prep', 'sheet_needs_demuxing', 'pre_prep_needs_demuxing',
-           'compress_plates', 'add_controls']
+
+__all__ = ['IGMManifest', 'add_controls', 'assign_emp_index', 'autopool',
+           'compress_plates', 'demux_pre_prep', 'demux_sample_sheet',
+           'dilute_gDNA', 'extract_stats_metadata', 'find_threshold',
+           'generate_qiita_prep_file', 'make_sample_sheet', 'parse_prep',
+           'pre_prep_needs_demuxing', 'preparations_for_run',
+           'preparations_for_run_mapping_file', 'remove_qiita_id',
+           'requires_dilution', 'run_counts', 'sample_sheet_to_dataframe',
+           'sheet_needs_demuxing', 'sum_lanes', 'validate_plate_metadata',
+           'MetagenomicSampleSheetv90', 'MetagenomicSampleSheetv100',
+           'AmpliconSampleSheet', 'MetatranscriptomicSampleSheet',
+           # KLSampleSheet is needed for instance() calls.
+           'AbsQuantSampleSheetv10', 'KLSampleSheet']
 
 from . import _version
 
