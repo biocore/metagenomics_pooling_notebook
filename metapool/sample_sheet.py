@@ -20,7 +20,7 @@ SHEET_TYPES = [_STANDARD_SHEET_TYPE, _ABSQUANT_SHEET_TYPE]
 
 
 class KLSampleSheet(sample_sheet.SampleSheet):
-    _ASSAYS = {_AMPLICON, _METAGENOMIC, _METATRANSCRIPTOMIC}
+    _ASSAYS = frozenset({_AMPLICON, _METAGENOMIC, _METATRANSCRIPTOMIC})
     _BIOINFORMATICS_AND_CONTACT = {
         'Bioinformatics': None,
         'Contact': None
