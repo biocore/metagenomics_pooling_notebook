@@ -1,4 +1,4 @@
-Sample	Col	Compressed Plate Name	Date	Plate Position	Project Abbreviation	Project Name	Project Plate	RackID	Row	Time	TubeCode	Well	vol_extraction_elution_ul	well_id_96
+Sample	Col	Compressed Plate Name	Date	Plate Position	Project Abbreviation	Project Name	Project Plate	RackID	Row	Time	TubeCode	Well	vol_extracted_elution_ul	well_id_96
 41B.Month6.1	1	Celeste_Adaptation_12986_16_17_18_21	20230627	1	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_16	plate_1	A	09:26:10	0363132553	A1	70	A1
 41B.Month6.10	2	Celeste_Adaptation_12986_16_17_18_21	20230627	1	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_16	plate_1	A	09:26:10	0363132554	A3	70	A2
 41B.Month6.11	3	Celeste_Adaptation_12986_16_17_18_21	20230627	1	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_16	plate_1	A	09:26:10	0363132555	A5	70	A3

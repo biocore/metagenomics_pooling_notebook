@@ -33,7 +33,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
     _BIOINFORMATICS_COLUMNS = frozenset({
         'Sample_Project', 'QiitaID', 'BarcodesAreRC', 'ForwardAdapter',
         'ReverseAdapter', 'HumanFiltering', 'library_construction_protocol',
-        'experiment_design_description'
+        'experiment_design_description','contains_replicates'
     })
 
     _HEADER = {
@@ -794,7 +794,6 @@ class MetagenomicSampleSheetv100(KLSampleSheet):
             'i5 name': 'I5_Index_ID',
             'i5 sequence': 'index2',
             'Project Name': 'Sample_Project',
-            'synDNA pool number': 'syndna_pool_number'
         }
 
 
@@ -871,7 +870,12 @@ class AbsQuantSampleSheetv10(KLSampleSheet):
             'i5 name': 'I5_Index_ID',
             'i5 sequence': 'index2',
             'Project Name': 'Sample_Project',
-            'synDNA pool number': 'syndna_pool_number'
+            'syndna_pool_number':'syndna_pool_number',
+            'mass_syndna_input_ng':'mass_syndna_input_ng',
+            'extracted_gdna_concentration_ng_ul':\
+                'extracted_gdna_concentration_ng_ul',
+            'vol_extracted_elution_ul':\
+                'vol_extracted_elution_ul'
         }
 
 
@@ -906,7 +910,6 @@ class MetatranscriptomicSampleSheet(KLSampleSheet):
             'i5 name': 'I5_Index_ID',
             'i5 sequence': 'index2',
             'Project Name': 'Sample_Project',
-            'synDNA pool number': 'syndna_pool_number'
         }
 
 
@@ -964,7 +967,7 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
         sequence'), forward and reverse barcode names ('i5 name', 'i7
         name'), description ('Sample'), well identifier ('Well'), project
         plate ('Project Plate'), project name ('Project Name'), and synthetic
-        DNA pool number ('synDNA pool number').
+        DNA pool number ('syndna_pool_number').
     sequencer: string
         A string representing the sequencer used.
     lanes: list of integers
@@ -1005,7 +1008,7 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
                 # 95, 99, and v100 are functionally the same type.
                 sheet = MetagenomicSampleSheetv100()
             else:
-                raise ValueError(f"'{assay_type}' is an unrecognized Sheet"
+                raise ValueError(f"'{sheet_version}' is an unrecognized Sheet"
                                  f"Version for '{sheet_type}'")
         elif assay_type == _METATRANSCRIPTOMIC:
             sheet = MetatranscriptomicSampleSheet()

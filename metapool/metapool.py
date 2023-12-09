@@ -1553,7 +1553,7 @@ def compress_plates(compression_layout, sample_accession_df,
                 compression_layout[plate_dict_index]['Project Plate'])
         plate_map['Project Abbreviation'] = \
             compression_layout[plate_dict_index]['Project Abbreviation']
-        plate_map['vol_extraction_elution_ul'] = \
+        plate_map['vol_extracted_elution_ul'] = \
             compression_layout[plate_dict_index]['Plate elution volume']
 
         # Assign 384 well from compressed plate position
