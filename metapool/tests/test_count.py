@@ -5,8 +5,7 @@ import shutil
 import pandas as pd
 from sample_sheet import Sample
 from unittest import main, TestCase
-
-from metapool import KLSampleSheet
+from metapool.sample_sheet import MetagenomicSampleSheetv90
 from metapool.count import (_extract_name_and_lane, _parse_samtools_counts,
                             _parse_fastp_counts, bcl2fastq_counts,
                             fastp_counts, minimap2_counts, run_counts,
@@ -18,8 +17,8 @@ class TestCount(TestCase):
         data_dir = os.path.join(os.path.dirname(__file__), 'data')
         self.run_dir = os.path.join(data_dir, 'runs',
                                     '200318_A00953_0082_AH5TWYDSXY')
-        self.ss = KLSampleSheet(os.path.join(self.run_dir, 'sample-sheet.csv'))
-
+        self.ss = MetagenomicSampleSheetv90(os.path.join(self.run_dir,
+                                                         'sample-sheet.csv'))
         self.stats = pd.DataFrame(RUN_STATS)
         # help make comparisons consistent
         self.stats.sort_index(inplace=True)
@@ -263,7 +262,8 @@ class TestBCLConvertCount(TestCase):
                                  'Reports',
                                  'Demultiplex_Stats.csv'))
 
-        self.ss = KLSampleSheet(os.path.join(self.run_dir, 'sample-sheet.csv'))
+        self.ss = MetagenomicSampleSheetv90(os.path.join(self.run_dir,
+                                                         'sample-sheet.csv'))
 
         self.stats = pd.DataFrame(RUN_STATS)
         # help make comparisons consistent
