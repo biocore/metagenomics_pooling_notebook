@@ -3,12 +3,14 @@
 # ,ackermag@ucsd.edu,ghsmu414@gmail.com,jdereus@ucsd.edu,jonsan@gmail.com
 [Header]
 IEMFileVersion,4
+SheetType,standard_metag
+SheetVersion,90
 Investigator Name,Knight
 Experiment Name,RKL_experiment
 Date,2017-08-13
 Workflow,GenerateFASTQ
 Application,FASTQ Only
-Assay,Metagenomics
+Assay,Metagenomic
 Description,
 Chemistry,Default
 
