@@ -33,7 +33,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
     _BIOINFORMATICS_COLUMNS = frozenset({
         'Sample_Project', 'QiitaID', 'BarcodesAreRC', 'ForwardAdapter',
         'ReverseAdapter', 'HumanFiltering', 'library_construction_protocol',
-        'experiment_design_description','contains_replicates'
+        'experiment_design_description'
     })
 
     _HEADER = {
@@ -780,7 +780,8 @@ class MetagenomicSampleSheetv100(KLSampleSheet):
                                'ForwardAdapter', 'ReverseAdapter',
                                'HumanFiltering', 'contains_replicates',
                                'library_construction_protocol',
-                               'experiment_design_description'}
+                               'experiment_design_description',
+                               'contains_replicates'}
 
     def __init__(self, path=None):
         super().__init__(path=path)
@@ -857,6 +858,12 @@ class AbsQuantSampleSheetv10(KLSampleSheet):
                     'extracted_gdna_concentration_ng_ul',
                     'vol_extracted_elution_ul', 'syndna_pool_number',
                     'Well_description']
+
+    _BIOINFORMATICS_COLUMNS = frozenset({
+        'Sample_Project', 'QiitaID', 'BarcodesAreRC', 'ForwardAdapter',
+        'ReverseAdapter', 'HumanFiltering', 'library_construction_protocol',
+        'experiment_design_description', 'contains_replicates'
+    })
 
     def __init__(self, path=None):
         super().__init__(path=path)
