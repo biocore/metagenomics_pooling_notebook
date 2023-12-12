@@ -877,11 +877,11 @@ class AbsQuantSampleSheetv10(KLSampleSheet):
             'i5 name': 'I5_Index_ID',
             'i5 sequence': 'index2',
             'Project Name': 'Sample_Project',
-            'syndna_pool_number':'syndna_pool_number',
-            'mass_syndna_input_ng':'mass_syndna_input_ng',
-            'extracted_gdna_concentration_ng_ul':\
+            'syndna_pool_number': 'syndna_pool_number',
+            'mass_syndna_input_ng': 'mass_syndna_input_ng',
+            'extracted_gdna_concentration_ng_ul':
                 'extracted_gdna_concentration_ng_ul',
-            'vol_extracted_elution_ul':\
+            'vol_extracted_elution_ul':
                 'vol_extracted_elution_ul'
         }
 

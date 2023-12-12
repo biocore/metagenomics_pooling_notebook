@@ -1461,7 +1461,7 @@ def add_syndna(plate_df, syndna_pool_number=None, syndna_concentration=None,
             raise Exception("Specify the concentration of the synDNA"
                             " spike-in pool")
         # The 1000 multiplier is to transform µL to nL because the Echo
-        # dispenser uses nL as the volume unit but concentrations are 
+        # dispenser uses nL as the volume unit but concentrations are
         # reported in ng/µL.
         plate_df_['synDNA volume'] = 1000*(plate_df_['Input DNA'] *
                                            (syndna_percentage*10**-2) /

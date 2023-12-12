@@ -1212,7 +1212,7 @@ class Tests(TestCase):
                                      'synDNA volume': [112.61, 112.61, 112.61,
                                                        78.82, 39.41],
                                      'mass_syndna_input_ng': [0.25, 0.25, 0.25,
-                                                              0.175,0.0875]
+                                                              0.175, 0.0875]
                                      })
 
         pd.testing.assert_frame_equal(test_df_, exp_plate_df,
