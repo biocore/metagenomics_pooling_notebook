@@ -4,8 +4,8 @@ A collection of Jupyter notebooks and modules to support the wet lab shotgun pip
 
 ## Installation
 
-**Note that this package is designed to be used with Qiita, and the tests 
-will not run without a Qiita installation.**
+**Note that this package is designed to be used with Qiita, and some tests will 
+fail without a Qiita installation.**
 
 To install this package, first clone the repository from GitHub:
 
@@ -48,6 +48,14 @@ Second, install the table of contents (TOC) extension
 jupyter nbextension enable toc2/main
 ```
 
+## Test
+
+To run all tests, including those that depend on Qiita, type:
+
+```bash
+cd metagenomics_pooling_notebook
+nosetests
+```
 
 ## Use
 
