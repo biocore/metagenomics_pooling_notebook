@@ -1441,7 +1441,7 @@ def add_syndna(plate_df, syndna_pool_number=None, syndna_concentration=None,
         returns a pandas dataframe with extra columns"""
 
     plate_df_ = plate_df.copy()
-    plate_df_['synDNA pool number'] = syndna_pool_number
+    plate_df_['syndna_pool_number'] = syndna_pool_number
     if syndna_pool_number is None:
         warnings.warn('Returning input plate dataframe;'
                       'no synDNA will be added to this prep')
@@ -1460,10 +1460,15 @@ def add_syndna(plate_df, syndna_pool_number=None, syndna_concentration=None,
         if syndna_concentration is None:
             raise Exception("Specify the concentration of the synDNA"
                             " spike-in pool")
-
+        # The 1000 multiplier is to transform µL to nL because the Echo
+        # dispenser uses nL as the volume unit but concentrations are
+        # reported in ng/µL.
         plate_df_['synDNA volume'] = 1000*(plate_df_['Input DNA'] *
                                            (syndna_percentage*10**-2) /
                                            syndna_concentration)
+
+        plate_df_['mass_syndna_input_ng'] = \
+            (plate_df_['synDNA volume']/1000) * syndna_concentration
 
         return plate_df_
 
@@ -1543,9 +1548,13 @@ def compress_plates(compression_layout, sample_accession_df,
             compression_layout[plate_dict_index]['Project Name']
         plate_map['Plate Position'] = position
         plate_map['Project Plate'] = \
-            compression_layout[plate_dict_index]['Project Plate']
+            str(compression_layout[plate_dict_index]['Project Name'] +
+                '_' +
+                compression_layout[plate_dict_index]['Project Plate'])
         plate_map['Project Abbreviation'] = \
             compression_layout[plate_dict_index]['Project Abbreviation']
+        plate_map['vol_extracted_elution_ul'] = \
+            compression_layout[plate_dict_index]['Plate elution volume']
 
         # Assign 384 well from compressed plate position
         well_mapper._reset()
