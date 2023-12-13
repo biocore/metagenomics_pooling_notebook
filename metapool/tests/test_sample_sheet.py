@@ -1138,65 +1138,55 @@ class ValidateSampleSheetTests(BaseTests):
 
     def test_validate_and_scrub_sample_sheet(self):
         sheet = MetagenomicSampleSheetv100(self.good_ss)
-        sheet = sheet.validate_and_scrub_sample_sheet()
         # no errors
-        self.assertStdOutEqual('')
-        self.assertTrue(isinstance(sheet, KLSampleSheet))
-        self.assertTrue(isinstance(sheet, MetagenomicSampleSheetv100))
+        self.assertTrue(sheet.validate_and_scrub_sample_sheet())
 
     def test_quiet_validate_and_scrub_sample_sheet(self):
         sheet = MetagenomicSampleSheetv100(self.good_ss)
-        msgs, sheet = sheet.quiet_validate_and_scrub_sample_sheet()
+        msgs = sheet.quiet_validate_and_scrub_sample_sheet()
         # no errors
         self.assertStdOutEqual('')
         self.assertEqual(msgs, [])
-        self.assertTrue(isinstance(sheet, KLSampleSheet))
-        self.assertTrue(isinstance(sheet, MetagenomicSampleSheetv100))
 
     def test_validate_and_scrub_sample_sheet_no_sample_project(self):
         sheet = MetagenomicSampleSheetv100(self.no_project_ss)
-        sheet = sheet.validate_and_scrub_sample_sheet()
+        self.assertFalse(sheet.validate_and_scrub_sample_sheet())
 
         self.assertStdOutEqual('ErrorMessage: The Sample_Project column in the'
                                ' Data section is missing')
-        self.assertIsNone(sheet)
 
     def test_quiet_validate_and_scrub_sample_sheet_no_sample_project(self):
         sheet = MetagenomicSampleSheetv100(self.no_project_ss)
-        msgs, sheet = sheet.quiet_validate_and_scrub_sample_sheet()
+        msgs = sheet.quiet_validate_and_scrub_sample_sheet()
 
         self.assertStdOutEqual('')
         self.assertEqual(msgs, [ErrorMessage('The Sample_Project column in '
                                              'the Data section is missing')])
-        self.assertIsNone(sheet)
 
     def test_validate_and_scrub_sample_sheet_missing_bioinformatics(self):
         sheet = MetagenomicSampleSheetv100(self.good_ss)
         sheet.Bioinformatics = None
-        sheet = sheet.validate_and_scrub_sample_sheet()
+        self.assertFalse(sheet.validate_and_scrub_sample_sheet())
 
         self.assertStdOutEqual('ErrorMessage: The Bioinformatics section '
                                'cannot be empty')
-        self.assertIsNone(sheet)
 
     def test_quiet_validate_scrub_sample_sheet_missing_bioinformatics(self):
         sheet = MetagenomicSampleSheetv100(self.good_ss)
         sheet.Bioinformatics = None
-        msgs, sheet = sheet.quiet_validate_and_scrub_sample_sheet()
+        msgs = sheet.quiet_validate_and_scrub_sample_sheet()
 
         self.assertStdOutEqual('')
         self.assertEqual(msgs, [ErrorMessage('The Bioinformatics section '
                                              'cannot be empty')])
-        self.assertIsNone(sheet)
 
     def test_validate_and_scrub_sample_sheet_missing_contact(self):
         sheet = MetagenomicSampleSheetv100(self.good_ss)
         sheet.Contact = None
-        sheet = sheet.validate_and_scrub_sample_sheet()
+        self.assertFalse(sheet.validate_and_scrub_sample_sheet())
 
         self.assertStdOutEqual('ErrorMessage: The Contact section '
                                'cannot be empty')
-        self.assertIsNone(sheet)
 
     def test_validate_and_scrub_sample_sheet_scrubbed_names(self):
         sheet = MetagenomicSampleSheetv100(self.scrubbable_ss)
@@ -1228,10 +1218,9 @@ class ValidateSampleSheetTests(BaseTests):
                    '361, P21_E.coli ELI362, P21_E.coli ELI363, P21_E.coli '
                    'ELI364, P21_E.coli ELI365, P21_E.coli ELI366, P21_E.coli '
                    'ELI367, P21_E.coli ELI368, P21_E.coli ELI369')
-        sheet = sheet.validate_and_scrub_sample_sheet()
 
+        self.assertTrue(sheet.validate_and_scrub_sample_sheet())
         self.assertStdOutEqual(message)
-        self.assertTrue(isinstance(sheet, MetagenomicSampleSheetv100))
 
     def test_quiet_validate_and_scrub_sample_sheet_scrubbed_names(self):
         message = ('The following sample names were scrubbed for bcl2fastq '
@@ -1263,11 +1252,8 @@ class ValidateSampleSheetTests(BaseTests):
         message = WarningMessage(message)
 
         sheet = MetagenomicSampleSheetv100(self.scrubbable_ss)
-        msgs, sheet = sheet.quiet_validate_and_scrub_sample_sheet()
+        msgs = sheet.quiet_validate_and_scrub_sample_sheet()
         self.assertStdOutEqual('')
-        self.assertTrue(isinstance(sheet, KLSampleSheet))
-        self.assertTrue(isinstance(sheet, MetagenomicSampleSheetv100))
-        self.assertFalse(isinstance(sheet, MetatranscriptomicSampleSheet))
         self.assertEqual(msgs, [message])
 
     def test_validate_and_scrub_sample_sheet_scrubbed_project_names(self):
@@ -1285,7 +1271,7 @@ class ValidateSampleSheetTests(BaseTests):
         sheet.Contact.Sample_Project.replace(remapper, inplace=True)
         sheet.Bioinformatics.Sample_Project.replace(remapper, inplace=True)
 
-        obs = sheet.validate_and_scrub_sample_sheet()
+        sheet.validate_and_scrub_sample_sheet()
 
         message = (
             'WarningMessage: The following project names were scrubbed for '
@@ -1295,7 +1281,6 @@ class ValidateSampleSheetTests(BaseTests):
             "NYU's Tisch Art Microbiome 13059, The x.x microbiome project 1337"
         )
         self.assertStdOutEqual(message)
-        self.assertIsNotNone(obs)
 
         scrubbed = {
             'NYU_s_Tisch_Art_Microbiome_13059',
@@ -1303,14 +1288,14 @@ class ValidateSampleSheetTests(BaseTests):
             'Gerwick_6123'
         }
 
-        for sample in obs:
+        for sample in sheet:
             self.assertTrue(sample['Sample_Project'] in scrubbed,
                             sample['Sample_Project'])
 
-        for project in obs.Bioinformatics.Sample_Project:
+        for project in sheet.Bioinformatics.Sample_Project:
             self.assertTrue(project in scrubbed)
 
-        for project in obs.Contact.Sample_Project:
+        for project in sheet.Contact.Sample_Project:
             self.assertTrue(project in scrubbed)
 
     def test_validate_and_scrub_sample_sheet_bad_project_names(self):
@@ -1320,9 +1305,8 @@ class ValidateSampleSheetTests(BaseTests):
                    'Sample_Project column are missing a Qiita study '
                    'identifier: Feist, Gerwick')
 
-        sheet = sheet.validate_and_scrub_sample_sheet()
+        self.assertFalse(sheet.validate_and_scrub_sample_sheet())
         self.assertStdOutEqual(message)
-        self.assertIsNone(sheet)
 
     def test_validate_and_scrub_sample_sheet_project_missing_lane(self):
         sheet = MetagenomicSampleSheetv100(self.good_ss)
@@ -1332,11 +1316,10 @@ class ValidateSampleSheetTests(BaseTests):
             if sample.Sample_Project == 'Feist_11661':
                 sample.Lane = ' '
 
-        sheet = sheet.validate_and_scrub_sample_sheet()
+        self.assertFalse(sheet.validate_and_scrub_sample_sheet())
         message = ('ErrorMessage: The following projects are missing a Lane '
                    'value: Feist_11661')
         self.assertStdOutEqual(message)
-        self.assertIsNone(sheet)
 
     def test_sample_sheet_to_dataframe(self):
         ss = MetagenomicSampleSheetv100(self.ss)
