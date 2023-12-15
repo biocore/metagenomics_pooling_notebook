@@ -518,22 +518,24 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         quiet_validate_and_scrub_sample_sheet is that this function will
         *always* print errors and warnings to standard output.
 
-        Parameters
-        ----------
-        sheet: sample_sheet.KLSampleSheet
-            The sample sheet object to validate and scrub.
-
         Returns
         -------
-        sample_sheet.SampleSheet
-            Corrected and validated sample sheet if no errors are found.
+        Boolean
+            True if sample-sheet is valid or if only warnings were reported,
+            False if one or more errors were reported.
         """
-        msgs, sheet = self.quiet_validate_and_scrub_sample_sheet()
+        msgs = self.quiet_validate_and_scrub_sample_sheet()
 
+        # display Errors and Warnings directly to stdout.
         [msg.echo() for msg in msgs]
 
-        if sheet is not None:
-            return sheet
+        # in addition to displaying any messages, return False if any Errors
+        # were found, or True if there were just Warnings or no messages at
+        # all.
+        if not any([isinstance(m, ErrorMessage) for m in msgs]):
+            return True
+        else:
+            return False
 
     def quiet_validate_and_scrub_sample_sheet(self):
         """Quietly validate the sample sheet and scrub invalid characters
@@ -541,38 +543,29 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         The character scrubbing is only applied to the Sample_Project and the
         Sample_ID columns.
 
-        Parameters
-        ----------
-        sheet: sample_sheet.KLSampleSheet
-            The sample sheet object to validate and scrub.
-
         Returns
         -------
         list
             List of error or warning messages.
-        sample_sheet.SampleSheet or None
-            Corrected and validated sample sheet if no errors are found.
-            Otherwise None is returned.
         """
         msgs = []
 
-        # we print an error return None and exit when this happens otherwise we
-        # won't be able to run some of the other checks
+        # we print an error return None and exit when this happens otherwise
+        # we won't be able to run other checks
         for column in self.data_columns:
             if column not in self.all_sample_keys:
-                msgs.append(
-                    ErrorMessage(
-                        'The %s column in the Data section is missing' %
-                        column))
+                msgs.append(ErrorMessage(f'The {column} column in the Data '
+                                         'section is missing'))
+
         for section in ['Bioinformatics', 'Contact']:
             if getattr(self, section) is None:
-                msgs.append(ErrorMessage('The %s section cannot be empty' %
-                                         section))
+                msgs.append(ErrorMessage(f'The {section} section cannot be '
+                                         'empty'))
 
         # if any errors are found up to this point then we can't continue with
-        # the validation
+        # the validation process.
         if msgs:
-            return msgs, None
+            return msgs
 
         # we track the updated projects as a dictionary so we can propagate
         # these changes to the Bioinformatics and Contact sections
@@ -589,18 +582,17 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 sample['Sample_Project'] = new_project
 
         if updated_samples:
-            msgs.append(
-                WarningMessage('The following sample names were scrubbed for'
-                               ' bcl2fastq compatibility:\n%s' %
-                               ', '.join(updated_samples)))
+            msgs.append(WarningMessage('The following sample names were '
+                                       'scrubbed for bcl2fastq compatibility'
+                                       ':\n%s' % ', '.join(updated_samples)))
         if updated_projects:
-            msgs.append(
-                WarningMessage('The following project names were scrubbed for'
-                               ' bcl2fastq compatibility. If the same invalid '
-                               'characters are also found in the '
-                               'Bioinformatics and Contacts sections those '
-                               'will be automatically scrubbed too:\n%s' %
-                               ', '.join(sorted(updated_projects))))
+            msgs.append(WarningMessage('The following project names were '
+                                       'scrubbed for bcl2fastq compatibility. '
+                                       'If the same invalid characters are '
+                                       'also found in the Bioinformatics and '
+                                       'Contacts sections those will be '
+                                       'automatically scrubbed too:\n%s' %
+                                       ', '.join(sorted(updated_projects))))
 
             # make the changes to prevent useless errors where the scurbbed
             # names fail to match between sections.
@@ -654,11 +646,8 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                               ' to be included in the Contact section.') %
                              ', '.join(sorted(contact - projects))))
 
-        # if there are no error messages then return the sheet
-        if not any([isinstance(m, ErrorMessage) for m in msgs]):
-            return msgs, self
-        else:
-            return msgs, None
+        # return all collected Messages, even if it's an empty list.
+        return msgs
 
     def _validate_sample_sheet_metadata(self, metadata):
         msgs = []

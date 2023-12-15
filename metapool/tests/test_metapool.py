@@ -89,38 +89,6 @@ class Tests(TestCase):
         self.fp = path
         self.plates = [p1, p2, p3, p4]
 
-    # def test_compute_shotgun_normalization_values(self):
-    #     input_vol = 3.5
-    #     input_dna = 10
-    #     plate_layout = []
-    #     for i in range(4):
-    #         row = []
-    #         for j in range(4):
-    #             row.append({'dna_concentration': 10,
-    #                         'sample_id': "S%s.%s" % (i, j)})
-    #         plate_layout.append(row)
-
-    #     obs_sample, obs_water = compute_shotgun_normalization_values(
-    #         plate_layout, input_vol, input_dna)
-
-    #     exp_sample = np.zeros((4, 4), dtype=np.float)
-    #     exp_water = np.zeros((4, 4), dtype=np.float)
-    #     exp_sample.fill(1000)
-    #     exp_water.fill(2500)
-
-    #     npt.assert_almost_equal(obs_sample, exp_sample)
-    #     npt.assert_almost_equal(obs_water, exp_water)
-
-    #     # Make sure that we don't go above the limit
-    #     plate_layout[1][1]['dna_concentration'] = 0.25
-    #     obs_sample, obs_water = compute_shotgun_normalization_values(
-    #         plate_layout, input_vol, input_dna)
-
-    #     exp_sample[1][1] = 3500
-    #     exp_water[1][1] = 0
-
-    #     npt.assert_almost_equal(obs_sample, exp_sample)
-    #     npt.assert_almost_equal(obs_water, exp_water)
     def test_read_visionmate_file(self):
         # Raises error when tries to validate that all expected
         # columns from VisionMate file are present.
