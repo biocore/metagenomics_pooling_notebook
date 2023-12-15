@@ -510,7 +510,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
         return self
 
-    def validate_and_scrub_sample_sheet(self):
+    def validate_and_scrub_sample_sheet(self, echo_msgs=True):
         """Validate the sample sheet and scrub invalid characters
 
         The character scrubbing is only applied to the Sample_Project and the
@@ -518,22 +518,27 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         quiet_validate_and_scrub_sample_sheet is that this function will
         *always* print errors and warnings to standard output.
 
-        Parameters
-        ----------
-        sheet: sample_sheet.KLSampleSheet
-            The sample sheet object to validate and scrub.
-
         Returns
         -------
-        sample_sheet.SampleSheet
-            Corrected and validated sample sheet if no errors are found.
+        Boolean
+            True if sample-sheet is valid or if only warnings were reported,
+            False if one or more errors were reported.
         """
-        msgs, sheet = self.quiet_validate_and_scrub_sample_sheet()
+        msgs = self.quiet_validate_and_scrub_sample_sheet()
 
-        [msg.echo() for msg in msgs]
+        # display Errors and Warnings directly to stdout:
+        # this function is used in both Jupyter notebooks where msgs should
+        # be displayed, and by other functions that simply want True or False.
+        if echo_msgs:
+            [msg.echo() for msg in msgs]
 
-        if sheet is not None:
-            return sheet
+        # in addition to displaying any messages, return False if any Errors
+        # were found, or True if there were just Warnings or no messages at
+        # all.
+        if not any([isinstance(m, ErrorMessage) for m in msgs]):
+            return True
+        else:
+            return False
 
     def quiet_validate_and_scrub_sample_sheet(self):
         """Quietly validate the sample sheet and scrub invalid characters
@@ -541,38 +546,29 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         The character scrubbing is only applied to the Sample_Project and the
         Sample_ID columns.
 
-        Parameters
-        ----------
-        sheet: sample_sheet.KLSampleSheet
-            The sample sheet object to validate and scrub.
-
         Returns
         -------
         list
             List of error or warning messages.
-        sample_sheet.SampleSheet or None
-            Corrected and validated sample sheet if no errors are found.
-            Otherwise None is returned.
         """
         msgs = []
 
-        # we print an error return None and exit when this happens otherwise we
-        # won't be able to run some of the other checks
+        # we print an error return None and exit when this happens otherwise
+        # we won't be able to run other checks
         for column in self.data_columns:
             if column not in self.all_sample_keys:
-                msgs.append(
-                    ErrorMessage(
-                        'The %s column in the Data section is missing' %
-                        column))
+                msgs.append(ErrorMessage(f'The {column} column in the Data '
+                                         'section is missing'))
+
         for section in ['Bioinformatics', 'Contact']:
             if getattr(self, section) is None:
-                msgs.append(ErrorMessage('The %s section cannot be empty' %
-                                         section))
+                msgs.append(ErrorMessage(f'The {section} section cannot be '
+                                         'empty'))
 
         # if any errors are found up to this point then we can't continue with
-        # the validation
+        # the validation process.
         if msgs:
-            return msgs, None
+            return msgs
 
         # we track the updated projects as a dictionary so we can propagate
         # these changes to the Bioinformatics and Contact sections
@@ -589,18 +585,17 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 sample['Sample_Project'] = new_project
 
         if updated_samples:
-            msgs.append(
-                WarningMessage('The following sample names were scrubbed for'
-                               ' bcl2fastq compatibility:\n%s' %
-                               ', '.join(updated_samples)))
+            msgs.append(WarningMessage('The following sample names were '
+                                       'scrubbed for bcl2fastq compatibility'
+                                       ':\n%s' % ', '.join(updated_samples)))
         if updated_projects:
-            msgs.append(
-                WarningMessage('The following project names were scrubbed for'
-                               ' bcl2fastq compatibility. If the same invalid '
-                               'characters are also found in the '
-                               'Bioinformatics and Contacts sections those '
-                               'will be automatically scrubbed too:\n%s' %
-                               ', '.join(sorted(updated_projects))))
+            msgs.append(WarningMessage('The following project names were '
+                                       'scrubbed for bcl2fastq compatibility. '
+                                       'If the same invalid characters are '
+                                       'also found in the Bioinformatics and '
+                                       'Contacts sections those will be '
+                                       'automatically scrubbed too:\n%s' %
+                                       ', '.join(sorted(updated_projects))))
 
             # make the changes to prevent useless errors where the scurbbed
             # names fail to match between sections.
@@ -654,11 +649,8 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                               ' to be included in the Contact section.') %
                              ', '.join(sorted(contact - projects))))
 
-        # if there are no error messages then return the sheet
-        if not any([isinstance(m, ErrorMessage) for m in msgs]):
-            return msgs, self
-        else:
-            return msgs, None
+        # return all collected Messages, even if it's an empty list.
+        return msgs
 
     def _validate_sample_sheet_metadata(self, metadata):
         msgs = []
@@ -780,7 +772,8 @@ class MetagenomicSampleSheetv100(KLSampleSheet):
                                'ForwardAdapter', 'ReverseAdapter',
                                'HumanFiltering', 'contains_replicates',
                                'library_construction_protocol',
-                               'experiment_design_description'}
+                               'experiment_design_description',
+                               'contains_replicates'}
 
     def __init__(self, path=None):
         super().__init__(path=path)
@@ -794,7 +787,6 @@ class MetagenomicSampleSheetv100(KLSampleSheet):
             'i5 name': 'I5_Index_ID',
             'i5 sequence': 'index2',
             'Project Name': 'Sample_Project',
-            'synDNA pool number': 'syndna_pool_number'
         }
 
 
@@ -859,6 +851,12 @@ class AbsQuantSampleSheetv10(KLSampleSheet):
                     'vol_extracted_elution_ul', 'syndna_pool_number',
                     'Well_description']
 
+    _BIOINFORMATICS_COLUMNS = frozenset({
+        'Sample_Project', 'QiitaID', 'BarcodesAreRC', 'ForwardAdapter',
+        'ReverseAdapter', 'HumanFiltering', 'library_construction_protocol',
+        'experiment_design_description', 'contains_replicates'
+    })
+
     def __init__(self, path=None):
         super().__init__(path=path)
         self.remapper = {
@@ -871,7 +869,12 @@ class AbsQuantSampleSheetv10(KLSampleSheet):
             'i5 name': 'I5_Index_ID',
             'i5 sequence': 'index2',
             'Project Name': 'Sample_Project',
-            'synDNA pool number': 'syndna_pool_number'
+            'syndna_pool_number': 'syndna_pool_number',
+            'mass_syndna_input_ng': 'mass_syndna_input_ng',
+            'extracted_gdna_concentration_ng_ul':
+                'extracted_gdna_concentration_ng_ul',
+            'vol_extracted_elution_ul':
+                'vol_extracted_elution_ul'
         }
 
 
@@ -906,25 +909,62 @@ class MetatranscriptomicSampleSheet(KLSampleSheet):
             'i5 name': 'I5_Index_ID',
             'i5 sequence': 'index2',
             'Project Name': 'Sample_Project',
-            'synDNA pool number': 'syndna_pool_number'
         }
 
 
-def create_sample_sheet(sheet_type, assay_type):
-    if assay_type == _AMPLICON:
-        return AmpliconSampleSheet()
-    elif assay_type == _METAGENOMIC:
-        if sheet_type == _STANDARD_SHEET_TYPE:
-            return MetagenomicSampleSheetv100()
-        elif sheet_type == _ABSQUANT_SHEET_TYPE:
-            return AbsQuantSampleSheetv10()
-        else:
-            raise ValueError(f"'{sheet_type}' is not a valid sheet-type.")
+def load_sample_sheet(sample_sheet_path):
+    # Load the sample-sheet using various KLSampleSheet children and return
+    # the first instance that produces a valid sample-sheet. We assume that
+    # because of specific SheetType and SheetVersion values, no one sample-
+    # sheet can match more than one KLSampleSheet child.
 
-    elif assay_type == _METATRANSCRIPTOMIC:
-        return MetatranscriptomicSampleSheet()
+    sheet = AmpliconSampleSheet(sample_sheet_path)
+    if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
+        return sheet
+
+    sheet = MetagenomicSampleSheetv100(sample_sheet_path)
+    if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
+        return sheet
+
+    sheet = MetagenomicSampleSheetv90(sample_sheet_path)
+    if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
+        return sheet
+
+    sheet = MetatranscriptomicSampleSheet(sample_sheet_path)
+    if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
+        return sheet
+
+    sheet = AbsQuantSampleSheetv10(sample_sheet_path)
+    if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
+        return sheet
+
+    raise ValueError(f"'{sample_sheet_path}' does not appear to be a valid "
+                     "sample-sheet.")
+
+
+def _create_sample_sheet(sheet_type, sheet_version, assay_type):
+    if sheet_type == _STANDARD_SHEET_TYPE:
+        if assay_type == _AMPLICON:
+            sheet = AmpliconSampleSheet()
+        elif assay_type == _METAGENOMIC:
+            if sheet_version == '90':
+                sheet = MetagenomicSampleSheetv90()
+            elif sheet_version in ['95', '99', '100']:
+                # 95, 99, and v100 are functionally the same type.
+                sheet = MetagenomicSampleSheetv100()
+            else:
+                raise ValueError(f"'{sheet_version}' is an unrecognized Sheet"
+                                 f"Version for '{sheet_type}'")
+        elif assay_type == _METATRANSCRIPTOMIC:
+            sheet = MetatranscriptomicSampleSheet()
+        else:
+            raise ValueError("'%s' is an unrecognized Assay type" % assay_type)
+    elif sheet_type == _ABSQUANT_SHEET_TYPE:
+        sheet = AbsQuantSampleSheetv10()
     else:
-        raise ValueError(f"'{assay_type}' is not a valid assay-type.")
+        raise ValueError("'%s' is an unrecognized SheetType" % sheet_type)
+
+    return sheet
 
 
 def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
@@ -964,7 +1004,7 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
         sequence'), forward and reverse barcode names ('i5 name', 'i7
         name'), description ('Sample'), well identifier ('Well'), project
         plate ('Project Plate'), project name ('Project Name'), and synthetic
-        DNA pool number ('synDNA pool number').
+        DNA pool number ('syndna_pool_number').
     sequencer: string
         A string representing the sequencer used.
     lanes: list of integers
@@ -995,26 +1035,7 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
     sheet_version = metadata['SheetVersion']
     assay_type = metadata['Assay']
 
-    if sheet_type == _STANDARD_SHEET_TYPE:
-        if assay_type == _AMPLICON:
-            sheet = AmpliconSampleSheet()
-        elif assay_type == _METAGENOMIC:
-            if sheet_version == '90':
-                sheet = MetagenomicSampleSheetv90()
-            elif sheet_version in ['95', '99', '100']:
-                # 95, 99, and v100 are functionally the same type.
-                sheet = MetagenomicSampleSheetv100()
-            else:
-                raise ValueError(f"'{assay_type}' is an unrecognized Sheet"
-                                 f"Version for '{sheet_type}'")
-        elif assay_type == _METATRANSCRIPTOMIC:
-            sheet = MetatranscriptomicSampleSheet()
-        else:
-            raise ValueError("'%s' is an unrecognized Assay type" % assay_type)
-    elif sheet_type == _ABSQUANT_SHEET_TYPE:
-        sheet = AbsQuantSampleSheetv10()
-    else:
-        raise ValueError("'%s' is an unrecognized SheetType" % sheet_type)
+    sheet = _create_sample_sheet(sheet_type, sheet_version, assay_type)
 
     messages = sheet._validate_sample_sheet_metadata(metadata)
 
@@ -1165,9 +1186,9 @@ def demux_sample_sheet(sheet):
     # replicate of plate 1, BLANKS and all), we can split replicates
     # according to their destination quadrant number.
     for df in _demux_sample_sheet(sheet):
-        # TODO: Handle _ABSQUANT_SHEET_TYPE
-        new_sheet = create_sample_sheet(_STANDARD_SHEET_TYPE,
-                                        sheet.Header['Assay'])
+        new_sheet = _create_sample_sheet(sheet.Header['SheetType'],
+                                         sheet.Header['SheetVersion'],
+                                         sheet.Header['Assay'])
         new_sheet.Header = sheet.Header
         new_sheet.Reads = sheet.Reads
         new_sheet.Settings = sheet.Settings

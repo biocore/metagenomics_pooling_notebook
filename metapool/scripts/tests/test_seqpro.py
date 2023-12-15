@@ -31,6 +31,7 @@ class SeqproTests(unittest.TestCase):
         rmtree(self.vf_test_dir, ignore_errors=True)
 
     def test_atropos_run(self):
+        # TODO: Fix this test
         runner = CliRunner()
 
         with runner.isolated_filesystem():
@@ -38,14 +39,15 @@ class SeqproTests(unittest.TestCase):
                                    args=[self.run, self.sheet, './',
                                          '--pipeline', 'atropos-and-bowtie2'])
 
-            self.assertEqual(result.output,
-                             'Stats collection is not supported for pipeline '
-                             'atropos-and-bowtie2\n')
+            # assert that expected error message appeared in stdout. we are
+            # not concerned w/warning messages that may also appear.
+            self.assertIn('Stats collection is not supported for pipeline '
+                          'atropos-and-bowtie2', result.output)
             self.assertEqual(result.exit_code, 0)
 
             exp_preps = [
-                '191103_D32611_0365_G00DHB5YXX.Baz.1.tsv',
-                '191103_D32611_0365_G00DHB5YXX.Baz.3.tsv',
+                '191103_D32611_0365_G00DHB5YXX.Baz_12345.1.tsv',
+                '191103_D32611_0365_G00DHB5YXX.Baz_12345.3.tsv',
                 '191103_D32611_0365_G00DHB5YXX.FooBar_666.3.tsv'
             ]
 
@@ -53,7 +55,8 @@ class SeqproTests(unittest.TestCase):
 
             for prep, exp_lines in zip(exp_preps, [4, 4, 5]):
                 with open(prep) as f:
-                    self.assertEqual(len(f.read().split('\n')), exp_lines,
+                    self.assertEqual(len(f.read().split('\n')),
+                                     exp_lines,
                                      'Assertion error in %s' % prep)
 
     def test_fastp_run(self):
@@ -79,7 +82,6 @@ class SeqproTests(unittest.TestCase):
             # present.
             exp = {'200318_A00953_0082_AH5TWYDSXY.Project_1111.1.tsv': {
                 0: {'experiment_design_description': 'Eqiiperiment',
-                    'syndna_pool_number': 'pool1',
                     'well_description': 'FooBar_666_p1.sample1.A1',
                     'library_construction_protocol': 'Knight Lab Kapa HP',
                     'platform': 'Illumina', 'run_center': 'IGM',
@@ -99,7 +101,6 @@ class SeqproTests(unittest.TestCase):
                     'fraction_passing_quality_filter': 1.08,
                     'fraction_non_human': 10.293703703703704},
                 1: {'experiment_design_description': 'Eqiiperiment',
-                    'syndna_pool_number': 'pool1',
                     'well_description': 'FooBar_666_p1.sample2.A2',
                     'library_construction_protocol': 'Knight Lab Kapa HP',
                     'platform': 'Illumina', 'run_center': 'IGM',
@@ -120,7 +121,6 @@ class SeqproTests(unittest.TestCase):
                     'fraction_non_human': 4.521057260113348}},
                    '200318_A00953_0082_AH5TWYDSXY.Project_1111.3.tsv': {
                        0: {'experiment_design_description': 'Eqiiperiment',
-                           'syndna_pool_number': 'pool1',
                            'well_description': 'FooBar_666_p1.sample1.A3',
                            'library_construction_protocol': ('Knight Lab Kapa '
                                                              'HP'),
@@ -143,7 +143,6 @@ class SeqproTests(unittest.TestCase):
                            'fraction_passing_quality_filter': 3.35996,
                            'fraction_non_human': 3.477050322027643},
                        1: {'experiment_design_description': 'Eqiiperiment',
-                           'syndna_pool_number': 'pool1',
                            'well_description': 'FooBar_666_p1.sample2.A4',
                            'library_construction_protocol': ('Knight Lab Kapa '
                                                              'HP'),
@@ -168,7 +167,6 @@ class SeqproTests(unittest.TestCase):
                            'fraction_non_human': 0.0695003809731141}},
                    '200318_A00953_0082_AH5TWYDSXY.Trojecp_666.3.tsv': {
                        0: {'experiment_design_description': 'SomethingWitty',
-                           'syndna_pool_number': 'pool1',
                            'well_description': 'FooBar_666_p1.sample3.A5',
                            'library_construction_protocol': ('Knight Lab Kapa '
                                                              'HP'),
@@ -191,7 +189,6 @@ class SeqproTests(unittest.TestCase):
                            'fraction_passing_quality_filter': 0.01564,
                            'fraction_non_human': 7.067774936061381},
                        1: {'experiment_design_description': 'SomethingWitty',
-                           'syndna_pool_number': 'pool1',
                            'well_description': 'FooBar_666_p1.sample4.B6',
                            'library_construction_protocol': ('Knight Lab Kapa '
                                                              'HP'),
@@ -214,7 +211,6 @@ class SeqproTests(unittest.TestCase):
                            'fraction_passing_quality_filter': 0.0024,
                            'fraction_non_human': 2.892708333333333},
                        2: {'experiment_design_description': 'SomethingWitty',
-                           'syndna_pool_number': 'pool1',
                            'well_description': 'FooBar_666_p1.sample5.B8',
                            'library_construction_protocol': ('Knight Lab Kapa '
                                                              'HP'),

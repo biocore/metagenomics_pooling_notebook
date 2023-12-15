@@ -142,6 +142,7 @@ class KLSampleSheetTests(BaseTests):
                 with open(expected) as f:
                     # if the assertion fails, metapool is not processing
                     # filename as intended.
+                    print({filename})
                     self.assertEqual(observed.split(),
                                      f.read().split(),
                                      f'Problem found with {filename}')
@@ -205,6 +206,8 @@ class KLSampleSheetTests(BaseTests):
 
         exp = {
             'IEMFileVersion': '4',
+            'SheetType': 'standard_metag',
+            'SheetVersion': '100',
             'Investigator Name': 'Caballero',
             'Experiment Name': 'RKL0042',
             'Date': '2/26/20',
@@ -221,16 +224,16 @@ class KLSampleSheetTests(BaseTests):
 
         data = (
             '1,sample_1,sample.1,FooBar_666_p1,A1,iTru7_107_07,CCGACTAT,'
-            'iTru5_01_A,ACCGACAA,Baz,pool1,importantsample1,'
+            'iTru5_01_A,ACCGACAA,Baz_12345,pool1,importantsample1,'
             'KnightLabKapaHP,Eqiiperiment\n'
             '1,sample_2,sample.2,FooBar_666_p1,A2,iTru7_107_08,CCGACTAT,'
-            'iTru5_01_A,CTTCGCAA,Baz,pool1,importantsample2,'
+            'iTru5_01_A,CTTCGCAA,Baz_12345,pool1,importantsample2,'
             'KnightLabKapaHP,Eqiiperiment\n'
             '3,sample_1,sample.1,FooBar_666_p1,A3,iTru7_107_09,GCCTTGTT,'
-            'iTru5_01_A,AACACCAC,Baz,pool1,importantsample1,'
+            'iTru5_01_A,AACACCAC,Baz_12345,pool1,importantsample1,'
             'KnightLabKapaHP,Eqiiperiment\n'
             '3,sample_2,sample.2,FooBar_666_p1,A4,iTru7_107_10,AACTTGCC,'
-            'iTru5_01_A,CGTATCTC,Baz,pool1,importantsample2,'
+            'iTru5_01_A,CGTATCTC,Baz_12345,pool1,importantsample2,'
             'KnightLabKapaHP,Eqiiperiment\n'
             '3,sample_31,sample.31,FooBar_666_p1,A5,iTru7_107_11,CAATGTGG,'
             'iTru5_01_A,GGTACGAA,FooBar_666,pool1,importantsample31,'
@@ -242,7 +245,7 @@ class KLSampleSheetTests(BaseTests):
             'iTru5_01_A,AAGACACC,FooBar_666,pool1,importantsample34,'
             'KnightLabKapaHP,SomethingWitty\n'
             '3,sample_44,sample.44,Baz_p3,B99,iTru7_107_14,GTCCTAAG,'
-            'iTru5_01_A,CATCTGCT,Baz,pool1,importantsample44,'
+            'iTru5_01_A,CATCTGCT,Baz_12345,pool1,importantsample44,'
             'KnightLabKapaHP,Eqiiperiment\n'
         )
         keys = ['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
@@ -260,21 +263,22 @@ class KLSampleSheetTests(BaseTests):
             columns=['Sample_Project', 'QiitaID', 'BarcodesAreRC',
                      'ForwardAdapter', 'ReverseAdapter', 'HumanFiltering',
                      'library_construction_protocol',
-                     'experiment_design_description'],
+                     'experiment_design_description', 'contains_replicates'],
             data=[
-                ['Baz', '100', 'False', 'AACC', 'GGTT', 'False',
-                 'Knight Lab Kapa HP', 'Eqiiperiment'],
+                ['Baz_12345', '100', 'False', 'AACC', 'GGTT', 'False',
+                 'Knight Lab Kapa HP', 'Eqiiperiment', 'False'],
                 ['FooBar_666', '666', 'False', 'AACC', 'GGTT', 'False',
-                 'Knight Lab Kapa HP', 'SomethingWitty']
+                 'Knight Lab Kapa HP', 'SomethingWitty', 'False']
             ]
         )
+
         pd.testing.assert_frame_equal(sheet.Bioinformatics, exp)
 
         # check for Contact
         exp = pd.DataFrame(
             columns=['Email', 'Sample_Project'],
             data=[
-                ['test@lol.com', 'Baz'],
+                ['test@lol.com', 'Baz_12345'],
                 ['tester@rofl.com', 'FooBar_666']
             ]
         )
@@ -1138,65 +1142,55 @@ class ValidateSampleSheetTests(BaseTests):
 
     def test_validate_and_scrub_sample_sheet(self):
         sheet = MetagenomicSampleSheetv100(self.good_ss)
-        sheet = sheet.validate_and_scrub_sample_sheet()
         # no errors
-        self.assertStdOutEqual('')
-        self.assertTrue(isinstance(sheet, KLSampleSheet))
-        self.assertTrue(isinstance(sheet, MetagenomicSampleSheetv100))
+        self.assertTrue(sheet.validate_and_scrub_sample_sheet())
 
     def test_quiet_validate_and_scrub_sample_sheet(self):
         sheet = MetagenomicSampleSheetv100(self.good_ss)
-        msgs, sheet = sheet.quiet_validate_and_scrub_sample_sheet()
+        msgs = sheet.quiet_validate_and_scrub_sample_sheet()
         # no errors
         self.assertStdOutEqual('')
         self.assertEqual(msgs, [])
-        self.assertTrue(isinstance(sheet, KLSampleSheet))
-        self.assertTrue(isinstance(sheet, MetagenomicSampleSheetv100))
 
     def test_validate_and_scrub_sample_sheet_no_sample_project(self):
         sheet = MetagenomicSampleSheetv100(self.no_project_ss)
-        sheet = sheet.validate_and_scrub_sample_sheet()
+        self.assertFalse(sheet.validate_and_scrub_sample_sheet())
 
         self.assertStdOutEqual('ErrorMessage: The Sample_Project column in the'
                                ' Data section is missing')
-        self.assertIsNone(sheet)
 
     def test_quiet_validate_and_scrub_sample_sheet_no_sample_project(self):
         sheet = MetagenomicSampleSheetv100(self.no_project_ss)
-        msgs, sheet = sheet.quiet_validate_and_scrub_sample_sheet()
+        msgs = sheet.quiet_validate_and_scrub_sample_sheet()
 
         self.assertStdOutEqual('')
         self.assertEqual(msgs, [ErrorMessage('The Sample_Project column in '
                                              'the Data section is missing')])
-        self.assertIsNone(sheet)
 
     def test_validate_and_scrub_sample_sheet_missing_bioinformatics(self):
         sheet = MetagenomicSampleSheetv100(self.good_ss)
         sheet.Bioinformatics = None
-        sheet = sheet.validate_and_scrub_sample_sheet()
+        self.assertFalse(sheet.validate_and_scrub_sample_sheet())
 
         self.assertStdOutEqual('ErrorMessage: The Bioinformatics section '
                                'cannot be empty')
-        self.assertIsNone(sheet)
 
     def test_quiet_validate_scrub_sample_sheet_missing_bioinformatics(self):
         sheet = MetagenomicSampleSheetv100(self.good_ss)
         sheet.Bioinformatics = None
-        msgs, sheet = sheet.quiet_validate_and_scrub_sample_sheet()
+        msgs = sheet.quiet_validate_and_scrub_sample_sheet()
 
         self.assertStdOutEqual('')
         self.assertEqual(msgs, [ErrorMessage('The Bioinformatics section '
                                              'cannot be empty')])
-        self.assertIsNone(sheet)
 
     def test_validate_and_scrub_sample_sheet_missing_contact(self):
         sheet = MetagenomicSampleSheetv100(self.good_ss)
         sheet.Contact = None
-        sheet = sheet.validate_and_scrub_sample_sheet()
+        self.assertFalse(sheet.validate_and_scrub_sample_sheet())
 
         self.assertStdOutEqual('ErrorMessage: The Contact section '
                                'cannot be empty')
-        self.assertIsNone(sheet)
 
     def test_validate_and_scrub_sample_sheet_scrubbed_names(self):
         sheet = MetagenomicSampleSheetv100(self.scrubbable_ss)
@@ -1228,10 +1222,9 @@ class ValidateSampleSheetTests(BaseTests):
                    '361, P21_E.coli ELI362, P21_E.coli ELI363, P21_E.coli '
                    'ELI364, P21_E.coli ELI365, P21_E.coli ELI366, P21_E.coli '
                    'ELI367, P21_E.coli ELI368, P21_E.coli ELI369')
-        sheet = sheet.validate_and_scrub_sample_sheet()
 
+        self.assertTrue(sheet.validate_and_scrub_sample_sheet())
         self.assertStdOutEqual(message)
-        self.assertTrue(isinstance(sheet, MetagenomicSampleSheetv100))
 
     def test_quiet_validate_and_scrub_sample_sheet_scrubbed_names(self):
         message = ('The following sample names were scrubbed for bcl2fastq '
@@ -1263,11 +1256,8 @@ class ValidateSampleSheetTests(BaseTests):
         message = WarningMessage(message)
 
         sheet = MetagenomicSampleSheetv100(self.scrubbable_ss)
-        msgs, sheet = sheet.quiet_validate_and_scrub_sample_sheet()
+        msgs = sheet.quiet_validate_and_scrub_sample_sheet()
         self.assertStdOutEqual('')
-        self.assertTrue(isinstance(sheet, KLSampleSheet))
-        self.assertTrue(isinstance(sheet, MetagenomicSampleSheetv100))
-        self.assertFalse(isinstance(sheet, MetatranscriptomicSampleSheet))
         self.assertEqual(msgs, [message])
 
     def test_validate_and_scrub_sample_sheet_scrubbed_project_names(self):
@@ -1285,7 +1275,7 @@ class ValidateSampleSheetTests(BaseTests):
         sheet.Contact.Sample_Project.replace(remapper, inplace=True)
         sheet.Bioinformatics.Sample_Project.replace(remapper, inplace=True)
 
-        obs = sheet.validate_and_scrub_sample_sheet()
+        sheet.validate_and_scrub_sample_sheet()
 
         message = (
             'WarningMessage: The following project names were scrubbed for '
@@ -1295,7 +1285,6 @@ class ValidateSampleSheetTests(BaseTests):
             "NYU's Tisch Art Microbiome 13059, The x.x microbiome project 1337"
         )
         self.assertStdOutEqual(message)
-        self.assertIsNotNone(obs)
 
         scrubbed = {
             'NYU_s_Tisch_Art_Microbiome_13059',
@@ -1303,14 +1292,14 @@ class ValidateSampleSheetTests(BaseTests):
             'Gerwick_6123'
         }
 
-        for sample in obs:
+        for sample in sheet:
             self.assertTrue(sample['Sample_Project'] in scrubbed,
                             sample['Sample_Project'])
 
-        for project in obs.Bioinformatics.Sample_Project:
+        for project in sheet.Bioinformatics.Sample_Project:
             self.assertTrue(project in scrubbed)
 
-        for project in obs.Contact.Sample_Project:
+        for project in sheet.Contact.Sample_Project:
             self.assertTrue(project in scrubbed)
 
     def test_validate_and_scrub_sample_sheet_bad_project_names(self):
@@ -1320,9 +1309,8 @@ class ValidateSampleSheetTests(BaseTests):
                    'Sample_Project column are missing a Qiita study '
                    'identifier: Feist, Gerwick')
 
-        sheet = sheet.validate_and_scrub_sample_sheet()
+        self.assertFalse(sheet.validate_and_scrub_sample_sheet())
         self.assertStdOutEqual(message)
-        self.assertIsNone(sheet)
 
     def test_validate_and_scrub_sample_sheet_project_missing_lane(self):
         sheet = MetagenomicSampleSheetv100(self.good_ss)
@@ -1332,11 +1320,10 @@ class ValidateSampleSheetTests(BaseTests):
             if sample.Sample_Project == 'Feist_11661':
                 sample.Lane = ' '
 
-        sheet = sheet.validate_and_scrub_sample_sheet()
+        self.assertFalse(sheet.validate_and_scrub_sample_sheet())
         message = ('ErrorMessage: The following projects are missing a Lane '
                    'value: Feist_11661')
         self.assertStdOutEqual(message)
-        self.assertIsNone(sheet)
 
     def test_sample_sheet_to_dataframe(self):
         ss = MetagenomicSampleSheetv100(self.ss)
@@ -1344,7 +1331,7 @@ class ValidateSampleSheetTests(BaseTests):
 
         columns = ['lane', 'sample_name', 'sample_plate', 'well_id_384',
                    'i7_index_id', 'index', 'i5_index_id', 'index2',
-                   'sample_project', 'syndna_pool_number', 'well_description',
+                   'sample_project', 'well_description',
                    'library_construction_protocol',
                    'experiment_design_description']
         index = ['sample_1', 'sample_2', 'sample_1', 'sample_2', 'sample_31',
@@ -1472,28 +1459,28 @@ class DemuxReplicatesTests(BaseTests):
 
 DF_DATA = [
     ['1', 'sample.1', 'FooBar_666_p1', 'A1', 'iTru7_107_07', 'CCGACTAT',
-     'iTru5_01_A', 'ACCGACAA', 'Baz', 'pool1', 'importantsample1',
+     'iTru5_01_A', 'ACCGACAA', 'Baz_12345', 'importantsample1',
      'Knight Lab Kapa HP', 'Eqiiperiment'],
     ['1', 'sample.2', 'FooBar_666_p1', 'A2', 'iTru7_107_08', 'CCGACTAT',
-     'iTru5_01_A', 'CTTCGCAA', 'Baz', 'pool1', 'importantsample2',
+     'iTru5_01_A', 'CTTCGCAA', 'Baz_12345', 'importantsample2',
      'Knight Lab Kapa HP', 'Eqiiperiment'],
     ['3', 'sample.1', 'FooBar_666_p1', 'A3', 'iTru7_107_09', 'GCCTTGTT',
-     'iTru5_01_A', 'AACACCAC', 'Baz', 'pool1', 'importantsample1',
+     'iTru5_01_A', 'AACACCAC', 'Baz_12345', 'importantsample1',
      'Knight Lab Kapa HP', 'Eqiiperiment'],
     ['3', 'sample.2', 'FooBar_666_p1', 'A4', 'iTru7_107_10', 'AACTTGCC',
-     'iTru5_01_A', 'CGTATCTC', 'Baz', 'pool1', 'importantsample2',
+     'iTru5_01_A', 'CGTATCTC', 'Baz_12345', 'importantsample2',
      'Knight Lab Kapa HP', 'Eqiiperiment'],
     ['3', 'sample.31', 'FooBar_666_p1', 'A5', 'iTru7_107_11', 'CAATGTGG',
-     'iTru5_01_A', 'GGTACGAA', 'FooBar_666', 'pool1', 'importantsample31',
+     'iTru5_01_A', 'GGTACGAA', 'FooBar_666', 'importantsample31',
      'Knight Lab Kapa HP', 'SomethingWitty'],
     ['3', 'sample.32', 'FooBar_666_p1', 'B6', 'iTru7_107_12', 'AAGGCTGA',
-     'iTru5_01_A', 'CGATCGAT', 'FooBar_666', 'pool1', 'importantsample32',
+     'iTru5_01_A', 'CGATCGAT', 'FooBar_666', 'importantsample32',
      'Knight Lab Kapa HP', 'SomethingWitty'],
     ['3', 'sample.34', 'FooBar_666_p1', 'B8', 'iTru7_107_13', 'TTACCGAG',
-     'iTru5_01_A', 'AAGACACC', 'FooBar_666', 'pool1', 'importantsample34',
+     'iTru5_01_A', 'AAGACACC', 'FooBar_666', 'importantsample34',
      'Knight Lab Kapa HP', 'SomethingWitty'],
-    ['3', 'sample.44', 'Baz_p3', 'B99', 'iTru7_107_14', 'GTCCTAAG',
-     'iTru5_01_A', 'CATCTGCT', 'Baz', 'pool1', 'importantsample44',
+    ['3', 'sample.44', 'Baz_12345_p3', 'B99', 'iTru7_107_14', 'GTCCTAAG',
+     'iTru5_01_A', 'CATCTGCT', 'Baz_12345', 'importantsample44',
      'Knight Lab Kapa HP', 'Eqiiperiment']]
 
 
