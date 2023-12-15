@@ -18,6 +18,13 @@ REVCOMP_SEQUENCERS = ['HiSeq4000', 'MiniSeq', 'NextSeq', 'HiSeq3000',
                       'iSeq', 'NovaSeq']
 OTHER_SEQUENCERS = ['HiSeq2500', 'HiSeq1500', 'MiSeq']
 
+SYNDNA_POOL_NUM_KEY = 'syndna_pool_number'
+SAMPLE_DNA_CONC_KEY = 'Sample DNA Concentration'
+NORMALIZED_DNA_VOL_KEY = 'Normalized DNA volume'
+INPUT_DNA_KEY = 'Input DNA'
+SYNDNA_VOL_KEY = 'synDNA volume'
+SYNDNA_POOL_MASS_NG_KEY = 'mass_syndna_input_ng'
+
 
 def extract_stats_metadata(stats_json_fp, lane_numbers):
     """
@@ -364,7 +371,7 @@ def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
 # method to read minipico output
 def read_pico_csv(f, sep='\t', plate_reader='SpectraMax_i3x',
                   min_conc=0, max_conc=150,
-                  conc_col_name='Sample DNA Concentration'):
+                  conc_col_name=SAMPLE_DNA_CONC_KEY):
     """
     reads tab-delimited pico quant
 
@@ -1428,6 +1435,7 @@ def add_syndna(plate_df, syndna_pool_number=None, syndna_concentration=None,
     ----------
     plate_df : pd.DataFrame
         Growing plate dataframe with calculated gDNA input normalization values
+        including INPUT_DNA_KEY and NORMALIZED_DNA_VOL_KEY columns.
     syndna_pool_number : str (Default:None)
         String formatted name for synDNA pool. Typically a number.
     syndna_concentration : float (Default:None)
@@ -1441,7 +1449,7 @@ def add_syndna(plate_df, syndna_pool_number=None, syndna_concentration=None,
         returns a pandas dataframe with extra columns"""
 
     plate_df_ = plate_df.copy()
-    plate_df_['syndna_pool_number'] = syndna_pool_number
+    plate_df_[SYNDNA_POOL_NUM_KEY] = syndna_pool_number
     if syndna_pool_number is None:
         warnings.warn('Returning input plate dataframe;'
                       'no synDNA will be added to this prep')
@@ -1449,13 +1457,13 @@ def add_syndna(plate_df, syndna_pool_number=None, syndna_concentration=None,
         return plate_df_
 
     else:
-        if 'Normalized DNA volume' not in plate_df_.columns:
+        if NORMALIZED_DNA_VOL_KEY not in plate_df_.columns:
             raise Exception("The plate dataframe (plate_df) must have input "
                             "normalization values already calculated before "
                             "calculating synDNA addition")
 
-        plate_df_['Input DNA'] = plate_df_['Sample DNA Concentration'] * \
-            plate_df_['Normalized DNA volume']/1000
+        plate_df_[INPUT_DNA_KEY] = plate_df_[SAMPLE_DNA_CONC_KEY] * \
+            plate_df_[NORMALIZED_DNA_VOL_KEY]/1000
         # synDNA volume is in nL
         if syndna_concentration is None:
             raise Exception("Specify the concentration of the synDNA"
@@ -1463,12 +1471,12 @@ def add_syndna(plate_df, syndna_pool_number=None, syndna_concentration=None,
         # The 1000 multiplier is to transform µL to nL because the Echo
         # dispenser uses nL as the volume unit but concentrations are
         # reported in ng/µL.
-        plate_df_['synDNA volume'] = 1000*(plate_df_['Input DNA'] *
-                                           (syndna_percentage*10**-2) /
-                                           syndna_concentration)
+        plate_df_[SYNDNA_VOL_KEY] = 1000*(plate_df_[INPUT_DNA_KEY] *
+                                          (syndna_percentage*10**-2) /
+                                          syndna_concentration)
 
-        plate_df_['mass_syndna_input_ng'] = \
-            (plate_df_['synDNA volume']/1000) * syndna_concentration
+        plate_df_[SYNDNA_POOL_MASS_NG_KEY] = \
+            (plate_df_[SYNDNA_VOL_KEY]/1000) * syndna_concentration
 
         return plate_df_
 
