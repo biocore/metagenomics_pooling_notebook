@@ -1,38 +1,40 @@
-[Header],,,,,,,,,,,
-IEMFileVersion,4,,,,,,,,,,
-Investigator Name,Caballero,,,,,,,,,,
-Experiment Name,RKL0042,,,,,,,,,,
-Date,2/26/20,,,,,,,,,,
-Workflow,GenerateFASTQ,,,,,,,,,,
-Application,FASTQ Only,,,,,,,,,,
-Assay,Metagenomic,,,,,,,,,,
-Description,,,,,,,,,,,
-Chemistry,Default,,,,,,,,,,
-,,,,,,,,,,,
-[Reads],,,,,,,,,,,
-150,,,,,,,,,,,
-150,,,,,,,,,,,
-,,,,,,,,,,,
-[Settings],,,,,,,,,,,
-ReverseComplement,0,,,,,,,,,,
-,,,,,,,,,,,
-[Data],,,,,,,,,,,
-Lane,Sample_ID,Sample_Name,Sample_Plate,well_id_384,I7_Index_ID,index,I5_Index_ID,index2,Sample_Project,syndna_pool_number,Well_description
-1,sample1,sample1,FooBar_666_p1,A1,iTru7_107_07,CCGACTAT,iTru5_01_A,ACCGACAA,Project_1111,pool1,s1
-1,sample2,sample2,FooBar_666_p1,A2,iTru7_107_08,CCGACTAT,iTru5_01_A,CTTCGCAA,Project_1111,pool1,s2
-3,sample1,sample1,FooBar_666_p1,A3,iTru7_107_09,GCCTTGTT,iTru5_01_A,AACACCAC,Project_1111,pool1,s1
-3,sample2,sample2,FooBar_666_p1,A4,iTru7_107_10,AACTTGCC,iTru5_01_A,CGTATCTC,Project_1111,pool1,s2
-3,sample3,sample3,FooBar_666_p1,A5,iTru7_107_11,CAATGTGG,iTru5_01_A,GGTACGAA,Trojecp_666,pool1,s5
-3,sample4,sample4,FooBar_666_p1,B6,iTru7_107_12,AAGGCTGA,iTru5_01_A,CGATCGAT,Trojecp_666,pool1,s6
-3,sample5,sample5,FooBar_666_p1,B8,iTru7_107_13,TTACCGAG,iTru5_01_A,AAGACACC,Trojecp_666,pool1,s7
-,,,,,,,,,,,
-[Bioinformatics],,,,,,,,,,,
-Sample_Project,QiitaID,BarcodesAreRC,ForwardAdapter,ReverseAdapter,HumanFiltering,library_construction_protocol,experiment_design_description,,,,
-Project_1111,1111,False,AACC,GGTT,False,Knight Lab Kapa HP,Eqiiperiment,,,,
-Trojecp_666,666,False,AACC,GGTT,False,Knight Lab Kapa HP,SomethingWitty,,,,
-,,,,,,,,,,,
-[Contact],,,,,,,,,,,
-Email,Sample_Project,,,,,,,,,,
-test@lol.com,Project_1111,,,,,,,,,,
-tester@rofl.com,Trojecp_666,,,,,,,,,,
-,,,,,,,,,,,
+[Header],,,,,,,,,,
+IEMFileVersion,4,,,,,,,,,
+SheetType,standard_metag,,,,,,,,,
+SheetVersion,'100',,,,,,,,,
+Investigator Name,Caballero,,,,,,,,,
+Experiment Name,RKL0042,,,,,,,,,
+Date,2/26/20,,,,,,,,,
+Workflow,GenerateFASTQ,,,,,,,,,
+Application,FASTQ Only,,,,,,,,,
+Assay,Metagenomic,,,,,,,,,
+Description,,,,,,,,,,
+Chemistry,Default,,,,,,,,,
+,,,,,,,,,,
+[Reads],,,,,,,,,,
+150,,,,,,,,,,
+150,,,,,,,,,,
+,,,,,,,,,,
+[Settings],,,,,,,,,,
+ReverseComplement,0,,,,,,,,,
+,,,,,,,,,,
+[Data],,,,,,,,,,
+Lane,Sample_ID,Sample_Name,Sample_Plate,well_id_384,I7_Index_ID,index,I5_Index_ID,index2,Sample_Project,Well_description
+1,sample1,sample1,FooBar_666_p1,A1,iTru7_107_07,CCGACTAT,iTru5_01_A,ACCGACAA,Project_1111,s1
+1,sample2,sample2,FooBar_666_p1,A2,iTru7_107_08,CCGACTAT,iTru5_01_A,CTTCGCAA,Project_1111,s2
+3,sample1,sample1,FooBar_666_p1,A3,iTru7_107_09,GCCTTGTT,iTru5_01_A,AACACCAC,Project_1111,s1
+3,sample2,sample2,FooBar_666_p1,A4,iTru7_107_10,AACTTGCC,iTru5_01_A,CGTATCTC,Project_1111,s2
+3,sample3,sample3,FooBar_666_p1,A5,iTru7_107_11,CAATGTGG,iTru5_01_A,GGTACGAA,Trojecp_666,s5
+3,sample4,sample4,FooBar_666_p1,B6,iTru7_107_12,AAGGCTGA,iTru5_01_A,CGATCGAT,Trojecp_666,s6
+3,sample5,sample5,FooBar_666_p1,B8,iTru7_107_13,TTACCGAG,iTru5_01_A,AAGACACC,Trojecp_666,s7
+,,,,,,,,,,
+[Bioinformatics],,,,,,,,,,
+Sample_Project,QiitaID,BarcodesAreRC,ForwardAdapter,ReverseAdapter,HumanFiltering,library_construction_protocol,experiment_design_description,,,
+Project_1111,1111,False,AACC,GGTT,False,Knight Lab Kapa HP,Eqiiperiment,,,
+Trojecp_666,666,False,AACC,GGTT,False,Knight Lab Kapa HP,SomethingWitty,,,
+,,,,,,,,,,
+[Contact],,,,,,,,,,
+Email,Sample_Project,,,,,,,,,
+test@lol.com,Project_1111,,,,,,,,,
+tester@rofl.com,Trojecp_666,,,,,,,,,
+,,,,,,,,,,

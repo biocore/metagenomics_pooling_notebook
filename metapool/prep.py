@@ -466,9 +466,9 @@ def preparations_for_run(run_path, sheet, pipeline='fastp-and-minimap2'):
             data = []
 
             # for sample_id, sample in lane_sheet.iterrows():
-            for tmp, sample in lane_sheet.iterrows():
+            for well_id_col, sample in lane_sheet.iterrows():
                 if isinstance(sample, pd.core.series.Series):
-                    sample_id = tmp
+                    sample_id = well_id_col
                 else:
                     sample_id = sample.sample_id
                 run_prefix = get_run_prefix(run_path,
@@ -480,6 +480,10 @@ def preparations_for_run(run_path, sheet, pipeline='fastp-and-minimap2'):
                 # we don't care about the sample if there's no file
                 if run_prefix is None:
                     continue
+
+                if 'syndna_pool_number' not in sample:
+                    if 'syndna_pool_number' in PREP_COLUMNS:
+                        PREP_COLUMNS.remove('syndna_pool_number')
 
                 row = {c: '' for c in PREP_COLUMNS}
 
@@ -498,17 +502,23 @@ def preparations_for_run(run_path, sheet, pipeline='fastp-and-minimap2'):
                 row["instrument_model"] = instrument_model
                 row["runid"] = run_id
                 row["sample_plate"] = sample.sample_plate
-                row["well_id_384"] = sample.well_id_384
+                if 'well_id_384' in sample:
+                    row["well_id_384"] = sample.well_id_384
+                    well_id_col = 'well_id_384'
+                elif 'Sample_Well' in sample:
+                    row["Sample_Well"] = sample.Sample_Well
+                    well_id_col = 'Sample_Well'
                 row["i7_index_id"] = sample['i7_index_id']
                 row["index"] = sample['index']
                 row["i5_index_id"] = sample['i5_index_id']
                 row["index2"] = sample['index2']
                 row["lane"] = lane
                 row["sample_project"] = project
-                row["syndna_pool_number"] = sample['syndna_pool_number']
+                if 'syndna_pool_number' in sample:
+                    row["syndna_pool_number"] = sample['syndna_pool_number']
                 row["well_description"] = '%s.%s.%s' % (sample.sample_plate,
                                                         sample.sample_name,
-                                                        sample.well_id_384)
+                                                        row[well_id_col])
 
                 data.append(row)
 
@@ -635,7 +645,10 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
                 row["linker"] = sample.linker
                 row["primer"] = sample.primer
                 row['primer_plate'] = sample.primer_plate
-                row['well_id_384'] = sample.well_id_384
+                if 'well_id_384' in sample:
+                    row["well_id_384"] = sample.well_id_384
+                elif 'Sample_Well' in sample:
+                    row["Sample_Well"] = sample.Sample_Well
                 row['well_id_96'] = sample.well_id_96
                 row['plating'] = sample.plating
                 row['extractionkit_lot'] = sample.extractionkit_lot
