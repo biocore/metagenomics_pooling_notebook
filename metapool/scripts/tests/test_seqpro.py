@@ -30,7 +30,7 @@ class SeqproTests(unittest.TestCase):
     def tearDown(self):
         rmtree(self.vf_test_dir, ignore_errors=True)
 
-    def atest_atropos_run(self):
+    def test_atropos_run(self):
         # TODO: Fix this test
         runner = CliRunner()
 
@@ -54,16 +54,10 @@ class SeqproTests(unittest.TestCase):
             self.assertEqual(sorted(os.listdir('./')), exp_preps)
 
             for prep, exp_lines in zip(exp_preps, [4, 4, 5]):
-
                 with open(prep) as f:
-                    foo = f.readlines()
-                    for line in foo:
-                        print(line)
-                    print("###")
-                    # self.assertEqual(len(f.read().split('\n')),
-                    # exp_lines, 'Assertion error in %s' % prep)
-
-            self.assertTrue(False)
+                    self.assertEqual(len(f.read().split('\n')),
+                                     exp_lines,
+                                     'Assertion error in %s' % prep)
 
     def test_fastp_run(self):
         runner = CliRunner()
