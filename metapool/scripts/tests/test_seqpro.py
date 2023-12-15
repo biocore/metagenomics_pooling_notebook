@@ -237,10 +237,6 @@ class SeqproTests(unittest.TestCase):
 
             for prep in exp_preps:
                 obs = pd.read_csv(prep, sep='\t').to_dict('index')
-                print(obs)
-                print("############")
-                print(exp[prep])
-                print("")
                 self.assertDictEqual(obs, exp[prep])
 
     def test_verbose_flag(self):

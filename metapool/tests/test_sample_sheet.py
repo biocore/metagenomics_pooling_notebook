@@ -1339,9 +1339,6 @@ class ValidateSampleSheetTests(BaseTests):
 
         exp = pd.DataFrame(index=index, data=DF_DATA, columns=columns)
         exp.index.name = 'sample_id'
-        print(obs.head())
-        print("###")
-        print(exp.head())
         pd.testing.assert_frame_equal(obs, exp)
 
 
@@ -1449,11 +1446,8 @@ class DemuxReplicatesTests(BaseTests):
         # assert that each sample-sheet appears in the correct order and
         # matches known results.
         for replicate_output_path in self.replicate_output_paths:
-            print(replicate_output_path)
             exp = MetagenomicSampleSheetv100(replicate_output_path)
             obs = results.pop(0)
-            print("OBS: %s" % obs.Header)
-            print("EXP: %s" % exp.Header)
             self.assertEqual(obs.Header, exp.Header)
             self.assertEqual(obs.Reads, exp.Reads)
             self.assertEqual(obs.Settings, exp.Settings)
