@@ -1,39 +1,41 @@
-[Header],,,,,,,,,,,
-IEMFileVersion,4,,,,,,,,,,
-Investigator Name,Caballero,,,,,,,,,,
-Experiment Name,RKL0042,,,,,,,,,,
-Date,2/26/20,,,,,,,,,,
-Workflow,GenerateFASTQ,,,,,,,,,,
-Application,FASTQ Only,,,,,,,,,,
-Assay,Metagenomic,,,,,,,,,,
-Description,,,,,,,,,,,
-Chemistry,Default,,,,,,,,,,
-,,,,,,,,,,,
-[Reads],,,,,,,,,,,
-150,,,,,,,,,,,
-150,,,,,,,,,,,
-,,,,,,,,,,,
-[Settings],,,,,,,,,,,
-ReverseComplement,0,,,,,,,,,,
-,,,,,,,,,,,
-[Data],,,,,,,,,,,
-Lane,Sample_ID,Sample_Name,Sample_Plate,well_id_384,I7_Index_ID,index,I5_Index_ID,index2,Sample_Project,syndna_pool_number,Well_description
-1,sample_1,sample.1,FooBar_666_p1,A1,iTru7_107_07,CCGACTAT,iTru5_01_A,ACCGACAA,Baz,pool1,importantsample1
-1,sample_2,sample.2,FooBar_666_p1,A2,iTru7_107_08,CCGACTAT,iTru5_01_A,CTTCGCAA,Baz,pool1,importantsample2
-3,sample_1,sample.1,FooBar_666_p1,A3,iTru7_107_09,GCCTTGTT,iTru5_01_A,AACACCAC,Baz,pool1,importantsample1
-3,sample_2,sample.2,FooBar_666_p1,A4,iTru7_107_10,AACTTGCC,iTru5_01_A,CGTATCTC,Baz,pool1,importantsample2
-3,sample_31,sample.31,FooBar_666_p1,A5,iTru7_107_11,CAATGTGG,iTru5_01_A,GGTACGAA,FooBar_666,pool1,importantsample31
-3,sample_32,sample.32,FooBar_666_p1,B6,iTru7_107_12,AAGGCTGA,iTru5_01_A,CGATCGAT,FooBar_666,pool1,importantsample32
-3,sample_34,sample.34,FooBar_666_p1,B8,iTru7_107_13,TTACCGAG,iTru5_01_A,AAGACACC,FooBar_666,pool1,importantsample34
-3,sample_44,sample.44,Baz_p3,B99,iTru7_107_14,GTCCTAAG,iTru5_01_A,CATCTGCT,Baz,pool1,importantsample44
-,,,,,,,,,,,
-[Bioinformatics],,,,,,,,,,,
-Sample_Project,QiitaID,BarcodesAreRC,ForwardAdapter,ReverseAdapter,HumanFiltering,library_construction_protocol,experiment_design_description,,,,
-Baz,100,False,AACC,GGTT,False,Knight Lab Kapa HP,Eqiiperiment,,,,
-FooBar_666,666,False,AACC,GGTT,False,Knight Lab Kapa HP,SomethingWitty,,,,
-,,,,,,,,,,,
-[Contact],,,,,,,,,,,
-Email,Sample_Project,,,,,,,,,,
-test@lol.com,Baz,,,,,,,,,,
-tester@rofl.com,FooBar_666,,,,,,,,,,
-,,,,,,,,,,,
+[Header],,,,,,,,,,
+IEMFileVersion,4,,,,,,,,,
+Investigator Name,Caballero,,,,,,,,,
+SheetType,standard_metag,,,,,,,,,
+SheetVersion,100,,,,,,,,,
+Experiment Name,RKL0042,,,,,,,,,
+Date,2/26/20,,,,,,,,,
+Workflow,GenerateFASTQ,,,,,,,,,
+Application,FASTQ Only,,,,,,,,,
+Assay,Metagenomic,,,,,,,,,
+Description,,,,,,,,,,
+Chemistry,Default,,,,,,,,,
+,,,,,,,,,,
+[Reads],,,,,,,,,,
+150,,,,,,,,,,
+150,,,,,,,,,,
+,,,,,,,,,,
+[Settings],,,,,,,,,,
+ReverseComplement,0,,,,,,,,,
+,,,,,,,,,,
+[Data],,,,,,,,,,
+Lane,Sample_ID,Sample_Name,Sample_Plate,well_id_384,I7_Index_ID,index,I5_Index_ID,index2,Sample_Project,Well_description
+1,sample_1,sample.1,FooBar_666_p1,A1,iTru7_107_07,CCGACTAT,iTru5_01_A,ACCGACAA,Baz_12345,importantsample1
+1,sample_2,sample.2,FooBar_666_p1,A2,iTru7_107_08,CCGACTAT,iTru5_01_A,CTTCGCAA,Baz_12345,importantsample2
+3,sample_1,sample.1,FooBar_666_p1,A3,iTru7_107_09,GCCTTGTT,iTru5_01_A,AACACCAC,Baz_12345,importantsample1
+3,sample_2,sample.2,FooBar_666_p1,A4,iTru7_107_10,AACTTGCC,iTru5_01_A,CGTATCTC,Baz_12345,importantsample2
+3,sample_31,sample.31,FooBar_666_p1,A5,iTru7_107_11,CAATGTGG,iTru5_01_A,GGTACGAA,FooBar_666,importantsample31
+3,sample_32,sample.32,FooBar_666_p1,B6,iTru7_107_12,AAGGCTGA,iTru5_01_A,CGATCGAT,FooBar_666,importantsample32
+3,sample_34,sample.34,FooBar_666_p1,B8,iTru7_107_13,TTACCGAG,iTru5_01_A,AAGACACC,FooBar_666,importantsample34
+3,sample_44,sample.44,Baz_12345_p3,B99,iTru7_107_14,GTCCTAAG,iTru5_01_A,CATCTGCT,Baz_12345,importantsample44
+,,,,,,,,,,
+[Bioinformatics],,,,,,,,,,
+Sample_Project,QiitaID,BarcodesAreRC,ForwardAdapter,ReverseAdapter,HumanFiltering,library_construction_protocol,experiment_design_description,contains_replicates,,
+Baz_12345,100,False,AACC,GGTT,False,Knight Lab Kapa HP,Eqiiperiment,False,,
+FooBar_666,666,False,AACC,GGTT,False,Knight Lab Kapa HP,SomethingWitty,False,,
+,,,,,,,,,,
+[Contact],,,,,,,,,,
+Email,Sample_Project,,,,,,,,,
+test@lol.com,Baz_12345,,,,,,,,,
+tester@rofl.com,FooBar_666,,,,,,,,,
+,,,,,,,,,,

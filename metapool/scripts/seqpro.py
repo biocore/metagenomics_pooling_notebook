@@ -5,7 +5,7 @@ import os
 import re
 from os.path import abspath
 
-from metapool import (preparations_for_run, MetagenomicSampleSheetv100,
+from metapool import (preparations_for_run, load_sample_sheet,
                       sample_sheet_to_dataframe, run_counts,
                       remove_qiita_id)
 
@@ -38,8 +38,7 @@ def format_preparation_files(run_dir, sample_sheet, output_dir, pipeline,
     will collect sequence count stats for each sample and add them as columns
     in the preparation file.
     """
-    # TODO: Can this always be v100? I don't think so
-    sample_sheet = MetagenomicSampleSheetv100(sample_sheet)
+    sample_sheet = load_sample_sheet(sample_sheet)
     df_sheet = sample_sheet_to_dataframe(sample_sheet)
 
     if pipeline == 'atropos-and-bowtie2':

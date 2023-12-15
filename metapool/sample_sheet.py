@@ -510,7 +510,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
         return self
 
-    def validate_and_scrub_sample_sheet(self):
+    def validate_and_scrub_sample_sheet(self, echo_msgs=True):
         """Validate the sample sheet and scrub invalid characters
 
         The character scrubbing is only applied to the Sample_Project and the
@@ -526,8 +526,11 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         """
         msgs = self.quiet_validate_and_scrub_sample_sheet()
 
-        # display Errors and Warnings directly to stdout.
-        [msg.echo() for msg in msgs]
+        # display Errors and Warnings directly to stdout:
+        # this function is used in both Jupyter notebooks where msgs should
+        # be displayed, and by other functions that simply want True or False.
+        if echo_msgs:
+            [msg.echo() for msg in msgs]
 
         # in addition to displaying any messages, return False if any Errors
         # were found, or True if there were just Warnings or no messages at
@@ -909,21 +912,59 @@ class MetatranscriptomicSampleSheet(KLSampleSheet):
         }
 
 
-def create_sample_sheet(sheet_type, assay_type):
-    if assay_type == _AMPLICON:
-        return AmpliconSampleSheet()
-    elif assay_type == _METAGENOMIC:
-        if sheet_type == _STANDARD_SHEET_TYPE:
-            return MetagenomicSampleSheetv100()
-        elif sheet_type == _ABSQUANT_SHEET_TYPE:
-            return AbsQuantSampleSheetv10()
-        else:
-            raise ValueError(f"'{sheet_type}' is not a valid sheet-type.")
+def load_sample_sheet(sample_sheet_path):
+    # Load the sample-sheet using various KLSampleSheet children and return
+    # the first instance that produces a valid sample-sheet. We assume that
+    # because of specific SheetType and SheetVersion values, no one sample-
+    # sheet can match more than one KLSampleSheet child.
 
-    elif assay_type == _METATRANSCRIPTOMIC:
-        return MetatranscriptomicSampleSheet()
+    sheet = AmpliconSampleSheet(sample_sheet_path)
+    if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
+        return sheet
+
+    sheet = MetagenomicSampleSheetv100(sample_sheet_path)
+    if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
+        return sheet
+
+    sheet = MetagenomicSampleSheetv90(sample_sheet_path)
+    if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
+        return sheet
+
+    sheet = MetatranscriptomicSampleSheet(sample_sheet_path)
+    if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
+        return sheet
+
+    sheet = AbsQuantSampleSheetv10(sample_sheet_path)
+    if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
+        return sheet
+
+    raise ValueError(f"'{sample_sheet_path}' does not appear to be a valid "
+                     "sample-sheet.")
+
+
+def _create_sample_sheet(sheet_type, sheet_version, assay_type):
+    if sheet_type == _STANDARD_SHEET_TYPE:
+        if assay_type == _AMPLICON:
+            sheet = AmpliconSampleSheet()
+        elif assay_type == _METAGENOMIC:
+            if sheet_version == '90':
+                sheet = MetagenomicSampleSheetv90()
+            elif sheet_version in ['95', '99', '100']:
+                # 95, 99, and v100 are functionally the same type.
+                sheet = MetagenomicSampleSheetv100()
+            else:
+                raise ValueError(f"'{sheet_version}' is an unrecognized Sheet"
+                                 f"Version for '{sheet_type}'")
+        elif assay_type == _METATRANSCRIPTOMIC:
+            sheet = MetatranscriptomicSampleSheet()
+        else:
+            raise ValueError("'%s' is an unrecognized Assay type" % assay_type)
+    elif sheet_type == _ABSQUANT_SHEET_TYPE:
+        sheet = AbsQuantSampleSheetv10()
     else:
-        raise ValueError(f"'{assay_type}' is not a valid assay-type.")
+        raise ValueError("'%s' is an unrecognized SheetType" % sheet_type)
+
+    return sheet
 
 
 def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
@@ -994,26 +1035,7 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
     sheet_version = metadata['SheetVersion']
     assay_type = metadata['Assay']
 
-    if sheet_type == _STANDARD_SHEET_TYPE:
-        if assay_type == _AMPLICON:
-            sheet = AmpliconSampleSheet()
-        elif assay_type == _METAGENOMIC:
-            if sheet_version == '90':
-                sheet = MetagenomicSampleSheetv90()
-            elif sheet_version in ['95', '99', '100']:
-                # 95, 99, and v100 are functionally the same type.
-                sheet = MetagenomicSampleSheetv100()
-            else:
-                raise ValueError(f"'{sheet_version}' is an unrecognized Sheet"
-                                 f"Version for '{sheet_type}'")
-        elif assay_type == _METATRANSCRIPTOMIC:
-            sheet = MetatranscriptomicSampleSheet()
-        else:
-            raise ValueError("'%s' is an unrecognized Assay type" % assay_type)
-    elif sheet_type == _ABSQUANT_SHEET_TYPE:
-        sheet = AbsQuantSampleSheetv10()
-    else:
-        raise ValueError("'%s' is an unrecognized SheetType" % sheet_type)
+    sheet = _create_sample_sheet(sheet_type, sheet_version, assay_type)
 
     messages = sheet._validate_sample_sheet_metadata(metadata)
 
@@ -1164,9 +1186,9 @@ def demux_sample_sheet(sheet):
     # replicate of plate 1, BLANKS and all), we can split replicates
     # according to their destination quadrant number.
     for df in _demux_sample_sheet(sheet):
-        # TODO: Handle _ABSQUANT_SHEET_TYPE
-        new_sheet = create_sample_sheet(_STANDARD_SHEET_TYPE,
-                                        sheet.Header['Assay'])
+        new_sheet = _create_sample_sheet(sheet.Header['SheetType'],
+                                         sheet.Header['SheetVersion'],
+                                         sheet.Header['Assay'])
         new_sheet.Header = sheet.Header
         new_sheet.Reads = sheet.Reads
         new_sheet.Settings = sheet.Settings

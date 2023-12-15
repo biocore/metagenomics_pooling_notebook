@@ -142,6 +142,7 @@ class KLSampleSheetTests(BaseTests):
                 with open(expected) as f:
                     # if the assertion fails, metapool is not processing
                     # filename as intended.
+                    print({filename})
                     self.assertEqual(observed.split(),
                                      f.read().split(),
                                      f'Problem found with {filename}')
@@ -205,6 +206,8 @@ class KLSampleSheetTests(BaseTests):
 
         exp = {
             'IEMFileVersion': '4',
+            'SheetType': 'standard_metag',
+            'SheetVersion': '100',
             'Investigator Name': 'Caballero',
             'Experiment Name': 'RKL0042',
             'Date': '2/26/20',
@@ -221,16 +224,16 @@ class KLSampleSheetTests(BaseTests):
 
         data = (
             '1,sample_1,sample.1,FooBar_666_p1,A1,iTru7_107_07,CCGACTAT,'
-            'iTru5_01_A,ACCGACAA,Baz,pool1,importantsample1,'
+            'iTru5_01_A,ACCGACAA,Baz_12345,pool1,importantsample1,'
             'KnightLabKapaHP,Eqiiperiment\n'
             '1,sample_2,sample.2,FooBar_666_p1,A2,iTru7_107_08,CCGACTAT,'
-            'iTru5_01_A,CTTCGCAA,Baz,pool1,importantsample2,'
+            'iTru5_01_A,CTTCGCAA,Baz_12345,pool1,importantsample2,'
             'KnightLabKapaHP,Eqiiperiment\n'
             '3,sample_1,sample.1,FooBar_666_p1,A3,iTru7_107_09,GCCTTGTT,'
-            'iTru5_01_A,AACACCAC,Baz,pool1,importantsample1,'
+            'iTru5_01_A,AACACCAC,Baz_12345,pool1,importantsample1,'
             'KnightLabKapaHP,Eqiiperiment\n'
             '3,sample_2,sample.2,FooBar_666_p1,A4,iTru7_107_10,AACTTGCC,'
-            'iTru5_01_A,CGTATCTC,Baz,pool1,importantsample2,'
+            'iTru5_01_A,CGTATCTC,Baz_12345,pool1,importantsample2,'
             'KnightLabKapaHP,Eqiiperiment\n'
             '3,sample_31,sample.31,FooBar_666_p1,A5,iTru7_107_11,CAATGTGG,'
             'iTru5_01_A,GGTACGAA,FooBar_666,pool1,importantsample31,'
@@ -242,7 +245,7 @@ class KLSampleSheetTests(BaseTests):
             'iTru5_01_A,AAGACACC,FooBar_666,pool1,importantsample34,'
             'KnightLabKapaHP,SomethingWitty\n'
             '3,sample_44,sample.44,Baz_p3,B99,iTru7_107_14,GTCCTAAG,'
-            'iTru5_01_A,CATCTGCT,Baz,pool1,importantsample44,'
+            'iTru5_01_A,CATCTGCT,Baz_12345,pool1,importantsample44,'
             'KnightLabKapaHP,Eqiiperiment\n'
         )
         keys = ['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
@@ -260,21 +263,22 @@ class KLSampleSheetTests(BaseTests):
             columns=['Sample_Project', 'QiitaID', 'BarcodesAreRC',
                      'ForwardAdapter', 'ReverseAdapter', 'HumanFiltering',
                      'library_construction_protocol',
-                     'experiment_design_description'],
+                     'experiment_design_description', 'contains_replicates'],
             data=[
-                ['Baz', '100', 'False', 'AACC', 'GGTT', 'False',
-                 'Knight Lab Kapa HP', 'Eqiiperiment'],
+                ['Baz_12345', '100', 'False', 'AACC', 'GGTT', 'False',
+                 'Knight Lab Kapa HP', 'Eqiiperiment', 'False'],
                 ['FooBar_666', '666', 'False', 'AACC', 'GGTT', 'False',
-                 'Knight Lab Kapa HP', 'SomethingWitty']
+                 'Knight Lab Kapa HP', 'SomethingWitty', 'False']
             ]
         )
+
         pd.testing.assert_frame_equal(sheet.Bioinformatics, exp)
 
         # check for Contact
         exp = pd.DataFrame(
             columns=['Email', 'Sample_Project'],
             data=[
-                ['test@lol.com', 'Baz'],
+                ['test@lol.com', 'Baz_12345'],
                 ['tester@rofl.com', 'FooBar_666']
             ]
         )
@@ -1327,7 +1331,7 @@ class ValidateSampleSheetTests(BaseTests):
 
         columns = ['lane', 'sample_name', 'sample_plate', 'well_id_384',
                    'i7_index_id', 'index', 'i5_index_id', 'index2',
-                   'sample_project', 'syndna_pool_number', 'well_description',
+                   'sample_project', 'well_description',
                    'library_construction_protocol',
                    'experiment_design_description']
         index = ['sample_1', 'sample_2', 'sample_1', 'sample_2', 'sample_31',
@@ -1335,6 +1339,9 @@ class ValidateSampleSheetTests(BaseTests):
 
         exp = pd.DataFrame(index=index, data=DF_DATA, columns=columns)
         exp.index.name = 'sample_id'
+        print(obs.head())
+        print("###")
+        print(exp.head())
         pd.testing.assert_frame_equal(obs, exp)
 
 
@@ -1442,8 +1449,11 @@ class DemuxReplicatesTests(BaseTests):
         # assert that each sample-sheet appears in the correct order and
         # matches known results.
         for replicate_output_path in self.replicate_output_paths:
+            print(replicate_output_path)
             exp = MetagenomicSampleSheetv100(replicate_output_path)
             obs = results.pop(0)
+            print("OBS: %s" % obs.Header)
+            print("EXP: %s" % exp.Header)
             self.assertEqual(obs.Header, exp.Header)
             self.assertEqual(obs.Reads, exp.Reads)
             self.assertEqual(obs.Settings, exp.Settings)
@@ -1455,28 +1465,28 @@ class DemuxReplicatesTests(BaseTests):
 
 DF_DATA = [
     ['1', 'sample.1', 'FooBar_666_p1', 'A1', 'iTru7_107_07', 'CCGACTAT',
-     'iTru5_01_A', 'ACCGACAA', 'Baz', 'pool1', 'importantsample1',
+     'iTru5_01_A', 'ACCGACAA', 'Baz_12345', 'importantsample1',
      'Knight Lab Kapa HP', 'Eqiiperiment'],
     ['1', 'sample.2', 'FooBar_666_p1', 'A2', 'iTru7_107_08', 'CCGACTAT',
-     'iTru5_01_A', 'CTTCGCAA', 'Baz', 'pool1', 'importantsample2',
+     'iTru5_01_A', 'CTTCGCAA', 'Baz_12345', 'importantsample2',
      'Knight Lab Kapa HP', 'Eqiiperiment'],
     ['3', 'sample.1', 'FooBar_666_p1', 'A3', 'iTru7_107_09', 'GCCTTGTT',
-     'iTru5_01_A', 'AACACCAC', 'Baz', 'pool1', 'importantsample1',
+     'iTru5_01_A', 'AACACCAC', 'Baz_12345', 'importantsample1',
      'Knight Lab Kapa HP', 'Eqiiperiment'],
     ['3', 'sample.2', 'FooBar_666_p1', 'A4', 'iTru7_107_10', 'AACTTGCC',
-     'iTru5_01_A', 'CGTATCTC', 'Baz', 'pool1', 'importantsample2',
+     'iTru5_01_A', 'CGTATCTC', 'Baz_12345', 'importantsample2',
      'Knight Lab Kapa HP', 'Eqiiperiment'],
     ['3', 'sample.31', 'FooBar_666_p1', 'A5', 'iTru7_107_11', 'CAATGTGG',
-     'iTru5_01_A', 'GGTACGAA', 'FooBar_666', 'pool1', 'importantsample31',
+     'iTru5_01_A', 'GGTACGAA', 'FooBar_666', 'importantsample31',
      'Knight Lab Kapa HP', 'SomethingWitty'],
     ['3', 'sample.32', 'FooBar_666_p1', 'B6', 'iTru7_107_12', 'AAGGCTGA',
-     'iTru5_01_A', 'CGATCGAT', 'FooBar_666', 'pool1', 'importantsample32',
+     'iTru5_01_A', 'CGATCGAT', 'FooBar_666', 'importantsample32',
      'Knight Lab Kapa HP', 'SomethingWitty'],
     ['3', 'sample.34', 'FooBar_666_p1', 'B8', 'iTru7_107_13', 'TTACCGAG',
-     'iTru5_01_A', 'AAGACACC', 'FooBar_666', 'pool1', 'importantsample34',
+     'iTru5_01_A', 'AAGACACC', 'FooBar_666', 'importantsample34',
      'Knight Lab Kapa HP', 'SomethingWitty'],
-    ['3', 'sample.44', 'Baz_p3', 'B99', 'iTru7_107_14', 'GTCCTAAG',
-     'iTru5_01_A', 'CATCTGCT', 'Baz', 'pool1', 'importantsample44',
+    ['3', 'sample.44', 'Baz_12345_p3', 'B99', 'iTru7_107_14', 'GTCCTAAG',
+     'iTru5_01_A', 'CATCTGCT', 'Baz_12345', 'importantsample44',
      'Knight Lab Kapa HP', 'Eqiiperiment']]
 
 
