@@ -1531,7 +1531,7 @@ def compress_plates(compression_layout, sample_accession_df,
     Returns:
     plate_df: pandas DataFrame object of samples compressed into 384 format
     with tube IDs corresponding to sample names.
-    A column "Well" indicates 384 positions
+    A column "well_col" indicates 384 positions
     and well_id_96 indicates 96 well positions.
     """
     compressed_plate_df = pd.DataFrame([])
@@ -1759,7 +1759,8 @@ def validate_plate_df(plate_df, metadata, sample_accession_df, blanks_dir,
 
     Returns
     -------
-    Returns 0 (zero)
+    If successfully validated, returns None. Raises ValueErrors if errors
+    are encountered. Echos warnings to stdout.
     """
 
     # This checks that all the samples names recored in the plate_df have
