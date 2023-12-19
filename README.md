@@ -1,16 +1,19 @@
 # metagenomics_pooling_notebook
 
-A Jupyter notebook to assist wet lab shotgun pipeline.
+A collection of Jupyter notebooks and modules to support the wet lab shotgun pipeline.
 
 ## Installation
 
-To install this notebook, first clone the repository from GitHub:
+**Note that this package is designed to be used with Qiita, and some tests will 
+fail without a Qiita installation.**
+
+To install this package, first clone the repository from GitHub:
 
 ```bash
 git clone https://github.com/biocore/metagenomics_pooling_notebook.git
 ```
 
-Create a Python3 Conda environment in which to run the notebook:
+Create a Python3 Conda environment in which to run the package:
 
 ```bash
 conda create -n metapool 'python=3.9' scikit-learn pandas numpy scipy nose pep8 flake8 matplotlib jupyter 'seaborn>=0.7.1' pip openpyxl
@@ -45,13 +48,21 @@ Second, install the table of contents (TOC) extension
 jupyter nbextension enable toc2/main
 ```
 
+## Test
+
+To run all tests, including those that depend on Qiita, type:
+
+```bash
+cd metagenomics_pooling_notebook
+nosetests
+```
 
 ## Use
 
-The notebook itself contains detailed usage instructions. 
+The notebooks themselves contain detailed usage instructions. 
 
-Ideally, you will copy this original notebook and use it for each plate you
-create with the shotgun pipeline.
+Ideally, when using a notebook, you will copy the original and 
+use it for each plate you create with the shotgun pipeline.
 
 Just make sure to activate the right Conda environment before starting the
 notebook.
