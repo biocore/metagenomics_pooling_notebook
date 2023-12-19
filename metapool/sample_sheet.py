@@ -15,6 +15,7 @@ _AMPLICON = 'TruSeq HT'
 _METAGENOMIC = 'Metagenomic'
 _METATRANSCRIPTOMIC = 'Metatranscriptomic'
 _STANDARD_SHEET_TYPE = 'standard_metag'
+_DUMMY_SHEET_TYPE = 'dummy_amp'
 _ABSQUANT_SHEET_TYPE = 'abs_quant_metag'
 SHEET_TYPES = (_STANDARD_SHEET_TYPE, _ABSQUANT_SHEET_TYPE)
 
@@ -711,7 +712,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 class AmpliconSampleSheet(KLSampleSheet):
     _HEADER = {
         'IEMFileVersion': '4',
-        'SheetType': _STANDARD_SHEET_TYPE,
+        'SheetType': _DUMMY_SHEET_TYPE,
         'SheetVersion': '0',
         'Investigator Name': 'Knight',
         'Experiment Name': 'RKL_experiment',
