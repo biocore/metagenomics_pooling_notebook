@@ -1472,8 +1472,8 @@ def add_syndna(plate_df, syndna_pool_number=None, syndna_concentration=None,
         # dispenser uses nL as the volume unit but concentrations are
         # reported in ng/µL.
         plate_df_[SYNDNA_VOL_KEY] = 1000*(plate_df_[INPUT_DNA_KEY] *
-                                           (syndna_percentage*10**-2) /
-                                           syndna_concentration)
+                                          (syndna_percentage*10**-2) /
+                                          syndna_concentration)
 
         plate_df_[SYNDNA_POOL_MASS_NG_KEY] = \
             (plate_df_[SYNDNA_VOL_KEY]/1000) * syndna_concentration
