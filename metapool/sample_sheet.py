@@ -1213,6 +1213,11 @@ def demux_sample_sheet(sheet):
         # for _demux_sample_sheet to return a dataframe with sample_id as
         # the index, such as seqpro.
         df['Sample_ID'] = df.index
+        print(df.columns)
+        df.rename(columns={'sample_name': 'Sample_Name',
+                           'i7_index_id': 'I7_Index_ID',
+                           'i5_index_id': 'I5_Index_ID',
+                           'sample_project': 'Sample_Project'}, inplace=True)
         for sample in df.to_dict(orient='records'):
             new_sheet.add_sample(sample_sheet.Sample(sample))
 
