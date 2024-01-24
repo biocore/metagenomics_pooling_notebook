@@ -511,7 +511,6 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
         return self
 
-    # CHARLIE
     def validate_and_scrub_sample_sheet(self, echo_msgs=True):
         """Validate the sample sheet and scrub invalid characters
 
@@ -542,7 +541,6 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         else:
             return False
 
-    # CHARLIE
     def quiet_validate_and_scrub_sample_sheet(self):
         """Quietly validate the sample sheet and scrub invalid characters
 
@@ -655,7 +653,6 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         # return all collected Messages, even if it's an empty list.
         return msgs
 
-    # CHARLIE
     def _validate_sample_sheet_metadata(self, metadata):
         msgs = []
 
@@ -1043,7 +1040,6 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
 
     sheet = _create_sample_sheet(sheet_type, sheet_version, assay_type)
 
-    # CHARLIE
     messages = sheet._validate_sample_sheet_metadata(metadata)
 
     if len(messages) == 0:
