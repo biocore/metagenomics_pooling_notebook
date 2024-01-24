@@ -511,6 +511,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
         return self
 
+    # CHARLIE
     def validate_and_scrub_sample_sheet(self, echo_msgs=True):
         """Validate the sample sheet and scrub invalid characters
 
@@ -541,6 +542,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         else:
             return False
 
+    # CHARLIE
     def quiet_validate_and_scrub_sample_sheet(self):
         """Quietly validate the sample sheet and scrub invalid characters
 
@@ -653,6 +655,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         # return all collected Messages, even if it's an empty list.
         return msgs
 
+    # CHARLIE
     def _validate_sample_sheet_metadata(self, metadata):
         msgs = []
 
@@ -1019,12 +1022,14 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
     Returns
     -------
     samplesheet.SampleSheet
-        SampleSheet object containing both the metadata and table.
+        SampleSheet object containing both the metadata and table
 
     Raises
     ------
     SampleSheetError
         If one of the required columns is missing.
+    ValueError
+        If the newly-created sample-sheet fails validation.
     """
     required_attributes = ['SheetType', 'SheetVersion', 'Assay']
 
@@ -1038,16 +1043,34 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
 
     sheet = _create_sample_sheet(sheet_type, sheet_version, assay_type)
 
+    # CHARLIE
     messages = sheet._validate_sample_sheet_metadata(metadata)
 
     if len(messages) == 0:
         sheet._add_metadata_to_sheet(metadata, sequencer)
         sheet._add_data_to_sheet(table, sequencer, lanes, metadata['Assay'],
                                  strict)
-        return sheet
-    else:
-        for message in messages:
-            message.echo()
+
+        # now that we have a SampleSheet() object, validate it for any
+        # additional errors that may have been present in the data and/or
+        # metadata.
+        messages = sheet.quiet_validate_and_scrub_sample_sheet()
+
+        if not any([isinstance(m, ErrorMessage) for m in messages]):
+            # No error messages equals success.
+            return sheet
+
+    # Continue legacy behavior of echoing ErrorMessages and WarningMessages.
+    msgs = []
+    for message in messages:
+        msgs.append(str(message))
+        message.echo()
+
+    # Introduce an exception raised for API calls that aren't reporting echo()
+    # to the user. Specifically, calls from other modules rather than
+    # notebooks. These legacy calls may or may not be testing the returned
+    # value for None.
+    raise ValueError("\n".join(msgs))
 
 
 def sample_sheet_to_dataframe(sheet):
