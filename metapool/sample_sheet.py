@@ -476,8 +476,10 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         # Per MacKenzie's request for 16S don't include Investigator Name and
         # Experiment Name
         if metadata['Assay'] == _AMPLICON:
-            del self.Header['Investigator Name']
-            del self.Header['Experiment Name']
+            if 'Investigator Name' in self.Header:
+                del self.Header['Investigator Name']
+            if 'Experiment Name' in self.Header:
+                del self.Header['Experiment Name']
 
             # these are only relevant for metagenomics because they are used in
             # bclconvert
@@ -736,8 +738,9 @@ class AmpliconSampleSheet(KLSampleSheet):
         'IEMFileVersion': '4',
         'SheetType': _DUMMY_SHEET_TYPE,
         'SheetVersion': '0',
-        'Investigator Name': 'Knight',
-        'Experiment Name': 'RKL_experiment',
+        # Per MacKenzie's request, these are removed if found.
+        # 'Investigator Name': 'Knight',
+        # 'Experiment Name': 'RKL_experiment',
         'Date': None,
         'Workflow': 'GenerateFASTQ',
         'Application': 'FASTQ Only',

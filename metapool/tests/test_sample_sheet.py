@@ -83,6 +83,8 @@ class BaseTests(unittest.TestCase):
         ]
 
         self.md_ampl = {
+            'Investigator Name': 'a PI',
+            'Experiment Name': 'an experiment name',
             'Bioinformatics': bfx,
             'Contact': contact,
             'Assay': 'TruSeq HT',
