@@ -184,9 +184,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                     section_name, *_ = header_match.groups()
                     if (
                         section_name not in self._sections
-                        # TODO: is KLSampleSheet.sections right? why not
-                        #  self.sections?
-                        and section_name not in KLSampleSheet.sections
+                        and section_name not in type(self).sections
                     ):
                         self.add_section(section_name)
 
@@ -561,10 +559,34 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 msgs.append(ErrorMessage(f'The {column} column in the Data '
                                          'section is missing'))
 
-        for section in ['Bioinformatics', 'Contact']:
+        # All children of sample_sheet.SampleSheet will have the following four
+        # sections defined: ['Header', 'Reads', 'Settings', 'Data']. All
+        # children of KLSampleSheet will have their columns defined in
+        # child.sections. We will test only for the difference between these
+        # two sets.
+        for section in set(type(self).sections).difference({'Header',
+                                                            'Reads',
+                                                            'Settings',
+                                                            'Data'}):
             if getattr(self, section) is None:
                 msgs.append(ErrorMessage(f'The {section} section cannot be '
                                          'empty'))
+
+        # For cases where a child of KLSampleSheet() is instantiated w/out a
+        # filepath, the four base sections will be defined but will be empty
+        # unless they are manually populated.
+        for attribute in type(self)._HEADER:
+            if attribute not in self.Header:
+                msgs.append(ErrorMessage(f"'{attribute}' is not declared in "
+                                         "Header section"))
+
+        # Manually populated entries can be arbitrary. Ensure a minimal degree
+        # of type consistency.
+        expected_assay_type = type(self)._HEADER['Assay']
+        if 'Assay' in self.Header:
+            if self.Header['Assay'] != expected_assay_type:
+                msgs.append(ErrorMessage("'Assay' value is not "
+                                         f"'{expected_assay_type}'"))
 
         # if any errors are found up to this point then we can't continue with
         # the validation process.
@@ -773,8 +795,7 @@ class MetagenomicSampleSheetv100(KLSampleSheet):
                                'ForwardAdapter', 'ReverseAdapter',
                                'HumanFiltering', 'contains_replicates',
                                'library_construction_protocol',
-                               'experiment_design_description',
-                               'contains_replicates'}
+                               'experiment_design_description'}
 
     def __init__(self, path=None):
         super().__init__(path=path)
@@ -897,6 +918,13 @@ class MetatranscriptomicSampleSheet(KLSampleSheet):
     data_columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
                     'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
                     'Sample_Project', 'Well_description']
+
+    _BIOINFORMATICS_COLUMNS = frozenset({'Sample_Project', 'QiitaID',
+                                         'BarcodesAreRC', 'ForwardAdapter',
+                                         'ReverseAdapter', 'HumanFiltering',
+                                         'contains_replicates',
+                                         'library_construction_protocol',
+                                         'experiment_design_description'})
 
     def __init__(self, path=None):
         super().__init__(path=path)
