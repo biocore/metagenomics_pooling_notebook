@@ -1054,6 +1054,9 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
 
         if not any([isinstance(m, ErrorMessage) for m in messages]):
             # No error messages equals success.
+            # Echo any warning messages.
+            for warning_msg in messages:
+                warning_msg.echo()
             return sheet
 
     # Continue legacy behavior of echoing ErrorMessages and WarningMessages.
