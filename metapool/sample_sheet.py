@@ -476,8 +476,10 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         # Per MacKenzie's request for 16S don't include Investigator Name and
         # Experiment Name
         if metadata['Assay'] == _AMPLICON:
-            del self.Header['Investigator Name']
-            del self.Header['Experiment Name']
+            if 'Investigator Name' in self.Header:
+                del self.Header['Investigator Name']
+            if 'Experiment Name' in self.Header:
+                del self.Header['Experiment Name']
 
             # these are only relevant for metagenomics because they are used in
             # bclconvert
@@ -736,8 +738,9 @@ class AmpliconSampleSheet(KLSampleSheet):
         'IEMFileVersion': '4',
         'SheetType': _DUMMY_SHEET_TYPE,
         'SheetVersion': '0',
-        'Investigator Name': 'Knight',
-        'Experiment Name': 'RKL_experiment',
+        # Per MacKenzie's request, these are removed if found.
+        # 'Investigator Name': 'Knight',
+        # 'Experiment Name': 'RKL_experiment',
         'Date': None,
         'Workflow': 'GenerateFASTQ',
         'Application': 'FASTQ Only',
@@ -1047,12 +1050,14 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
     Returns
     -------
     samplesheet.SampleSheet
-        SampleSheet object containing both the metadata and table.
+        SampleSheet object containing both the metadata and table
 
     Raises
     ------
     SampleSheetError
         If one of the required columns is missing.
+    ValueError
+        If the newly-created sample-sheet fails validation.
     """
     required_attributes = ['SheetType', 'SheetVersion', 'Assay']
 
@@ -1072,10 +1077,30 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
         sheet._add_metadata_to_sheet(metadata, sequencer)
         sheet._add_data_to_sheet(table, sequencer, lanes, metadata['Assay'],
                                  strict)
-        return sheet
-    else:
-        for message in messages:
-            message.echo()
+
+        # now that we have a SampleSheet() object, validate it for any
+        # additional errors that may have been present in the data and/or
+        # metadata.
+        messages = sheet.quiet_validate_and_scrub_sample_sheet()
+
+        if not any([isinstance(m, ErrorMessage) for m in messages]):
+            # No error messages equals success.
+            # Echo any warning messages.
+            for warning_msg in messages:
+                warning_msg.echo()
+            return sheet
+
+    # Continue legacy behavior of echoing ErrorMessages and WarningMessages.
+    msgs = []
+    for message in messages:
+        msgs.append(str(message))
+        message.echo()
+
+    # Introduce an exception raised for API calls that aren't reporting echo()
+    # to the user. Specifically, calls from other modules rather than
+    # notebooks. These legacy calls may or may not be testing the returned
+    # value for None.
+    raise ValueError("\n".join(msgs))
 
 
 def sample_sheet_to_dataframe(sheet):

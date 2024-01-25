@@ -83,6 +83,8 @@ class BaseTests(unittest.TestCase):
         ]
 
         self.md_ampl = {
+            'Investigator Name': 'a PI',
+            'Experiment Name': 'an experiment name',
             'Bioinformatics': bfx,
             'Contact': contact,
             'Assay': 'TruSeq HT',
@@ -719,8 +721,25 @@ class SampleSheetWorkflow(BaseTests):
         # for amplicon we expect the following three columns to not be there
         message = (r'The column (I5_Index_ID|index2|Well_description) '
                    r'in the sample sheet is empty')
+
+        message2 = (r"ErrorMessage: The following projects need to be in the "
+                    "Data and Bioinformatics sections Koening_ITS_101, "
+                    "THDMI_10317, Yanomani_2008_10052")
+
         with self.assertWarnsRegex(UserWarning, message):
-            obs = make_sample_sheet(self.md_ampl, self.table, 'HiSeq4000',
+            table2 = self.table.copy(deep=True)
+
+            # first, assert that make_sample_sheet() raises an Error when the
+            # projects are improperly defined.
+            with self.assertRaisesRegex(ValueError, message2):
+                make_sample_sheet(self.md_ampl, table2, 'HiSeq4000', [5, 7],
+                                  strict=False)
+
+            # second, correct the errors in the [Data] section.
+            table2['Project Name'] = ['Koening_ITS_101', 'Yanomani_2008_10052',
+                                      'Yanomani_2008_10052']
+
+            obs = make_sample_sheet(self.md_ampl, table2, 'HiSeq4000',
                                     [5, 7], strict=False)
 
         self.assertIsInstance(obs, AmpliconSampleSheet)
@@ -748,22 +767,22 @@ class SampleSheetWorkflow(BaseTests):
 
         data = (
             [5, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
-             'AGCCTTCGTCGC', '', '', 'THDMI_10317',
+             'AGCCTTCGTCGC', '', '', 'Koening_ITS_101',
              'THDMI_10317_PUK2.X00180471.A1'],
             [5, 'X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1',
-             '515rcbc12', 'CGTATAAATGCG', '', '', 'THDMI_10317',
+             '515rcbc12', 'CGTATAAATGCG', '', '', 'Yanomani_2008_10052',
              'THDMI_10317_PUK2.X00180199.C1'],
             [5, 'X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1',
-             '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317',
+             '515rcbc24', 'TGACTAATGGCC', '', '', 'Yanomani_2008_10052',
              'THDMI_10317_PUK2.X00179789.E1'],
             [7, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
-             'AGCCTTCGTCGC', '', '', 'THDMI_10317',
+             'AGCCTTCGTCGC', '', '', 'Koening_ITS_101',
              'THDMI_10317_PUK2.X00180471.A1'],
             [7, 'X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1',
-             '515rcbc12', 'CGTATAAATGCG', '', '', 'THDMI_10317',
+             '515rcbc12', 'CGTATAAATGCG', '', '', 'Yanomani_2008_10052',
              'THDMI_10317_PUK2.X00180199.C1'],
             [7, 'X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1',
-             '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317',
+             '515rcbc24', 'TGACTAATGGCC', '', '', 'Yanomani_2008_10052',
              'THDMI_10317_PUK2.X00179789.E1'],
         )
         keys = ['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
@@ -778,6 +797,8 @@ class SampleSheetWorkflow(BaseTests):
         # confirm standard 'Well_description' column name behaved as intended.
         table2 = self.table.copy(deep=True)
         table2['Well_description'] = ['Row A', 'Row B', 'Row C']
+        table2['Project Name'] = ['Koening_ITS_101', 'Yanomani_2008_10052',
+                                  'Yanomani_2008_10052']
 
         # allow 'Well_description' column to pass through to obs.
         obs = make_sample_sheet(self.md_ampl,
@@ -791,22 +812,22 @@ class SampleSheetWorkflow(BaseTests):
 
         data = (
             [5, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
-             'AGCCTTCGTCGC', '', '', 'THDMI_10317',
+             'AGCCTTCGTCGC', '', '', 'Koening_ITS_101',
              'THDMI_10317_PUK2.X00180471.A1'],
             [5, 'X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1',
-             '515rcbc12', 'CGTATAAATGCG', '', '', 'THDMI_10317',
+             '515rcbc12', 'CGTATAAATGCG', '', '', 'Yanomani_2008_10052',
              'THDMI_10317_PUK2.X00180199.C1'],
             [5, 'X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1',
-             '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317',
+             '515rcbc24', 'TGACTAATGGCC', '', '', 'Yanomani_2008_10052',
              'THDMI_10317_PUK2.X00179789.E1'],
             [7, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
-             'AGCCTTCGTCGC', '', '', 'THDMI_10317',
+             'AGCCTTCGTCGC', '', '', 'Koening_ITS_101',
              'THDMI_10317_PUK2.X00180471.A1'],
             [7, 'X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1',
-             '515rcbc12', 'CGTATAAATGCG', '', '', 'THDMI_10317',
+             '515rcbc12', 'CGTATAAATGCG', '', '', 'Yanomani_2008_10052',
              'THDMI_10317_PUK2.X00180199.C1'],
             [7, 'X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1',
-             '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317',
+             '515rcbc24', 'TGACTAATGGCC', '', '', 'Yanomani_2008_10052',
              'THDMI_10317_PUK2.X00179789.E1'],
         )
         keys = ['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
