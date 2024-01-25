@@ -1457,6 +1457,132 @@ class DemuxReplicatesTests(BaseTests):
                 self.assertEqual(o_sample, e_sample)
 
 
+class AdditionalSampleSheetCreationTests(BaseTests):
+    def test_metatranscriptomic_sheet_creation(self):
+        # create a Metatranscriptomic-type sample-sheet from scratch and
+        # manually populate the required fields.
+        sheet = MetatranscriptomicSampleSheet()
+        sheet.Header['IEMFileVersion'] = 4
+        sheet.Header['SheetType'] = 'standard_metag'
+        sheet.Header['SheetVersion'] = '100'
+        sheet.Header['Investigator Name'] = 'Knight'
+        sheet.Header['Experiment Name'] = 'RKO_experiment'
+        sheet.Header['Date'] = '2021-08-17'
+        sheet.Header['Workflow'] = 'GenerateFASTQ'
+        sheet.Header['Application'] = 'FASTQ Only'
+        sheet.Header['Assay'] = 'Metatranscriptomic'
+        sheet.Header['Description'] = ''
+        sheet.Header['Chemistry'] = 'Default'
+        sheet.Reads = [151, 151]
+        sheet.Settings['ReverseComplement'] = 0
+
+        data = [
+            ['Project1_99999', '99999', 'False', 'AACC', 'GGTT', 'False',
+             'False', 'protocol_1', 'a designed experiment']
+        ]
+
+        sheet.Bioinformatics = pd.DataFrame(
+            columns=['Sample_Project', 'QiitaID', 'BarcodesAreRC',
+                     'ForwardAdapter', 'ReverseAdapter', 'HumanFiltering',
+                     'contains_replicates', 'library_construction_protocol',
+                     'experiment_design_description'], data=data)
+
+        sheet.Contact = pd.DataFrame(columns=['Email', 'Sample_Project'],
+                                     data=[['c2cowart@ucsd.edu',
+                                            'Project1_99999'],])
+
+        header = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
+                  'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                  'Sample_Project', 'Well_description']
+
+        data = [
+            ['sample_1', 'sample.1', 'sample_plate_1', 'A1', 'iTru7_107_07',
+             'CCGACTAT', 'iTru5_01_A', 'ACCGACAA', 'Project1_99999', 'desc'],
+            ['sample_2', 'sample.2', 'sample_plate_1', 'A2', 'iTru7_107_07',
+             'CCGACTAC', 'iTru5_01_A', 'ACCGACAT', 'Project1_99999', 'desc'],
+            ['sample_3', 'sample.3', 'sample_plate_1', 'A3', 'iTru7_107_07',
+             'CCGACTAG', 'iTru5_01_A', 'ACCGACAG', 'Project1_99999', 'desc'],
+        ]
+
+        for row in data:
+            # Add each row as a Sample() object. Each Sample() object takes
+            # a dict as its initializer.
+            sheet.add_sample(sample_sheet.Sample(dict(zip(header, row))))
+
+        # Once sheet has been manually populated, validate it.
+        self.assertTrue(sheet.validate_and_scrub_sample_sheet())
+
+    def test_metagenomic_sheet_creation(self):
+        # create a Metagenomic-type sample-sheet from scratch and manually
+        # populate the required fields.
+        sheet = MetagenomicSampleSheetv100()
+        sheet.Header['IEMFileVersion'] = 4
+        sheet.Header['SheetType'] = 'standard_metag'
+        sheet.Header['SheetVersion'] = '100'
+        sheet.Header['Investigator Name'] = 'Knight'
+        sheet.Header['Experiment Name'] = 'RKO_experiment'
+        sheet.Header['Date'] = '2021-08-17'
+        sheet.Header['Workflow'] = 'GenerateFASTQ'
+        sheet.Header['Application'] = 'FASTQ Only'
+        sheet.Header['Assay'] = 'Metagenomic'
+        sheet.Header['Description'] = ''
+        sheet.Header['Chemistry'] = 'Default'
+        sheet.Reads = [151, 151]
+        sheet.Settings['ReverseComplement'] = 0
+
+        data = [
+            ['Project1_99999', '99999', 'False', 'AACC', 'GGTT', 'False',
+             'False', 'protocol_1', 'a designed experiment']
+        ]
+
+        sheet.Bioinformatics = pd.DataFrame(
+            columns=['Sample_Project', 'QiitaID', 'BarcodesAreRC',
+                     'ForwardAdapter', 'ReverseAdapter', 'HumanFiltering',
+                     'contains_replicates', 'library_construction_protocol',
+                     'experiment_design_description'], data=data)
+
+        sheet.Contact = pd.DataFrame(columns=['Email', 'Sample_Project'],
+                                     data=[['c2cowart@ucsd.edu',
+                                            'Project1_99999'],])
+
+        header = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
+                  'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                  'Sample_Project', 'Well_description']
+
+        data = [
+            ['sample_1', 'sample.1', 'sample_plate_1', 'A1', 'iTru7_107_07',
+             'CCGACTAT', 'iTru5_01_A', 'ACCGACAA', 'Project1_99999', 'desc'],
+            ['sample_2', 'sample.2', 'sample_plate_1', 'A2', 'iTru7_107_07',
+             'CCGACTAC', 'iTru5_01_A', 'ACCGACAT', 'Project1_99999', 'desc'],
+            ['sample_3', 'sample.3', 'sample_plate_1', 'A3', 'iTru7_107_07',
+             'CCGACTAG', 'iTru5_01_A', 'ACCGACAG', 'Project1_99999', 'desc'],
+        ]
+
+        for row in data:
+            # Add each row as a Sample() object. Each Sample() object takes
+            # a dict as its initializer.
+            sheet.add_sample(sample_sheet.Sample(dict(zip(header, row))))
+
+        # Once sheet has been manually populated, validate it.
+        self.assertTrue(sheet.validate_and_scrub_sample_sheet())
+
+        # Insert a few errors into the sample-sheet to ensure it fails
+        # validation.
+        del (sheet.Header['Workflow'])
+        sheet.Header['Assay'] = 'NotMetagenomic'
+
+        obs = sheet.quiet_validate_and_scrub_sample_sheet()
+
+        # convert ErrorMessages and WarningMessages into text strings for
+        # testing.
+        obs = set([str(msg) for msg in obs])
+
+        exp = {"ErrorMessage: 'Workflow' is not declared in Header section",
+               "ErrorMessage: 'Assay' value is not 'Metagenomic'"}
+
+        self.assertEqual(obs, exp)
+
+
 DF_DATA = [
     ['1', 'sample.1', 'FooBar_666_p1', 'A1', 'iTru7_107_07', 'CCGACTAT',
      'iTru5_01_A', 'ACCGACAA', 'Baz_12345', 'importantsample1',
