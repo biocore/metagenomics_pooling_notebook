@@ -247,7 +247,7 @@ def direct_sequence_counts(run_dir, metadata):
             raise ValueError("'filtered_sequences', 'trimmed_sequences' "
                              "directories do not exist")
 
-        fp = join(subdir, '*_L%s_R1_001' + '.trimmed.fastq.gz', lane.zfill(3))
+        fp = join(subdir, '*_L%s_R1_001.trimmed.fastq.gz' % lane.zfill(3))
 
         for item in glob(fp):
             cmd = ['zcat', '-f', item, '|', 'wc', '-l']
