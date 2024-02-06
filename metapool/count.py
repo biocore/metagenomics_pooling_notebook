@@ -5,6 +5,7 @@ from os.path import join, abspath, basename, exists
 from glob import glob
 from subprocess import Popen, PIPE
 from json import load
+from skbio.io import read as skb_read
 
 
 # first group is the sample name from the sample sheet, second group is the
@@ -227,6 +228,27 @@ def minimap2_counts(run_dir, metadata):
                       'non_host_reads', _parse_samtools_counts)
 
 
+def count_sequences_in_fastq(file_path):
+    variants = ['illumina1.8', 'illumina1.3', 'sanger']
+
+    for variant in variants:
+        try:
+            # see https://scikit.bio/docs/latest/generated/skbio.io.format.
+            # fastq.html#quality-score-variants for more information on
+            # variants. Variant is needed to correctly interpret a sequence's
+            # quality range. We don't explicitly need quality-ranges for this
+            # application but we unfortunately we cannot omit it.
+            sequences = skb_read(file_path, format='fastq',
+                                 variant=variant)
+            return sum(1 for sequence in sequences)
+        except ValueError:
+            # assume ValueError is because the correct variant wasn't
+            # specified.
+            pass
+
+    raise ValueError(f"'{file_path} could not be opened")
+
+
 def direct_sequence_counts(run_dir, metadata):
     if isinstance(metadata, metapool.KLSampleSheet):
         projects = {(s.Sample_Project, s.Lane) for s in metadata}
@@ -247,38 +269,37 @@ def direct_sequence_counts(run_dir, metadata):
             raise ValueError("'filtered_sequences', 'trimmed_sequences' "
                              "directories do not exist")
 
-        fp = join(subdir, '*_L%s_R1_001.trimmed.fastq.gz' % lane.zfill(3))
+        fp = join(subdir, '*_L%s_R?_001.trimmed.fastq.gz' % lane.zfill(3))
 
-        for item in glob(fp):
-            cmd = ['zcat', '-f', item, '|', 'wc', '-l']
+        # glob is going to return both _R1_ and _R2_ fastqs. sorted() will
+        # pair them such that we can iterate through them as a pair.
+        fp_iter = iter(sorted(glob(fp)))
+        for r1, r2 in zip(fp_iter, fp_iter):
+            reg = r"^(.*)_S\d+_L\d\d\d_R\d_\d\d\d.trimmed.fastq.gz$"
 
-            proc = Popen(' '.join(cmd), universal_newlines=True,
-                         shell=True,
-                         stdout=PIPE, stderr=PIPE)
+            m_r1 = re.match(reg, basename(r1))
+            m_r2 = re.match(reg, basename(r2))
 
-            stdout, stderr = proc.communicate()
-            return_code = proc.returncode
+            if m_r1 is None or m_r2 is None:
+                raise ValueError(f"a sample-id could not be extracted from "
+                                 f"{r1} or {r2}")
 
-            if return_code != 0:
-                raise ValueError("could not zcat %s" % item)
+            if m_r1[1] != m_r2[1]:
+                raise ValueError("a matching sample-id could not be "
+                                 f"extracted from {r1} and {r2}")
 
-            line_count = int(stdout)
+            sample_id = m_r1[1]
 
-            m = re.match(r"^(.*)_S\d+_L\d\d\d_R\d_\d\d\d.trimmed.fastq.gz$",
-                         basename(item))
-            if m is None:
-                raise ValueError(f"{item} doesn't match")
+            if sample_id not in expected:
+                raise ValueError(f"'{sample_id}' does not match any sample-id"
+                                 "in sample-sheet")
 
-            if m[1] not in expected:
-                raise ValueError("no match for %s" % m[1])
+            r1_counts = count_sequences_in_fastq(r1)
+            r2_counts = count_sequences_in_fastq(r2)
 
-            sample_ids.append(m[1])
+            sample_ids.append(sample_id)
             lanes.append(lane)
-
-            # line_count / 4 = the number of sequences after human-
-            # filtering. Doubling them will get the correct count for
-            # forward and reversed reads.
-            counts.append(line_count / 2)
+            counts.append(float(r1_counts + r2_counts))
 
     df = pd.DataFrame(list(zip(sample_ids, lanes, counts)),
                       columns=['Sample_ID', 'Lane',
