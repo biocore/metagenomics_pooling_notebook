@@ -3,7 +3,6 @@ import pandas as pd
 import warnings
 from os.path import join, abspath, basename, exists
 from glob import glob
-from subprocess import Popen, PIPE
 from json import load
 from skbio.io import read as skb_read
 
