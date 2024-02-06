@@ -1,9 +1,10 @@
 import re
-import os
-import glob
 import pandas as pd
-import json
 import warnings
+from os.path import join, abspath, basename, exists
+from glob import glob
+from json import load
+from skbio.io import read as skb_read
 
 
 # first group is the sample name from the sample sheet, second group is the
@@ -35,7 +36,7 @@ def _extract_name_and_lane(filename):
 
 def _parse_fastp_counts(path):
     with open(path) as fp:
-        stats = json.load(fp)
+        stats = load(fp)
 
         # check all the required keys are present, otherwise the file could be
         # malformed and we would only see a weird KeyError exception
@@ -98,11 +99,11 @@ def _parsefier(run_dir, metadata, subdir, suffix, name, funk):
         # match the right lane, the forward file and the suffix. The
         # suffix is something like ".log" or "*.json" if you expect to see
         # other characters before the extension.
-        logs = glob.glob(os.path.join(run_dir, project, subdir,
-                                      f'*_L{lane}_R1_001' + suffix))
+        logs = glob(join(run_dir, project, subdir,
+                         f'*_L{lane}_R1_001' + suffix))
 
         for log in logs:
-            out.append([*_extract_name_and_lane(os.path.basename(log)),
+            out.append([*_extract_name_and_lane(basename(log)),
                         project, log])
 
     out = pd.DataFrame(
@@ -153,18 +154,16 @@ def _safe_get(_document, _key):
 
 
 def bcl2fastq_counts(run_dir, sample_sheet):
-    bcl2fastq_path = os.path.join(os.path.abspath(run_dir),
-                                  'Stats/Stats.json')
-    bclconvert_path = os.path.join(os.path.abspath(run_dir),
-                                   'Reports/Demultiplex_Stats.csv')
+    bcl2fastq_path = join(abspath(run_dir), 'Stats/Stats.json')
+    bclconvert_path = join(abspath(run_dir), 'Reports/Demultiplex_Stats.csv')
 
-    if os.path.exists(bcl2fastq_path):
-        if os.path.exists(bclconvert_path):
+    if exists(bcl2fastq_path):
+        if exists(bclconvert_path):
             raise IOError(f"both '{bcl2fastq_path}' and '{bclconvert_path}'"
                           " exist")
         else:
             return _bcl2fastq_counts(bcl2fastq_path)
-    elif os.path.exists(bclconvert_path):
+    elif exists(bclconvert_path):
         return _bclconvert_counts(bclconvert_path)
     else:
         raise IOError(f"Cannot find Stats.json '{bcl2fastq_path}' or "
@@ -174,7 +173,7 @@ def bcl2fastq_counts(run_dir, sample_sheet):
 
 def _bcl2fastq_counts(path):
     with open(path) as fp:
-        contents = json.load(fp)
+        contents = load(fp)
 
     out = []
     for lane in _safe_get(contents, 'ConversionResults'):
@@ -215,14 +214,100 @@ def _bclconvert_counts(path):
 
 
 def fastp_counts(run_dir, metadata):
+    # total_biological_reads_r1r2 represents # of reads after adapter-trimming,
+    # but before any manner of pangenome-filtering. # fastp's 'after-filtering'
+    # results match these values, rather than post all filtering.
     return _parsefier(run_dir, metadata, 'json', '.json',
-                      'quality_filtered_reads_r1r2',
+                      'total_biological_reads_r1r2',
                       _parse_fastp_counts)
 
 
 def minimap2_counts(run_dir, metadata):
     return _parsefier(run_dir, metadata, 'samtools', '.log',
                       'non_host_reads', _parse_samtools_counts)
+
+
+def count_sequences_in_fastq(file_path):
+    variants = ['illumina1.8', 'illumina1.3', 'sanger']
+
+    for variant in variants:
+        try:
+            # see https://scikit.bio/docs/latest/generated/skbio.io.format.
+            # fastq.html#quality-score-variants for more information on
+            # variants. Variant is needed to correctly interpret a sequence's
+            # quality range. We don't explicitly need quality-ranges for this
+            # application but we unfortunately we cannot omit it.
+            sequences = skb_read(file_path, format='fastq',
+                                 variant=variant)
+            return sum(1 for sequence in sequences)
+        except ValueError:
+            # assume ValueError is because the correct variant wasn't
+            # specified.
+            pass
+
+    raise ValueError(f"'{file_path} could not be opened")
+
+
+def direct_sequence_counts(run_dir, metadata):
+    if isinstance(metadata, metapool.KLSampleSheet):
+        projects = {(s.Sample_Project, s.Lane) for s in metadata}
+        expected = {s.Sample_ID for s in metadata}
+    else:
+        raise ValueError("counts not implemented for amplicon")
+
+    sample_ids = []
+    lanes = []
+    counts = []
+
+    for project, lane in projects:
+        if join(run_dir, 'filtered_sequences'):
+            subdir = join(run_dir, project, 'filtered_sequences')
+        elif join(run_dir, 'trimmed_sequences'):
+            subdir = join(run_dir, project, 'trimmed_sequences')
+        else:
+            raise ValueError("'filtered_sequences', 'trimmed_sequences' "
+                             "directories do not exist")
+
+        fp = join(subdir, '*_L%s_R?_001.trimmed.fastq.gz' % lane.zfill(3))
+
+        # glob is going to return both _R1_ and _R2_ fastqs. sorted() will
+        # pair them such that we can iterate through them as a pair.
+        fp_iter = iter(sorted(glob(fp)))
+        for r1, r2 in zip(fp_iter, fp_iter):
+            reg = r"^(.*)_S\d+_L\d\d\d_R\d_\d\d\d.trimmed.fastq.gz$"
+
+            m_r1 = re.match(reg, basename(r1))
+            m_r2 = re.match(reg, basename(r2))
+
+            if m_r1 is None or m_r2 is None:
+                raise ValueError(f"a sample-id could not be extracted from "
+                                 f"{r1} or {r2}")
+
+            if m_r1[1] != m_r2[1]:
+                raise ValueError("a matching sample-id could not be "
+                                 f"extracted from {r1} and {r2}")
+
+            sample_id = m_r1[1]
+
+            if sample_id not in expected:
+                raise ValueError(f"'{sample_id}' does not match any sample-id"
+                                 "in sample-sheet")
+
+            r1_counts = count_sequences_in_fastq(r1)
+            r2_counts = count_sequences_in_fastq(r2)
+
+            sample_ids.append(sample_id)
+            lanes.append(lane)
+            counts.append(float(r1_counts + r2_counts))
+
+    df = pd.DataFrame(list(zip(sample_ids, lanes, counts)),
+                      columns=['Sample_ID', 'Lane',
+                               'quality_filtered_reads_r1r2'])
+
+    df['Lane'] = df['Lane'].astype(str)
+    df.set_index(['Sample_ID', 'Lane'], inplace=True, verify_integrity=True)
+
+    return df
 
 
 def run_counts(run_dir, metadata):
@@ -232,9 +317,9 @@ def run_counts(run_dir, metadata):
     :param metadata: A sample-sheet (metagenomic) or mapping-file (amplicon)
     :return: pandas.DataFrame
     '''
-    out = bcl2fastq_counts(run_dir, metadata).join([
-            fastp_counts(run_dir, metadata),
-            minimap2_counts(run_dir, metadata)])
+    out = bcl2fastq_counts(run_dir, metadata).join(
+        [fastp_counts(run_dir, metadata), minimap2_counts(run_dir, metadata),
+         direct_sequence_counts(run_dir, metadata)])
 
     # convenience columns to assess sample quality
     ratio = out['quality_filtered_reads_r1r2'] / out['raw_reads_r1r2']
