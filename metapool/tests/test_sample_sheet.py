@@ -14,7 +14,7 @@ from metapool.sample_sheet import (KLSampleSheet, AmpliconSampleSheet,
                                    MetatranscriptomicSampleSheetv10,
                                    AbsQuantSampleSheetv10,
                                    sample_sheet_to_dataframe,
-                                   make_sample_sheet,
+                                   make_sample_sheet, load_sample_sheet,
                                    demux_sample_sheet, sheet_needs_demuxing)
 from metapool.plate import ErrorMessage, WarningMessage
 
@@ -1535,6 +1535,10 @@ class DemuxReplicatesTests(BaseTests):
 
 
 class AdditionalSampleSheetCreationTests(BaseTests):
+    def setUp(self):
+        self.metat_fp = join('metapool', 'tests', 'data',
+                             'standard_metaT_samplesheet.csv')
+
     def test_metatranscriptomic_sheet_creation(self):
         # create a Metatranscriptomic-type sample-sheet from scratch and
         # manually populate the required fields.
@@ -1590,7 +1594,6 @@ class AdditionalSampleSheetCreationTests(BaseTests):
         self.assertTrue(sheet.validate_and_scrub_sample_sheet())
 
     def test_metatranscriptomic_sheet_creationv10(self):
-        # TODO: FIX
         # create a Metatranscriptomic-type sample-sheet from scratch and
         # manually populate the required fields.
         sheet = MetatranscriptomicSampleSheetv10()
@@ -1647,6 +1650,16 @@ class AdditionalSampleSheetCreationTests(BaseTests):
 
         # Once sheet has been manually populated, validate it.
         self.assertTrue(sheet.validate_and_scrub_sample_sheet())
+
+    def test_metatranscriptomic_sheet_load(self):
+        # confirm manual loading is w/out error.
+        sheet = MetatranscriptomicSampleSheetv10(self.metat_fp)
+        self.assertTrue(sheet.validate_and_scrub_sample_sheet())
+
+        # confirm load_sample_sheet() returns the correct child class of
+        # KLSampleSheet.
+        sheet = load_sample_sheet(self.metat_fp)
+        self.assertIsInstance(sheet, MetatranscriptomicSampleSheetv10)
 
     def test_metagenomic_sheet_creation(self):
         # create a Metagenomic-type sample-sheet from scratch and manually
