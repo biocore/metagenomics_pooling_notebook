@@ -10,7 +10,8 @@ import sample_sheet
 from metapool.sample_sheet import (KLSampleSheet, AmpliconSampleSheet,
                                    MetagenomicSampleSheetv100,
                                    MetagenomicSampleSheetv90,
-                                   MetatranscriptomicSampleSheet,
+                                   MetatranscriptomicSampleSheetv0,
+                                   MetatranscriptomicSampleSheetv10,
                                    AbsQuantSampleSheetv10,
                                    sample_sheet_to_dataframe,
                                    make_sample_sheet,
@@ -989,12 +990,67 @@ class SampleSheetWorkflow(BaseTests):
 
         exp = pd.DataFrame(columns=columns, data=data)
 
-        sheet = MetatranscriptomicSampleSheet()
+        sheet = MetatranscriptomicSampleSheetv0()
 
         obs = sheet._remap_table(self.table, strict=False)
         obs = obs[['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
                    'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
                    'Sample_Project', 'Well_description']]
+
+        self.assertEqual(len(obs), 3)
+        pd.testing.assert_frame_equal(obs, exp, check_like=True)
+
+    def test_remap_table_metatranscriptomicsv10(self):
+        # note that Well_description is now included because it's expected
+        # to be inserted by the function that calls _remap_table().
+        data = [
+            ['33-A1', 'A', 1, True, 'A1', 0, 0, 'AACGCACACTCGTCTT',
+             'iTru5_19_A', 'AACGCACA', 'A1', 'iTru5_plate', 'iTru7_109_01',
+             'CTCGTCTT', 'A22', 'iTru7_plate', '33-A1', 'The_plate.33-A1.A1',
+             '1.2', '1.1'],
+            ['820072905-2', 'C', 1, False, 'C1', 1, 1, 'ATGCCTAGCGAACTGT',
+             'iTru5_19_B', 'ATGCCTAG', 'B1', 'iTru5_plate', 'iTru7_109_02',
+             'CGAACTGT', 'B22', 'iTru7_plate', '820072905-2',
+             'The_plate.820072905-2.C1', '1.4', '1.3'],
+            ['820029517-3', 'E', 1, False, 'E1', 2, 2, 'CATACGGACATTCGGT',
+             'iTru5_19_C', 'CATACGGA', 'C1', 'iTru5_plate', 'iTru7_109_03',
+             'CATTCGGT', 'C22', 'iTru7_plate', '820029517-3',
+             'The_plate.820029517-3.E1', '1.6', '1.5']
+        ]
+        columns = ['Sample', 'Row', 'Col', 'Blank', 'Well', 'index',
+                   'index combo', 'index combo seq', 'i5 name', 'i5 sequence',
+                   'i5 well', 'i5 plate', 'i7 name', 'i7 sequence', 'i7 well',
+                   'i7 plate', 'sample sheet Sample_ID', 'Well_description',
+                   'vol_extracted_elution_ul', 'total_rna_concentration_ng_ul']
+        self.table = pd.DataFrame(data=data, columns=columns)
+        self.table['Project Name'] = 'Tst_project_1234'
+        self.table['Project Plate'] = 'The_plate'
+
+        columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
+                   'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                   'Sample_Project', 'total_rna_concentration_ng_ul',
+                   'vol_extracted_elution_ul', 'Well_description']
+        data = [
+            ['33-A1', '33-A1', 'The_plate', 'A1', 'iTru7_109_01', 'CTCGTCTT',
+             'iTru5_19_A', 'AACGCACA', 'Tst_project_1234', '1.1', '1.2',
+             'The_plate.33-A1.A1'],
+            ['820072905-2', '820072905-2', 'The_plate', 'C1', 'iTru7_109_02',
+             'CGAACTGT', 'iTru5_19_B', 'ATGCCTAG', 'Tst_project_1234', '1.3',
+             '1.4', 'The_plate.820072905-2.C1'],
+            ['820029517-3', '820029517-3', 'The_plate', 'E1', 'iTru7_109_03',
+             'CATTCGGT', 'iTru5_19_C', 'CATACGGA', 'Tst_project_1234', '1.5',
+             '1.6', 'The_plate.820029517-3.E1'],
+        ]
+
+        exp = pd.DataFrame(columns=columns, data=data)
+
+        sheet = MetatranscriptomicSampleSheetv10()
+
+        obs = sheet._remap_table(self.table, strict=False)
+        obs = obs[['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
+                   'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                   'Sample_Project', 'total_rna_concentration_ng_ul',
+                   'vol_extracted_elution_ul', 'Well_description']]
 
         self.assertEqual(len(obs), 3)
         pd.testing.assert_frame_equal(obs, exp, check_like=True)
@@ -1482,7 +1538,7 @@ class AdditionalSampleSheetCreationTests(BaseTests):
     def test_metatranscriptomic_sheet_creation(self):
         # create a Metatranscriptomic-type sample-sheet from scratch and
         # manually populate the required fields.
-        sheet = MetatranscriptomicSampleSheet()
+        sheet = MetatranscriptomicSampleSheetv0()
         sheet.Header['IEMFileVersion'] = 4
         sheet.Header['SheetType'] = 'standard_metag'
         sheet.Header['SheetVersion'] = '100'
@@ -1523,6 +1579,65 @@ class AdditionalSampleSheetCreationTests(BaseTests):
              'CCGACTAC', 'iTru5_01_A', 'ACCGACAT', 'Project1_99999', 'desc'],
             ['sample_3', 'sample.3', 'sample_plate_1', 'A3', 'iTru7_107_07',
              'CCGACTAG', 'iTru5_01_A', 'ACCGACAG', 'Project1_99999', 'desc'],
+        ]
+
+        for row in data:
+            # Add each row as a Sample() object. Each Sample() object takes
+            # a dict as its initializer.
+            sheet.add_sample(sample_sheet.Sample(dict(zip(header, row))))
+
+        # Once sheet has been manually populated, validate it.
+        self.assertTrue(sheet.validate_and_scrub_sample_sheet())
+
+    def test_metatranscriptomic_sheet_creationv10(self):
+        # TODO: FIX
+        # create a Metatranscriptomic-type sample-sheet from scratch and
+        # manually populate the required fields.
+        sheet = MetatranscriptomicSampleSheetv10()
+        sheet.Header['IEMFileVersion'] = 4
+        sheet.Header['SheetType'] = 'standard_metat'
+        sheet.Header['SheetVersion'] = '10'
+        sheet.Header['Investigator Name'] = 'Knight'
+        sheet.Header['Experiment Name'] = 'RKO_experiment'
+        sheet.Header['Date'] = '2021-08-17'
+        sheet.Header['Workflow'] = 'GenerateFASTQ'
+        sheet.Header['Application'] = 'FASTQ Only'
+        sheet.Header['Assay'] = 'Metatranscriptomic'
+        sheet.Header['Description'] = ''
+        sheet.Header['Chemistry'] = 'Default'
+        sheet.Reads = [151, 151]
+        sheet.Settings['ReverseComplement'] = 0
+
+        data = [
+            ['Project1_99999', '99999', 'False', 'AACC', 'GGTT', 'False',
+             'False', 'protocol_1', 'a designed experiment']
+        ]
+
+        sheet.Bioinformatics = pd.DataFrame(
+            columns=['Sample_Project', 'QiitaID', 'BarcodesAreRC',
+                     'ForwardAdapter', 'ReverseAdapter', 'HumanFiltering',
+                     'contains_replicates', 'library_construction_protocol',
+                     'experiment_design_description'], data=data)
+
+        sheet.Contact = pd.DataFrame(columns=['Email', 'Sample_Project'],
+                                     data=[['c2cowart@ucsd.edu',
+                                            'Project1_99999'],])
+
+        header = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
+                  'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                  'Sample_Project', 'total_rna_concentration_ng_ul',
+                  'vol_extracted_elution_ul', 'Well_description']
+
+        data = [
+            ['sample_1', 'sample.1', 'sample_plate_1', 'A1', 'iTru7_107_07',
+             'CCGACTAT', 'iTru5_01_A', 'ACCGACAA', 'Project1_99999', '1.0',
+             '1.1', 'desc'],
+            ['sample_2', 'sample.2', 'sample_plate_1', 'A2', 'iTru7_107_07',
+             'CCGACTAC', 'iTru5_01_A', 'ACCGACAT', 'Project1_99999', '1.0',
+             '1.1', 'desc'],
+            ['sample_3', 'sample.3', 'sample_plate_1', 'A3', 'iTru7_107_07',
+             'CCGACTAG', 'iTru5_01_A', 'ACCGACAG', 'Project1_99999', '1.0',
+             '1.1', 'desc'],
         ]
 
         for row in data:

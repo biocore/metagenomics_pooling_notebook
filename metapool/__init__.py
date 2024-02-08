@@ -5,9 +5,9 @@ from .prep import (preparations_for_run, parse_prep, generate_qiita_prep_file,
 from .sample_sheet import (sample_sheet_to_dataframe, make_sample_sheet,
                            AmpliconSampleSheet, MetagenomicSampleSheetv90,
                            MetagenomicSampleSheetv100, AbsQuantSampleSheetv10,
-                           MetatranscriptomicSampleSheet, demux_sample_sheet,
+                           MetatranscriptomicSampleSheetv0, demux_sample_sheet,
                            sheet_needs_demuxing, KLSampleSheet,
-                           load_sample_sheet)
+                           load_sample_sheet, MetatranscriptomicSampleSheetv10)
 from .plate import (validate_plate_metadata, requires_dilution, dilute_gDNA,
                     autopool, find_threshold)
 from .amplipool import assign_emp_index
@@ -29,9 +29,10 @@ __all__ = ['IGMManifest', 'add_controls', 'assign_emp_index', 'autopool',
            'requires_dilution', 'run_counts', 'sample_sheet_to_dataframe',
            'sheet_needs_demuxing', 'sum_lanes', 'validate_plate_metadata',
            'MetagenomicSampleSheetv90', 'MetagenomicSampleSheetv100',
-           'AmpliconSampleSheet', 'MetatranscriptomicSampleSheet',
+           'AmpliconSampleSheet', 'MetatranscriptomicSampleSheetv0',
+           'MetatranscriptomicSampleSheetv10', 'AbsQuantSampleSheetv10',
            # KLSampleSheet is needed for instance() calls.
-           'AbsQuantSampleSheetv10', 'KLSampleSheet', 'load_sample_sheet']
+           'KLSampleSheet', 'load_sample_sheet']
 
 from . import _version
 
