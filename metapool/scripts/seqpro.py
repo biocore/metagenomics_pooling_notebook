@@ -51,7 +51,11 @@ def format_preparation_files(run_dir, sample_sheet, output_dir, pipeline,
             df_sheet.set_index('lane', append=True)['sample_name']
 
     # returns a map of (run, project_name, lane) -> preparation frame
-    preps = preparations_for_run(run_dir, df_sheet, pipeline=pipeline)
+    preps = preparations_for_run(run_dir,
+                                 df_sheet,
+                                 sample_sheet.PREP_COLUMNS,
+                                 sample_sheet.REQUIRED_SHEET_COLUMNS_FOR_PREP,
+                                 pipeline=pipeline)
 
     os.makedirs(output_dir, exist_ok=True)
 

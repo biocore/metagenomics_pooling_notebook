@@ -10,9 +10,6 @@ from string import ascii_letters, digits
 from metapool.plate import PlateReplication
 
 
-REQUIRED_COLUMNS = {'sample_plate', 'well_id_384', 'i7_index_id', 'index',
-                    'i5_index_id', 'index2', 'sample_name'}
-
 REQUIRED_MF_COLUMNS = {'sample_name', 'barcode', 'primer', 'primer_plate',
                        'well_id_384', 'plating', 'extractionkit_lot',
                        'extraction_robot', 'tm1000_8_tool', 'primer_date',
@@ -26,12 +23,6 @@ REQUIRED_MF_COLUMNS = {'sample_name', 'barcode', 'primer', 'primer_plate',
                        'center_name', 'center_project_name', 'well_id_96',
                        'instrument_model', 'runid'}
 
-PREP_COLUMNS = ['experiment_design_description', 'syndna_pool_number',
-                'well_description', 'library_construction_protocol',
-                'platform', 'run_center', 'run_date', 'run_prefix',
-                'sequencing_meth', 'center_name', 'center_project_name',
-                'instrument_model', 'runid', 'lane',
-                'sample_project'] + list(REQUIRED_COLUMNS)
 
 PREP_MF_COLUMNS = ['sample_name', 'barcode', 'center_name',
                    'center_project_name', 'experiment_design_description',
@@ -400,14 +391,15 @@ def _check_invalid_names(sample_names):
                       ', '.join(['"%s"' % i for i in invalid.values]))
 
 
-def preparations_for_run(run_path, sheet, pipeline='fastp-and-minimap2'):
+def preparations_for_run(run_path, sheet, prep_columns, required_columns,
+                         pipeline='fastp-and-minimap2'):
     """Given a run's path and sample sheet generates preparation files
 
     Parameters
     ----------
     run_path: str
         Path to the run folder
-    sheet: sample_sheet.SampleSheet
+    sheet: dataFrame
         Sample sheet to convert
     pipeline: str, optional
         Which pipeline generated the data. The important difference is that
@@ -427,7 +419,7 @@ def preparations_for_run(run_path, sheet, pipeline='fastp-and-minimap2'):
 
     output = {}
 
-    not_present = REQUIRED_COLUMNS - set(sheet.columns)
+    not_present = set(required_columns) - set(sheet.columns)
 
     if not_present:
         raise ValueError("Required columns are missing: %s" %
@@ -440,6 +432,10 @@ def preparations_for_run(run_path, sheet, pipeline='fastp-and-minimap2'):
     #  well_description and description columns are no longer needed or
     #  required, but a warning will be generated if neither are present as
     #  they are customarily present.
+
+    optional_columns = ['syndna_pool_number', 'mass_syndna_input_ng',
+                        'extracted_gdna_concentration_ng_ul',
+                        'vol_extracted_elution_ul']
 
     # if 'well_description' is defined instead as 'description', rename it.
     # well_description is a recommended column but is not required.
@@ -482,10 +478,10 @@ def preparations_for_run(run_path, sheet, pipeline='fastp-and-minimap2'):
                     continue
 
                 if 'syndna_pool_number' not in sample:
-                    if 'syndna_pool_number' in PREP_COLUMNS:
-                        PREP_COLUMNS.remove('syndna_pool_number')
+                    if 'syndna_pool_number' in prep_columns:
+                        prep_columns.remove('syndna_pool_number')
 
-                row = {c: '' for c in PREP_COLUMNS}
+                row = {c: '' for c in prep_columns}
 
                 row["sample_name"] = sample.sample_name
                 row["experiment_design_description"] = \
@@ -514,8 +510,13 @@ def preparations_for_run(run_path, sheet, pipeline='fastp-and-minimap2'):
                 row["index2"] = sample['index2']
                 row["lane"] = lane
                 row["sample_project"] = project
-                if 'syndna_pool_number' in sample:
-                    row["syndna_pool_number"] = sample['syndna_pool_number']
+
+                # handle multiple types of sample-sheets, where columns such
+                # as 'syndna_pool_number' may or may not be present.
+                for attribute in optional_columns:
+                    if attribute in sample:
+                        row[attribute] = sample[attribute]
+
                 row["well_description"] = '%s.%s.%s' % (sample.sample_plate,
                                                         sample.sample_name,
                                                         row[well_id_col])
@@ -531,9 +532,9 @@ def preparations_for_run(run_path, sheet, pipeline='fastp-and-minimap2'):
             # the blanks if we can verify the study id corresponds to the AGP.
             # This was a request by Daniel McDonald and Gail
 
-            prep = agp_transform(pd.DataFrame(columns=PREP_COLUMNS,
-                                              data=data),
-                                 qiita_id)
+            prep = pd.DataFrame(columns=prep_columns, data=data)
+
+            prep = agp_transform(prep, qiita_id)
 
             _check_invalid_names(prep.sample_name)
 
