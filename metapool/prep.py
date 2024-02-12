@@ -391,6 +391,60 @@ def _check_invalid_names(sample_names):
                       ', '.join(['"%s"' % i for i in invalid.values]))
 
 
+def process_sample(sample, prep_columns, run_center, run_date, run_prefix,
+                   project_name, instrument_model, run_id, lane):
+    # initialize result
+    result = {c: '' for c in prep_columns}
+
+    # hard-coded columns
+    result["platform"] = "Illumina"
+    result["sequencing_meth"] = "sequencing by synthesis"
+    result["center_name"] = "UCSD"
+
+    # mandatory columns
+    result["run_center"] = run_center
+    result["run_date"] = run_date
+    result["run_prefix"] = run_prefix
+    result["center_project_name"] = project_name
+    result["instrument_model"] = instrument_model
+    result["runid"] = run_id
+    result["lane"] = lane
+
+    # handle multiple types of sample-sheets, where columns such
+    # as 'syndna_pool_number' may or may not be present.
+    additional_columns = ['syndna_pool_number', 'mass_syndna_input_ng',
+                          'extracted_gdna_concentration_ng_ul',
+                          'vol_extracted_elution_ul',
+                          "sample_name", "experiment_design_description",
+                          "library_construction_protocol", "sample_plate",
+                          "i7_index_id", "index", "i5_index_id", "index2",
+                          "sample_project", 'well_id_384', 'Sample_Well'
+                          ]
+
+    for attribute in additional_columns:
+        if attribute in sample:
+            result[attribute] = sample[attribute]
+
+    # sanity-checks
+    if 'well_id_384' in sample and 'Sample_Well' in sample:
+        raise ValueError("'well_id_384' and 'Sample_Well' are both defined"
+                         "in sample.")
+
+    if 'well_id_384' not in sample and 'Sample_Well' not in sample:
+        raise ValueError("'well_id_384' and 'Sample_Well' are both undefined"
+                         "in sample.")
+
+    well_id = result['well_id_384'] if 'well_id_384' in sample else result[
+        'Sample_Well']
+
+    result["well_description"] = '%s.%s.%s' % (sample.sample_plate,
+                                               sample.sample_name,
+                                               well_id)
+
+    # return unordered result. let caller re-order columns as they see fit.
+    return result
+
+
 def preparations_for_run(run_path, sheet, prep_columns, required_columns,
                          pipeline='fastp-and-minimap2'):
     """Given a run's path and sample sheet generates preparation files
@@ -433,10 +487,6 @@ def preparations_for_run(run_path, sheet, prep_columns, required_columns,
     #  required, but a warning will be generated if neither are present as
     #  they are customarily present.
 
-    optional_columns = ['syndna_pool_number', 'mass_syndna_input_ng',
-                        'extracted_gdna_concentration_ng_ul',
-                        'vol_extracted_elution_ul']
-
     # if 'well_description' is defined instead as 'description', rename it.
     # well_description is a recommended column but is not required.
     if 'well_description' not in set(sheet.columns):
@@ -461,67 +511,21 @@ def preparations_for_run(run_path, sheet, prep_columns, required_columns,
             # this is the portion of the loop that creates the prep
             data = []
 
-            # for sample_id, sample in lane_sheet.iterrows():
             for well_id_col, sample in lane_sheet.iterrows():
                 if isinstance(sample, pd.core.series.Series):
                     sample_id = well_id_col
                 else:
                     sample_id = sample.sample_id
-                run_prefix = get_run_prefix(run_path,
-                                            project,
-                                            sample_id,
-                                            lane,
+
+                run_prefix = get_run_prefix(run_path, project, sample_id, lane,
                                             pipeline)
 
-                # we don't care about the sample if there's no file
-                if run_prefix is None:
-                    continue
-
-                if 'syndna_pool_number' not in sample:
-                    if 'syndna_pool_number' in prep_columns:
-                        prep_columns.remove('syndna_pool_number')
-
-                row = {c: '' for c in prep_columns}
-
-                row["sample_name"] = sample.sample_name
-                row["experiment_design_description"] = \
-                    sample.experiment_design_description
-                row["library_construction_protocol"] = \
-                    sample.library_construction_protocol
-                row["platform"] = "Illumina"
-                row["run_center"] = run_center
-                row["run_date"] = run_date
-                row["run_prefix"] = run_prefix
-                row["sequencing_meth"] = "sequencing by synthesis"
-                row["center_name"] = "UCSD"
-                row["center_project_name"] = project_name
-                row["instrument_model"] = instrument_model
-                row["runid"] = run_id
-                row["sample_plate"] = sample.sample_plate
-                if 'well_id_384' in sample:
-                    row["well_id_384"] = sample.well_id_384
-                    well_id_col = 'well_id_384'
-                elif 'Sample_Well' in sample:
-                    row["Sample_Well"] = sample.Sample_Well
-                    well_id_col = 'Sample_Well'
-                row["i7_index_id"] = sample['i7_index_id']
-                row["index"] = sample['index']
-                row["i5_index_id"] = sample['i5_index_id']
-                row["index2"] = sample['index2']
-                row["lane"] = lane
-                row["sample_project"] = project
-
-                # handle multiple types of sample-sheets, where columns such
-                # as 'syndna_pool_number' may or may not be present.
-                for attribute in optional_columns:
-                    if attribute in sample:
-                        row[attribute] = sample[attribute]
-
-                row["well_description"] = '%s.%s.%s' % (sample.sample_plate,
-                                                        sample.sample_name,
-                                                        row[well_id_col])
-
-                data.append(row)
+                # ignore the sample if there's no file
+                if run_prefix is not None:
+                    data.append(process_sample(sample, prep_columns,
+                                               run_center, run_date,
+                                               run_prefix, project_name,
+                                               instrument_model, run_id, lane))
 
             if not data:
                 warnings.warn('Project %s and Lane %s have no data' %
@@ -531,10 +535,8 @@ def preparations_for_run(run_path, sheet, prep_columns, required_columns,
             # to grow this study with more and more runs. So we fill some of
             # the blanks if we can verify the study id corresponds to the AGP.
             # This was a request by Daniel McDonald and Gail
-
-            prep = pd.DataFrame(columns=prep_columns, data=data)
-
-            prep = agp_transform(prep, qiita_id)
+            prep = agp_transform(pd.DataFrame(columns=prep_columns,
+                                              data=data), qiita_id)
 
             _check_invalid_names(prep.sample_name)
 
