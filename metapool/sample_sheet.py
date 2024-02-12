@@ -1075,6 +1075,12 @@ def load_sample_sheet(sample_sheet_path):
         return sheet
 
     sheet = MetatranscriptomicSampleSheetv10(sample_sheet_path)
+
+    if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
+        return sheet
+
+    sheet = MetatranscriptomicSampleSheetv0(sample_sheet_path)
+
     if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
         return sheet
 
