@@ -1052,54 +1052,6 @@ class MetatranscriptomicSampleSheetv10(KLSampleSheet):
         }
 
 
-class MetatranscriptomicSampleSheetv10(KLSampleSheet):
-    _HEADER = {
-        'IEMFileVersion': '4',
-        'SheetType': _STANDARD_METAT_SHEET_TYPE,
-        'SheetVersion': '10',
-        'Investigator Name': 'Knight',
-        'Experiment Name': 'RKL_experiment',
-        'Date': None,
-        'Workflow': 'GenerateFASTQ',
-        'Application': 'FASTQ Only',
-        'Assay': _METATRANSCRIPTOMIC,
-        'Description': '',
-        'Chemistry': 'Default',
-    }
-
-    # MaskShortReads and OverrideCycles are present
-    # "Well_description" column contains concatenated information
-    # (Sample_Plate + Sample_Name + well_id_384) vs. just the sample_name
-    # in previous iterations.
-
-    data_columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
-                    'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
-                    'Sample_Project', 'total_rna_concentration_ng_ul',
-                    'vol_extracted_elution_ul', 'Well_description']
-
-    _BIOINFORMATICS_COLUMNS = frozenset({'Sample_Project', 'QiitaID',
-                                         'BarcodesAreRC', 'ForwardAdapter',
-                                         'ReverseAdapter', 'HumanFiltering',
-                                         'contains_replicates',
-                                         'library_construction_protocol',
-                                         'experiment_design_description',
-                                         'contains_replicates'})
-
-    def __init__(self, path=None):
-        super().__init__(path=path)
-        self.remapper = {
-            'sample sheet Sample_ID': 'Sample_ID',
-            'Sample': 'Sample_Name',
-            'Project Plate': 'Sample_Plate',
-            'Well': 'well_id_384',
-            'i7 name': 'I7_Index_ID',
-            'i7 sequence': 'index',
-            'i5 name': 'I5_Index_ID',
-            'i5 sequence': 'index2',
-            'Project Name': 'Sample_Project',
-        }
-
-
 def load_sample_sheet(sample_sheet_path):
     # Load the sample-sheet using various KLSampleSheet children and return
     # the first instance that produces a valid sample-sheet. We assume that
