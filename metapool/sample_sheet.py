@@ -79,17 +79,16 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                    'Description': 'Well_description',
                    'sample_plate': 'Sample_Plate'}
 
-    PREP_COLUMNS = ['sample_plate', 'well_id_384', 'i7_index_id', 'index',
-                    'i5_index_id', 'index2', 'sample_name',
-                    'experiment_design_description',
-                    'well_description', 'library_construction_protocol',
-                    'platform', 'run_center', 'run_date', 'run_prefix',
-                    'sequencing_meth', 'center_name', 'center_project_name',
-                    'instrument_model', 'runid', 'lane', 'sample_project']
+    CARRIED_PREP_COLUMNS = ['experiment_design_description', 'i5_index_id',
+                            'i7_index_id', 'index', 'index2',
+                            'library_construction_protocol', 'sample_name',
+                            'sample_plate', 'sample_project',
+                            'well_description', 'Sample_Well', 'Lane']
 
-    REQUIRED_SHEET_COLUMNS_FOR_PREP = ['sample_plate', 'well_id_384',
-                                       'i7_index_id', 'index', 'i5_index_id',
-                                       'index2', 'sample_name']
+    GENERATED_PREP_COLUMNS = ['center_name', 'center_project_name',
+                              'instrument_model', 'lane', 'platform',
+                              'run_center', 'run_date', 'run_prefix', 'runid',
+                              'sequencing_meth']
 
     def __new__(cls, path=None, *args, **kwargs):
         """
@@ -772,6 +771,12 @@ class AmpliconSampleSheet(KLSampleSheet):
         'Chemistry': 'Default',
     }
 
+    CARRIED_PREP_COLUMNS = ['experiment_design_description', 'i5_index_id',
+                            'i7_index_id', 'index', 'index2',
+                            'library_construction_protocol', 'sample_name',
+                            'sample_plate', 'sample_project',
+                            'well_description', 'Sample_Well']
+
     def __init__(self, path=None):
         super().__init__(path)
         self.remapper = {
@@ -823,6 +828,12 @@ class MetagenomicSampleSheetv100(KLSampleSheet):
                                'library_construction_protocol',
                                'experiment_design_description'}
 
+    CARRIED_PREP_COLUMNS = ['experiment_design_description', 'i5_index_id',
+                            'i7_index_id', 'index', 'index2',
+                            'library_construction_protocol', 'sample_name',
+                            'sample_plate', 'sample_project',
+                            'well_description', 'well_id_384']
+
     def __init__(self, path=None):
         super().__init__(path=path)
         self.remapper = {
@@ -861,6 +872,11 @@ class MetagenomicSampleSheetv90(KLSampleSheet):
 
     # data_columns are the same as base KLSampleSheet so they will not be
     # overridden here. _BIOINFORMATICS_COLUMNS as well.
+    CARRIED_PREP_COLUMNS = ['experiment_design_description', 'i5_index_id',
+                            'i7_index_id', 'index', 'index2',
+                            'library_construction_protocol', 'sample_name',
+                            'sample_plate', 'sample_project',
+                            'well_description', 'Sample_Well']
 
     def __init__(self, path=None):
         super().__init__(path=path)
@@ -905,19 +921,14 @@ class AbsQuantSampleSheetv10(KLSampleSheet):
         'experiment_design_description', 'contains_replicates'
     })
 
-    PREP_COLUMNS = ['sample_plate', 'well_id_384', 'i7_index_id', 'index',
-                    'i5_index_id', 'index2', 'sample_name',
-                    'experiment_design_description', 'syndna_pool_number',
-                    'well_description', 'library_construction_protocol',
-                    'platform', 'run_center', 'run_date', 'run_prefix',
-                    'mass_syndna_input_ng', 'vol_extracted_elution_ul',
-                    'extracted_gdna_concentration_ng_ul',
-                    'sequencing_meth', 'center_name', 'center_project_name',
-                    'instrument_model', 'runid', 'lane', 'sample_project']
-
-    REQUIRED_SHEET_COLUMNS_FOR_PREP = ['sample_plate', 'well_id_384',
-                                       'i7_index_id', 'index', 'i5_index_id',
-                                       'index2', 'sample_name']
+    CARRIED_PREP_COLUMNS = ['experiment_design_description',
+                            'extracted_gdna_concentration_ng_ul',
+                            'i5_index_id', 'i7_index_id', 'index', 'index2',
+                            'library_construction_protocol',
+                            'mass_syndna_input_ng', 'sample_name',
+                            'sample_plate', 'sample_project',
+                            'syndna_pool_number', 'vol_extracted_elution_ul',
+                            'well_description', 'well_id_384']
 
     def __init__(self, path=None):
         super().__init__(path=path)
@@ -966,6 +977,12 @@ class MetatranscriptomicSampleSheetv0(KLSampleSheet):
                                          'library_construction_protocol',
                                          'experiment_design_description'})
 
+    CARRIED_PREP_COLUMNS = ['experiment_design_description', 'i5_index_id',
+                            'i7_index_id', 'index', 'index2',
+                            'library_construction_protocol', 'sample_name',
+                            'sample_plate', 'sample_project',
+                            'well_description', 'well_id_384']
+
     def __init__(self, path=None):
         super().__init__(path=path)
         self.remapper = {
@@ -1013,6 +1030,12 @@ class MetatranscriptomicSampleSheetv10(KLSampleSheet):
                                          'library_construction_protocol',
                                          'experiment_design_description',
                                          'contains_replicates'})
+
+    CARRIED_PREP_COLUMNS = ['experiment_design_description', 'i5_index_id',
+                            'i7_index_id', 'index', 'index2',
+                            'library_construction_protocol', 'sample_name',
+                            'sample_plate', 'sample_project',
+                            'well_description', 'well_id_384']
 
     def __init__(self, path=None):
         super().__init__(path=path)

@@ -401,13 +401,16 @@ def process_sample(sample, prep_columns, run_center, run_date, run_prefix,
     result["sequencing_meth"] = "sequencing by synthesis"
     result["center_name"] = "UCSD"
 
-    # mandatory columns
+    # manually generated columns
     result["run_center"] = run_center
     result["run_date"] = run_date
     result["run_prefix"] = run_prefix
     result["center_project_name"] = project_name
     result["instrument_model"] = instrument_model
     result["runid"] = run_id
+
+    # lane is extracted from sample-sheet but unlike the others is passed
+    # to this function explicitly.
     result["lane"] = lane
 
     # handle multiple types of sample-sheets, where columns such
@@ -445,8 +448,8 @@ def process_sample(sample, prep_columns, run_center, run_date, run_prefix,
     return result
 
 
-def preparations_for_run(run_path, sheet, prep_columns, required_columns,
-                         pipeline='fastp-and-minimap2'):
+def preparations_for_run(run_path, sheet, generated_prep_columns,
+                         carried_prep_columns, pipeline='fastp-and-minimap2'):
     """Given a run's path and sample sheet generates preparation files
 
     Parameters
@@ -454,7 +457,14 @@ def preparations_for_run(run_path, sheet, prep_columns, required_columns,
     run_path: str
         Path to the run folder
     sheet: dataFrame
-        Sample sheet to convert
+        dataFrame() of SampleSheet contents
+    generated_prep_columns: list
+        List of required columns for output that are not expected in
+        KLSampleSheet. It is expected that prep.py can derive these values
+        appropriately.
+    carried_prep_columns: list
+        List of required columns for output that are expected in KLSampleSheet.
+        Varies w/different versions of KLSampleSheet.
     pipeline: str, optional
         Which pipeline generated the data. The important difference is that
         `atropos-and-bowtie2` saves intermediate files, whereas
@@ -472,12 +482,6 @@ def preparations_for_run(run_path, sheet, prep_columns, required_columns,
     instrument_model, run_center = get_model_and_center(instrument_code)
 
     output = {}
-
-    not_present = set(required_columns) - set(sheet.columns)
-
-    if not_present:
-        raise ValueError("Required columns are missing: %s" %
-                         ', '.join(not_present))
 
     # well_description is no longer a required column, since the sample-name
     #  is now taken from column sample_name, which is distinct from sample_id.
@@ -498,6 +502,14 @@ def preparations_for_run(run_path, sheet, prep_columns, required_columns,
             # copy and drop the original column
             sheet['well_description'] = sheet['description'].copy()
             sheet.drop('description', axis=1, inplace=True)
+
+    not_present = set(carried_prep_columns) - set(sheet.columns)
+
+    if not_present:
+        raise ValueError("Required columns are missing: %s" %
+                         ', '.join(not_present))
+
+    all_columns = sorted(carried_prep_columns + generated_prep_columns)
 
     for project, project_sheet in sheet.groupby('sample_project'):
         project_name = remove_qiita_id(project)
@@ -522,7 +534,7 @@ def preparations_for_run(run_path, sheet, prep_columns, required_columns,
 
                 # ignore the sample if there's no file
                 if run_prefix is not None:
-                    data.append(process_sample(sample, prep_columns,
+                    data.append(process_sample(sample, all_columns,
                                                run_center, run_date,
                                                run_prefix, project_name,
                                                instrument_model, run_id, lane))
@@ -535,7 +547,7 @@ def preparations_for_run(run_path, sheet, prep_columns, required_columns,
             # to grow this study with more and more runs. So we fill some of
             # the blanks if we can verify the study id corresponds to the AGP.
             # This was a request by Daniel McDonald and Gail
-            prep = agp_transform(pd.DataFrame(columns=prep_columns,
+            prep = agp_transform(pd.DataFrame(columns=all_columns,
                                               data=data), qiita_id)
 
             _check_invalid_names(prep.sample_name)
