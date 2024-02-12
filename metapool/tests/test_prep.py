@@ -5,6 +5,7 @@ import pandas as pd
 
 from unittest import TestCase, main
 from metapool.sample_sheet import (MetagenomicSampleSheetv90,
+                                   MetagenomicSampleSheetv100,
                                    sample_sheet_to_dataframe)
 from metapool.prep import (preparations_for_run, remove_qiita_id,
                            get_run_prefix, is_nonempty_gz_file,
@@ -194,24 +195,29 @@ class TestPrep(TestCase):
         pd.testing.assert_frame_equal(obs_df, exp_df)
 
     def test_preparations_for_run(self):
-        ss = sample_sheet_to_dataframe(MetagenomicSampleSheetv90(self.ss))
+        sheet = MetagenomicSampleSheetv100(self.ss)
 
         # obs will be a dictionary of dataframes, with the keys being
         # a triplet of strings, rather than a single string.
         obs = preparations_for_run(self.good_run,
-                                   ss,
+                                   sample_sheet_to_dataframe(sheet),
+                                   sheet.GENERATED_PREP_COLUMNS,
+                                   sheet.CARRIED_PREP_COLUMNS,
                                    pipeline='atropos-and-bowtie2')
         self._check_run_191103_D32611_0365_G00DHB5YXX(obs)
 
     def test_preparations_for_run_missing_columns(self):
         # Check that warnings are raised whenever we overwrite the
         # "well_description" column with the "description" column
-        ss = sample_sheet_to_dataframe(MetagenomicSampleSheetv90(self.ss))
+        sheet = MetagenomicSampleSheetv100(self.ss)
+        ss = sample_sheet_to_dataframe(sheet)
         ss['description'] = ss['well_description'].copy()
         ss.drop('well_description', axis=1, inplace=True)
 
         with self.assertWarns(UserWarning) as cm:
             obs = preparations_for_run(self.good_run, ss,
+                                       sheet.GENERATED_PREP_COLUMNS,
+                                       sheet.CARRIED_PREP_COLUMNS,
                                        pipeline='atropos-and-bowtie2')
 
             self.assertEqual(str(cm.warnings[0].message), "'well_description' "

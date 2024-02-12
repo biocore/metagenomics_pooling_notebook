@@ -89,7 +89,7 @@ class BaseTests(unittest.TestCase):
             'Bioinformatics': bfx,
             'Contact': contact,
             'Assay': 'TruSeq HT',
-            'SheetType': 'standard_metag',
+            'SheetType': 'dummy_amp',
             'SheetVersion': '0'
         }
 
@@ -753,7 +753,7 @@ class SampleSheetWorkflow(BaseTests):
 
         header = {
             'IEMFileVersion': '4',
-            'SheetType': 'standard_metag',
+            'SheetType': 'dummy_amp',
             'SheetVersion': '0',
             'Date': datetime.today().strftime('%Y-%m-%d'),
             'Workflow': 'GenerateFASTQ',
@@ -1106,7 +1106,7 @@ class SampleSheetWorkflow(BaseTests):
 
         header = {
             'IEMFileVersion': '4',
-            'SheetType': 'standard_metag',
+            'SheetType': 'dummy_amp',
             'SheetVersion': '0',
             'Date': datetime.today().strftime('%Y-%m-%d'),
             'Workflow': 'GenerateFASTQ',

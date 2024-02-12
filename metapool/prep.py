@@ -10,9 +10,6 @@ from string import ascii_letters, digits
 from metapool.plate import PlateReplication
 
 
-REQUIRED_COLUMNS = {'sample_plate', 'well_id_384', 'i7_index_id', 'index',
-                    'i5_index_id', 'index2', 'sample_name'}
-
 REQUIRED_MF_COLUMNS = {'sample_name', 'barcode', 'primer', 'primer_plate',
                        'well_id_384', 'plating', 'extractionkit_lot',
                        'extraction_robot', 'tm1000_8_tool', 'primer_date',
@@ -26,12 +23,6 @@ REQUIRED_MF_COLUMNS = {'sample_name', 'barcode', 'primer', 'primer_plate',
                        'center_name', 'center_project_name', 'well_id_96',
                        'instrument_model', 'runid'}
 
-PREP_COLUMNS = ['experiment_design_description', 'syndna_pool_number',
-                'well_description', 'library_construction_protocol',
-                'platform', 'run_center', 'run_date', 'run_prefix',
-                'sequencing_meth', 'center_name', 'center_project_name',
-                'instrument_model', 'runid', 'lane',
-                'sample_project'] + list(REQUIRED_COLUMNS)
 
 PREP_MF_COLUMNS = ['sample_name', 'barcode', 'center_name',
                    'center_project_name', 'experiment_design_description',
@@ -400,15 +391,80 @@ def _check_invalid_names(sample_names):
                       ', '.join(['"%s"' % i for i in invalid.values]))
 
 
-def preparations_for_run(run_path, sheet, pipeline='fastp-and-minimap2'):
+def process_sample(sample, prep_columns, run_center, run_date, run_prefix,
+                   project_name, instrument_model, run_id, lane):
+    # initialize result
+    result = {c: '' for c in prep_columns}
+
+    # hard-coded columns
+    result["platform"] = "Illumina"
+    result["sequencing_meth"] = "sequencing by synthesis"
+    result["center_name"] = "UCSD"
+
+    # manually generated columns
+    result["run_center"] = run_center
+    result["run_date"] = run_date
+    result["run_prefix"] = run_prefix
+    result["center_project_name"] = project_name
+    result["instrument_model"] = instrument_model
+    result["runid"] = run_id
+
+    # lane is extracted from sample-sheet but unlike the others is passed
+    # to this function explicitly.
+    result["lane"] = lane
+
+    # handle multiple types of sample-sheets, where columns such
+    # as 'syndna_pool_number' may or may not be present.
+    additional_columns = ['syndna_pool_number', 'mass_syndna_input_ng',
+                          'extracted_gdna_concentration_ng_ul',
+                          'vol_extracted_elution_ul',
+                          "sample_name", "experiment_design_description",
+                          "library_construction_protocol", "sample_plate",
+                          "i7_index_id", "index", "i5_index_id", "index2",
+                          "sample_project", 'well_id_384', 'Sample_Well'
+                          ]
+
+    for attribute in additional_columns:
+        if attribute in sample:
+            result[attribute] = sample[attribute]
+
+    # sanity-checks
+    if 'well_id_384' in sample and 'Sample_Well' in sample:
+        raise ValueError("'well_id_384' and 'Sample_Well' are both defined"
+                         "in sample.")
+
+    if 'well_id_384' not in sample and 'Sample_Well' not in sample:
+        raise ValueError("'well_id_384' and 'Sample_Well' are both undefined"
+                         "in sample.")
+
+    well_id = result['well_id_384'] if 'well_id_384' in sample else result[
+        'Sample_Well']
+
+    result["well_description"] = '%s.%s.%s' % (sample.sample_plate,
+                                               sample.sample_name,
+                                               well_id)
+
+    # return unordered result. let caller re-order columns as they see fit.
+    return result
+
+
+def preparations_for_run(run_path, sheet, generated_prep_columns,
+                         carried_prep_columns, pipeline='fastp-and-minimap2'):
     """Given a run's path and sample sheet generates preparation files
 
     Parameters
     ----------
     run_path: str
         Path to the run folder
-    sheet: sample_sheet.SampleSheet
-        Sample sheet to convert
+    sheet: dataFrame
+        dataFrame() of SampleSheet contents
+    generated_prep_columns: list
+        List of required columns for output that are not expected in
+        KLSampleSheet. It is expected that prep.py can derive these values
+        appropriately.
+    carried_prep_columns: list
+        List of required columns for output that are expected in KLSampleSheet.
+        Varies w/different versions of KLSampleSheet.
     pipeline: str, optional
         Which pipeline generated the data. The important difference is that
         `atropos-and-bowtie2` saves intermediate files, whereas
@@ -426,12 +482,6 @@ def preparations_for_run(run_path, sheet, pipeline='fastp-and-minimap2'):
     instrument_model, run_center = get_model_and_center(instrument_code)
 
     output = {}
-
-    not_present = REQUIRED_COLUMNS - set(sheet.columns)
-
-    if not_present:
-        raise ValueError("Required columns are missing: %s" %
-                         ', '.join(not_present))
 
     # well_description is no longer a required column, since the sample-name
     #  is now taken from column sample_name, which is distinct from sample_id.
@@ -453,6 +503,14 @@ def preparations_for_run(run_path, sheet, pipeline='fastp-and-minimap2'):
             sheet['well_description'] = sheet['description'].copy()
             sheet.drop('description', axis=1, inplace=True)
 
+    not_present = set(carried_prep_columns) - set(sheet.columns)
+
+    if not_present:
+        raise ValueError("Required columns are missing: %s" %
+                         ', '.join(not_present))
+
+    all_columns = sorted(carried_prep_columns + generated_prep_columns)
+
     for project, project_sheet in sheet.groupby('sample_project'):
         project_name = remove_qiita_id(project)
         qiita_id = project.replace(project_name + '_', '')
@@ -465,62 +523,21 @@ def preparations_for_run(run_path, sheet, pipeline='fastp-and-minimap2'):
             # this is the portion of the loop that creates the prep
             data = []
 
-            # for sample_id, sample in lane_sheet.iterrows():
             for well_id_col, sample in lane_sheet.iterrows():
                 if isinstance(sample, pd.core.series.Series):
                     sample_id = well_id_col
                 else:
                     sample_id = sample.sample_id
-                run_prefix = get_run_prefix(run_path,
-                                            project,
-                                            sample_id,
-                                            lane,
+
+                run_prefix = get_run_prefix(run_path, project, sample_id, lane,
                                             pipeline)
 
-                # we don't care about the sample if there's no file
-                if run_prefix is None:
-                    continue
-
-                if 'syndna_pool_number' not in sample:
-                    if 'syndna_pool_number' in PREP_COLUMNS:
-                        PREP_COLUMNS.remove('syndna_pool_number')
-
-                row = {c: '' for c in PREP_COLUMNS}
-
-                row["sample_name"] = sample.sample_name
-                row["experiment_design_description"] = \
-                    sample.experiment_design_description
-                row["library_construction_protocol"] = \
-                    sample.library_construction_protocol
-                row["platform"] = "Illumina"
-                row["run_center"] = run_center
-                row["run_date"] = run_date
-                row["run_prefix"] = run_prefix
-                row["sequencing_meth"] = "sequencing by synthesis"
-                row["center_name"] = "UCSD"
-                row["center_project_name"] = project_name
-                row["instrument_model"] = instrument_model
-                row["runid"] = run_id
-                row["sample_plate"] = sample.sample_plate
-                if 'well_id_384' in sample:
-                    row["well_id_384"] = sample.well_id_384
-                    well_id_col = 'well_id_384'
-                elif 'Sample_Well' in sample:
-                    row["Sample_Well"] = sample.Sample_Well
-                    well_id_col = 'Sample_Well'
-                row["i7_index_id"] = sample['i7_index_id']
-                row["index"] = sample['index']
-                row["i5_index_id"] = sample['i5_index_id']
-                row["index2"] = sample['index2']
-                row["lane"] = lane
-                row["sample_project"] = project
-                if 'syndna_pool_number' in sample:
-                    row["syndna_pool_number"] = sample['syndna_pool_number']
-                row["well_description"] = '%s.%s.%s' % (sample.sample_plate,
-                                                        sample.sample_name,
-                                                        row[well_id_col])
-
-                data.append(row)
+                # ignore the sample if there's no file
+                if run_prefix is not None:
+                    data.append(process_sample(sample, all_columns,
+                                               run_center, run_date,
+                                               run_prefix, project_name,
+                                               instrument_model, run_id, lane))
 
             if not data:
                 warnings.warn('Project %s and Lane %s have no data' %
@@ -530,10 +547,8 @@ def preparations_for_run(run_path, sheet, pipeline='fastp-and-minimap2'):
             # to grow this study with more and more runs. So we fill some of
             # the blanks if we can verify the study id corresponds to the AGP.
             # This was a request by Daniel McDonald and Gail
-
-            prep = agp_transform(pd.DataFrame(columns=PREP_COLUMNS,
-                                              data=data),
-                                 qiita_id)
+            prep = agp_transform(pd.DataFrame(columns=all_columns,
+                                              data=data), qiita_id)
 
             _check_invalid_names(prep.sample_name)
 
