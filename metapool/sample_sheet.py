@@ -14,10 +14,12 @@ from metapool.plate import ErrorMessage, WarningMessage, PlateReplication
 _AMPLICON = 'TruSeq HT'
 _METAGENOMIC = 'Metagenomic'
 _METATRANSCRIPTOMIC = 'Metatranscriptomic'
-_STANDARD_SHEET_TYPE = 'standard_metag'
+_STANDARD_METAG_SHEET_TYPE = 'standard_metag'
+_STANDARD_METAT_SHEET_TYPE = 'standard_metat'
 _DUMMY_SHEET_TYPE = 'dummy_amp'
 _ABSQUANT_SHEET_TYPE = 'abs_quant_metag'
-SHEET_TYPES = (_STANDARD_SHEET_TYPE, _ABSQUANT_SHEET_TYPE)
+SHEET_TYPES = (_STANDARD_METAG_SHEET_TYPE, _ABSQUANT_SHEET_TYPE,
+               _STANDARD_METAT_SHEET_TYPE)
 
 
 class KLSampleSheet(sample_sheet.SampleSheet):
@@ -76,6 +78,17 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                    'description': 'Well_description',
                    'Description': 'Well_description',
                    'sample_plate': 'Sample_Plate'}
+
+    CARRIED_PREP_COLUMNS = ['experiment_design_description', 'i5_index_id',
+                            'i7_index_id', 'index', 'index2',
+                            'library_construction_protocol', 'sample_name',
+                            'sample_plate', 'sample_project',
+                            'well_description', 'Sample_Well', 'Lane']
+
+    GENERATED_PREP_COLUMNS = ['center_name', 'center_project_name',
+                              'instrument_model', 'lane', 'platform',
+                              'run_center', 'run_date', 'run_prefix', 'runid',
+                              'sequencing_meth']
 
     def __new__(cls, path=None, *args, **kwargs):
         """
@@ -590,6 +603,15 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 msgs.append(ErrorMessage("'Assay' value is not "
                                          f"'{expected_assay_type}'"))
 
+        # For sheets that were created by loading in a sample-sheet file,
+        # confirm that the SheetType in the file is what is expected from
+        # the child class. This helps w/trial-and-error loads that use
+        # validation to load a random sample-sheet into the correct class.
+        expected_sheet_type = type(self)._HEADER['SheetType']
+        if self.Header['SheetType'] != expected_sheet_type:
+            msgs.append(ErrorMessage("'SheetType' value is not "
+                                     f"'{expected_sheet_type}'"))
+
         # if any errors are found up to this point then we can't continue with
         # the validation process.
         if msgs:
@@ -749,6 +771,12 @@ class AmpliconSampleSheet(KLSampleSheet):
         'Chemistry': 'Default',
     }
 
+    CARRIED_PREP_COLUMNS = ['experiment_design_description', 'i5_index_id',
+                            'i7_index_id', 'index', 'index2',
+                            'library_construction_protocol', 'sample_name',
+                            'sample_plate', 'sample_project',
+                            'well_description', 'Sample_Well']
+
     def __init__(self, path=None):
         super().__init__(path)
         self.remapper = {
@@ -765,7 +793,7 @@ class AmpliconSampleSheet(KLSampleSheet):
 class MetagenomicSampleSheetv100(KLSampleSheet):
     _HEADER = {
         'IEMFileVersion': '4',
-        'SheetType': _STANDARD_SHEET_TYPE,
+        'SheetType': _STANDARD_METAG_SHEET_TYPE,
         'SheetVersion': '100',
         'Investigator Name': 'Knight',
         'Experiment Name': 'RKL_experiment',
@@ -800,6 +828,12 @@ class MetagenomicSampleSheetv100(KLSampleSheet):
                                'library_construction_protocol',
                                'experiment_design_description'}
 
+    CARRIED_PREP_COLUMNS = ['experiment_design_description', 'i5_index_id',
+                            'i7_index_id', 'index', 'index2',
+                            'library_construction_protocol', 'sample_name',
+                            'sample_plate', 'sample_project',
+                            'well_description', 'well_id_384']
+
     def __init__(self, path=None):
         super().__init__(path=path)
         self.remapper = {
@@ -824,7 +858,7 @@ class MetagenomicSampleSheetv90(KLSampleSheet):
     '''
     _HEADER = {
         'IEMFileVersion': '4',
-        'SheetType': _STANDARD_SHEET_TYPE,
+        'SheetType': _STANDARD_METAG_SHEET_TYPE,
         'SheetVersion': '90',
         'Investigator Name': 'Knight',
         'Experiment Name': 'RKL_experiment',
@@ -838,6 +872,11 @@ class MetagenomicSampleSheetv90(KLSampleSheet):
 
     # data_columns are the same as base KLSampleSheet so they will not be
     # overridden here. _BIOINFORMATICS_COLUMNS as well.
+    CARRIED_PREP_COLUMNS = ['experiment_design_description', 'i5_index_id',
+                            'i7_index_id', 'index', 'index2',
+                            'library_construction_protocol', 'sample_name',
+                            'sample_plate', 'sample_project',
+                            'well_description', 'Sample_Well']
 
     def __init__(self, path=None):
         super().__init__(path=path)
@@ -882,6 +921,15 @@ class AbsQuantSampleSheetv10(KLSampleSheet):
         'experiment_design_description', 'contains_replicates'
     })
 
+    CARRIED_PREP_COLUMNS = ['experiment_design_description',
+                            'extracted_gdna_concentration_ng_ul',
+                            'i5_index_id', 'i7_index_id', 'index', 'index2',
+                            'library_construction_protocol',
+                            'mass_syndna_input_ng', 'sample_name',
+                            'sample_plate', 'sample_project',
+                            'syndna_pool_number', 'vol_extracted_elution_ul',
+                            'well_description', 'well_id_384']
+
     def __init__(self, path=None):
         super().__init__(path=path)
         self.remapper = {
@@ -903,10 +951,10 @@ class AbsQuantSampleSheetv10(KLSampleSheet):
         }
 
 
-class MetatranscriptomicSampleSheet(KLSampleSheet):
+class MetatranscriptomicSampleSheetv0(KLSampleSheet):
     _HEADER = {
         'IEMFileVersion': '4',
-        'SheetType': _STANDARD_SHEET_TYPE,
+        'SheetType': _STANDARD_METAG_SHEET_TYPE,
         'SheetVersion': '0',
         'Investigator Name': 'Knight',
         'Experiment Name': 'RKL_experiment',
@@ -929,6 +977,66 @@ class MetatranscriptomicSampleSheet(KLSampleSheet):
                                          'library_construction_protocol',
                                          'experiment_design_description'})
 
+    CARRIED_PREP_COLUMNS = ['experiment_design_description', 'i5_index_id',
+                            'i7_index_id', 'index', 'index2',
+                            'library_construction_protocol', 'sample_name',
+                            'sample_plate', 'sample_project',
+                            'well_description', 'well_id_384']
+
+    def __init__(self, path=None):
+        super().__init__(path=path)
+        self.remapper = {
+            'sample sheet Sample_ID': 'Sample_ID',
+            'Sample': 'Sample_Name',
+            'Project Plate': 'Sample_Plate',
+            'Well': 'well_id_384',
+            'i7 name': 'I7_Index_ID',
+            'i7 sequence': 'index',
+            'i5 name': 'I5_Index_ID',
+            'i5 sequence': 'index2',
+            'Project Name': 'Sample_Project',
+        }
+
+
+class MetatranscriptomicSampleSheetv10(KLSampleSheet):
+    _HEADER = {
+        'IEMFileVersion': '4',
+        'SheetType': _STANDARD_METAT_SHEET_TYPE,
+        'SheetVersion': '10',
+        'Investigator Name': 'Knight',
+        'Experiment Name': 'RKL_experiment',
+        'Date': None,
+        'Workflow': 'GenerateFASTQ',
+        'Application': 'FASTQ Only',
+        'Assay': _METATRANSCRIPTOMIC,
+        'Description': '',
+        'Chemistry': 'Default',
+    }
+
+    # MaskShortReads and OverrideCycles are present
+    # "Well_description" column contains concatenated information
+    # (Sample_Plate + Sample_Name + well_id_384) vs. just the sample_name
+    # in previous iterations.
+
+    data_columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
+                    'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                    'Sample_Project', 'total_rna_concentration_ng_ul',
+                    'vol_extracted_elution_ul', 'Well_description']
+
+    _BIOINFORMATICS_COLUMNS = frozenset({'Sample_Project', 'QiitaID',
+                                         'BarcodesAreRC', 'ForwardAdapter',
+                                         'ReverseAdapter', 'HumanFiltering',
+                                         'contains_replicates',
+                                         'library_construction_protocol',
+                                         'experiment_design_description',
+                                         'contains_replicates'})
+
+    CARRIED_PREP_COLUMNS = ['experiment_design_description', 'i5_index_id',
+                            'i7_index_id', 'index', 'index2',
+                            'library_construction_protocol', 'sample_name',
+                            'sample_plate', 'sample_project',
+                            'well_description', 'well_id_384']
+
     def __init__(self, path=None):
         super().__init__(path=path)
         self.remapper = {
@@ -950,6 +1058,10 @@ def load_sample_sheet(sample_sheet_path):
     # because of specific SheetType and SheetVersion values, no one sample-
     # sheet can match more than one KLSampleSheet child.
 
+    sheet = AbsQuantSampleSheetv10(sample_sheet_path)
+    if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
+        return sheet
+
     sheet = AmpliconSampleSheet(sample_sheet_path)
     if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
         return sheet
@@ -962,11 +1074,11 @@ def load_sample_sheet(sample_sheet_path):
     if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
         return sheet
 
-    sheet = MetatranscriptomicSampleSheet(sample_sheet_path)
+    sheet = MetatranscriptomicSampleSheetv10(sample_sheet_path)
     if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
         return sheet
 
-    sheet = AbsQuantSampleSheetv10(sample_sheet_path)
+    sheet = MetatranscriptomicSampleSheetv0(sample_sheet_path)
     if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
         return sheet
 
@@ -975,10 +1087,8 @@ def load_sample_sheet(sample_sheet_path):
 
 
 def _create_sample_sheet(sheet_type, sheet_version, assay_type):
-    if sheet_type == _STANDARD_SHEET_TYPE:
-        if assay_type == _AMPLICON:
-            sheet = AmpliconSampleSheet()
-        elif assay_type == _METAGENOMIC:
+    if sheet_type == _STANDARD_METAG_SHEET_TYPE:
+        if assay_type == _METAGENOMIC:
             if sheet_version == '90':
                 sheet = MetagenomicSampleSheetv90()
             elif sheet_version in ['95', '99', '100']:
@@ -988,11 +1098,24 @@ def _create_sample_sheet(sheet_type, sheet_version, assay_type):
                 raise ValueError(f"'{sheet_version}' is an unrecognized Sheet"
                                  f"Version for '{sheet_type}'")
         elif assay_type == _METATRANSCRIPTOMIC:
-            sheet = MetatranscriptomicSampleSheet()
+            sheet = MetatranscriptomicSampleSheetv0()
+        else:
+            raise ValueError("'%s' is an unrecognized Assay type" % assay_type)
+    elif sheet_type == _STANDARD_METAT_SHEET_TYPE:
+        if assay_type == _METATRANSCRIPTOMIC:
+            if sheet_version == '0':
+                sheet = MetatranscriptomicSampleSheetv0
+            elif sheet_version == '10':
+                sheet = MetatranscriptomicSampleSheetv10
+            else:
+                raise ValueError(f"'{sheet_version}' is an unrecognized Sheet"
+                                 f"Version for '{sheet_type}'")
         else:
             raise ValueError("'%s' is an unrecognized Assay type" % assay_type)
     elif sheet_type == _ABSQUANT_SHEET_TYPE:
         sheet = AbsQuantSampleSheetv10()
+    elif sheet_type == _DUMMY_SHEET_TYPE:
+        sheet = AmpliconSampleSheet()
     else:
         raise ValueError("'%s' is an unrecognized SheetType" % sheet_type)
 
