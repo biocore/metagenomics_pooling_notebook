@@ -1110,9 +1110,9 @@ def _create_sample_sheet(sheet_type, sheet_version, assay_type):
     elif sheet_type == _STANDARD_METAT_SHEET_TYPE:
         if assay_type == _METATRANSCRIPTOMIC:
             if sheet_version == '0':
-                sheet = MetatranscriptomicSampleSheetv0
+                sheet = MetatranscriptomicSampleSheetv0()
             elif sheet_version == '10':
-                sheet = MetatranscriptomicSampleSheetv10
+                sheet = MetatranscriptomicSampleSheetv10()
             else:
                 raise ValueError(f"'{sheet_version}' is an unrecognized Sheet"
                                  f"Version for '{sheet_type}'")
