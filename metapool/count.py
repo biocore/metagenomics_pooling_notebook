@@ -251,7 +251,6 @@ def count_sequences_in_fastq(file_path):
 def direct_sequence_counts(run_dir, metadata):
     if isinstance(metadata, metapool.KLSampleSheet):
         projects = {(s.Sample_Project, s.Lane) for s in metadata}
-        expected = {s.Sample_ID for s in metadata}
     else:
         raise ValueError("counts not implemented for amplicon")
 
@@ -288,10 +287,6 @@ def direct_sequence_counts(run_dir, metadata):
                                  f"extracted from {r1} and {r2}")
 
             sample_id = m_r1[1]
-
-            if sample_id not in expected:
-                raise ValueError(f"'{sample_id}' does not match any sample-id"
-                                 "in sample-sheet")
 
             r1_counts = count_sequences_in_fastq(r1)
             r2_counts = count_sequences_in_fastq(r2)
