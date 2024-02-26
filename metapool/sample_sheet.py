@@ -524,6 +524,19 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
         return self
 
+    def get_lane_number(self):
+        lanes = []
+
+        for sample in self.samples:
+            lanes.append(sample.Lane)
+
+        lanes = list(set(lanes))
+
+        if len(lanes) > 1:
+            raise ValueError("This sample-sheet contains more than one lane")
+
+        return int(lanes[0])
+
     def validate_and_scrub_sample_sheet(self, echo_msgs=True):
         """Validate the sample sheet and scrub invalid characters
 
