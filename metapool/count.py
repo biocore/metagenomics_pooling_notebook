@@ -3,8 +3,8 @@ import pandas as pd
 import warnings
 from os.path import join, abspath, basename, exists
 from glob import glob
+from subprocess import Popen, PIPE
 from json import load
-from skbio.io import read as skb_read
 
 
 # first group is the sample name from the sample sheet, second group is the
@@ -227,30 +227,10 @@ def minimap2_counts(run_dir, metadata):
                       'non_host_reads', _parse_samtools_counts)
 
 
-def count_sequences_in_fastq(file_path):
-    variants = ['illumina1.8', 'illumina1.3', 'sanger']
-
-    for variant in variants:
-        try:
-            # see https://scikit.bio/docs/latest/generated/skbio.io.format.
-            # fastq.html#quality-score-variants for more information on
-            # variants. Variant is needed to correctly interpret a sequence's
-            # quality range. We don't explicitly need quality-ranges for this
-            # application but we unfortunately we cannot omit it.
-            sequences = skb_read(file_path, format='fastq',
-                                 variant=variant)
-            return sum(1 for sequence in sequences)
-        except ValueError:
-            # assume ValueError is because the correct variant wasn't
-            # specified.
-            pass
-
-    raise ValueError(f"'{file_path} could not be opened")
-
-
 def direct_sequence_counts(run_dir, metadata):
     if isinstance(metadata, metapool.KLSampleSheet):
         projects = {(s.Sample_Project, s.Lane) for s in metadata}
+        expected = {s.Sample_ID for s in metadata}
     else:
         raise ValueError("counts not implemented for amplicon")
 
@@ -259,6 +239,7 @@ def direct_sequence_counts(run_dir, metadata):
     counts = []
 
     for project, lane in projects:
+        samples = {}
         if join(run_dir, 'filtered_sequences'):
             subdir = join(run_dir, project, 'filtered_sequences')
         elif join(run_dir, 'trimmed_sequences'):
@@ -269,31 +250,52 @@ def direct_sequence_counts(run_dir, metadata):
 
         fp = join(subdir, '*_L%s_R?_001.trimmed.fastq.gz' % lane.zfill(3))
 
-        # glob is going to return both _R1_ and _R2_ fastqs. sorted() will
-        # pair them such that we can iterate through them as a pair.
-        fp_iter = iter(sorted(glob(fp)))
-        for r1, r2 in zip(fp_iter, fp_iter):
-            reg = r"^(.*)_S\d+_L\d\d\d_R\d_\d\d\d.trimmed.fastq.gz$"
+        for item in glob(fp):
+            cmd = ['seqtk', 'size', item]
 
-            m_r1 = re.match(reg, basename(r1))
-            m_r2 = re.match(reg, basename(r2))
+            proc = Popen(' '.join(cmd), universal_newlines=True,
+                         shell=True,
+                         stdout=PIPE, stderr=PIPE)
 
-            if m_r1 is None or m_r2 is None:
-                raise ValueError(f"a sample-id could not be extracted from "
-                                 f"{r1} or {r2}")
+            stdout, stderr = proc.communicate()
+            return_code = proc.returncode
 
-            if m_r1[1] != m_r2[1]:
-                raise ValueError("a matching sample-id could not be "
-                                 f"extracted from {r1} and {r2}")
+            if return_code != 0:
+                raise ValueError("could not read %s" % item)
 
-            sample_id = m_r1[1]
+            # split output and extract first value from results like:
+            # 17088755    2516404944
+            line_count = int(stdout.split('\t')[0])
 
-            r1_counts = count_sequences_in_fastq(r1)
-            r2_counts = count_sequences_in_fastq(r2)
+            m = re.match(r"^(.*)_S\d+_L\d\d\d_(R\d)_\d\d\d.trimmed.fastq.gz$",
+                         basename(item))
 
-            sample_ids.append(sample_id)
-            lanes.append(lane)
-            counts.append(float(r1_counts + r2_counts))
+            if m is None:
+                raise ValueError(f"{item} doesn't match")
+
+            if m[1] not in expected:
+                raise ValueError("no match for %s" % m[1])
+
+            if m[1] not in samples:
+                # if this is the first read for this sample, create a dict
+                # to record the relevant information.
+                samples[m[1]] = {'R1': 0, 'R2': 0, 'name': m[1], 'lane': lane}
+
+            if m[2] not in ['R1', 'R2']:
+                raise ValueError("could not parse '%s'" % basename(item))
+
+            samples[m[1]][m[2]] = line_count
+
+        # convert samples into a set of lists for easy conversion into a
+        # dataframe.
+        for sample in samples:
+            smpl = samples[sample]
+            if smpl['R1'] == 0 or smpl['R2'] == 0:
+                raise ValueError(f"{smpl['name']} has bad counts")
+
+            sample_ids.append(smpl['name'])
+            lanes.append(smpl['lane'])
+            counts.append(float(smpl['R1'] + smpl['R2']))
 
     df = pd.DataFrame(list(zip(sample_ids, lanes, counts)),
                       columns=['Sample_ID', 'Lane',
