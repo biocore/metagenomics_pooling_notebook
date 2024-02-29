@@ -124,7 +124,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda config --add channels bioconda
-          conda create -q --yes -n metapool python=${{ matrix.python-version }} scikit-learn pandas numpy nose pep8 flake8 matplotlib jupyter notebook 'seaborn>=0.7.1' pip openpyxl seqtk
+          conda create --yes -n metapool python=${{ matrix.python-version }} scikit-learn pandas numpy nose pep8 flake8 matplotlib jupyter notebook 'seaborn>=0.7.1' pip openpyxl seqtk
           conda activate metapool
           pip install coveralls flake8
           pip install -e ".[all]"
