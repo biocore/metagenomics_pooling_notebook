@@ -260,7 +260,8 @@ def direct_sequence_counts(run_dir, metadata):
             return_code = proc.returncode
 
             if return_code != 0:
-                raise ValueError("could not read %s" % item)
+                msg = "seqtk error: %s\n%s" % (stdout, stderr)
+                raise ValueError("could not read %s: %s" % (item, msg))
 
             # split output and extract first value from results like:
             # 17088755    2516404944
