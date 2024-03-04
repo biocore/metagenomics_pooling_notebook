@@ -4,7 +4,9 @@ import pandas
 import pandas as pd
 
 from unittest import TestCase, main
-from metapool.sample_sheet import KLSampleSheet, sample_sheet_to_dataframe
+from metapool.sample_sheet import (MetagenomicSampleSheetv90,
+                                   MetagenomicSampleSheetv100,
+                                   sample_sheet_to_dataframe)
 from metapool.prep import (preparations_for_run, remove_qiita_id,
                            get_run_prefix, is_nonempty_gz_file,
                            get_machine_code, get_model_and_center,
@@ -34,8 +36,8 @@ class TestPrep(TestCase):
     def _check_run_191103_D32611_0365_G00DHB5YXX(self, obs):
         "Convenience method to check the output of a whole run"
 
-        exp = {('191103_D32611_0365_G00DHB5YXX', 'Baz', '1'),
-               ('191103_D32611_0365_G00DHB5YXX', 'Baz', '3'),
+        exp = {('191103_D32611_0365_G00DHB5YXX', 'Baz_12345', '1'),
+               ('191103_D32611_0365_G00DHB5YXX', 'Baz_12345', '3'),
                ('191103_D32611_0365_G00DHB5YXX', 'FooBar_666', '3')}
         self.assertEqual(set(obs.keys()), exp)
 
@@ -52,22 +54,23 @@ class TestPrep(TestCase):
                  'sequencing by synthesis', 'UCSD', 'Baz',
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
                  'FooBar_666_p1', 'A3', 'iTru7_107_09', 'GCCTTGTT',
-                 'iTru5_01_A', 'AACACCAC', '3', 'Baz',
+                 'iTru5_01_A', 'AACACCAC', '3', 'Baz_12345',
                  'FooBar_666_p1.sample.1.A3'],
                 ['sample.44', 'Eqiiperiment', 'Knight Lab Kapa HP',
                  'Illumina', 'UCSDMI', '2019-11-03', 'sample_44_S14_L003',
                  'sequencing by synthesis', 'UCSD', 'Baz',
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
-                 'Baz_p3', 'B99', 'iTru7_107_14', 'GTCCTAAG', 'iTru5_01_A',
-                 'CATCTGCT', '3', 'Baz', 'Baz_p3.sample.44.B99']]
+                 'Baz_12345_p3', 'B99', 'iTru7_107_14', 'GTCCTAAG',
+                 'iTru5_01_A', 'CATCTGCT', '3', 'Baz_12345',
+                 'Baz_12345_p3.sample.44.B99']]
 
         exp = pd.DataFrame(data=data, columns=columns)
 
         # obs is a dictionary of dataframes, where the keys are tuples of
         # strings, rather than ordinary strings. We'll use the dataframe
-        # associated w/('191103_D32611_0365_G00DHB5YXX', 'Baz', '3') for
+        # associated w/('191103_D32611_0365_G00DHB5YXX', 'Baz_12345', '3') for
         # our unittest.
-        obs_df = obs[('191103_D32611_0365_G00DHB5YXX', 'Baz', '3')]
+        obs_df = obs[('191103_D32611_0365_G00DHB5YXX', 'Baz_12345', '3')]
 
         # make sure the columns are in the same order before comparing
         obs_df = obs_df[exp.columns].copy()
@@ -79,17 +82,17 @@ class TestPrep(TestCase):
                  'sequencing by synthesis', 'UCSD', 'Baz',
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
                  'FooBar_666_p1', 'A1', 'iTru7_107_07', 'CCGACTAT',
-                 'iTru5_01_A', 'ACCGACAA', '1', 'Baz',
+                 'iTru5_01_A', 'ACCGACAA', '1', 'Baz_12345',
                  'FooBar_666_p1.sample.1.A1'],
                 ['sample.2', 'Eqiiperiment', 'Knight Lab Kapa HP',
                  'Illumina', 'UCSDMI', '2019-11-03', 'sample_2_S10_L001',
                  'sequencing by synthesis', 'UCSD', 'Baz',
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
                  'FooBar_666_p1', 'A2', 'iTru7_107_08', 'CCGACTAT',
-                 'iTru5_01_A', 'CTTCGCAA', '1', 'Baz',
+                 'iTru5_01_A', 'CTTCGCAA', '1', 'Baz_12345',
                  'FooBar_666_p1.sample.2.A2']]
         exp = pd.DataFrame(columns=columns, data=data)
-        obs_df = obs[('191103_D32611_0365_G00DHB5YXX', 'Baz', '1')]
+        obs_df = obs[('191103_D32611_0365_G00DHB5YXX', 'Baz_12345', '1')]
 
         # make sure the columns are in the same order before comparing
         obs_df = obs_df[exp.columns].copy()
@@ -192,25 +195,31 @@ class TestPrep(TestCase):
         pd.testing.assert_frame_equal(obs_df, exp_df)
 
     def test_preparations_for_run(self):
-        ss = sample_sheet_to_dataframe(KLSampleSheet(self.ss))
+        sheet = MetagenomicSampleSheetv100(self.ss)
 
         # obs will be a dictionary of dataframes, with the keys being
         # a triplet of strings, rather than a single string.
         obs = preparations_for_run(self.good_run,
-                                   ss,
+                                   sample_sheet_to_dataframe(sheet),
+                                   sheet.GENERATED_PREP_COLUMNS,
+                                   sheet.CARRIED_PREP_COLUMNS,
                                    pipeline='atropos-and-bowtie2')
         self._check_run_191103_D32611_0365_G00DHB5YXX(obs)
 
     def test_preparations_for_run_missing_columns(self):
         # Check that warnings are raised whenever we overwrite the
         # "well_description" column with the "description" column
-        ss = sample_sheet_to_dataframe(KLSampleSheet(self.ss))
+        sheet = MetagenomicSampleSheetv100(self.ss)
+        ss = sample_sheet_to_dataframe(sheet)
         ss['description'] = ss['well_description'].copy()
         ss.drop('well_description', axis=1, inplace=True)
 
         with self.assertWarns(UserWarning) as cm:
             obs = preparations_for_run(self.good_run, ss,
+                                       sheet.GENERATED_PREP_COLUMNS,
+                                       sheet.CARRIED_PREP_COLUMNS,
                                        pipeline='atropos-and-bowtie2')
+
             self.assertEqual(str(cm.warnings[0].message), "'well_description' "
                                                           "is not present in s"
                                                           "ample-sheet. It is "
@@ -246,7 +255,11 @@ class TestPrep(TestCase):
             preparations_for_run_mapping_file(self.amplicon_run, mf)
 
     def test_invalid_sample_names_show_warning(self):
-        ss = sample_sheet_to_dataframe(KLSampleSheet(self.ss))
+        ss = MetagenomicSampleSheetv90(self.ss)
+
+        self.assertIsNotNone(ss)
+
+        ss = sample_sheet_to_dataframe(ss)
 
         ss['well_description'] = ss['well_description'].str.replace(
             'importantsample44', 'important-sample44')
@@ -274,19 +287,19 @@ class TestPrep(TestCase):
 
     def test_get_run_prefix(self):
         # project 1
-        obs = get_run_prefix(self.good_run, 'Baz', 'sample_1', '1',
+        obs = get_run_prefix(self.good_run, 'Baz_12345', 'sample_1', '1',
                              'atropos-and-bowtie2')
         self.assertEqual('sample_1_S11_L001', obs)
 
-        obs = get_run_prefix(self.good_run, 'Baz', 'sample_1', '3',
+        obs = get_run_prefix(self.good_run, 'Baz_12345', 'sample_1', '3',
                              'atropos-and-bowtie2')
         self.assertEqual('sample_1_S11_L003', obs)
 
-        obs = get_run_prefix(self.good_run, 'Baz', 'sample_2', '1',
+        obs = get_run_prefix(self.good_run, 'Baz_12345', 'sample_2', '1',
                              'atropos-and-bowtie2')
         self.assertEqual('sample_2_S10_L001', obs)
 
-        obs = get_run_prefix(self.good_run, 'Baz', 'sample_2', '3',
+        obs = get_run_prefix(self.good_run, 'Baz_12345', 'sample_2', '3',
                              'atropos-and-bowtie2')
         self.assertIsNone(obs)
 
@@ -304,24 +317,24 @@ class TestPrep(TestCase):
         self.assertEqual('sample_34_S33_L003', obs)
 
     def test_get_run_prefix_fastp_minimap(self):
-        obs = get_run_prefix(self.good_run_new_version, 'Baz', 'sample1', '1',
-                             'fastp-and-minimap2')
+        obs = get_run_prefix(self.good_run_new_version, 'Baz_12345', 'sample1',
+                             '1', 'fastp-and-minimap2')
         self.assertEqual('sample1_S11_L001', obs)
 
-        obs = get_run_prefix(self.good_run_new_version, 'Baz', 'sample1', '3',
-                             'fastp-and-minimap2')
+        obs = get_run_prefix(self.good_run_new_version, 'Baz_12345', 'sample1',
+                             '3', 'fastp-and-minimap2')
         self.assertEqual('sample1_S11_L003', obs)
 
-        obs = get_run_prefix(self.good_run_new_version, 'Baz', 'sample2', '1',
-                             'fastp-and-minimap2')
+        obs = get_run_prefix(self.good_run_new_version, 'Baz_12345', 'sample2',
+                             '1', 'fastp-and-minimap2')
         self.assertEqual('sample2_S10_L001', obs)
 
-        obs = get_run_prefix(self.good_run_new_version, 'Baz', 'sample44', '3',
-                             'fastp-and-minimap2')
+        obs = get_run_prefix(self.good_run_new_version, 'Baz_12345',
+                             'sample44', '3', 'fastp-and-minimap2')
         self.assertIsNone(obs)
 
-        obs = get_run_prefix(self.good_run_new_version, 'Baz', 'sample2', '3',
-                             'fastp-and-minimap2')
+        obs = get_run_prefix(self.good_run_new_version, 'Baz_12345', 'sample2',
+                             '3', 'fastp-and-minimap2')
         self.assertIsNone(obs)
 
         # project 2
@@ -364,16 +377,16 @@ class TestPrep(TestCase):
         self.assertIsNone(obs)
 
     def test_is_non_empty_gz_file(self):
-        non_empty = join(self.good_run, 'Baz', 'sample_2_S10_L001_R1_0'
-                                               '01.fastq.gz')
+        non_empty = join(self.good_run, 'Baz_12345', 'sample_2_S10_L001_R1_0'
+                                                     '01.fastq.gz')
         self.assertTrue(is_nonempty_gz_file(non_empty))
-        non_empty = join(self.good_run, 'Baz', 'sample_2_S10_L001_R2_0'
-                                               '01.fastq.gz')
+        non_empty = join(self.good_run, 'Baz_12345', 'sample_2_S10_L001_R2_0'
+                                                     '01.fastq.gz')
         self.assertTrue(is_nonempty_gz_file(non_empty))
-        empty = join(self.good_run, 'Baz/atropos_qc/sample_2_S10_L003_'
+        empty = join(self.good_run, 'Baz_12345/atropos_qc/sample_2_S10_L003_'
                                     'R1_001.fastq.gz')
         self.assertFalse(is_nonempty_gz_file(empty))
-        empty = join(self.good_run, 'Baz/atropos_qc/sample_2_S10_L003_'
+        empty = join(self.good_run, 'Baz_12345/atropos_qc/sample_2_S10_L003_'
                                     'R2_001.fastq.gz')
         self.assertFalse(is_nonempty_gz_file(empty))
 
@@ -450,17 +463,18 @@ class TestPrep(TestCase):
 
         data = [['importantsample1', 'EXPERIMENT_DESC', 'LIBRARY_PROTOCOL',
                  'Illumina', 'UCSDMI', '2019-11-03', 'sample1_S11_L003',
-                 'sequencing by synthesis', 'UCSD', 'Baz',
+                 'sequencing by synthesis', 'UCSD', 'Baz_12345',
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
                  'FooBar_666_p1', 'A3', 'iTru7_107_09', 'GCCTTGTT',
-                 'iTru5_01_A', 'AACACCAC', '3', 'Baz',
+                 'iTru5_01_A', 'AACACCAC', '3', 'Baz_12345',
                  'FooBar_666_p1.sample1.A3'],
                 ['importantsample44', 'EXPERIMENT_DESC', 'LIBRARY_PROTOCOL',
                  'Illumina', 'UCSDMI', '2019-11-03', 'sample44_S14_L003',
-                 'sequencing by synthesis', 'UCSD', 'Baz',
+                 'sequencing by synthesis', 'UCSD', 'Baz_12345',
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
-                 'Baz_p3', 'B99', 'iTru7_107_14', 'GTCCTAAG', 'iTru5_01_A',
-                 'CATCTGCT', '3', 'Baz', 'Baz_p3.sample44.B99']]
+                 'Baz_12345_p3', 'B99', 'iTru7_107_14', 'GTCCTAAG',
+                 'iTru5_01_A', 'CATCTGCT', '3', 'Baz_12345',
+                 'Baz_12345_p3.sample44.B99']]
         obs = pd.DataFrame(data=data, columns=columns)
         exp = obs.copy()
         exp['center_name'] = 'UCSDMI'
@@ -484,23 +498,25 @@ class TestPrep(TestCase):
         # the third should be ignored
         data = [['8675309', 'EXPERIMENT_DESC', 'LIBRARY_PROTOCOL', 'Illumina',
                  'UCSDMI', '2019-11-03', 'sample1_S11_L003',
-                 'sequencing by synthesis', 'UCSD', 'Baz',
+                 'sequencing by synthesis', 'UCSD', 'Baz_12345',
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
                  'FooBar_666_p1', 'A3', 'iTru7_107_09', 'GCCTTGTT',
-                 'iTru5_01_A', 'AACACCAC', '3', 'Baz',
+                 'iTru5_01_A', 'AACACCAC', '3', 'Baz_12345',
                  'FooBar_666_p1.sample1.A3'],
                 ['867530.9', 'EXPERIMENT_DESC', 'LIBRARY_PROTOCOL', 'Illumina',
                  'UCSDMI', '2019-11-03', 'sample44_S14_L003',
-                 'sequencing by synthesis', 'UCSD', 'Baz',
+                 'sequencing by synthesis', 'UCSD', 'Baz_12345',
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
-                 'Baz_p3', 'B99', 'iTru7_107_14', 'GTCCTAAG', 'iTru5_01_A',
-                 'CATCTGCT', '3', 'Baz', 'Baz_p3.sample44.B99'],
+                 'Baz_12345_p3', 'B99', 'iTru7_107_14', 'GTCCTAAG',
+                 'iTru5_01_A', 'CATCTGCT', '3', 'Baz_12345',
+                 'Baz_12345_p3.sample44.B99'],
                 ['notanumber', 'EXPERIMENT_DESC', 'LIBRARY_PROTOCOL',
                  'Illumina', 'UCSDMI', '2019-11-03', 'sample44_S14_L003',
-                 'sequencing by synthesis', 'UCSD', 'Baz',
+                 'sequencing by synthesis', 'UCSD', 'Baz_12345',
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
-                 'Baz_p3', 'B99', 'iTru7_107_14', 'GTCCTAAG', 'iTru5_01_A',
-                 'CATCTGCT', '3', 'Baz', 'Baz_p3.sample44.B99']]
+                 'Baz_12345_p3', 'B99', 'iTru7_107_14', 'GTCCTAAG',
+                 'iTru5_01_A', 'CATCTGCT', '3', 'Baz_12345',
+                 'Baz_12345_p3.sample44.B99']]
         obs = pd.DataFrame(data=data, columns=columns)
         exp = obs.copy()
         exp['center_name'] = 'UCSDMI'
@@ -523,17 +539,18 @@ class TestPrep(TestCase):
 
         data = [['importantsample1', 'EXPERIMENT_DESC', 'LIBRARY_PROTOCOL',
                  'Illumina', 'UCSDMI', '2019-11-03', 'sample1_S11_L003',
-                 'sequencing by synthesis', 'UCSD', 'Baz',
+                 'sequencing by synthesis', 'UCSD', 'Baz_12345',
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
                  'FooBar_666_p1', 'A3', 'iTru7_107_09', 'GCCTTGTT',
-                 'iTru5_01_A', 'AACACCAC', '3', 'Baz',
+                 'iTru5_01_A', 'AACACCAC', '3', 'Baz_12345',
                  'FooBar_666_p1.sample1.A3'],
                 ['importantsample44', 'EXPERIMENT_DESC', 'LIBRARY_PROTOCOL',
                  'Illumina', 'UCSDMI', '2019-11-03', 'sample44_S14_L003',
-                 'sequencing by synthesis', 'UCSD', 'Baz',
+                 'sequencing by synthesis', 'UCSD', 'Baz_12345',
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
-                 'Baz_p3', 'B99', 'iTru7_107_14', 'GTCCTAAG', 'iTru5_01_A',
-                 'CATCTGCT', '3', 'Baz', 'Baz_p3.sample44.B99']]
+                 'Baz_12345_p3', 'B99', 'iTru7_107_14', 'GTCCTAAG',
+                 'iTru5_01_A', 'CATCTGCT', '3', 'Baz_12345',
+                 'Baz_12345_p3.sample44.B99']]
         obs = pd.DataFrame(data=data, columns=columns)
         exp = obs.copy()
 

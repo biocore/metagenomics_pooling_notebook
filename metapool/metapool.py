@@ -10,12 +10,20 @@ from random import choices
 from configparser import ConfigParser
 from qiita_client import QiitaClient
 from .prep import remove_qiita_id
-from .plate import _validate_well_id_96
+from .plate import _validate_well_id_96, PlateReplication
 from string import ascii_letters, digits
+import glob
 
 REVCOMP_SEQUENCERS = ['HiSeq4000', 'MiniSeq', 'NextSeq', 'HiSeq3000',
                       'iSeq', 'NovaSeq']
 OTHER_SEQUENCERS = ['HiSeq2500', 'HiSeq1500', 'MiSeq']
+
+SYNDNA_POOL_NUM_KEY = 'syndna_pool_number'
+SAMPLE_DNA_CONC_KEY = 'Sample DNA Concentration'
+NORMALIZED_DNA_VOL_KEY = 'Normalized DNA volume'
+INPUT_DNA_KEY = 'Input DNA'
+SYNDNA_VOL_KEY = 'synDNA volume'
+SYNDNA_POOL_MASS_NG_KEY = 'mass_syndna_input_ng'
 
 
 def extract_stats_metadata(stats_json_fp, lane_numbers):
@@ -363,7 +371,7 @@ def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
 # method to read minipico output
 def read_pico_csv(f, sep='\t', plate_reader='SpectraMax_i3x',
                   min_conc=0, max_conc=150,
-                  conc_col_name='Sample DNA Concentration'):
+                  conc_col_name=SAMPLE_DNA_CONC_KEY):
     """
     reads tab-delimited pico quant
 
@@ -1010,12 +1018,12 @@ def combine_dfs(qpcr_df, dna_picklist, index_picklist):
     combined_df.set_index('Well', inplace=True)
 
     b = dna_picklist.loc[
-        dna_picklist['Source Plate Name'] != 'water',].set_index(
+        dna_picklist['Source Plate Name'] != 'water', ].set_index(
         'Destination Well')
     c = index_picklist.loc[index_picklist['Source Plate Name'] ==
-                           'i7 Source Plate',].set_index('Destination Well')
+                           'i7 Source Plate', ].set_index('Destination Well')
     d = index_picklist.loc[index_picklist['Source Plate Name'] ==
-                           'i5 Source Plate',].set_index('Destination Well')
+                           'i5 Source Plate', ].set_index('Destination Well')
 
     # Add DNA conc columns
     combined_df['DNA Concentration'] = b['Concentration']
@@ -1040,7 +1048,7 @@ def combine_dfs(qpcr_df, dna_picklist, index_picklist):
 def parse_dna_conc_csv(fp):
     dna_df = pd.read_excel(fp, skiprows=4, parse_cols=[1, 2, 3, 4, 5])
 
-    dna_df = dna_df.loc[list(range(384)),]
+    dna_df = dna_df.loc[list(range(384)), ]
 
     dna_df['pico_conc'] = pd.to_numeric(
         dna_df['[Concentration]'], errors='Coerce')
@@ -1427,6 +1435,7 @@ def add_syndna(plate_df, syndna_pool_number=None, syndna_concentration=None,
     ----------
     plate_df : pd.DataFrame
         Growing plate dataframe with calculated gDNA input normalization values
+        including INPUT_DNA_KEY and NORMALIZED_DNA_VOL_KEY columns.
     syndna_pool_number : str (Default:None)
         String formatted name for synDNA pool. Typically a number.
     syndna_concentration : float (Default:None)
@@ -1440,27 +1449,439 @@ def add_syndna(plate_df, syndna_pool_number=None, syndna_concentration=None,
         returns a pandas dataframe with extra columns"""
 
     plate_df_ = plate_df.copy()
-    plate_df_['synDNA pool number'] = syndna_pool_number
+    plate_df_[SYNDNA_POOL_NUM_KEY] = syndna_pool_number
     if syndna_pool_number is None:
-        print('Returning input plate dataframe;'
-              'no synDNA will be added to this prep')
-        return (plate_df_)
+        warnings.warn('Returning input plate dataframe;'
+                      'no synDNA will be added to this prep')
+
+        return plate_df_
 
     else:
-        if 'Normalized DNA volume' not in plate_df_.columns:
+        if NORMALIZED_DNA_VOL_KEY not in plate_df_.columns:
             raise Exception("The plate dataframe (plate_df) must have input "
                             "normalization values already calculated before "
                             "calculating synDNA addition")
 
-        plate_df_['Input DNA'] = plate_df_['Sample DNA Concentration'] * \
-            plate_df_['Normalized DNA volume']/1000
+        plate_df_[INPUT_DNA_KEY] = plate_df_[SAMPLE_DNA_CONC_KEY] * \
+            plate_df_[NORMALIZED_DNA_VOL_KEY]/1000
         # synDNA volume is in nL
         if syndna_concentration is None:
             raise Exception("Specify the concentration of the synDNA"
                             " spike-in pool")
+        # The 1000 multiplier is to transform µL to nL because the Echo
+        # dispenser uses nL as the volume unit but concentrations are
+        # reported in ng/µL.
+        plate_df_[SYNDNA_VOL_KEY] = 1000*(plate_df_[INPUT_DNA_KEY] *
+                                          (syndna_percentage*10**-2) /
+                                          syndna_concentration)
 
-        plate_df_['synDNA volume'] = 1000*(plate_df_['Input DNA'] *
-                                           (syndna_percentage*10**-2) /
-                                           syndna_concentration)
+        plate_df_[SYNDNA_POOL_MASS_NG_KEY] = \
+            (plate_df_[SYNDNA_VOL_KEY]/1000) * syndna_concentration
 
-        return (plate_df_)
+        return plate_df_
+
+
+def read_visionmate_file(file_path_, cast_as_str, sep='\t', validate=True):
+    """
+    Helper function. Imports and validates files exported from VisionMate
+    Args:
+    file_path_: str path for input file
+    cast_as_str: list of columns in input file to cast as str dtype.
+    sep: delimiter for text file, separator for pd.read_csv()
+    validate: bool for validating that the file has the expected columns
+    (default == True)
+
+    Returns:
+    pandas DataFrame object imported from file
+    """
+    dtype_dict = dict(zip(cast_as_str,
+                          np.repeat('str', len(cast_as_str))))
+    vm_file = pd.read_csv(file_path_, dtype=dtype_dict, sep=sep)
+
+    if validate is True:
+        expected_columns = {'Date', 'Time', 'LocationCell',
+                            'LocationColumn', 'LocationRow',
+                            'TubeCode', 'RackID'}
+        # Validating input plate_maps
+        missing_columns = expected_columns-set(vm_file.columns)
+        if len(missing_columns) > 0:
+            raise ValueError(f"The following columns are missing from "
+                             f"file {file_path_}: {missing_columns}")
+    return vm_file
+
+
+def compress_plates(compression_layout, sample_accession_df,
+                    well_col='Well'):
+    """
+    Takes the plate map file output from
+    VisionMate of up to 4 racks containing
+    tube IDs and tube positions in a 96 well format.
+    Assigns each tube to a new
+    position in a 384 well format according to the quadrant position of each
+    plate, creating a 384 plate map.
+
+    It merges the sample accession files to the plate map, which links the
+    sample names to the tube IDs. It renames columns for legacy e.g.
+    LocationColumn':'Col', LocationRow':'Row', 'sample_name':'Sample''
+    Assigns a compressed_plate_name
+    based on the project name and project plates.
+
+    Args:
+    compression_layout: dict
+        This is a dictionary containing data related to compression layout.
+        It contains plate map file in .tsv format
+        and quadrant position of each plate.
+    sample_accession_df: pandas DataFrame object
+        Contains sample names and corresponding Tube IDs
+    well_col: str
+        Name of column with well IDs, in 'A1,P24' format
+
+    Returns:
+    plate_df: pandas DataFrame object of samples compressed into 384 format
+    with tube IDs corresponding to sample names.
+    A column "well_col" indicates 384 positions
+    and well_id_96 indicates 96 well positions.
+    """
+    compressed_plate_df = pd.DataFrame([])
+    well_mapper = PlateReplication(well_col)
+
+    for plate_dict_index in range(len(compression_layout)):
+        # Iterables
+        fp = compression_layout[plate_dict_index]['Plate map file']
+        position = compression_layout[plate_dict_index]['Plate Position']
+
+        # Populate plate map
+        plate_map = read_visionmate_file(fp, ['TubeCode', 'RackID'])
+        plate_map['Project Name'] = \
+            compression_layout[plate_dict_index]['Project Name']
+        plate_map['Plate Position'] = position
+        plate_map['Project Plate'] = \
+            str(compression_layout[plate_dict_index]['Project Name'] +
+                '_' +
+                compression_layout[plate_dict_index]['Project Plate'])
+        plate_map['Project Abbreviation'] = \
+            compression_layout[plate_dict_index]['Project Abbreviation']
+        plate_map['vol_extracted_elution_ul'] = \
+            compression_layout[plate_dict_index]['Plate elution volume']
+
+        # Assign 384 well from compressed plate position
+        well_mapper._reset()
+
+        for well_96_id in plate_map['LocationCell']:
+            well_384_id = \
+                well_mapper.get_384_well_location(well_96_id, position)
+            col = 'LocationCell'
+            plate_map.loc[plate_map[col] == well_96_id, well_col] = \
+                well_384_id
+
+        compressed_plate_df = pd.concat([compressed_plate_df, plate_map])
+
+    # Merging sample accession
+    compressed_plate_df_merged = compressed_plate_df.merge(
+        sample_accession_df[['sample_name', 'TubeCode']], on='TubeCode',
+        how='left')
+
+    # Renaming columns for legacy
+    compressed_plate_df_merged.rename(
+        columns={'LocationCell': 'well_id_96', 'LocationColumn': 'Col',
+                 'LocationRow': 'Row', 'sample_name': 'Sample'},
+        inplace=True)
+
+    # Assign COMPRESSED PLATE NAME BASED OFF PROJECT PLATE
+    col = 'Project Plate'
+    compressed_plate_df_merged['Compressed Plate Name'] = \
+        compressed_plate_df_merged[col].str.rsplit('_', n=1).str[-1]
+
+    # Concatenate the values with "_" separating each value
+    unique_project_plate = \
+        '_'.join(compressed_plate_df_merged['Compressed Plate Name'].unique())
+    unique_project_name = \
+        '_'.join(compressed_plate_df_merged['Project Name'].unique())
+
+    compressed_plate_df_merged['Compressed Plate Name'] = \
+        unique_project_name + "_" + unique_project_plate
+
+    # Arrange plate_df so sample col is first
+    diff = compressed_plate_df_merged.columns.difference(['Sample'])
+    compressed_plate_df_merged = \
+        compressed_plate_df_merged[['Sample'] + list(diff)]
+
+    return compressed_plate_df_merged
+
+
+def add_controls(plate_df, blanks_dir, katharoseq_dir=None):
+    """
+    Compiles negative and positive controls into plate_df.
+
+    Loops through "blank" and "katharoseq" directories and concatenates all
+    files into a single df, "controls". Merges "plate_df" to "controls" based
+    on tube IDs present in plate_df. Assigns sample name to each control in
+    plate_df.
+
+    Args:
+    plate_df: pandas DataFrame object
+    blanks_dir: dir
+        "*.tsv" files of tube IDs assigned to blank tubes
+    katharoseq_dir: dir
+        "*_tube_ids.tsv", contains tube ids of tubes containing katharoseq
+        sample "*_cells_counts.tsv", contains cell counts of each katharoseq
+        sample
+
+    Returns:
+    pandas DataFrame object with control data assigned to tubes in this prep
+    """
+    # Check whether controls have already been added
+    if 'Blank' in plate_df.columns:
+        warnings.warn('Plate dataframe input already had controls. '
+                      'Returning unmodified input')
+        return plate_df
+
+    # Loop through BLANK folder and assign description "negative_control"
+    blank_file_paths = glob.glob(f'{blanks_dir}/*.tsv')
+    blanks = []
+
+    for file_path in blank_file_paths:
+        dff = read_visionmate_file(file_path, ['TubeCode'])
+        blanks.append(dff.drop(['Time', 'Date', 'RackID'], axis=1))
+
+    blanks = pd.concat(blanks, ignore_index=True)
+    blanks['description'] = 'negative_control'
+
+    if katharoseq_dir is not None:
+
+        # Build a master table with katharoseq tube ids and
+        # assign description "positive_control"
+        katharoseq_file_paths = \
+            glob.glob(f'{katharoseq_dir}/*_tube_ids.tsv')
+        katharoseq = []
+
+        for file_path in katharoseq_file_paths:
+            df = read_visionmate_file(file_path, ['TubeCode',
+                                                  'RackID'])
+            katharoseq.append(df.drop(['Time', 'Date'], axis=1))
+
+        katharoseq = pd.concat(katharoseq, ignore_index=True)
+        katharoseq['description'] = 'positive_control'
+
+        # Find katharoseq rackid and merge cell counts
+        # Add katharoseq_cell_counts and assign to each tube based on
+        # the row location
+
+        katharoseq_cell_counts_file_paths = \
+            glob.glob(f'{katharoseq_dir}/*_cell_counts.tsv')
+        katharoseq_cell_counts = []
+
+        for file_path in katharoseq_cell_counts_file_paths:
+            cell_counts_df = read_visionmate_file(file_path, ['RackID'],
+                                                  validate=False)
+            # Validating cell counts files
+            expected_columns = {'LocationRow', 'RackID',
+                                'number_of_cells',
+                                'katharoseq_strain',
+                                'katharoseq_batch_information',
+                                'katharoseq_aliquot_volume_ul'}
+
+            missing_columns = expected_columns-set(cell_counts_df.columns)
+            if len(missing_columns) > 0:
+                raise ValueError(f"The following columns are missing from "
+                                 f"file {file_path}: {missing_columns}")
+
+            katharoseq_cell_counts.append(cell_counts_df)
+
+        katharoseq_cell_counts = pd.concat(
+            katharoseq_cell_counts,
+            ignore_index=True)
+
+        katharoseq_merged = pd.merge(
+            katharoseq,
+            katharoseq_cell_counts[['LocationRow',
+                                    'RackID',
+                                    'number_of_cells']],
+            on=['LocationRow', 'RackID'],
+            how='left')
+        katharoseq_merged.rename(columns={'RackID': 'Kathseq_RackID'},
+                                 inplace=True)
+
+        # Concatenate controls into a "Controls" table and add a
+        # column named "control_sample"
+        controls = pd.concat([blanks, katharoseq_merged])
+        controls = controls.drop(['LocationCell', 'LocationColumn',
+                                  'LocationRow'], axis=1)
+
+        # Merge plate_df with controls table
+        plate_df = pd.merge(plate_df, controls, on='TubeCode', how='left')
+
+        # Assign sample_names ('Sample') to Katharoseq controls
+        plate_df['Sample'] = np.where(
+            (plate_df['Sample'].isna()) &
+            (plate_df == 'positive_control').any(axis=1),
+            "kathseq." + plate_df['number_of_cells'].astype(str) + "." +
+            plate_df['Row'] + plate_df['Col'].astype(str),
+            plate_df['Sample'])
+
+    else:
+
+        # Merge plate_df with controls table
+        plate_df = pd.merge(plate_df, blanks, on='TubeCode', how='left')
+
+    # Assign sample_names ('Sample') to BLANKS controls
+    plate_df['Sample'] = np.where(
+        (plate_df['Sample'].isna()) &
+        (plate_df == 'negative_control').any(axis=1),
+        "BLANK" + plate_df['Project Plate'].str.split('_').str.get(-1) +
+        "." + plate_df['Row'] + plate_df['Col'].astype(str),
+        plate_df['Sample'])
+
+    # Assign BLANK column
+    plate_df['Blank'] = np.where(plate_df['Sample'].str.contains('BLANK'),
+                                 True, False)
+
+    warnings.warn('Controls added')
+    n_blanks = plate_df['Blank'].sum()
+    if n_blanks < 6:
+        warnings.warn(f'There are only {n_blanks} in this prep. The'
+                      'recommended minimum number of blanks is 6')
+
+    return plate_df
+
+
+def validate_plate_df(plate_df, metadata, sample_accession_df, blanks_dir,
+                      katharoseq_dir=None):
+    """"Function checks that all the samples names recorded in the plate_df
+    have metadata associated with them. It also checks that all the matrix
+    tubes in the plate_df are indeed located in the sample accesion file or
+    controls lists.Checks for duplicate sample names and makes sure the
+    Katharoseq Dilution curve has the full dilution series (8-point serial
+    dilution)
+    ----------
+    Args:
+    plate_df:
+        pandas DataFrame object
+    metadata:
+        pandas DataFrame of qiita metadata associated with study
+    blanks dir: dir
+        "*.tsv" files of tube IDs assigned to blank tubes
+    katharoseq_dir: dir (default:None)
+        "*_tube_ids.tsv", contains tube ids of katharoseq samples
+        "*_cells_counts.tsv", contains cell counts of katharoseq samples
+
+    Returns
+    -------
+    If successfully validated, returns None. Raises ValueErrors if errors
+    are encountered. Echos warnings to stdout.
+    """
+
+    # This checks that all the samples names recored in the plate_df have
+    # metadata associated with them
+    pat = 'positive_control|negative_control'
+    control_samples = \
+        set(plate_df.loc[(plate_df['description'].str.contains(pat)) |
+                         (plate_df['description'].isna()), 'Sample'])
+
+    warnings.warn(f"There are {len(control_samples)} control samples"
+                  " in this plate")
+    samples_in_metadata = []
+    if 'tube_id' in metadata.columns:
+        # str slicing [6:] is to slice out the Qiita_ID '12345.stool_sample_1'
+        mask = plate_df['Sample'].isin(metadata['sample_name'].str[6:]) |\
+               plate_df['Sample'].isin(metadata['tube_id'])
+    else:
+        mask = plate_df['Sample'].isin(metadata['sample_name'].str[6:])
+
+    samples_in_metadata = set(plate_df.loc[mask, 'Sample'])
+    warnings.warn(f"There are {len(samples_in_metadata)} samples with "
+                  "associated metadata in this plate")
+
+    valid_samples = control_samples.union(samples_in_metadata)
+    missing_samples = plate_df.loc[~plate_df['Sample'].isin(valid_samples),
+                                   'Sample']
+
+    if missing_samples.empty:
+        warnings.warn("All samples have associated metadata :D")
+    else:
+        missing_str = ', '.join(missing_samples.astype(str))
+        warning_message = \
+            f"The following samples are missing metadata: {missing_str}"
+        raise ValueError(warning_message)
+
+    # This repeats the code in the add_controls function to get a controls
+    # list to compare against our tubes in the plate_df file. This checks
+    # that all the tubes in our plate_df files are indeed located in the SA
+    # file / controls list
+
+    blank_file_paths = glob.glob(f'{blanks_dir}/*.tsv')
+    blanks = []
+    for file_path in blank_file_paths:
+        dff = read_visionmate_file(file_path, ['TubeCode'])
+        blanks.append(dff)
+
+    blanks = pd.concat(blanks, ignore_index=True)
+
+    # katharoseq chunk
+    if katharoseq_dir is not None:
+        katharoseq_file_paths = glob.glob(f'{katharoseq_dir}/*_tube_ids.tsv')
+        katharoseq = []
+        for file_path in katharoseq_file_paths:
+            df = read_visionmate_file(file_path, ['TubeCode', 'RackID'])
+            katharoseq.append(df)
+
+        katharoseq = pd.concat(katharoseq, ignore_index=True)
+
+        missing_samples_tubecode = \
+            plate_df[~((plate_df['TubeCode'].isin(
+                    sample_accession_df['TubeCode'])) |
+                    (plate_df['TubeCode'].isin(blanks['TubeCode'])) |
+                    (plate_df['TubeCode'].isin(
+                        katharoseq['TubeCode'])))]['TubeCode']
+
+    else:
+        missing_samples_tubecode = \
+            plate_df[~((plate_df['TubeCode'].isin(
+                sample_accession_df['TubeCode'])) |
+                (plate_df['TubeCode'].isin(blanks['TubeCode'])))]['TubeCode']
+
+    if missing_samples_tubecode.empty:
+        warnings.warn("All TubeCodes have associated data :D")
+    else:
+        missing_samples_str = ', '.join(missing_samples_tubecode.astype(str))
+        warning_message = "The following TubeCodes are missing sample" + \
+            f" identity information (metadata): {missing_samples_str}"
+        raise ValueError(warning_message)
+
+    # Checks that a full katharoseq 8-point serial dilution was added, when
+    # appropriate
+    if 'number_of_cells' in plate_df.columns:
+        dilutions_ = \
+            plate_df.loc[~plate_df['number_of_cells'].isnull(),
+                         'number_of_cells'].nunique()
+        if dilutions_ < 8:
+            raise ValueError(f"There should be 8 dilution points of katharoseq"
+                             f" controls and your plate_df only has"
+                             f" {dilutions_}")
+
+    # remove any leading and/or trailing whitespace before determining if
+    # any of the sample-names are invalid or duplicates.
+    # copied from read_plate_map_csv()
+    plate_df = sanitize_plate_map_sample_names(plate_df)
+
+    invalid_sample_names = identify_invalid_sample_names(plate_df)
+
+    if invalid_sample_names:
+        raise ValueError(
+            'The following sample names are invalid: %s' % ','.join(
+                invalid_sample_names))
+
+    null_samples = plate_df.Sample.isnull()
+    if null_samples.any():
+        warnings.warn(('This plate map contains %d empty wells, these will be '
+                       'ignored') % null_samples.sum())
+
+        # slice to the non-null samples and reset the index so samples are
+        # still indexed with a continuous list of integers
+        plate_df = plate_df[~null_samples]
+        plate_df.reset_index(inplace=True, drop=True)
+
+    duplicated_samples = plate_df.Sample[plate_df.Sample.duplicated()]
+    if len(duplicated_samples):
+        raise ValueError('The following sample names are duplicated %s' %
+                         ', '.join(sorted(duplicated_samples)))

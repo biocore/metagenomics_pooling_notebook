@@ -12,109 +12,97 @@ from metapool.plate import ErrorMessage, WarningMessage, PlateReplication
 from metapool.prep import remove_qiita_id
 
 
-_KL_SAMPLE_SHEET_SECTIONS = [
-    'Header', 'Reads', 'Settings', 'Data', 'Bioinformatics', 'Contact'
-]
-
-_KL_SAMPLE_SHEET_DATA_COLUMNS = [
-    'Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384', 'I7_Index_ID',
-    'index', 'I5_Index_ID', 'index2', 'Sample_Project', 'syndna_pool_number',
-    'Well_description'
-]
-
-_KL_SAMPLE_SHEET_COLUMN_ALTS = {'well_description': 'Well_description',
-                                'description': 'Well_description',
-                                'Description': 'Well_description',
-                                'sample_plate': 'Sample_Plate'}
-
-_KL_AMPLICON_REMAPPER = {
-    'sample sheet Sample_ID': 'Sample_ID',
-    'Sample': 'Sample_Name',
-    'Project Plate': 'Sample_Plate',
-    'Well': 'well_id_384',
-    'Name': 'I7_Index_ID',
-    'Golay Barcode': 'index',
-    'Project Name': 'Sample_Project',
-}
-
-_KL_METAGENOMIC_REMAPPER = {
-    'sample sheet Sample_ID': 'Sample_ID',
-    'Sample': 'Sample_Name',
-    'Project Plate': 'Sample_Plate',
-    'Well': 'well_id_384',
-    'i7 name': 'I7_Index_ID',
-    'i7 sequence': 'index',
-    'i5 name': 'I5_Index_ID',
-    'i5 sequence': 'index2',
-    'Project Name': 'Sample_Project',
-    'synDNA pool number': 'syndna_pool_number'
-}
-
-_KL_METATRANSCRIPTOMIC_REMAPPER = {
-    'sample sheet Sample_ID': 'Sample_ID',
-    'Sample': 'Sample_Name',
-    'Project Plate': 'Sample_Plate',
-    'Well': 'well_id_384',
-    'i7 name': 'I7_Index_ID',
-    'i7 sequence': 'index',
-    'i5 name': 'I5_Index_ID',
-    'i5 sequence': 'index2',
-    'Project Name': 'Sample_Project',
-    'synDNA pool number': 'syndna_pool_number'
-}
-
 _AMPLICON = 'TruSeq HT'
 _METAGENOMIC = 'Metagenomic'
 _METATRANSCRIPTOMIC = 'Metatranscriptomic'
-_ASSAYS = {_AMPLICON, _METAGENOMIC, _METATRANSCRIPTOMIC}
-
-_READS = {
-    'Read1': 151,
-    'Read2': 151
-}
-
-_SETTINGS = {
-    'ReverseComplement': '0',
-
-    # these are needed ever since we moved from bcl2fastq -> bclconvert
-    'MaskShortReads': '1',
-    'OverrideCycles': 'Y151;I8N2;I8N2;Y151'
-}
-
-
-_HEADER = {
-    'IEMFileVersion': '4',
-    'Investigator Name': 'Knight',
-    'Experiment Name': 'RKL_experiment',
-    'Date': None,
-    'Workflow': 'GenerateFASTQ',
-    'Application': 'FASTQ Only',
-    'Assay': None,
-    'Description': '',
-    'Chemistry': 'Default',
-}
-
-_BIOINFORMATICS_COLUMNS = {
-    'Sample_Project', 'QiitaID', 'BarcodesAreRC', 'ForwardAdapter',
-    'ReverseAdapter', 'HumanFiltering', 'contains_replicates',
-    'library_construction_protocol', 'experiment_design_description'
-}
-
-_CONTACT_COLUMNS = {
-    'Sample_Project', 'Email'
-}
-
-_BIOINFORMATICS_AND_CONTACT = {
-    'Bioinformatics': None,
-    'Contact': None
-}
-
-_ALL_METADATA = {**_HEADER, **_SETTINGS, **_READS,
-                 **_BIOINFORMATICS_AND_CONTACT}
+_STANDARD_METAG_SHEET_TYPE = 'standard_metag'
+_STANDARD_METAT_SHEET_TYPE = 'standard_metat'
+_DUMMY_SHEET_TYPE = 'dummy_amp'
+_ABSQUANT_SHEET_TYPE = 'abs_quant_metag'
+SHEET_TYPES = (_STANDARD_METAG_SHEET_TYPE, _ABSQUANT_SHEET_TYPE,
+               _STANDARD_METAT_SHEET_TYPE)
 
 
 class KLSampleSheet(sample_sheet.SampleSheet):
-    def __init__(self, path=None):
+    _ASSAYS = frozenset({_AMPLICON, _METAGENOMIC, _METATRANSCRIPTOMIC})
+    _BIOINFORMATICS_AND_CONTACT = {
+        'Bioinformatics': None,
+        'Contact': None
+    }
+
+    _CONTACT_COLUMNS = frozenset({
+        'Sample_Project', 'Email'
+    })
+
+    _BIOINFORMATICS_COLUMNS = frozenset({
+        'Sample_Project', 'QiitaID', 'BarcodesAreRC', 'ForwardAdapter',
+        'ReverseAdapter', 'HumanFiltering', 'library_construction_protocol',
+        'experiment_design_description'
+    })
+
+    _HEADER = {
+        'IEMFileVersion': '4',
+        'SheetType': None,
+        'SheetVersion': None,
+        'Investigator Name': 'Knight',
+        'Experiment Name': 'RKL_experiment',
+        'Date': None,
+        'Workflow': 'GenerateFASTQ',
+        'Application': 'FASTQ Only',
+        'Assay': None,
+        'Description': '',
+        'Chemistry': 'Default',
+    }
+
+    _READS = {
+        'Read1': 151,
+        'Read2': 151
+    }
+
+    _SETTINGS = {
+        'ReverseComplement': '0',
+        'MaskShortReads': '1',
+        'OverrideCycles': 'Y151;I8N2;I8N2;Y151'
+    }
+
+    _ALL_METADATA = {**_HEADER, **_SETTINGS, **_READS,
+                     **_BIOINFORMATICS_AND_CONTACT}
+
+    sections = ('Header', 'Reads', 'Settings', 'Data', 'Bioinformatics',
+                'Contact')
+
+    data_columns = ('Sample_ID', 'Sample_Name', 'Sample_Plate', 'Sample_Well',
+                    'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                    'Sample_Project', 'Well_description')
+
+    column_alts = {'well_description': 'Well_description',
+                   'description': 'Well_description',
+                   'Description': 'Well_description',
+                   'sample_plate': 'Sample_Plate'}
+
+    CARRIED_PREP_COLUMNS = ['experiment_design_description', 'i5_index_id',
+                            'i7_index_id', 'index', 'index2',
+                            'library_construction_protocol', 'sample_name',
+                            'sample_plate', 'sample_project',
+                            'well_description', 'Sample_Well', 'Lane']
+
+    GENERATED_PREP_COLUMNS = ['center_name', 'center_project_name',
+                              'instrument_model', 'lane', 'platform',
+                              'run_center', 'run_date', 'run_prefix', 'runid',
+                              'sequencing_meth']
+
+    def __new__(cls, path=None, *args, **kwargs):
+        """
+            Override new() so that base class cannot be instantiated.
+        """
+        if cls is KLSampleSheet:
+            raise TypeError(
+                f"only children of '{cls.__name__}' may be instantiated")
+
+        instance = super(KLSampleSheet, cls).__new__(cls, *args, **kwargs)
+        return instance
+
+    def __init__(self, path=None, *args, **kwargs):
         """Knight Lab's SampleSheet subclass
 
         Includes a number of parsing and writing changes to allow for the
@@ -144,8 +132,9 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             File path where the data was parsed from.
         """
         # don't pass the path argument to avoid the superclass from parsing
-        # the data
+        # the data.
         super().__init__()
+        self.remapper = None
 
         self.Bioinformatics = None
         self.Contact = None
@@ -209,7 +198,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                     section_name, *_ = header_match.groups()
                     if (
                         section_name not in self._sections
-                        and section_name not in _KL_SAMPLE_SHEET_SECTIONS
+                        and section_name not in type(self).sections
                     ):
                         self.add_section(section_name)
 
@@ -262,9 +251,9 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
     def _process_section_header(self, columns):
         for i in range(0, len(columns)):
-            if columns[i] in _KL_SAMPLE_SHEET_COLUMN_ALTS:
+            if columns[i] in KLSampleSheet.column_alts:
                 # overwrite existing alternate name w/internal representation.
-                columns[i] = _KL_SAMPLE_SHEET_COLUMN_ALTS[columns[i]]
+                columns[i] = KLSampleSheet.column_alts[columns[i]]
         return columns
 
     def write(self, handle, blank_lines=1) -> None:
@@ -389,200 +378,766 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 else:
                     pass
 
+    def _remap_table(self, table, strict=True):
+        if self.remapper is None:
+            raise ValueError("sample-sheet does not contain a valid Assay"
+                             " type.")
 
-def _validate_sample_sheet_metadata(metadata):
-    msgs = []
+        # Well_description column is now defined here as the concatenation
+        # of the following columns. If the column existed previously it will
+        # be overwritten, otherwise it will be created here. Alternate versions
+        # of the column name have already been resolved at this point.
 
-    for req in ['Assay', 'Bioinformatics', 'Contact']:
-        if req not in metadata:
-            msgs.append(ErrorMessage('%s is a required attribute' % req))
+        # Note that the amplicon notebook currently generates the same values
+        # for this column. If the functionality in the notebook changes, the
+        # output will continue to be redfined with the current values here.
+        well_description = table['Project Plate'].astype(str) + "." + table[
+            'Sample'].astype(str) + "." + table['Well'].astype(str)
 
-    # if both sections are found, then check that all the columns are present,
-    # checks for the contents are done in the sample sheet validation routine
-    if 'Bioinformatics' in metadata and 'Contact' in metadata:
-        for section in ['Bioinformatics', 'Contact']:
-            if section == 'Bioinformatics':
-                columns = _BIOINFORMATICS_COLUMNS
-            else:
-                columns = _CONTACT_COLUMNS
+        if strict:
+            # legacy operation. All columns not defined in remapper will be
+            # filtered out.
+            out = table[self.remapper.keys()].copy()
+            out.rename(self.remapper, axis=1, inplace=True)
+        else:
+            out = table.copy(deep=True)
 
-            for i, project in enumerate(metadata[section]):
-                if set(project.keys()) != columns:
-                    message = (('In the %s section Project #%d does not have '
-                               'exactly these keys %s') %
-                               (section, i+1, ', '.join(sorted(columns))))
-                    msgs.append(ErrorMessage(message))
+            # if a column named 'index' is present in table, assume it is a
+            # numeric index and not a sequence of bases, which is required in
+            # the output. Assume the column that will become 'index' is
+            # defined in remapper.
+            if 'index' in set(out.columns):
+                out.drop(columns=['index'], inplace=True)
+
+            # if an alternate form of a column name defined in
+            # _KL_SAMPLE_SHEET_COLUMN_ALTS is found in table, assume it should
+            # be renamed to its proper form and be included in the output e.g.:
+            # 'sample_plate' -> 'Sample_Plate'.
+
+            # assume keys in _KL_SAMPLE_SHEET_COLUMN_ALTS do not overlap w/
+            # remapper (they currently do not). Define the full set of
+            # potential columns to rename in table.
+
+            # new syntax in 3.9 allows us to merge two dicts together w/OR.
+            remapper = KLSampleSheet.column_alts | self.remapper
+            out.rename(remapper, axis=1, inplace=True)
+
+            # out may contain additional columns that aren't allowed in the
+            # [Data] section of a sample-sheet e.g.: 'Extraction Kit Lot'.
+            # There may also be required columns that aren't defined in out.
+            subset = list(
+                set(self.data_columns) & set(
+                    out.columns))
+
+            out = out[subset]
+
+        # append the new 'Well_description' column, now that alternates have
+        # been removed and non-essential columns have been dropped.
+        out['Well_description'] = well_description
+
+        for column in self.data_columns:
+            if column not in out.columns:
+                warnings.warn('The column %s in the sample sheet is empty' %
+                              column)
+                out[column] = ''
+
+        return out
+
+    def _add_data_to_sheet(self, table, sequencer, lanes, assay, strict=True):
+        table = self._remap_table(table, strict)
+        if assay != _AMPLICON:
+            table['index2'] = sequencer_i5_index(sequencer, table['index2'])
+
+            self.Bioinformatics['BarcodesAreRC'] = str(
+                sequencer in REVCOMP_SEQUENCERS)
+
+        for lane in lanes:
+            for sample in table.to_dict(orient='records'):
+                sample['Lane'] = lane
+                self.add_sample(sample_sheet.Sample(sample))
+
+    def _add_metadata_to_sheet(self, metadata, sequencer):
+        # set the default to avoid index errors if only one of the two is
+        # provided.
+        self.Reads = [self._READS['Read1'],
+                      self._READS['Read2']]
+
+        for key in self._ALL_METADATA:
+            if key in self._READS:
+                if key == 'Read1':
+                    self.Reads[0] = metadata.get(key, self.Reads[0])
+                else:
+                    self.Reads[1] = metadata.get(key, self.Reads[1])
+
+            elif key in self._SETTINGS:
+                self.Settings[key] = metadata.get(key,
+                                                  self._SETTINGS[key])
+
+            elif key in self._HEADER:
+                if key == 'Date':
+                    # we set the default value here and not in the global
+                    # _HEADER dictionary to make sure the date is when the
+                    # metadata is written not when the module is imported.
+                    self.Header[key] = metadata.get(
+                        key, datetime.today().strftime('%Y-%m-%d'))
+                else:
+                    self.Header[key] = metadata.get(key,
+                                                    self._HEADER[key])
+
+            elif key in self._BIOINFORMATICS_AND_CONTACT:
+                setattr(self, key, pd.DataFrame(metadata[key]))
+
+        # Per MacKenzie's request for 16S don't include Investigator Name and
+        # Experiment Name
+        if metadata['Assay'] == _AMPLICON:
+            if 'Investigator Name' in self.Header:
+                del self.Header['Investigator Name']
+            if 'Experiment Name' in self.Header:
+                del self.Header['Experiment Name']
+
+            # these are only relevant for metagenomics because they are used in
+            # bclconvert
+            del self.Settings['MaskShortReads']
+            del self.Settings['OverrideCycles']
+
+        # 'MaskShortReads' and 'OverrideCycles' are not relevant for iSeq runs,
+        # and can cause issues downstream.
+
+        # Note: 'iseq' should remain at the tail of this list, since it
+        # is a substring of the others.
+        sequencer_types = ['novaseq', 'hiseq', 'miseq', 'miniseq', 'iseq']
+        type_found = None
+        for sequencer_type in sequencer_types:
+            if sequencer_type in sequencer.lower():
+                type_found = sequencer_type
+                break
+
+        if type_found is None:
+            # if even the 'iSeq' substring could not be found, this is an
+            # unlikely and unexpected value for sequencer.
+            raise ErrorMessage(f"{sequencer} isn't a known sequencer")
+        elif type_found == 'iseq':
+            #   Verify the settings exist before deleting them.
+            if 'MaskShortReads' in self.Settings:
+                del self.Settings['MaskShortReads']
+            if 'OverrideCycles' in self.Settings:
+                del self.Settings['OverrideCycles']
+
+        return self
+
+    def get_lane_number(self):
+        lanes = []
+
+        for sample in self.samples:
+            lanes.append(sample.Lane)
+
+        lanes = list(set(lanes))
+
+        if len(lanes) > 1:
+            raise ValueError("This sample-sheet contains more than one lane")
+
+        return int(lanes[0])
+
+    def validate_and_scrub_sample_sheet(self, echo_msgs=True):
+        """Validate the sample sheet and scrub invalid characters
+
+        The character scrubbing is only applied to the Sample_Project and the
+        Sample_ID columns. The main difference between this function and
+        quiet_validate_and_scrub_sample_sheet is that this function will
+        *always* print errors and warnings to standard output.
+
+        Returns
+        -------
+        Boolean
+            True if sample-sheet is valid or if only warnings were reported,
+            False if one or more errors were reported.
+        """
+        msgs = self.quiet_validate_and_scrub_sample_sheet()
+
+        # display Errors and Warnings directly to stdout:
+        # this function is used in both Jupyter notebooks where msgs should
+        # be displayed, and by other functions that simply want True or False.
+        if echo_msgs:
+            [msg.echo() for msg in msgs]
+
+        # in addition to displaying any messages, return False if any Errors
+        # were found, or True if there were just Warnings or no messages at
+        # all.
+        if not any([isinstance(m, ErrorMessage) for m in msgs]):
+            return True
+        else:
+            return False
+
+    def quiet_validate_and_scrub_sample_sheet(self):
+        """Quietly validate the sample sheet and scrub invalid characters
+
+        The character scrubbing is only applied to the Sample_Project and the
+        Sample_ID columns.
+
+        Returns
+        -------
+        list
+            List of error or warning messages.
+        """
+        msgs = []
+
+        # we print an error return None and exit when this happens otherwise
+        # we won't be able to run other checks
+        for column in self.data_columns:
+            if column not in self.all_sample_keys:
+                msgs.append(ErrorMessage(f'The {column} column in the Data '
+                                         'section is missing'))
+
+        # All children of sample_sheet.SampleSheet will have the following four
+        # sections defined: ['Header', 'Reads', 'Settings', 'Data']. All
+        # children of KLSampleSheet will have their columns defined in
+        # child.sections. We will test only for the difference between these
+        # two sets.
+        for section in set(type(self).sections).difference({'Header',
+                                                            'Reads',
+                                                            'Settings',
+                                                            'Data'}):
+            if getattr(self, section) is None:
+                msgs.append(ErrorMessage(f'The {section} section cannot be '
+                                         'empty'))
+
+        # For cases where a child of KLSampleSheet() is instantiated w/out a
+        # filepath, the four base sections will be defined but will be empty
+        # unless they are manually populated.
+        for attribute in type(self)._HEADER:
+            if attribute not in self.Header:
+                msgs.append(ErrorMessage(f"'{attribute}' is not declared in "
+                                         "Header section"))
+
+        # Manually populated entries can be arbitrary. Ensure a minimal degree
+        # of type consistency.
+        expected_assay_type = type(self)._HEADER['Assay']
+        if 'Assay' in self.Header:
+            if self.Header['Assay'] != expected_assay_type:
+                msgs.append(ErrorMessage("'Assay' value is not "
+                                         f"'{expected_assay_type}'"))
+
+        # For sheets that were created by loading in a sample-sheet file,
+        # confirm that the SheetType in the file is what is expected from
+        # the child class. This helps w/trial-and-error loads that use
+        # validation to load a random sample-sheet into the correct class.
+        expected_sheet_type = type(self)._HEADER['SheetType']
+        if self.Header['SheetType'] != expected_sheet_type:
+            msgs.append(ErrorMessage("'SheetType' value is not "
+                                     f"'{expected_sheet_type}'"))
+
+        # if any errors are found up to this point then we can't continue with
+        # the validation process.
+        if msgs:
+            return msgs
+
+        # we track the updated projects as a dictionary so we can propagate
+        # these changes to the Bioinformatics and Contact sections
+        updated_samples, updated_projects = [], {}
+        for sample in self.samples:
+            new_sample = bcl_scrub_name(sample.Sample_ID)
+            new_project = bcl_scrub_name(sample.Sample_Project)
+
+            if new_sample != sample.Sample_ID:
+                updated_samples.append(sample.Sample_ID)
+                sample.Sample_ID = new_sample
+            if new_project != sample.Sample_Project:
+                updated_projects[sample.Sample_Project] = new_project
+                sample['Sample_Project'] = new_project
+
+        if updated_samples:
+            msgs.append(WarningMessage('The following sample names were '
+                                       'scrubbed for bcl2fastq compatibility'
+                                       ':\n%s' % ', '.join(updated_samples)))
+        if updated_projects:
+            msgs.append(WarningMessage('The following project names were '
+                                       'scrubbed for bcl2fastq compatibility. '
+                                       'If the same invalid characters are '
+                                       'also found in the Bioinformatics and '
+                                       'Contacts sections those will be '
+                                       'automatically scrubbed too:\n%s' %
+                                       ', '.join(sorted(updated_projects))))
+
+            # make the changes to prevent useless errors where the scurbbed
+            # names fail to match between sections.
+            self.Contact.Sample_Project.replace(updated_projects,
+                                                inplace=True)
+            self.Bioinformatics.Sample_Project.replace(updated_projects,
+                                                       inplace=True)
+
+        pairs = collections.Counter([(s.Lane, s.Sample_Project)
+                                     for s in self.samples])
+        # warn users when there's missing lane values
+        empty_projects = [project for lane, project in pairs
+                          if str(lane).strip() == '']
+        if empty_projects:
+            msgs.append(
+                ErrorMessage(
+                    'The following projects are missing a Lane value: '
+                    '%s' % ', '.join(sorted(empty_projects))))
+
+        projects = {s.Sample_Project for s in self.samples}
+
+        # project identifiers are digit groups at the end of the project name
+        # preceded by an underscore CaporasoIllumina_550
+        qiita_id_re = re.compile(r'(.+)_(\d+)$')
+        bad_projects = []
+        for project_name in projects:
+            if re.search(qiita_id_re, project_name) is None:
+                bad_projects.append(project_name)
+        if bad_projects:
+            msgs.append(
+                ErrorMessage(
+                    'The following project names in the Sample_Project '
+                    'column are missing a Qiita study '
+                    'identifier: %s' % ', '.join(sorted(bad_projects))))
+
+        # check Sample_project values match across sections
+        bfx = set(self.Bioinformatics['Sample_Project'])
+        contact = set(self.Contact['Sample_Project'])
+        not_shared = projects ^ bfx
+        if not_shared:
+            msgs.append(
+                ErrorMessage(
+                    'The following projects need to be in the Data and '
+                    'Bioinformatics sections %s' %
+                    ', '.join(sorted(not_shared))))
+        elif not contact.issubset(projects):
+            msgs.append(
+                ErrorMessage(('The following projects were only found in the '
+                              'Contact section: %s projects need to be listed '
+                              'in the Data and Bioinformatics section in order'
+                              ' to be included in the Contact section.') %
+                             ', '.join(sorted(contact - projects))))
+
+        # return all collected Messages, even if it's an empty list.
+        return msgs
+
+    def _validate_sample_sheet_metadata(self, metadata):
+        msgs = []
+
+        for req in ['Assay', 'Bioinformatics', 'Contact']:
+            if req not in metadata:
+                msgs.append(ErrorMessage('%s is a required attribute' % req))
+
+        # if both sections are found, then check that all the columns are
+        # present, checks for the contents are done in the sample sheet
+        # validation routine
+        if 'Bioinformatics' in metadata and 'Contact' in metadata:
+            for section in ['Bioinformatics', 'Contact']:
                 if section == 'Bioinformatics':
-                    if (project['library_construction_protocol'] is None or
-                            project['library_construction_protocol'] == ''):
+                    columns = self._BIOINFORMATICS_COLUMNS
+                else:
+                    columns = self._CONTACT_COLUMNS
+
+                for i, project in enumerate(metadata[section]):
+                    if set(project.keys()) != columns:
                         message = (('In the %s section Project #%d does not '
-                                    'have library_construction_protocol '
-                                    'specified') % (section, i+1))
+                                    'have exactly these keys %s') %
+                                   (section, i + 1, ', '.join(sorted(columns)))
+                                   )
                         msgs.append(ErrorMessage(message))
-                    if (project['experiment_design_description'] is None or
-                            project['experiment_design_description'] == ''):
-                        message = (('In the %s section Project #%d does not '
-                                    'have experiment_design_description '
-                                    'specified') % (section, i+1))
-                        msgs.append(ErrorMessage(message))
-    if metadata.get('Assay') is not None and metadata['Assay'] not in _ASSAYS:
-        msgs.append(ErrorMessage('%s is not a supported Assay' %
-                                 metadata['Assay']))
+                    if section == 'Bioinformatics':
+                        if (project['library_construction_protocol'] is None or
+                                project[
+                                    'library_construction_protocol'] == ''):
+                            message = (('In the %s section Project #%d does '
+                                        'not have library_construction_'
+                                        'protocol specified') %
+                                       (section, i + 1))
+                            msgs.append(ErrorMessage(message))
+                        if (project['experiment_design_description'] is None or
+                                project[
+                                    'experiment_design_description'] == ''):
+                            message = (('In the %s section Project #%d does '
+                                        'not have experiment_design_'
+                                        'description specified') %
+                                       (section, i + 1))
+                            msgs.append(ErrorMessage(message))
+        if metadata.get('Assay') is not None and metadata['Assay'] \
+                not in self._ASSAYS:
+            msgs.append(ErrorMessage('%s is not a supported Assay' %
+                                     metadata['Assay']))
 
-    keys = set(metadata.keys())
-    if not keys.issubset(_ALL_METADATA):
-        extra = sorted(keys - set(_ALL_METADATA))
-        msgs.append(ErrorMessage('These metadata keys are not supported: %s'
-                                 % ', '.join(extra)))
+        keys = set(metadata.keys())
+        if not keys.issubset(self._ALL_METADATA):
+            extra = sorted(keys - set(self._ALL_METADATA))
+            msgs.append(
+                ErrorMessage('These metadata keys are not supported: %s'
+                             % ', '.join(extra)))
 
-    return msgs
+        return msgs
 
 
-def _add_metadata_to_sheet(metadata, sheet, sequencer):
-    # set the default to avoid index errors if only one of the two is provided
-    sheet.Reads = [_READS['Read1'], _READS['Read2']]
+class AmpliconSampleSheet(KLSampleSheet):
+    _HEADER = {
+        'IEMFileVersion': '4',
+        'SheetType': _DUMMY_SHEET_TYPE,
+        'SheetVersion': '0',
+        # Per MacKenzie's request, these are removed if found.
+        # 'Investigator Name': 'Knight',
+        # 'Experiment Name': 'RKL_experiment',
+        'Date': None,
+        'Workflow': 'GenerateFASTQ',
+        'Application': 'FASTQ Only',
+        'Assay': _AMPLICON,
+        'Description': '',
+        'Chemistry': 'Default',
+    }
 
-    for key in _ALL_METADATA:
-        if key in _READS:
-            if key == 'Read1':
-                sheet.Reads[0] = metadata.get(key, sheet.Reads[0])
+    CARRIED_PREP_COLUMNS = ['experiment_design_description', 'i5_index_id',
+                            'i7_index_id', 'index', 'index2',
+                            'library_construction_protocol', 'sample_name',
+                            'sample_plate', 'sample_project',
+                            'well_description', 'Sample_Well']
+
+    def __init__(self, path=None):
+        super().__init__(path)
+        self.remapper = {
+            'sample sheet Sample_ID': 'Sample_ID',
+            'Sample': 'Sample_Name',
+            'Project Plate': 'Sample_Plate',
+            'Well': 'Sample_Well',
+            'Name': 'I7_Index_ID',
+            'Golay Barcode': 'index',
+            'Project Name': 'Sample_Project',
+        }
+
+
+class MetagenomicSampleSheetv100(KLSampleSheet):
+    _HEADER = {
+        'IEMFileVersion': '4',
+        'SheetType': _STANDARD_METAG_SHEET_TYPE,
+        'SheetVersion': '100',
+        'Investigator Name': 'Knight',
+        'Experiment Name': 'RKL_experiment',
+        'Date': None,
+        'Workflow': 'GenerateFASTQ',
+        'Application': 'FASTQ Only',
+        'Assay': _METAGENOMIC,
+        'Description': '',
+        'Chemistry': 'Default',
+    }
+
+    # Note that there doesn't appear to be a difference between 95, 99, and 100
+    # beyond the value observed in 'Well_description' column. The real
+    # difference is between standard_metag and abs_quant_metag.
+
+    # Marks change from 'Metagenomics' to 'Metagenomic' - encapsulate this
+    # change: TODO.
+
+    # Note: Remove syndna_pool_number as that was part of the purpose of
+    # making this change. Also, it's always going to be empty or worse have
+    # a value that won't be checked.
+    data_columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
+                    'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                    'Sample_Project', 'Well_description']
+
+    # For now, assume only MetagenomicSampleSheetv100 (and v95, v99) contains
+    # 'contains_replicates' column. Assume AbsQuantSampleSheetv10 doesn't.
+
+    _BIOINFORMATICS_COLUMNS = {'Sample_Project', 'QiitaID', 'BarcodesAreRC',
+                               'ForwardAdapter', 'ReverseAdapter',
+                               'HumanFiltering', 'contains_replicates',
+                               'library_construction_protocol',
+                               'experiment_design_description'}
+
+    CARRIED_PREP_COLUMNS = ['experiment_design_description', 'i5_index_id',
+                            'i7_index_id', 'index', 'index2',
+                            'library_construction_protocol', 'sample_name',
+                            'sample_plate', 'sample_project',
+                            'well_description', 'well_id_384']
+
+    def __init__(self, path=None):
+        super().__init__(path=path)
+        self.remapper = {
+            'sample sheet Sample_ID': 'Sample_ID',
+            'Sample': 'Sample_Name',
+            'Project Plate': 'Sample_Plate',
+            'Well': 'well_id_384',
+            'i7 name': 'I7_Index_ID',
+            'i7 sequence': 'index',
+            'i5 name': 'I5_Index_ID',
+            'i5 sequence': 'index2',
+            'Project Name': 'Sample_Project',
+        }
+
+
+class MetagenomicSampleSheetv90(KLSampleSheet):
+    '''
+    MetagenomicSampleSheetv90 is meant to be a class to handle legacy
+    Metagenomic type sample-sheets, since KLSampleSheet() itself can't be
+    instantiated anymore. What makes it unique is that it specifies a version
+    number and defines the classic values for self.remapper.
+    '''
+    _HEADER = {
+        'IEMFileVersion': '4',
+        'SheetType': _STANDARD_METAG_SHEET_TYPE,
+        'SheetVersion': '90',
+        'Investigator Name': 'Knight',
+        'Experiment Name': 'RKL_experiment',
+        'Date': None,
+        'Workflow': 'GenerateFASTQ',
+        'Application': 'FASTQ Only',
+        'Assay': _METAGENOMIC,
+        'Description': '',
+        'Chemistry': 'Default',
+    }
+
+    # data_columns are the same as base KLSampleSheet so they will not be
+    # overridden here. _BIOINFORMATICS_COLUMNS as well.
+    CARRIED_PREP_COLUMNS = ['experiment_design_description', 'i5_index_id',
+                            'i7_index_id', 'index', 'index2',
+                            'library_construction_protocol', 'sample_name',
+                            'sample_plate', 'sample_project',
+                            'well_description', 'Sample_Well']
+
+    def __init__(self, path=None):
+        super().__init__(path=path)
+        self.remapper = {
+            'sample sheet Sample_ID': 'Sample_ID',
+            'Sample': 'Sample_Name',
+            'Project Plate': 'Sample_Plate',
+            'Well': 'Sample_Well',
+            'i7 name': 'I7_Index_ID',
+            'i7 sequence': 'index',
+            'i5 name': 'I5_Index_ID',
+            'i5 sequence': 'index2',
+            'Project Name': 'Sample_Project'
+        }
+
+
+class AbsQuantSampleSheetv10(KLSampleSheet):
+    _HEADER = {
+        'IEMFileVersion': '4',
+        'SheetType': _ABSQUANT_SHEET_TYPE,
+        'SheetVersion': '10',
+        'Investigator Name': 'Knight',
+        'Experiment Name': 'RKL_experiment',
+        'Date': None,
+        'Workflow': 'GenerateFASTQ',
+        'Application': 'FASTQ Only',
+        'Assay': _METAGENOMIC,
+        'Description': '',
+        'Chemistry': 'Default',
+    }
+
+    data_columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
+                    'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                    'Sample_Project', 'mass_syndna_input_ng',
+                    'extracted_gdna_concentration_ng_ul',
+                    'vol_extracted_elution_ul', 'syndna_pool_number',
+                    'Well_description']
+
+    _BIOINFORMATICS_COLUMNS = frozenset({
+        'Sample_Project', 'QiitaID', 'BarcodesAreRC', 'ForwardAdapter',
+        'ReverseAdapter', 'HumanFiltering', 'library_construction_protocol',
+        'experiment_design_description', 'contains_replicates'
+    })
+
+    CARRIED_PREP_COLUMNS = ['experiment_design_description',
+                            'extracted_gdna_concentration_ng_ul',
+                            'i5_index_id', 'i7_index_id', 'index', 'index2',
+                            'library_construction_protocol',
+                            'mass_syndna_input_ng', 'sample_name',
+                            'sample_plate', 'sample_project',
+                            'syndna_pool_number', 'vol_extracted_elution_ul',
+                            'well_description', 'well_id_384']
+
+    def __init__(self, path=None):
+        super().__init__(path=path)
+        self.remapper = {
+            'sample sheet Sample_ID': 'Sample_ID',
+            'Sample': 'Sample_Name',
+            'Project Plate': 'Sample_Plate',
+            'Well': 'well_id_384',
+            'i7 name': 'I7_Index_ID',
+            'i7 sequence': 'index',
+            'i5 name': 'I5_Index_ID',
+            'i5 sequence': 'index2',
+            'Project Name': 'Sample_Project',
+            'syndna_pool_number': 'syndna_pool_number',
+            'mass_syndna_input_ng': 'mass_syndna_input_ng',
+            'extracted_gdna_concentration_ng_ul':
+                'extracted_gdna_concentration_ng_ul',
+            'vol_extracted_elution_ul':
+                'vol_extracted_elution_ul'
+        }
+
+
+class MetatranscriptomicSampleSheetv0(KLSampleSheet):
+    _HEADER = {
+        'IEMFileVersion': '4',
+        'SheetType': _STANDARD_METAG_SHEET_TYPE,
+        'SheetVersion': '0',
+        'Investigator Name': 'Knight',
+        'Experiment Name': 'RKL_experiment',
+        'Date': None,
+        'Workflow': 'GenerateFASTQ',
+        'Application': 'FASTQ Only',
+        'Assay': _METATRANSCRIPTOMIC,
+        'Description': '',
+        'Chemistry': 'Default',
+    }
+
+    data_columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
+                    'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                    'Sample_Project', 'Well_description']
+
+    _BIOINFORMATICS_COLUMNS = frozenset({'Sample_Project', 'QiitaID',
+                                         'BarcodesAreRC', 'ForwardAdapter',
+                                         'ReverseAdapter', 'HumanFiltering',
+                                         'contains_replicates',
+                                         'library_construction_protocol',
+                                         'experiment_design_description'})
+
+    CARRIED_PREP_COLUMNS = ['experiment_design_description', 'i5_index_id',
+                            'i7_index_id', 'index', 'index2',
+                            'library_construction_protocol', 'sample_name',
+                            'sample_plate', 'sample_project',
+                            'well_description', 'well_id_384']
+
+    def __init__(self, path=None):
+        super().__init__(path=path)
+        self.remapper = {
+            'sample sheet Sample_ID': 'Sample_ID',
+            'Sample': 'Sample_Name',
+            'Project Plate': 'Sample_Plate',
+            'Well': 'well_id_384',
+            'i7 name': 'I7_Index_ID',
+            'i7 sequence': 'index',
+            'i5 name': 'I5_Index_ID',
+            'i5 sequence': 'index2',
+            'Project Name': 'Sample_Project',
+        }
+
+
+class MetatranscriptomicSampleSheetv10(KLSampleSheet):
+    _HEADER = {
+        'IEMFileVersion': '4',
+        'SheetType': _STANDARD_METAT_SHEET_TYPE,
+        'SheetVersion': '10',
+        'Investigator Name': 'Knight',
+        'Experiment Name': 'RKL_experiment',
+        'Date': None,
+        'Workflow': 'GenerateFASTQ',
+        'Application': 'FASTQ Only',
+        'Assay': _METATRANSCRIPTOMIC,
+        'Description': '',
+        'Chemistry': 'Default',
+    }
+
+    # MaskShortReads and OverrideCycles are present
+    # "Well_description" column contains concatenated information
+    # (Sample_Plate + Sample_Name + well_id_384) vs. just the sample_name
+    # in previous iterations.
+
+    data_columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
+                    'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                    'Sample_Project', 'total_rna_concentration_ng_ul',
+                    'vol_extracted_elution_ul', 'Well_description']
+
+    _BIOINFORMATICS_COLUMNS = frozenset({'Sample_Project', 'QiitaID',
+                                         'BarcodesAreRC', 'ForwardAdapter',
+                                         'ReverseAdapter', 'HumanFiltering',
+                                         'contains_replicates',
+                                         'library_construction_protocol',
+                                         'experiment_design_description',
+                                         'contains_replicates'})
+
+    CARRIED_PREP_COLUMNS = ['experiment_design_description', 'i5_index_id',
+                            'i7_index_id', 'index', 'index2',
+                            'library_construction_protocol', 'sample_name',
+                            'sample_plate', 'sample_project',
+                            'well_description', 'well_id_384']
+
+    def __init__(self, path=None):
+        super().__init__(path=path)
+        self.remapper = {
+            'sample sheet Sample_ID': 'Sample_ID',
+            'Sample': 'Sample_Name',
+            'Project Plate': 'Sample_Plate',
+            'Well': 'well_id_384',
+            'i7 name': 'I7_Index_ID',
+            'i7 sequence': 'index',
+            'i5 name': 'I5_Index_ID',
+            'i5 sequence': 'index2',
+            'Project Name': 'Sample_Project',
+        }
+
+
+def load_sample_sheet(sample_sheet_path):
+    # Load the sample-sheet using various KLSampleSheet children and return
+    # the first instance that produces a valid sample-sheet. We assume that
+    # because of specific SheetType and SheetVersion values, no one sample-
+    # sheet can match more than one KLSampleSheet child.
+
+    sheet = AbsQuantSampleSheetv10(sample_sheet_path)
+    if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
+        return sheet
+
+    sheet = AmpliconSampleSheet(sample_sheet_path)
+    if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
+        return sheet
+
+    sheet = MetagenomicSampleSheetv100(sample_sheet_path)
+    if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
+        return sheet
+
+    sheet = MetagenomicSampleSheetv90(sample_sheet_path)
+    if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
+        return sheet
+
+    sheet = MetatranscriptomicSampleSheetv10(sample_sheet_path)
+
+    if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
+        return sheet
+
+    sheet = MetatranscriptomicSampleSheetv0(sample_sheet_path)
+
+    if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
+        return sheet
+
+    sheet = MetatranscriptomicSampleSheetv0(sample_sheet_path)
+    if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
+        return sheet
+
+    raise ValueError(f"'{sample_sheet_path}' does not appear to be a valid "
+                     "sample-sheet.")
+
+
+def _create_sample_sheet(sheet_type, sheet_version, assay_type):
+    if sheet_type == _STANDARD_METAG_SHEET_TYPE:
+        if assay_type == _METAGENOMIC:
+            if sheet_version == '90':
+                sheet = MetagenomicSampleSheetv90()
+            elif sheet_version in ['95', '99', '100']:
+                # 95, 99, and v100 are functionally the same type.
+                sheet = MetagenomicSampleSheetv100()
             else:
-                sheet.Reads[1] = metadata.get(key, sheet.Reads[1])
-
-        elif key in _SETTINGS:
-            sheet.Settings[key] = metadata.get(key, _SETTINGS[key])
-
-        elif key in _HEADER:
-            if key == 'Date':
-                # we set the default value here and not in the global _HEADER
-                # dictionary to make sure the date is when the metadata is
-                # written not when the module is imported
-                sheet.Header[key] = metadata.get(
-                    key, datetime.today().strftime('%Y-%m-%d'))
+                raise ValueError(f"'{sheet_version}' is an unrecognized Sheet"
+                                 f"Version for '{sheet_type}'")
+        elif assay_type == _METATRANSCRIPTOMIC:
+            sheet = MetatranscriptomicSampleSheetv0()
+        else:
+            raise ValueError("'%s' is an unrecognized Assay type" % assay_type)
+    elif sheet_type == _STANDARD_METAT_SHEET_TYPE:
+        if assay_type == _METATRANSCRIPTOMIC:
+            if sheet_version == '0':
+                sheet = MetatranscriptomicSampleSheetv0()
+            elif sheet_version == '10':
+                sheet = MetatranscriptomicSampleSheetv10()
             else:
-                sheet.Header[key] = metadata.get(key, _HEADER[key])
-
-        elif key in _BIOINFORMATICS_AND_CONTACT:
-            setattr(sheet, key, pd.DataFrame(metadata[key]))
-
-    # Per MacKenzie's request for 16S don't include Investigator Name and
-    # Experiment Name
-    if metadata['Assay'] == _AMPLICON:
-        del sheet.Header['Investigator Name']
-        del sheet.Header['Experiment Name']
-
-        # these are only relevant for metagenomics because they are used in
-        # bclconvert
-        del sheet.Settings['MaskShortReads']
-        del sheet.Settings['OverrideCycles']
-
-    # 'MaskShortReads' and 'OverrideCycles' are not relevant for iSeq runs,
-    # and can cause issues downstream.
-
-    # Note: 'iseq' should remain at the tail of this list, since it
-    # is a substring of the others.
-    sequencer_types = ['novaseq', 'hiseq', 'miseq', 'miniseq', 'iseq']
-    type_found = None
-    for sequencer_type in sequencer_types:
-        if sequencer_type in sequencer.lower():
-            type_found = sequencer_type
-            break
-
-    if type_found is None:
-        # if even the 'iSeq' substring could not be found, this is an
-        # unlikely and unexpected value for sequencer.
-        raise ErrorMessage(f"{sequencer} isn't a known sequencer")
-    elif type_found == 'iseq':
-        #   Verify the settings exist before deleting them.
-        if 'MaskShortReads' in sheet.Settings:
-            del sheet.Settings['MaskShortReads']
-        if 'OverrideCycles' in sheet.Settings:
-            del sheet.Settings['OverrideCycles']
-
-    return sheet
-
-
-def _remap_table(table, assay, strict=True):
-    if assay == _AMPLICON:
-        remapper = _KL_AMPLICON_REMAPPER
-    elif assay == _METAGENOMIC:
-        remapper = _KL_METAGENOMIC_REMAPPER
-    elif assay == _METATRANSCRIPTOMIC:
-        remapper = _KL_METATRANSCRIPTOMIC_REMAPPER
+                raise ValueError(f"'{sheet_version}' is an unrecognized Sheet"
+                                 f"Version for '{sheet_type}'")
+        else:
+            raise ValueError("'%s' is an unrecognized Assay type" % assay_type)
+    elif sheet_type == _ABSQUANT_SHEET_TYPE:
+        sheet = AbsQuantSampleSheetv10()
+    elif sheet_type == _DUMMY_SHEET_TYPE:
+        sheet = AmpliconSampleSheet()
     else:
-        raise ValueError(f"'{assay} is not a valid Assay type.")
-
-    # Well_description column is now defined here as the concatenation
-    # of the following columns. If the column existed previously it will
-    # be overwritten, otherwise it will be created here. Alternate versions
-    # of the column name have already been resolved at this point.
-
-    # Note that the amplicon notebook currently generates the same values for
-    # this column. If the functionality in the notebook changes, the output
-    # will continue to be redfined with the current values here.
-    well_description = table['Project Plate'].astype(str) + "." + \
-        table['Sample'].astype(str) + "." + table['Well'].astype(str)
-
-    if strict:
-        # legacy operation. All columns not defined in remapper will be
-        # filtered out.
-        out = table[remapper.keys()].copy()
-        out.rename(remapper, axis=1, inplace=True)
-    else:
-        out = table.copy(deep=True)
-
-        # if a column named 'index' is present in table, assume it is a
-        # numeric index and not a sequence of bases, which is required in
-        # the output. Assume the column that will become 'index' is
-        # defined in remapper.
-        if 'index' in set(out.columns):
-            out.drop(columns=['index'], inplace=True)
-
-        # if an alternate form of a column name defined in
-        # _KL_SAMPLE_SHEET_COLUMN_ALTS is found in table, assume it should
-        # be renamed to its proper form and be included in the output e.g.:
-        # 'sample_plate' -> 'Sample_Plate'.
-
-        # assume keys in _KL_SAMPLE_SHEET_COLUMN_ALTS do not overlap w/
-        # remapper (they currently do not). Define the full set of potential
-        # columns to rename in table.
-
-        # new syntax in 3.9 allows us to merge two dicts together w/OR.
-        remapper = _KL_SAMPLE_SHEET_COLUMN_ALTS | remapper
-        out.rename(remapper, axis=1, inplace=True)
-
-        # out may contain additional columns that aren't allowed in the [Data]
-        # section of a sample-sheet e.g.: 'Extraction Kit Lot'. There may also
-        # be required columns that aren't defined in out.
-        subset = list(set(_KL_SAMPLE_SHEET_DATA_COLUMNS) & set(out.columns))
-        out = out[subset]
-
-    # append the new 'Well_description' column, now that alternates have been
-    # removed and non-essential columns have been dropped.
-    out['Well_description'] = well_description
-
-    for column in _KL_SAMPLE_SHEET_DATA_COLUMNS:
-        if column not in out.columns:
-            warnings.warn('The column %s in the sample sheet is empty' %
-                          column)
-            out[column] = ''
-
-    return out
-
-
-def _add_data_to_sheet(table, sheet, sequencer, lanes, assay, strict=True):
-    table = _remap_table(table, assay, strict)
-
-    if assay != _AMPLICON:
-        table['index2'] = sequencer_i5_index(sequencer, table['index2'])
-
-        sheet.Bioinformatics['BarcodesAreRC'] = str(
-            sequencer in REVCOMP_SEQUENCERS)
-
-    for lane in lanes:
-        for sample in table.to_dict(orient='records'):
-            sample['Lane'] = lane
-            sheet.add_sample(sample_sheet.Sample(sample))
+        raise ValueError("'%s' is an unrecognized SheetType" % sheet_type)
 
     return sheet
 
@@ -624,7 +1179,7 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
         sequence'), forward and reverse barcode names ('i5 name', 'i7
         name'), description ('Sample'), well identifier ('Well'), project
         plate ('Project Plate'), project name ('Project Name'), and synthetic
-        DNA pool number ('synDNA pool number').
+        DNA pool number ('syndna_pool_number').
     sequencer: string
         A string representing the sequencer used.
     lanes: list of integers
@@ -638,46 +1193,51 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
     Returns
     -------
     samplesheet.SampleSheet
-        SampleSheet object containing both the metadata and table.
+        SampleSheet object containing both the metadata and table
 
     Raises
     ------
     SampleSheetError
         If one of the required columns is missing.
+    ValueError
+        If the newly-created sample-sheet fails validation.
     """
-    messages = _validate_sample_sheet_metadata(metadata)
+    required_attributes = ['SheetType', 'SheetVersion', 'Assay']
+
+    for attribute in required_attributes:
+        if attribute not in metadata:
+            raise ValueError("'%s' is not defined in metadata" % attribute)
+
+    sheet_type = metadata['SheetType']
+    sheet_version = metadata['SheetVersion']
+    assay_type = metadata['Assay']
+
+    sheet = _create_sample_sheet(sheet_type, sheet_version, assay_type)
+
+    messages = sheet._validate_sample_sheet_metadata(metadata)
 
     if len(messages) == 0:
-        sheet = KLSampleSheet()
-        sheet = _add_metadata_to_sheet(metadata, sheet, sequencer)
-        sheet = _add_data_to_sheet(table, sheet, sequencer, lanes,
-                                   metadata['Assay'], strict)
-        return sheet
-    else:
-        for message in messages:
-            message.echo()
+        sheet._add_metadata_to_sheet(metadata, sequencer)
+        sheet._add_data_to_sheet(table, sequencer, lanes, metadata['Assay'],
+                                 strict)
 
+        # now that we have a SampleSheet() object, validate it for any
+        # additional errors that may have been present in the data and/or
+        # metadata.
+        messages = sheet.quiet_validate_and_scrub_sample_sheet()
 
-def quiet_validate_and_scrub_sample_sheet(sheet):
-    """Quietly validate the sample sheet and scrub invalid characters
+        if not any([isinstance(m, ErrorMessage) for m in messages]):
+            # No error messages equals success.
+            # Echo any warning messages.
+            for warning_msg in messages:
+                warning_msg.echo()
+            return sheet
 
-    The character scrubbing is only applied to the Sample_Project and the
-    Sample_ID columns.
-
-    Parameters
-    ----------
-    sheet: sample_sheet.KLSampleSheet
-        The sample sheet object to validate and scrub.
-
-    Returns
-    -------
-    list
-        List of error or warning messages.
-    sample_sheet.SampleSheet or None
-        Corrected and validated sample sheet if no errors are found. Otherwise
-        None is returned.
-    """
+    # Continue legacy behavior of echoing ErrorMessages and WarningMessages.
     msgs = []
+    for message in messages:
+        msgs.append(str(message))
+        message.echo()
 
     # we print an error return None and exit when this happens otherwise we
     # won't be able to run some of the other checks
@@ -823,6 +1383,12 @@ def validate_and_scrub_sample_sheet(sheet):
     if sheet is not None:
         return sheet
 
+    # Introduce an exception raised for API calls that aren't reporting echo()
+    # to the user. Specifically, calls from other modules rather than
+    # notebooks. These legacy calls may or may not be testing the returned
+    # value for None.
+    raise ValueError("\n".join(msgs))
+
 
 def sample_sheet_to_dataframe(sheet):
     """Converts the [Data] section of a sample sheet into a DataFrame
@@ -961,7 +1527,9 @@ def demux_sample_sheet(sheet):
     # replicate of plate 1, BLANKS and all), we can split replicates
     # according to their destination quadrant number.
     for df in _demux_sample_sheet(sheet):
-        new_sheet = KLSampleSheet()
+        new_sheet = _create_sample_sheet(sheet.Header['SheetType'],
+                                         sheet.Header['SheetVersion'],
+                                         sheet.Header['Assay'])
         new_sheet.Header = sheet.Header
         new_sheet.Reads = sheet.Reads
         new_sheet.Settings = sheet.Settings
@@ -985,6 +1553,10 @@ def demux_sample_sheet(sheet):
         # for _demux_sample_sheet to return a dataframe with sample_id as
         # the index, such as seqpro.
         df['Sample_ID'] = df.index
+        df.rename(columns={'sample_name': 'Sample_Name',
+                           'i7_index_id': 'I7_Index_ID',
+                           'i5_index_id': 'I5_Index_ID',
+                           'sample_project': 'Sample_Project'}, inplace=True)
         for sample in df.to_dict(orient='records'):
             new_sheet.add_sample(sample_sheet.Sample(sample))
 

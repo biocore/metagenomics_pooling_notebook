@@ -5,7 +5,7 @@ import os
 import re
 from os.path import abspath
 
-from metapool import (preparations_for_run, KLSampleSheet,
+from metapool import (preparations_for_run, load_sample_sheet,
                       sample_sheet_to_dataframe, run_counts,
                       remove_qiita_id)
 
@@ -38,20 +38,23 @@ def format_preparation_files(run_dir, sample_sheet, output_dir, pipeline,
     will collect sequence count stats for each sample and add them as columns
     in the preparation file.
     """
-    sample_sheet = KLSampleSheet(sample_sheet)
+    sample_sheet = load_sample_sheet(sample_sheet)
     df_sheet = sample_sheet_to_dataframe(sample_sheet)
 
-    if pipeline == 'atropos-and-bowtie2':
-        click.echo('Stats collection is not supported for pipeline '
-                   'atropos-and-bowtie2')
-    else:
+    if pipeline == 'fastp-and-minimap2':
         stats = run_counts(run_dir, sample_sheet)
-
         stats['sample_name'] = \
             df_sheet.set_index('lane', append=True)['sample_name']
+    else:
+        click.echo('Stats collection is not supported for pipeline '
+                   'atropos-and-bowtie2')
 
     # returns a map of (run, project_name, lane) -> preparation frame
-    preps = preparations_for_run(run_dir, df_sheet, pipeline=pipeline)
+    preps = preparations_for_run(run_dir,
+                                 df_sheet,
+                                 sample_sheet.GENERATED_PREP_COLUMNS,
+                                 sample_sheet.CARRIED_PREP_COLUMNS,
+                                 pipeline=pipeline)
 
     os.makedirs(output_dir, exist_ok=True)
 

@@ -23,7 +23,10 @@ from metapool.metapool import (read_plate_map_csv, read_pico_csv,
                                calculate_iseqnorm_pooling_volumes,
                                identify_invalid_sample_names,
                                sanitize_plate_map_sample_names,
-                               add_syndna)
+                               add_syndna, validate_plate_df,
+                               add_controls, compress_plates,
+                               read_visionmate_file
+                               )
 
 
 class Tests(TestCase):
@@ -54,6 +57,25 @@ class Tests(TestCase):
         no_blanks_fp = os.path.join(path, 'data/test_no_blanks.tsv')
         blanks_fp = os.path.join(path, 'data/test_blanks.tsv')
         with_nan_fp = os.path.join(path, 'data/test_nan.tsv')
+        metadata_fp = os.path.join(path, 'data/metadata_for_test.txt')
+
+        sa_fp = os.path.join(path, 'data/sa_file.tsv')
+        p1 = os.path.join(path, 'data/plate_map1.tsv')
+        p2 = os.path.join(path, 'data/plate_map2.tsv')
+        p3 = os.path.join(path, 'data/plate_map3.tsv')
+        p4 = os.path.join(path, 'data/plate_map4.tsv')
+
+        self.plate_error_fp = os.path.join(path,
+                                           'data/plate_map1_error.tsv')
+
+        self.comp_plate_exp_fp = os.path.join(
+            path,
+            'data/compress_plates_expected_out.tsv')
+        self.add_controls_exp_fp = os.path.join(
+            path,
+            'data/add_controls_expected_out.tsv')
+        self.katharoseq_dir = os.path.join(path, 'data/katharo')
+        self.blanks_dir = os.path.join(path, 'data/blanks')
 
         self.plate_df = pd.read_csv(plate_fp, sep=',')
         self.counts_df = pd.read_csv(counts_fp, sep=',')
@@ -61,40 +83,125 @@ class Tests(TestCase):
         self.no_blanks = pd.read_csv(no_blanks_fp, sep='\t')
         self.with_nan = pd.read_csv(with_nan_fp, sep='\t')
         self.blanks = pd.read_csv(blanks_fp, sep='\t')
+        self.sa_df = pd.read_csv(sa_fp, sep='\t',
+                                 dtype={'TubeCode': str})
+        self.metadata = pd.read_csv(metadata_fp, sep='\t')
         self.fp = path
+        self.plates = [p1, p2, p3, p4]
 
-    # def test_compute_shotgun_normalization_values(self):
-    #     input_vol = 3.5
-    #     input_dna = 10
-    #     plate_layout = []
-    #     for i in range(4):
-    #         row = []
-    #         for j in range(4):
-    #             row.append({'dna_concentration': 10,
-    #                         'sample_id': "S%s.%s" % (i, j)})
-    #         plate_layout.append(row)
+    def test_read_visionmate_file(self):
+        # Raises error when tries to validate that all expected
+        # columns from VisionMate file are present.
+        with self.assertRaises(ValueError):
+            read_visionmate_file(self.plate_error_fp, ['TubeCode'])
 
-    #     obs_sample, obs_water = compute_shotgun_normalization_values(
-    #         plate_layout, input_vol, input_dna)
+    def test_compress_plates(self):
+        compression = [
+            # top left plate
+            {'Plate Position': 1,  # as int
+             'Plate map file': self.plates[0],
+             'Project Plate': 'Plate_16',
+             'Project Name': 'Celeste_Adaptation_12986',
+             'Project Abbreviation': 'ADAPT',
+             'Plate elution volume': 70},
+            # top right plate
+            {'Plate Position': 2,
+             'Plate map file': self.plates[1],
+             'Project Plate': 'Plate_17',
+             'Project Name': 'Celeste_Adaptation_12986',
+             'Project Abbreviation': 'ADAPT',
+             'Plate elution volume': 70},
+            {'Plate Position': 3,
+             'Plate map file': self.plates[2],
+             'Project Plate': 'Plate_18',
+             'Project Name': 'Celeste_Adaptation_12986',
+             'Project Abbreviation': 'ADAPT',
+             'Plate elution volume': 70},
+            {'Plate Position': 4,
+             'Plate map file': self.plates[3],
+             'Project Plate': 'Plate_21',
+             'Project Name': 'Celeste_Adaptation_12986',
+             'Project Abbreviation': 'ADAPT',
+             'Plate elution volume': 70}
+        ]
 
-    #     exp_sample = np.zeros((4, 4), dtype=np.float)
-    #     exp_water = np.zeros((4, 4), dtype=np.float)
-    #     exp_sample.fill(1000)
-    #     exp_water.fill(2500)
+        plate_df_obs = compress_plates(
+            compression,
+            self.sa_df,
+            well_col='Well')
+        plate_df_exp = pd.read_csv(self.comp_plate_exp_fp,
+                                   dtype={'TubeCode': str}, sep='\t')
 
-    #     npt.assert_almost_equal(obs_sample, exp_sample)
-    #     npt.assert_almost_equal(obs_water, exp_water)
+        pd.testing.assert_frame_equal(plate_df_obs, plate_df_exp)
 
-    #     # Make sure that we don't go above the limit
-    #     plate_layout[1][1]['dna_concentration'] = 0.25
-    #     obs_sample, obs_water = compute_shotgun_normalization_values(
-    #         plate_layout, input_vol, input_dna)
+    def test_add_controls(self):
+        plate_df = pd.read_csv(self.comp_plate_exp_fp,
+                               dtype={'TubeCode': str}, sep='\t')
 
-    #     exp_sample[1][1] = 3500
-    #     exp_water[1][1] = 0
+        add_controls_obs = add_controls(plate_df,
+                                        self.blanks_dir,
+                                        self.katharoseq_dir)
 
-    #     npt.assert_almost_equal(obs_sample, exp_sample)
-    #     npt.assert_almost_equal(obs_water, exp_water)
+        add_controls_exp = pd.read_csv(self.add_controls_exp_fp,
+                                       dtype={'TubeCode': str,
+                                              'RackID': str,
+                                              'Kathseq_RackID': str},
+                                       sep='\t')
+
+        pd.testing.assert_frame_equal(add_controls_obs,
+                                      add_controls_exp)
+
+        # Testing edge case that technician reruns the
+        # module on the same dataframe
+        add_controls_obs = add_controls(add_controls_exp,
+                                        self.blanks_dir,
+                                        self.katharoseq_dir)
+
+        pd.testing.assert_frame_equal(add_controls_obs,
+                                      add_controls_exp)
+
+    def test_validate_plate_df(self):
+        # Validator function. No return so just asserting
+        # that errors are raised when expected
+        plate_df = pd.read_csv(self.add_controls_exp_fp,
+                               dtype={'TubeCode': str,
+                                      'RackID': str},
+                               sep='\t')
+        # Test with no errors
+        validate_plate_df(plate_df, self.metadata, self.sa_df,
+                          self.blanks_dir, self.katharoseq_dir)
+        # Test for errors
+        # Raises error for lack of katharoseq dir, tubes with no
+        # metadata
+        with self.assertRaises(ValueError):
+            validate_plate_df(plate_df, self.metadata, self.sa_df,
+                              self.blanks_dir)
+        # Raises error for sample not represented in metadata
+        with self.assertRaises(ValueError):
+            validate_plate_df(plate_df.replace('41B.Month6.1',
+                                               'not_in_metadata'),
+                              self.metadata, self.sa_df,
+                              self.blanks_dir)
+        # Raises error for TubeCode with no associated
+        # information
+        with self.assertRaises(ValueError):
+            validate_plate_df(plate_df.replace('0363132553',
+                                               '0000000000'),
+                              self.metadata, self.sa_df,
+                              self.blanks_dir)
+        # Raisees error for duplicate sample 41B.Month6.10
+        with self.assertRaises(ValueError):
+            validate_plate_df(plate_df.replace('41B.Month6.1',
+                                               '41B.Month6.10'),
+                              self.metadata, self.sa_df,
+                              self.blanks_dir)
+        # Raises error for incomplete katharoseq dilution series
+        with self.assertRaises(ValueError):
+            validate_plate_df(plate_df.replace(240000.0,
+                                               1200000.0),
+                              self.metadata, self.sa_df,
+                              self.blanks_dir)
+
     def test_read_plate_map_csv(self):
         plate_map_csv = \
             'Sample\tRow\tCol\tBlank\tProject Name\twell_id_96\n' + \
@@ -1023,7 +1130,7 @@ class Tests(TestCase):
                                                                  0.0],
                                      'Diluted': [False, False, False, False,
                                                  False],
-                                     'synDNA pool number': [None, None, None,
+                                     'syndna_pool_number': [None, None, None,
                                                             None, None]})
 
         pd.testing.assert_frame_equal(test_df_, exp_plate_df,
@@ -1049,7 +1156,7 @@ class Tests(TestCase):
                                 })
 
         test_df_ = add_syndna(test_df, syndna_pool_number='pool1',
-                              syndna_concentration=2.35)
+                              syndna_concentration=2.22)
 
         exp_plate_df = pd.DataFrame({'Sample': ['sample_1', 'sample_2',
                                                 'sample_3', 'sample_4',
@@ -1066,12 +1173,14 @@ class Tests(TestCase):
                                                                  0.0, 0.0],
                                      'Diluted': [False, False, False, False,
                                                  False],
-                                     'synDNA pool number': ['pool1', 'pool1',
+                                     'syndna_pool_number': ['pool1', 'pool1',
                                                             'pool1', 'pool1',
                                                             'pool1'],
                                      'Input DNA': [5.0, 5.0, 5.0, 3.50, 1.75],
-                                     'synDNA volume': [106.38, 106.38, 106.38,
-                                                       74.46, 37.23]
+                                     'synDNA volume': [112.61, 112.61, 112.61,
+                                                       78.82, 39.41],
+                                     'mass_syndna_input_ng': [0.25, 0.25, 0.25,
+                                                              0.175, 0.0875]
                                      })
 
         pd.testing.assert_frame_equal(test_df_, exp_plate_df,

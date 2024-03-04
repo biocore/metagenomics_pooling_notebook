@@ -5,8 +5,7 @@ import shutil
 import pandas as pd
 from sample_sheet import Sample
 from unittest import main, TestCase
-
-from metapool import KLSampleSheet
+from metapool.sample_sheet import MetagenomicSampleSheetv90
 from metapool.count import (_extract_name_and_lane, _parse_samtools_counts,
                             _parse_fastp_counts, bcl2fastq_counts,
                             fastp_counts, minimap2_counts, run_counts,
@@ -18,8 +17,8 @@ class TestCount(TestCase):
         data_dir = os.path.join(os.path.dirname(__file__), 'data')
         self.run_dir = os.path.join(data_dir, 'runs',
                                     '200318_A00953_0082_AH5TWYDSXY')
-        self.ss = KLSampleSheet(os.path.join(self.run_dir, 'sample-sheet.csv'))
-
+        self.ss = MetagenomicSampleSheetv90(os.path.join(self.run_dir,
+                                                         'sample-sheet.csv'))
         self.stats = pd.DataFrame(RUN_STATS)
         # help make comparisons consistent
         self.stats.sort_index(inplace=True)
@@ -196,7 +195,7 @@ class TestCount(TestCase):
 
     def test_fastp_counts(self):
         obs = fastp_counts(self.run_dir, self.ss)
-        exp = self.stats[['quality_filtered_reads_r1r2']]
+        exp = self.stats[['total_biological_reads_r1r2']]
         pd.testing.assert_frame_equal(obs.sort_index(), exp)
 
     def test_minimap2_counts(self):
@@ -214,7 +213,7 @@ RUN_STATS = {
                        ('sample1', '3'): 100000, ('sample2', '3'): 2300000,
                        ('sample3', '3'): 300000, ('sample4', '3'): 400000,
                        ('sample5', '3'): 567000},
-    'quality_filtered_reads_r1r2': {('sample1', '1'): 10800.0,
+    'total_biological_reads_r1r2': {('sample1', '1'): 10800.0,
                                     ('sample2', '1'): 61404.0,
                                     ('sample1', '3'): 335996.0,
                                     ('sample2', '3'): 18374.0,
@@ -225,20 +224,27 @@ RUN_STATS = {
                        ('sample1', '3'): 1168275.0, ('sample2', '3'): 1277.0,
                        ('sample3', '3'): 33162.0, ('sample4', '3'): 2777.0,
                        ('sample5', '3'): 4337654.0},
-    'fraction_passing_quality_filter': {('sample1', '1'): 1.08,
-                                        ('sample2', '1'): 0.61404,
-                                        ('sample1', '3'): 3.35996,
-                                        ('sample2', '3'): 0.007988695652173913,
-                                        ('sample3', '3'): 0.01564,
-                                        ('sample4', '3'): 0.0024,
-                                        ('sample5', '3'): 54.402462081128746},
-    'fraction_non_human': {('sample1', '1'): 10.293703703703704,
-                           ('sample2', '1'): 4.521057260113348,
-                           ('sample1', '3'): 3.477050322027643,
-                           ('sample2', '3'): 0.06950038097311419,
-                           ('sample3', '3'): 7.067774936061381,
-                           ('sample4', '3'): 2.892708333333333,
-                           ('sample5', '3'): 0.14062200732952615}}
+    'quality_filtered_reads_r1r2': {('sample1', '1'): 16.0,
+                                    ('sample2', '1'): 16.0,
+                                    ('sample1', '3'): 16.0,
+                                    ('sample2', '3'): 16.0,
+                                    ('sample3', '3'): 16.0,
+                                    ('sample4', '3'): 16.0,
+                                    ('sample5', '3'): 16.0},
+    'fraction_passing_quality_filter': {('sample1', '1'): 0.0016,
+                                        ('sample2', '1'): 0.00016,
+                                        ('sample1', '3'): 0.00016,
+                                        ('sample2', '3'): 0.00000695652,
+                                        ('sample3', '3'): 0.00005333333,
+                                        ('sample4', '3'): 0.00004,
+                                        ('sample5', '3'): 0.00002821869},
+    'fraction_non_human': {('sample1', '1'): 6948.25,
+                           ('sample2', '1'): 17350.6875,
+                           ('sample1', '3'): 73017.1875,
+                           ('sample2', '3'): 79.8125,
+                           ('sample3', '3'): 2072.625,
+                           ('sample4', '3'): 173.5625,
+                           ('sample5', '3'): 271103.375}}
 
 
 class TestBCLConvertCount(TestCase):
@@ -263,7 +269,8 @@ class TestBCLConvertCount(TestCase):
                                  'Reports',
                                  'Demultiplex_Stats.csv'))
 
-        self.ss = KLSampleSheet(os.path.join(self.run_dir, 'sample-sheet.csv'))
+        self.ss = MetagenomicSampleSheetv90(os.path.join(self.run_dir,
+                                                         'sample-sheet.csv'))
 
         self.stats = pd.DataFrame(RUN_STATS)
         # help make comparisons consistent
