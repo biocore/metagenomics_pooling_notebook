@@ -230,7 +230,6 @@ def minimap2_counts(run_dir, metadata):
 def direct_sequence_counts(run_dir, metadata):
     if isinstance(metadata, metapool.KLSampleSheet):
         projects = {(s.Sample_Project, s.Lane) for s in metadata}
-        expected = {s.Sample_ID for s in metadata}
     else:
         raise ValueError("counts not implemented for amplicon")
 
@@ -261,7 +260,8 @@ def direct_sequence_counts(run_dir, metadata):
             return_code = proc.returncode
 
             if return_code != 0:
-                raise ValueError("could not read %s" % item)
+                msg = "seqtk error: %s\n%s" % (stdout, stderr)
+                raise ValueError("could not read %s: %s" % (item, msg))
 
             # split output and extract first value from results like:
             # 17088755    2516404944
@@ -272,9 +272,6 @@ def direct_sequence_counts(run_dir, metadata):
 
             if m is None:
                 raise ValueError(f"{item} doesn't match")
-
-            if m[1] not in expected:
-                raise ValueError("no match for %s" % m[1])
 
             if m[1] not in samples:
                 # if this is the first read for this sample, create a dict
