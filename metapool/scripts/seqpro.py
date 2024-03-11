@@ -49,11 +49,16 @@ def format_preparation_files(run_dir, sample_sheet, output_dir, pipeline,
         click.echo('Stats collection is not supported for pipeline '
                    'atropos-and-bowtie2')
 
+    # sample_sheet_to_dataframe() automatically lowercases the column names
+    # before returning df_sheet. Hence, sample_sheet.CARRIED_PREP_COLUMNS also
+    # needs to be lowercased for the purposes of tests in
+    # preparation_for_run().
+    c_prep_columns = [x.lower() for x in sample_sheet.CARRIED_PREP_COLUMNS]
     # returns a map of (run, project_name, lane) -> preparation frame
     preps = preparations_for_run(run_dir,
                                  df_sheet,
                                  sample_sheet.GENERATED_PREP_COLUMNS,
-                                 sample_sheet.CARRIED_PREP_COLUMNS,
+                                 c_prep_columns,
                                  pipeline=pipeline)
 
     os.makedirs(output_dir, exist_ok=True)

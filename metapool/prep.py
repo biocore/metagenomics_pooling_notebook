@@ -423,7 +423,7 @@ def process_sample(sample, prep_columns, run_center, run_date, run_prefix,
                           "sample_name", "experiment_design_description",
                           "library_construction_protocol", "sample_plate",
                           "i7_index_id", "index", "i5_index_id", "index2",
-                          "sample_project", 'well_id_384', 'Sample_Well'
+                          "sample_project", 'well_id_384', 'sample_well'
                           ]
 
     for attribute in additional_columns:
@@ -431,16 +431,17 @@ def process_sample(sample, prep_columns, run_center, run_date, run_prefix,
             result[attribute] = sample[attribute]
 
     # sanity-checks
-    if 'well_id_384' in sample and 'Sample_Well' in sample:
+    if 'well_id_384' in sample and 'sample_well' in sample:
+        # sample_well will be 'Sample_Well' to the user.
         raise ValueError("'well_id_384' and 'Sample_Well' are both defined"
                          "in sample.")
 
-    if 'well_id_384' not in sample and 'Sample_Well' not in sample:
+    if 'well_id_384' not in sample and 'sample_well' not in sample:
         raise ValueError("'well_id_384' and 'Sample_Well' are both undefined"
                          "in sample.")
 
     well_id = result['well_id_384'] if 'well_id_384' in sample else result[
-        'Sample_Well']
+        'sample_well']
 
     result["well_description"] = '%s.%s.%s' % (sample.sample_plate,
                                                sample.sample_name,
