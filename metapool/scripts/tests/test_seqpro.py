@@ -25,13 +25,15 @@ class SeqproTests(unittest.TestCase):
 
         self.fastp_run = os.path.join(data_dir, 'runs',
                                       '200318_A00953_0082_AH5TWYDSXY')
+
         self.fastp_sheet = os.path.join(self.fastp_run, 'sample-sheet.csv')
+        self.v90_test_sheet = os.path.join(self.fastp_run,
+                                           'mgv90_test_sheet.csv')
 
     def tearDown(self):
         rmtree(self.vf_test_dir, ignore_errors=True)
 
     def test_atropos_run(self):
-        # TODO: Fix this test
         runner = CliRunner()
 
         with runner.isolated_filesystem():
@@ -282,6 +284,25 @@ class SeqproTests(unittest.TestCase):
                           'XY.Trojecp_666.3.tsv'), stdout)
         self.assertEqual('', stderr)
         self.assertEqual(0, return_code)
+
+    def test_legacy_run(self):
+        runner = CliRunner()
+
+        # confirm seqpro runs w/out error when using a legacy sample-sheet.
+        # the sheet used is sample-sheet.csv converted to v90 metagenomic
+        # spec.
+
+        with runner.isolated_filesystem():
+            result = runner.invoke(format_preparation_files,
+                                   args=[self.fastp_run, self.v90_test_sheet,
+                                         './', '--pipeline',
+                                         'fastp-and-minimap2'])
+
+            # all we need to test is that seqpro didn't exit abnormally.
+            # this implies that it successfully processed a sample-sheet w/
+            # a mixed-case column ('Sample_Well').
+            self.assertEqual(result.output, '')
+            self.assertEqual(result.exit_code, 0)
 
 
 class SeqproBCLConvertTests(unittest.TestCase):
