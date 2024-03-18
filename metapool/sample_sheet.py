@@ -1273,7 +1273,16 @@ def sample_sheet_to_dataframe(sheet):
                                           'experiment_design_description']],
                     left_on='sample_project', right_on='Sample_Project')
     out.drop(columns='Sample_Project', inplace=True)
-    out.sort_values(by='well_id_384', inplace=True)
+
+    # it is 'sample_well' and not 'Sample_Well' because of c.lower() above.
+    if 'sample_well' in out.columns:
+        out.sort_values(by='sample_well', inplace=True)
+    elif 'well_id_384' in out.columns:
+        out.sort_values(by='well_id_384', inplace=True)
+    else:
+        raise ValueError("'Sample_Well' and 'well_id_384' columns are not "
+                         "present")
+
     return out.set_index('sample_id')
 
 
