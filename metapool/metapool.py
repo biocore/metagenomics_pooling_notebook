@@ -1715,8 +1715,8 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None):
         plate_df['Sample'] = np.where(
             (plate_df['Sample'].isna()) &
             (plate_df == 'positive_control').any(axis=1),
-            "kathseq." + plate_df['number_of_cells'].astype(str) + "." +
-            plate_df['Row'] + plate_df['Col'].astype(str),
+            "katharo." + plate_df['Project Abbreviation'] + "." + plate_df['Project Plate'].str.split('_').str.get(-1) + "." +
+            plate_df['Row'] + plate_df['Col'].astype(str) + "." + plate_df['number_of_cells'].astype(str),
             plate_df['Sample'])
 
     else:
@@ -1728,7 +1728,7 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None):
     plate_df['Sample'] = np.where(
         (plate_df['Sample'].isna()) &
         (plate_df == 'negative_control').any(axis=1),
-        "BLANK" + plate_df['Project Plate'].str.split('_').str.get(-1) +
+        "BLANK" + "." + plate_df['Project Abbreviation'] + "." + plate_df['Project Plate'].str.split('_').str.get(-1) +
         "." + plate_df['Row'] + plate_df['Col'].astype(str),
         plate_df['Sample'])
 
