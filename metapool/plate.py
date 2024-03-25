@@ -11,11 +11,13 @@ from string import ascii_uppercase
 
 
 EXPECTED_COLUMNS = {
-    'Plate Position', 'Primer Plate #', 'Plating', 'Extraction Kit Lot',
+    'Plate Position', 'Plate map file', 'Plate elution volume',
+    'Primer Plate #', 'Plating', 'Extraction Kit Lot',
     'Extraction Robot', 'TM1000 8 Tool', 'Primer Date', 'MasterMix Lot',
     'Water Lot', 'Processing Robot', 'Sample Plate', 'Project_Name',
-    'Original Name', 'TM300 8 Tool', 'TM50 8 Tool', 'TM10 8 Tool', 'run_date',
-    'instrument_model', 'center_project_name', 'experiment_design_description'}
+    'Project_Abbreviation', 'Original Name', 'TM300 8 Tool', 'TM50 8 Tool',
+    'TM10 8 Tool', 'run_date','instrument_model', 'center_project_name',
+    'experiment_design_description'}
 
 
 class Message(object):

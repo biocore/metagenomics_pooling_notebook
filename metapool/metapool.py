@@ -313,7 +313,7 @@ def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
 
     if qiita_validate:
         errors = []
-        for project, _df in plate_df.groupby(['Project Name']):
+        for project, _df in plate_df.groupby(['Project_Name']):
             # if project is a tuple, force to string
             if isinstance(project, tuple):
                 project = project[0]
@@ -1553,16 +1553,23 @@ def compress_plates(compression_layout, sample_accession_df,
         # Populate plate map
         plate_map = read_visionmate_file(fp, ['TubeCode', 'RackID'])
         plate_map['Project Name'] = \
-            compression_layout[plate_dict_index]['Project Name']
-        plate_map['Plate Position'] = position
-        plate_map['Project Plate'] = \
-            str(compression_layout[plate_dict_index]['Project Name'] +
-                '_' +
-                compression_layout[plate_dict_index]['Project Plate'])
+            compression_layout[plate_dict_index]['Project_Name']
         plate_map['Project Abbreviation'] = \
-            compression_layout[plate_dict_index]['Project Abbreviation']
+            compression_layout[plate_dict_index]['Project_Abbreviation']
         plate_map['vol_extracted_elution_ul'] = \
             compression_layout[plate_dict_index]['Plate elution volume']
+        if 'Project Plate' in compression_layout[plate_dict_index]:
+        # If yes, use "Project Plate" to construct the value for
+        # "Project Plate" in plate_map
+            plate_map['Project Plate'] = \
+            str(compression_layout[plate_dict_index]['Project_Name'] +
+            '_' + compression_layout[plate_dict_index]['Project Plate'])
+        elif 'Sample Plate' in compression_layout[plate_dict_index]:
+        # If "Project Plate" is not present but "Sample Plate" is, use
+        # "Sample Plate" for "Project Plate" in plate_map
+             plate_map['Project Plate'] = \
+             compression_layout[plate_dict_index]['Sample Plate']
+
 
         # Assign 384 well from compressed plate position
         well_mapper._reset()
