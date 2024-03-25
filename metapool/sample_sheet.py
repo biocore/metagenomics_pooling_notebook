@@ -1048,7 +1048,9 @@ class MetatranscriptomicSampleSheetv10(KLSampleSheet):
                             'i7_index_id', 'index', 'index2',
                             'library_construction_protocol', 'sample_name',
                             'sample_plate', 'sample_project',
-                            'well_description', 'well_id_384']
+                            'well_description', 'well_id_384',
+                            'total_rna_concentration_ng_ul',
+                            'vol_extracted_elution_ul']
 
     def __init__(self, path=None):
         super().__init__(path=path)
