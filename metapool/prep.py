@@ -420,6 +420,7 @@ def process_sample(sample, prep_columns, run_center, run_date, run_prefix,
     additional_columns = ['syndna_pool_number', 'mass_syndna_input_ng',
                           'extracted_gdna_concentration_ng_ul',
                           'vol_extracted_elution_ul',
+                          'total_rna_concentration_ng_ul',
                           "sample_name", "experiment_design_description",
                           "library_construction_protocol", "sample_plate",
                           "i7_index_id", "index", "i5_index_id", "index2",
@@ -665,8 +666,8 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
                 row['primer_plate'] = sample.primer_plate
                 if 'well_id_384' in sample:
                     row["well_id_384"] = sample.well_id_384
-                elif 'Sample_Well' in sample:
-                    row["Sample_Well"] = sample.Sample_Well
+                elif 'sample_well' in sample:
+                    row["sample_well"] = sample.sample_well
                 row['well_id_96'] = sample.well_id_96
                 row['plating'] = sample.plating
                 row['extractionkit_lot'] = sample.extractionkit_lot

@@ -197,6 +197,10 @@ def _bclconvert_counts(path):
     # subselect only the columns we're concerned with
     df = df[["SampleID", "Lane", "# Reads"]]
 
+    # drop rows that have '# Reads' equal to zero. These correspond
+    # to samples w/zero-length files.
+    df = df[df['# Reads'] != 0]
+
     # double # Reads to represent forward and reverse reads.
     df['raw_reads_r1r2'] = df['# Reads'] * 2
     df.drop('# Reads', axis=1, inplace=True)
