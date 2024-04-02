@@ -47,7 +47,10 @@ class TestPrep(TestCase):
                    'center_project_name', 'instrument_model', 'runid',
                    'sample_plate', 'well_id_384', 'i7_index_id', 'index',
                    'i5_index_id', 'index2', 'lane', 'sample_project',
-                   'well_description']
+                   'well_description', 'vol_extracted_elution_ul',
+                   'platemap_generation_date', 'project_abbreviation',
+                   'TubeCode', 'Kathseq_RackID', 'number_of_cells',
+                   'description']
 
         data = [['sample.1', 'Eqiiperiment', 'Knight Lab Kapa HP',
                  'Illumina', 'UCSDMI', '2019-11-03', 'sample_1_S11_L003',
@@ -55,14 +58,16 @@ class TestPrep(TestCase):
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
                  'FooBar_666_p1', 'A3', 'iTru7_107_09', 'GCCTTGTT',
                  'iTru5_01_A', 'AACACCAC', '3', 'Baz_12345',
-                 'FooBar_666_p1.sample.1.A3'],
+                 'FooBar_666_p1.sample.1.A3', '70',
+                 '20230627', 'ADAPT', '0363132553', '', '', ''],
                 ['sample.44', 'Eqiiperiment', 'Knight Lab Kapa HP',
                  'Illumina', 'UCSDMI', '2019-11-03', 'sample_44_S14_L003',
                  'sequencing by synthesis', 'UCSD', 'Baz',
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
                  'Baz_12345_p3', 'B99', 'iTru7_107_14', 'GTCCTAAG',
                  'iTru5_01_A', 'CATCTGCT', '3', 'Baz_12345',
-                 'Baz_12345_p3.sample.44.B99']]
+                 'Baz_12345_p3.sample.44.B99', '70',
+                 '20230627', 'ADAPT', '0363132553', '', '', '']]
 
         exp = pd.DataFrame(data=data, columns=columns)
 
@@ -83,14 +88,16 @@ class TestPrep(TestCase):
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
                  'FooBar_666_p1', 'A1', 'iTru7_107_07', 'CCGACTAT',
                  'iTru5_01_A', 'ACCGACAA', '1', 'Baz_12345',
-                 'FooBar_666_p1.sample.1.A1'],
+                 'FooBar_666_p1.sample.1.A1', '70',
+                 '20230627', 'ADAPT', '0363132553', '', '', ''],
                 ['sample.2', 'Eqiiperiment', 'Knight Lab Kapa HP',
                  'Illumina', 'UCSDMI', '2019-11-03', 'sample_2_S10_L001',
                  'sequencing by synthesis', 'UCSD', 'Baz',
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
                  'FooBar_666_p1', 'A2', 'iTru7_107_08', 'CCGACTAT',
                  'iTru5_01_A', 'CTTCGCAA', '1', 'Baz_12345',
-                 'FooBar_666_p1.sample.2.A2']]
+                 'FooBar_666_p1.sample.2.A2', '70',
+                 '20230627', 'ADAPT', '0363132553', '', '', '']]
         exp = pd.DataFrame(columns=columns, data=data)
         obs_df = obs[('191103_D32611_0365_G00DHB5YXX', 'Baz_12345', '1')]
 
@@ -104,21 +111,24 @@ class TestPrep(TestCase):
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
                  'FooBar_666_p1', 'A5', 'iTru7_107_11', 'CAATGTGG',
                  'iTru5_01_A', 'GGTACGAA', '3', 'FooBar_666',
-                 'FooBar_666_p1.sample.31.A5'],
+                 'FooBar_666_p1.sample.31.A5', '70',
+                 '20230627', 'ADAPT', '0363132553', '', '', ''],
                 ['sample.32', 'SomethingWitty', 'Knight Lab Kapa HP',
                  'Illumina', 'UCSDMI', '2019-11-03', 'sample_32_S19_L003',
                  'sequencing by synthesis', 'UCSD', 'FooBar',
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
                  'FooBar_666_p1', 'B6', 'iTru7_107_12', 'AAGGCTGA',
                  'iTru5_01_A', 'CGATCGAT', '3', 'FooBar_666',
-                 'FooBar_666_p1.sample.32.B6'],
+                 'FooBar_666_p1.sample.32.B6', '70',
+                 '20230627', 'ADAPT', '0363132553', '', '', ''],
                 ['sample.34', 'SomethingWitty', 'Knight Lab Kapa HP',
                  'Illumina', 'UCSDMI', '2019-11-03', 'sample_34_S33_L003',
                  'sequencing by synthesis', 'UCSD', 'FooBar',
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
                  'FooBar_666_p1', 'B8', 'iTru7_107_13', 'TTACCGAG',
                  'iTru5_01_A', 'AAGACACC', '3', 'FooBar_666',
-                 'FooBar_666_p1.sample.34.B8']]
+                 'FooBar_666_p1.sample.34.B8', '70',
+                 '20230627', 'ADAPT', '0363132553', '', '', '']]
         exp = pd.DataFrame(columns=columns, data=data)
         obs_df = obs[('191103_D32611_0365_G00DHB5YXX', 'FooBar_666', '3')]
 
@@ -149,7 +159,10 @@ class TestPrep(TestCase):
                        'extractionkit_lot', 'target_subfragment',
                        'well_id_384', 'project_name', 'tm1000_8_tool',
                        'orig_name', 'plating', 'primer_date', 'mastermix_lot',
-                       'tm50_8_tool', 'well_id_96', 'tm10_8_tool']
+                       'tm50_8_tool', 'well_id_96', 'tm10_8_tool',
+                       'vol_extracted_elution_ul', 'platemap_generation_date',
+                       'project_abbreviation', 'TubeCode', 'Kathseq_RackID',
+                       'number_of_cells', 'description']
 
         self.assertEqual(set(exp_columns), set(obs_df.columns))
 
@@ -181,7 +194,8 @@ class TestPrep(TestCase):
              1, 'Echo 550', 'ABTX_20230208_11052_Plate_238_11.17.21.RK.FH_A2',
              float('nan'), float('nan'), 1317793, float('nan'), 'V4', 'A2',
              'ABTX_20230208_ABTX_11052', '108379Z', 'sample.2', 'HT', 122822,
-             1331807, float('nan'), 'A2', float('nan')]]
+             1331807, float('nan'), 'A2', float('nan'), '70','20230627',
+             'ADAPT','0363132553', float('nan'), float('nan'), float('nan')]]
 
         # confirm that the observed data in the prep-info output matches
         # what's expected.
@@ -459,7 +473,10 @@ class TestPrep(TestCase):
                    'center_project_name', 'instrument_model', 'runid',
                    'sample_plate', 'well_id_384', 'i7_index_id', 'index',
                    'i5_index_id', 'index2', 'lane', 'sample_project',
-                   'well_description']
+                   'well_description', 'vol_extracted_elution_ul',
+                   'platemap_generation_date','project_abbreviation',
+                   'TubeCode', 'Kathseq_RackID', 'number_of_cells',
+                   'description', 'well_id_96']
 
         data = [['importantsample1', 'EXPERIMENT_DESC', 'LIBRARY_PROTOCOL',
                  'Illumina', 'UCSDMI', '2019-11-03', 'sample1_S11_L003',
@@ -474,7 +491,8 @@ class TestPrep(TestCase):
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
                  'Baz_12345_p3', 'B99', 'iTru7_107_14', 'GTCCTAAG',
                  'iTru5_01_A', 'CATCTGCT', '3', 'Baz_12345',
-                 'Baz_12345_p3.sample44.B99']]
+                 'Baz_12345_p3.sample44.B99', '70',
+                 '20230627', 'ADAPT', '0363132553', '', '', '']]
         obs = pd.DataFrame(data=data, columns=columns)
         exp = obs.copy()
         exp['center_name'] = 'UCSDMI'
@@ -491,7 +509,10 @@ class TestPrep(TestCase):
                    'center_project_name', 'instrument_model', 'runid',
                    'sample_plate', 'well_id_384', 'i7_index_id', 'index',
                    'i5_index_id', 'index2', 'lane', 'sample_project',
-                   'well_description']
+                   'well_description', 'vol_extracted_elution_ul',
+                   'platemap_generation_date','project_abbreviation',
+                   'TubeCode', 'Kathseq_RackID', 'number_of_cells',
+                   'description', 'well_id_96']
 
         # the first sample name should be padded with 2 zeros
         # the second number should be padded with 1 zero
@@ -502,21 +523,24 @@ class TestPrep(TestCase):
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
                  'FooBar_666_p1', 'A3', 'iTru7_107_09', 'GCCTTGTT',
                  'iTru5_01_A', 'AACACCAC', '3', 'Baz_12345',
-                 'FooBar_666_p1.sample1.A3'],
+                 'FooBar_666_p1.sample1.A3', '70',
+                 '20230627', 'ADAPT', '0363132553', '', '', ''],
                 ['867530.9', 'EXPERIMENT_DESC', 'LIBRARY_PROTOCOL', 'Illumina',
                  'UCSDMI', '2019-11-03', 'sample44_S14_L003',
                  'sequencing by synthesis', 'UCSD', 'Baz_12345',
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
                  'Baz_12345_p3', 'B99', 'iTru7_107_14', 'GTCCTAAG',
                  'iTru5_01_A', 'CATCTGCT', '3', 'Baz_12345',
-                 'Baz_12345_p3.sample44.B99'],
+                 'Baz_12345_p3.sample44.B99', '70',
+                 '20230627', 'ADAPT', '0363132553', '', '', ''],
                 ['notanumber', 'EXPERIMENT_DESC', 'LIBRARY_PROTOCOL',
                  'Illumina', 'UCSDMI', '2019-11-03', 'sample44_S14_L003',
                  'sequencing by synthesis', 'UCSD', 'Baz_12345',
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
                  'Baz_12345_p3', 'B99', 'iTru7_107_14', 'GTCCTAAG',
                  'iTru5_01_A', 'CATCTGCT', '3', 'Baz_12345',
-                 'Baz_12345_p3.sample44.B99']]
+                 'Baz_12345_p3.sample44.B99', '70',
+                 '20230627', 'ADAPT', '0363132553', '', '', ''. '']]
         obs = pd.DataFrame(data=data, columns=columns)
         exp = obs.copy()
         exp['center_name'] = 'UCSDMI'
@@ -535,7 +559,10 @@ class TestPrep(TestCase):
                    'center_project_name', 'instrument_model', 'runid',
                    'sample_plate', 'well_id_384', 'i7_index_id', 'index',
                    'i5_index_id', 'index2', 'lane', 'sample_project',
-                   'well_description']
+                   'well_description', 'vol_extracted_elution_ul',
+                   'platemap_generation_date','project_abbreviation',
+                   'TubeCode', 'Kathseq_RackID', 'number_of_cells',
+                   'description', 'well_id_96']
 
         data = [['importantsample1', 'EXPERIMENT_DESC', 'LIBRARY_PROTOCOL',
                  'Illumina', 'UCSDMI', '2019-11-03', 'sample1_S11_L003',
@@ -550,7 +577,8 @@ class TestPrep(TestCase):
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
                  'Baz_12345_p3', 'B99', 'iTru7_107_14', 'GTCCTAAG',
                  'iTru5_01_A', 'CATCTGCT', '3', 'Baz_12345',
-                 'Baz_12345_p3.sample44.B99']]
+                 'Baz_12345_p3.sample44.B99', '70',
+                 '20230627', 'ADAPT', '0363132553', '', '', '', '']]
         obs = pd.DataFrame(data=data, columns=columns)
         exp = obs.copy()
 
@@ -604,7 +632,10 @@ class TestPrep(TestCase):
                     'Name', 'Illumina 5prime Adapter', 'Golay Barcode',
                     'Forward Primer Pad', 'Forward Primer Linker',
                     '515FB Forward Primer (Parada)', 'Primer For PCR',
-                    'sample sheet Sample_ID']
+                    'sample sheet Sample_ID','vol_extracted_elution_ul',
+                   'platemap_generation_date','project_abbreviation',
+                   'TubeCode', 'Kathseq_RackID', 'number_of_cells',
+                   'description', 'well_id_96']
         columns2 = ['Sample', 'Row', 'Col', 'Blank', 'Project Plate',
                     'Project Name', 'Compressed Plate Name', 'Well',
                     'Plate Position', 'Primer Plate #', 'Sample Plate',
@@ -615,7 +646,11 @@ class TestPrep(TestCase):
                     'Name', 'Reverse complement of 3prime Illumina Adapter',
                     'Golay Barcode', 'Reverse Primer Pad',
                     'Reverse Primer Linker', 'Reverse primer (EukBr)',
-                    'Primer For PCR', 'sample sheet Sample_ID']
+                    'Primer For PCR', 'sample sheet Sample_ID',
+                    'vol_extracted_elution_ul',
+                    'platemap_generation_date','project_abbreviation',
+                    'TubeCode', 'Kathseq_RackID', 'number_of_cells',
+                    'description', 'well_id_96']
         columns3 = ['Sample', 'Row', 'Col', 'Blank', 'Project Plate',
                     'Project Name', 'Compressed Plate Name', 'Well',
                     'Plate Position', 'Primer Plate #', 'Sample Plate',
@@ -626,7 +661,11 @@ class TestPrep(TestCase):
                     'Name', 'Reverse complement of 3prime Illumina Adapter',
                     'Golay Barcode', 'Reverse Primer Pad',
                     'Reverse Primer Linker', 'ITS2 Reverse Primer',
-                    'Primer For PCR', 'sample sheet Sample_ID']
+                    'Primer For PCR', 'sample sheet Sample_ID',
+                    'vol_extracted_elution_ul',
+                    'platemap_generation_date','project_abbreviation',
+                    'TubeCode', 'Kathseq_RackID', 'number_of_cells',
+                    'description', 'well_id_96']
 
         data1 = [['X00180471', 'A', 1, False, 'THDMI_10317_PUK2',
                   'THDMI_10317', 'THDMI_10317_UK2-US6', 'A1', '1', '1',
@@ -645,7 +684,8 @@ class TestPrep(TestCase):
                   'AATGATACGGCGACCACCGAGATCTACACGCT', 'CGTATAAATGCG',
                   'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
                   ('AATGATACGGCGACCACCGAGATCTACACGCTCGTATAAATGCG'
-                   'TATGGTAATTGTGTGYCAGCMGCCGCGGTAA'), 'X00180199']]
+                   'TATGGTAATTGTGTGYCAGCMGCCGCGGTAA'), 'X00180199',
+                  '70', '20230627', 'ADAPT', '0363132553', '', '', '', '']]
 
         data2 = [['X00180471', 'A', 1, False, 'THDMI_10317_PUK2',
                   'THDMI_10317', 'THDMI_10317_UK2-US6', 'A1', '1', '1',
@@ -664,7 +704,8 @@ class TestPrep(TestCase):
                   'CAAGCAGAAGACGGCATACGAGAT', 'GAATACCAAGTC', 'AGTCAGTCAG',
                   'CA', 'TGATCCTTCTGCAGGTTCACCTAC',
                   ('CAAGCAGAAGACGGCATACGAGATGAATACCAAGTCAGTCAGTCAGCAT'
-                   'GATCCTTCTGCAGGTTCACCTAC'), 'X00180199']]
+                   'GATCCTTCTGCAGGTTCACCTAC'), 'X00180199',
+                  '70', '20230627', 'ADAPT', '0363132553', '', '', '', '']]
 
         data3 = [['X00180471', 'A', 1, False, 'THDMI_10317_PUK2',
                   'THDMI_10317', 'THDMI_10317_UK2-US6', 'A1', '1', '1',
@@ -683,7 +724,8 @@ class TestPrep(TestCase):
                   'CAAGCAGAAGACGGCATACGAGAT', 'TGCATACACTGG', '', 'CG',
                   'GCTGCGTTCTTCATCGATGC', ('CAAGCAGAAGACGGCATACGAGATTGCATACAC'
                                            'TGGCGGCTGCGTTCTTCATCGATGC'),
-                  'X00180199']]
+                  'X00180199',
+                  '70', '20230627', 'ADAPT', '0363132553', '', '', '', '']]
 
         self.platedf1 = pd.DataFrame(columns=columns1, data=data1)
         self.platedf2 = pd.DataFrame(columns=columns2, data=data2)
@@ -704,7 +746,10 @@ class TestPrep(TestCase):
                         'run_center', 'run_date', 'run_prefix', 'pcr_primers',
                         'sequencing_meth', 'target_gene', 'target_subfragment',
                         'center_name', 'center_project_name',
-                        'instrument_model', 'runid', 'sample sheet Sample_ID']
+                        'instrument_model', 'runid', 'sample sheet Sample_ID',
+                        'vol_extracted_elution_ul', 'platemap_generation_date',
+                        'project_abbreviation', 'TubeCode', 'Kathseq_RackID',
+                        'number_of_cells', 'description', 'well_id_96']
 
         exp_columns2 = ['sample_name', 'barcode', 'primer', 'primer_plate',
                         'well_id_384', 'plating', 'extractionkit_lot',
@@ -718,7 +763,10 @@ class TestPrep(TestCase):
                         'sequencing_meth', 'target_gene', 'target_subfragment',
                         'center_name', 'center_project_name',
                         'instrument_model', 'runid', 'Reverse Primer Pad',
-                        'Reverse primer (EukBr)', 'sample sheet Sample_ID']
+                        'Reverse primer (EukBr)', 'sample sheet Sample_ID',
+                        'vol_extracted_elution_ul', 'platemap_generation_date',
+                        'project_abbreviation', 'TubeCode', 'Kathseq_RackID',
+                        'number_of_cells', 'description', 'well_id_96']
 
         exp_columns3 = ['sample_name', 'barcode', 'primer', 'primer_plate',
                         'well_id_384', 'plating', 'extractionkit_lot',
@@ -732,7 +780,10 @@ class TestPrep(TestCase):
                         'sequencing_meth', 'target_gene', 'target_subfragment',
                         'center_name', 'center_project_name',
                         'instrument_model', 'runid', 'ITS2 Reverse Primer',
-                        'Reverse Primer Pad', 'sample sheet Sample_ID']
+                        'Reverse Primer Pad', 'sample sheet Sample_ID',
+                        'vol_extracted_elution_ul', 'platemap_generation_date',
+                        'project_abbreviation', 'TubeCode', 'Kathseq_RackID',
+                        'number_of_cells', 'description', 'well_id_96']
 
         exp1 = pd.DataFrame(columns=exp_columns1,
                             data=[['X00180471', 'AGCCTTCGTCGC',
@@ -762,7 +813,9 @@ class TestPrep(TestCase):
                                    ('FWD:GTGYCAGCMGCCGCGGTAA; '
                                     'REV:GGACTACNVGGGTWTCTAAT'),
                                    'Sequencing by synthesis', '16S rRNA', 'V4',
-                                   'UCSDMI', '', '', '', 'X00180199']])
+                                   'UCSDMI', '', '', '', 'X00180199', '70',
+                                   '20230627','ADAPT',
+                                   '0363132553', '', '', '', 'A1']])
 
         exp2 = pd.DataFrame(columns=exp_columns2,
                             data=[['X00180471', 'ACGAGACTGATT',
@@ -792,7 +845,9 @@ class TestPrep(TestCase):
                                     'REV:TGATCCTTCTGCAGGTTCACCTAC'),
                                    'Sequencing by synthesis', '18S rRNA', 'V9',
                                    'UCSDMI', '', '', '', 'AGTCAGTCAG',
-                                   'TGATCCTTCTGCAGGTTCACCTAC', 'X00180199']])
+                                   'TGATCCTTCTGCAGGTTCACCTAC', 'X00180199', '70',
+                                   '20230627','ADAPT',
+                                   '0363132553', '', '', '', 'A1']])
 
         exp3 = pd.DataFrame(columns=exp_columns3,
                             data=[['X00180471', 'TCCCTTGTCTCC',
@@ -824,7 +879,9 @@ class TestPrep(TestCase):
                                     'REV:GCTGCGTTCTTCATCGATGC'),
                                    'Sequencing by synthesis', 'ITS', 'ITS_1_2',
                                    'UCSDMI', '', '', '',
-                                   'GCTGCGTTCTTCATCGATGC', '', 'X00180199']])
+                                   'GCTGCGTTCTTCATCGATGC', '', 'X00180199', '70',
+                                   '20230627','ADAPT',
+                                   '0363132553', '', '', '', 'A1']])
 
         pd.testing.assert_frame_equal(obs1, exp1)
         pd.testing.assert_frame_equal(obs2, exp2)

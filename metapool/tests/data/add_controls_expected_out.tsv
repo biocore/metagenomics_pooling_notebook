@@ -345,12 +345,12 @@ Sample	Col	Compressed Plate Name	Date	Plate Position	Project Abbreviation	Projec
 46R.Month6.16	8	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	E	09:30:11	0363134504	J16	70	E8				False
 46R.Month6.17	9	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	E	09:30:11	0363134505	J18	70	E9				False
 46R.Month6.18	10	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	E	09:30:11	0363134506	J20	70	E10				False
-kathseq.18000.0.E11	11	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	E	09:30:11	0363159670	J22	70	E11	positive_control	12345678	18000.0	False
-kathseq.4800.0.E12	12	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	E	09:30:11	0363159656	J24	70	E12	positive_control	12345678	4800.0	False
-kathseq.960.0.F1	1	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	F	09:30:11	0363159647	L2	70	F1	positive_control	98765432	960.0	False
-kathseq.192.0.F2	2	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	F	09:30:11	0363159609	L4	70	F2	positive_control	98765432	192.0	False
-kathseq.38.4.F3	3	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	F	09:30:11	0363159623	L6	70	F3	positive_control	98765432	38.4	False
-kathseq.7.68.F4	4	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	F	09:30:11	0363159600	L8	70	F4	positive_control	98765432	7.68	False
+katharo.ADAPT.21.E11.18000.0	11	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	E	09:30:11	0363159670	J22	70	E11	positive_control	12345678	18000.0	False
+katharo.ADAPT.21.E12.4800.0	12	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	E	09:30:11	0363159656	J24	70	E12	positive_control	12345678	4800.0	False
+katharo.ADAPT.21.F1.960.0	1	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	F	09:30:11	0363159647	L2	70	F1	positive_control	98765432	960.0	False
+katharo.ADAPT.21.F2.192.0	2	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	F	09:30:11	0363159609	L4	70	F2	positive_control	98765432	192.0	False
+katharo.ADAPT.21.F3.38.4	3	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	F	09:30:11	0363159623	L6	70	F3	positive_control	98765432	38.4	False
+katharo.ADAPT.21.F4.7.68	4	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	F	09:30:11	0363159600	L8	70	F4	positive_control	98765432	7.68	False
 46R.Month6.24	5	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	F	09:30:11	0363134513	L10	70	F5				False
 46R.Month6.3	6	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	F	09:30:11	0363134514	L12	70	F6				False
 46R.Month6.4	7	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	F	09:30:11	0363134515	L14	70	F7				False
@@ -362,24 +362,24 @@ kathseq.7.68.F4	4	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_
 24L.Day7.21	1	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	G	09:30:11	0359085146	N2	70	G1				False
 24L.Day7.22	2	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	G	09:30:11	0359085141	N4	70	G2				False
 24L.Day7.23	3	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	G	09:30:11	0359085149	N6	70	G3				False
-BLANK21.G4	4	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	G	09:30:11	0363238857	N8	70	G4	negative_control			True
-BLANK21.G5	5	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	G	09:30:11	0363238864	N10	70	G5	negative_control			True
-BLANK21.G6	6	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	G	09:30:11	0363238872	N12	70	G6	negative_control			True
-BLANK21.G7	7	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	G	09:30:11	0363238880	N14	70	G7	negative_control			True
-BLANK21.G8	8	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	G	09:30:11	0363183400	N16	70	G8	negative_control			True
-BLANK21.G9	9	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	G	09:30:11	0363183410	N18	70	G9	negative_control			True
-BLANK21.G10	10	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	G	09:30:11	0363183417	N20	70	G10	negative_control			True
-BLANK21.G11	11	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	G	09:30:11	0363183425	N22	70	G11	negative_control			True
-BLANK21.G12	12	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	G	09:30:11	0363183422	N24	70	G12	negative_control			True
-BLANK21.H1	1	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	H	09:30:11	0363183435	P2	70	H1	negative_control			True
-BLANK21.H2	2	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	H	09:30:11	0363183443	P4	70	H2	negative_control			True
-BLANK21.H3	3	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	H	09:30:11	0363183468	P6	70	H3	negative_control			True
-BLANK21.H4	4	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	H	09:30:11	0363238858	P8	70	H4	negative_control			True
-BLANK21.H5	5	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	H	09:30:11	0363238865	P10	70	H5	negative_control			True
-BLANK21.H6	6	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	H	09:30:11	0363238873	P12	70	H6	negative_control			True
-kathseq.1200000.0.H7	7	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	H	09:30:11	0363159666	P14	70	H7	positive_control	12345678	1200000.0	False
-kathseq.1200000.0.H8	8	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	H	09:30:11	0363159642	P16	70	H8	positive_control	12345678	1200000.0	False
-kathseq.1200000.0.H9	9	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	H	09:30:11	0363159665	P18	70	H9	positive_control	12345678	1200000.0	False
-kathseq.1200000.0.H10	10	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	H	09:30:11	0363159649	P20	70	H10	positive_control	12345678	1200000.0	False
-kathseq.1200000.0.H11	11	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	H	09:30:11	0363159633	P22	70	H11	positive_control	12345678	1200000.0	False
-kathseq.240000.0.H12	12	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	H	09:30:11	0363159669	P24	70	H12	positive_control	12345678	240000.0	False
+BLANK.ADAPT.21.G4	4	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	G	09:30:11	0363238857	N8	70	G4	negative_control			True
+BLANK.ADAPT.21.G5	5	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	G	09:30:11	0363238864	N10	70	G5	negative_control			True
+BLANK.ADAPT.21.G6	6	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	G	09:30:11	0363238872	N12	70	G6	negative_control			True
+BLANK.ADAPT.21.G7	7	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	G	09:30:11	0363238880	N14	70	G7	negative_control			True
+BLANK.ADAPT.21.G8	8	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	G	09:30:11	0363183400	N16	70	G8	negative_control			True
+BLANK.ADAPT.21.G9	9	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	G	09:30:11	0363183410	N18	70	G9	negative_control			True
+BLANK.ADAPT.21.G10	10	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	G	09:30:11	0363183417	N20	70	G10	negative_control			True
+BLANK.ADAPT.21.G11	11	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	G	09:30:11	0363183425	N22	70	G11	negative_control			True
+BLANK.ADAPT.21.G12	12	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	G	09:30:11	0363183422	N24	70	G12	negative_control			True
+BLANK.ADAPT.21.H1	1	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	H	09:30:11	0363183435	P2	70	H1	negative_control			True
+BLANK.ADAPT.21.H2	2	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	H	09:30:11	0363183443	P4	70	H2	negative_control			True
+BLANK.ADAPT.21.H3	3	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	H	09:30:11	0363183468	P6	70	H3	negative_control			True
+BLANK.ADAPT.21.H4	4	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	H	09:30:11	0363238858	P8	70	H4	negative_control			True
+BLANK.ADAPT.21.H5	5	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	H	09:30:11	0363238865	P10	70	H5	negative_control			True
+BLANK.ADAPT.21.H6	6	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	H	09:30:11	0363238873	P12	70	H6	negative_control			True
+katharo.ADAPT.21.H7.1200000.0	7	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	H	09:30:11	0363159666	P14	70	H7	positive_control	12345678	1200000.0	False
+katharo.ADAPT.21.H8.1200000.0	8	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	H	09:30:11	0363159642	P16	70	H8	positive_control	12345678	1200000.0	False
+katharo.ADAPT.21.H9.1200000.0	9	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	H	09:30:11	0363159665	P18	70	H9	positive_control	12345678	1200000.0	False
+katharo.ADAPT.21.H10.1200000.0	10	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	H	09:30:11	0363159649	P20	70	H10	positive_control	12345678	1200000.0	False
+katharo.ADAPT.21.H11.1200000.0	11	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	H	09:30:11	0363159633	P22	70	H11	positive_control	12345678	1200000.0	False
+katharo.ADAPT.21.H12.240000.0	12	Celeste_Adaptation_12986_16_17_18_21	20230627	4	ADAPT	Celeste_Adaptation_12986	Celeste_Adaptation_12986_Plate_21	plate_4	H	09:30:11	0363159669	P24	70	H12	positive_control	12345678	240000.0	False

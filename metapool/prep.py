@@ -766,6 +766,8 @@ def generate_qiita_prep_file(platedf, seqtype):
             'Processing Robot': 'processing_robot',
             'Sample Plate': 'sample_plate',
             'Forward Primer Linker': 'linker',
+            'Date': 'platemap_generation_date',
+            'Project Abbreviation': 'project_abbreviation'
         }
     else:
         column_renamer = {
@@ -787,7 +789,9 @@ def generate_qiita_prep_file(platedf, seqtype):
             'Water Lot': 'water_lot',
             'Processing Robot': 'processing_robot',
             'Sample Plate': 'sample_plate',
-            'Reverse Primer Linker': 'linker'
+            'Reverse Primer Linker': 'linker',
+            'Date': 'platemap_generation_date',
+            'Project Abbreviation': 'project_abbreviation'
         }
 
     prep = platedf.copy()
@@ -858,8 +862,9 @@ def generate_qiita_prep_file(platedf, seqtype):
     remove_these = {'Blank', 'Col', 'Compressed Plate Name', 'Plate Position',
                     'EMP Primer Plate Well', 'Forward Primer Pad', 'Name',
                     'Illumina 5prime Adapter', 'Original Name', 'Plate', 'Row',
-                    'Primer For PCR', 'Project Plate', 'index',
-                    'Project_Name', 'Project_Abbreviation'}
+                    'Primer For PCR', 'Project Plate', 'index', 
+                    'Plate elution volume', 'Plate map file', 'Time',
+                    'RackID'}
 
 
     # only remove the columns from the above set that are actually present in
