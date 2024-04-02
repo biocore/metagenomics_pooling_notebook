@@ -16,7 +16,7 @@ import glob
 
 REVCOMP_SEQUENCERS = ['HiSeq4000', 'MiniSeq', 'NextSeq', 'HiSeq3000',
                       'iSeq', 'NovaSeq6000']
-OTHER_SEQUENCERS = ['HiSeq2500', 'HiSeq1500', 'MiSeq','NovaSeqX',
+OTHER_SEQUENCERS = ['HiSeq2500', 'HiSeq1500', 'MiSeq', 'NovaSeqX',
                     'NovaSeqXPlus']
 
 SYNDNA_POOL_NUM_KEY = 'syndna_pool_number'
@@ -1210,18 +1210,22 @@ def merge_read_counts(plate_df, counts_df, reads_column_name='Filtered Reads'):
     elif 'filename' in counts_df.columns:
         sample_column = 'filename'
         file_type = 'per_sample_FASTQ'
+    elif 'qiita_prep_id' in counts_df.columns:
+        sample_column = 'old_sample_name'
+        file_type = 'prep_file'
     else:
         raise Exception("Unsupported input file type.")
 
-    # Parse table to find sample names, and sum forward and rev reads.
-    for i in counts_df.index:
-        filename = counts_df.loc[i, sample_column]
-        match = re.match(r'^(.*)_S\d+_L00\d', filename)
-        if not match:
-            raise LookupError(f'id not found in {filename}')
-        sample_id = match.group(1)
-        counts_df.loc[i, 'Sample'] = sample_id
-    counts_df = counts_df.groupby('Sample').sum(numeric_only=True)
+    if file_type != 'prep_file':
+        # Parse table to find sample names, and sum forward and rev reads.
+        for i in counts_df.index:
+            filename = counts_df.loc[i, sample_column]
+            match = re.match(r'^(.*)_S\d+_L00\d', filename)
+            if not match:
+                raise LookupError(f'id not found in {filename}')
+            sample_id = match.group(1)
+            counts_df.loc[i, 'Sample'] = sample_id
+        counts_df = counts_df.groupby('Sample').sum(numeric_only=True)
 
     # Logic for multiple input_file format support
     if file_type == 'FastQC':
@@ -1230,6 +1234,17 @@ def merge_read_counts(plate_df, counts_df, reads_column_name='Filtered Reads'):
     elif file_type == 'per_sample_FASTQ':
         counts_df.rename(columns={'reads': reads_column_name},
                          inplace=True)
+    elif file_type == 'prep_file':
+        counts_df = counts_df[[sample_column, 'quality_filtered_reads_r1r2',
+                               'raw_reads_r1r2']]
+        counts_df.rename(columns={sample_column: 'Sample',
+                                  'quality_filtered_reads_r1r2':
+                                  'Filtered Reads',
+                                  'raw_reads_r1r2': 'Raw Reads'},
+                         inplace=True)
+        # Map unwanted characters to other characters
+        counts_df['Sample'] = counts_df['Sample'].map(bcl_scrub_name)
+        counts_df.set_index('Sample', inplace=True)
 
     # Merge reads with plate_df
     to_merge = counts_df[[reads_column_name]]
