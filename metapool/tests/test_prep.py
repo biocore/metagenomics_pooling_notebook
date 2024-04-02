@@ -594,7 +594,10 @@ class TestPrep(TestCase):
             'sample_plate', 'linker', 'orig_name', 'well_description',
             'pcr_primers', 'center_name', 'run_center', 'platform',
             'target_subfragment', 'target_gene', 'sequencing_meth',
-            'library_construction_protocol']
+            'library_construction_protocol', 'vol_extracted_elution_ul',
+            'platemap_generation_date', 'project_abbreviation',
+            'TubeCode', 'Kathseq_RackID', 'number_of_cells',
+            'description']
 
         data = [
             ['AGCCTTCGTCGC', 'GTGYCAGCMGCCGCGGTAA', 'THDMI_10317', 'A1', '1',
@@ -623,7 +626,7 @@ class TestPrep(TestCase):
 
     def test_generate_qiita_prep_file(self):
         columns1 = ['Sample', 'Row', 'Col', 'Blank', 'Project Plate',
-                    'Project Name', 'Compressed Plate Name', 'Well',
+                    'Compressed Plate Name', 'Well',
                     'Plate Position', 'Primer Plate #', 'Sample Plate',
                     'Project_Name', 'Plating', 'Extraction Kit Lot',
                     'Extraction Robot', 'TM1000 8 Tool', 'Primer Date',
@@ -637,7 +640,7 @@ class TestPrep(TestCase):
                    'TubeCode', 'Kathseq_RackID', 'number_of_cells',
                    'description', 'well_id_96']
         columns2 = ['Sample', 'Row', 'Col', 'Blank', 'Project Plate',
-                    'Project Name', 'Compressed Plate Name', 'Well',
+                    'Compressed Plate Name', 'Well',
                     'Plate Position', 'Primer Plate #', 'Sample Plate',
                     'Project_Name', 'Plating', 'Extraction Kit Lot',
                     'Extraction Robot', 'TM1000 8 Tool', 'Primer Date',
@@ -652,7 +655,7 @@ class TestPrep(TestCase):
                     'TubeCode', 'Kathseq_RackID', 'number_of_cells',
                     'description', 'well_id_96']
         columns3 = ['Sample', 'Row', 'Col', 'Blank', 'Project Plate',
-                    'Project Name', 'Compressed Plate Name', 'Well',
+                    'Compressed Plate Name', 'Well',
                     'Plate Position', 'Primer Plate #', 'Sample Plate',
                     'Project_Name', 'Plating', 'Extraction Kit Lot',
                     'Extraction Robot', 'TM1000 8 Tool', 'Primer Date',
@@ -668,8 +671,8 @@ class TestPrep(TestCase):
                     'description', 'well_id_96']
 
         data1 = [['X00180471', 'A', 1, False, 'THDMI_10317_PUK2',
-                  'THDMI_10317', 'THDMI_10317_UK2-US6', 'A1', '1', '1',
-                  'THDMI_UK_Plate_2', 'THDMI UK', 'SF', '166032128',
+                  'THDMI_10317_UK2-US6', 'A1', '1', '1',
+                  'THDMI_UK_Plate_2', 'THDMI_10317', 'SF', '166032128',
                   'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215',
                   'RNBJ0628', 'Echo550', '', '1', 'A1', '515rcbc0',
                   'AATGATACGGCGACCACCGAGATCTACACGCT', 'AGCCTTCGTCGC',
@@ -677,8 +680,8 @@ class TestPrep(TestCase):
                   ('AATGATACGGCGACCACCGAGATCTACACGCTAGCCTTCGTCGCT'
                    'ATGGTAATTGTGTGYCAGCMGCCGCGGTAA'), 'X00180471'],
                  ['X00180199', 'C', 1, False, 'THDMI_10317_PUK2',
-                  'THDMI_10317', 'THDMI_10317_UK2-US6', 'C1', '1', '1',
-                  'THDMI_UK_Plate_2', 'THDMI UK', 'SF', '166032128',
+                  'THDMI_10317_UK2-US6', 'C1', '1', '1',
+                  'THDMI_UK_Plate_2', 'THDMI_10317', 'SF', '166032128',
                   'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215',
                   'RNBJ0628', 'Echo550', '', '1', 'B1', '515rcbc12',
                   'AATGATACGGCGACCACCGAGATCTACACGCT', 'CGTATAAATGCG',
@@ -688,8 +691,8 @@ class TestPrep(TestCase):
                   '70', '20230627', 'ADAPT', '0363132553', '', '', '', '']]
 
         data2 = [['X00180471', 'A', 1, False, 'THDMI_10317_PUK2',
-                  'THDMI_10317', 'THDMI_10317_UK2-US6', 'A1', '1', '1',
-                  'THDMI_UK_Plate_2', 'THDMI UK', 'SF', '166032128',
+                  'THDMI_10317_UK2-US6', 'A1', '1', '1',
+                  'THDMI_UK_Plate_2', 'THDMI_10317', 'SF', '166032128',
                   'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215',
                   'RNBJ0628', 'Echo550', '', '1', 'A1', 'EukBr_Hiseq_0017',
                   'CAAGCAGAAGACGGCATACGAGAT', 'ACGAGACTGATT', 'AGTCAGTCAG',
@@ -697,8 +700,8 @@ class TestPrep(TestCase):
                   ('CAAGCAGAAGACGGCATACGAGATACGAGACTGATTAGTCAGTCAGCAT'
                    'GATCCTTCTGCAGGTTCACCTAC'), 'X00180471'],
                  ['X00180199', 'C', 1, False, 'THDMI_10317_PUK2',
-                  'THDMI_10317', 'THDMI_10317_UK2-US6', 'C1', '1', '1',
-                  'THDMI_UK_Plate_2', 'THDMI UK', 'SF', '166032128',
+                  'THDMI_10317_UK2-US6', 'C1', '1', '1',
+                  'THDMI_UK_Plate_2', 'THDMI_10317', 'SF', '166032128',
                   'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215',
                   'RNBJ0628', 'Echo550', '', '1', 'B1', 'EukBr_Hiseq_0029',
                   'CAAGCAGAAGACGGCATACGAGAT', 'GAATACCAAGTC', 'AGTCAGTCAG',
@@ -708,8 +711,8 @@ class TestPrep(TestCase):
                   '70', '20230627', 'ADAPT', '0363132553', '', '', '', '']]
 
         data3 = [['X00180471', 'A', 1, False, 'THDMI_10317_PUK2',
-                  'THDMI_10317', 'THDMI_10317_UK2-US6', 'A1', '1', '1',
-                  'THDMI_UK_Plate_2', 'THDMI UK', 'SF', '166032128',
+                  'THDMI_10317_UK2-US6', 'A1', '1', '1',
+                  'THDMI_UK_Plate_2', 'THDMI_10317', 'SF', '166032128',
                   'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215',
                   'RNBJ0628', 'Echo550', '', '1', 'A1', 'kabir_ITS2rcbc0',
                   'CAAGCAGAAGACGGCATACGAGAT', 'TCCCTTGTCTCC', '', 'CG',
@@ -717,8 +720,8 @@ class TestPrep(TestCase):
                                            'TCCCGGCTGCGTTCTTCATCGATGC'),
                   'X00180471'],
                  ['X00180199', 'C', 1, False, 'THDMI_10317_PUK2',
-                  'THDMI_10317', 'THDMI_10317_UK2-US6', 'C1', '1', '1',
-                  'THDMI_UK_Plate_2', 'THDMI UK', 'SF', '166032128',
+                  'THDMI_10317_UK2-US6', 'C1', '1', '1',
+                  'THDMI_UK_Plate_2', 'THDMI_10317', 'SF', '166032128',
                   'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215',
                   'RNBJ0628', 'Echo550', '', '1', 'B1', 'kabir_ITS2rcbc12',
                   'CAAGCAGAAGACGGCATACGAGAT', 'TGCATACACTGG', '', 'CG',
@@ -734,6 +737,8 @@ class TestPrep(TestCase):
         obs1 = generate_qiita_prep_file(self.platedf1, '16S')
         obs2 = generate_qiita_prep_file(self.platedf2, '18S')
         obs3 = generate_qiita_prep_file(self.platedf3, 'ITS')
+
+        print(obs1.columns)
 
         exp_columns1 = ['sample_name', 'barcode', 'primer', 'primer_plate',
                         'well_id_384', 'plating', 'extractionkit_lot',
