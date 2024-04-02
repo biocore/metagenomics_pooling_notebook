@@ -540,7 +540,7 @@ class TestPrep(TestCase):
                  'Baz_12345_p3', 'B99', 'iTru7_107_14', 'GTCCTAAG',
                  'iTru5_01_A', 'CATCTGCT', '3', 'Baz_12345',
                  'Baz_12345_p3.sample44.B99', '70',
-                 '20230627', 'ADAPT', '0363132553', '', '', ''. '']]
+                 '20230627', 'ADAPT', '0363132553', '', '', '', '']]
         obs = pd.DataFrame(data=data, columns=columns)
         exp = obs.copy()
         exp['center_name'] = 'UCSDMI'
