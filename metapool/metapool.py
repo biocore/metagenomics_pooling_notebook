@@ -15,8 +15,9 @@ from string import ascii_letters, digits
 import glob
 
 REVCOMP_SEQUENCERS = ['HiSeq4000', 'MiniSeq', 'NextSeq', 'HiSeq3000',
-                      'iSeq', 'NovaSeq']
-OTHER_SEQUENCERS = ['HiSeq2500', 'HiSeq1500', 'MiSeq']
+                      'iSeq', 'NovaSeq6000']
+OTHER_SEQUENCERS = ['HiSeq2500', 'HiSeq1500', 'MiSeq','NovaSeqX',
+                    'NovaSeqXPlus']
 
 SYNDNA_POOL_NUM_KEY = 'syndna_pool_number'
 SAMPLE_DNA_CONC_KEY = 'Sample DNA Concentration'
@@ -370,7 +371,7 @@ def read_plate_map_csv(f, sep='\t', qiita_oauth2_conf_fp=None):
 
 # method to read minipico output
 def read_pico_csv(f, sep='\t', plate_reader='SpectraMax_i3x',
-                  min_conc=0, max_conc=150,
+                  min_conc=0, max_conc=250,
                   conc_col_name=SAMPLE_DNA_CONC_KEY):
     """
     reads tab-delimited pico quant
