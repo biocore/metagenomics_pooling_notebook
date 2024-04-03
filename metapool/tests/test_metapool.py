@@ -1001,6 +1001,58 @@ class Tests(TestCase):
         obs = merge_read_counts(self.plate_df, self.counts_df_ps)
         pd.testing.assert_frame_equal(exp, obs)
 
+        # Test merge with prep-file input for sequence counts
+        columns_ = ['Sample', 'Project Name', 'Project Plate']
+        data_ = [['333333331', 'Project_1', 'Plate_1'],
+                 ['333333332', 'Project_1', 'Plate_2'],
+                 ['333333333', 'Project_1', 'Plate_3'],
+                 ['BLANK.TEST.4.1A', 'Project_1', 'Plate_4']]
+
+        plate_df_ = pd.DataFrame(columns=columns_, data=data_)
+
+        columns_prep = ['sample_name', 'old_sample_name', 'raw_reads_r1r2',
+                        'quality_filtered_reads_r1r2', 'qiita_prep_id']
+        data_prep = [['sam1', '333333331', 1001, 901, 12345],
+                     ['sam2', '333333332', 1002, 902, 12345],
+                     ['sam3', '333333333', 1003, 903, 12345],
+                     ['BLANK.TEST.4.1A', 'BLANK.TEST.4.1A', 500,
+                      200, 12345]]
+
+        counts_df_prep = pd.DataFrame(columns=columns_prep, data=data_prep)
+
+        # Testing merge of Raw Reads from prep-file
+        columns_raw = ['Sample', 'Project Name', 'Project Plate',
+                       'sample sheet Sample_ID', 'Raw Reads']
+        data_raw = [['333333331', 'Project_1', 'Plate_1', '333333331', 1001],
+                 ['333333332', 'Project_1', 'Plate_2', '333333332', 1002],
+                 ['333333333', 'Project_1', 'Plate_3', '333333333', 1003],
+                 ['BLANK.TEST.4.1A', 'Project_1', 'Plate_4',
+                  'BLANK_TEST_4_1A', 500]]
+
+        exp_raw = pd.DataFrame(columns=columns_raw, data= data_raw)
+
+        obs_raw = merge_read_counts(plate_df_, counts_df_prep,
+                                    reads_column_name='Raw Reads')
+        
+        pd.testing.assert_frame_equal(exp_raw, obs_raw)
+
+        # Testing merge of Filtered Reads from prep-file
+        columns_filt = ['Sample', 'Project Name', 'Project Plate',
+                       'sample sheet Sample_ID', 'Filtered Reads']
+        data_filt = [['333333331', 'Project_1', 'Plate_1', '333333331', 901],
+                 ['333333332', 'Project_1', 'Plate_2', '333333332', 902],
+                 ['333333333', 'Project_1', 'Plate_3', '333333333', 903],
+                 ['BLANK.TEST.4.1A', 'Project_1', 'Plate_4',
+                  'BLANK_TEST_4_1A', 200]]
+
+        exp_filt = pd.DataFrame(columns=columns_filt, data=data_filt)
+
+        #reads_column_name = 'Filtered Reads' (default)
+        obs_filt = merge_read_counts(plate_df_, counts_df_prep)
+
+        pd.testing.assert_frame_equal(exp_filt, obs_filt)
+
+
     def test_read_survival(self):
 
         reads = [10 + i for i in range(11)]
