@@ -1560,17 +1560,17 @@ def compress_plates(compression_layout, sample_accession_df,
         plate_map['vol_extracted_elution_ul'] = \
             compression_layout[plate_dict_index]['Plate elution volume']
         if 'Project Plate' in compression_layout[plate_dict_index]:
-            # If yes, use "Project Plate" to construct the value for
-            # "Project Plate" in plate_map
+        # If yes, use "Project Plate" to construct the value for
+        # "Project Plate" in plate_map
             plate_map['Project Plate'] = \
-                str(compression_layout[plate_dict_index]['Project Name'] +
-                    '_' +
-                    compression_layout[plate_dict_index]['Project Plate'])
+            str(compression_layout[plate_dict_index]['Project Name'] +
+            '_' + compression_layout[plate_dict_index]['Project Plate'])
         elif 'Sample Plate' in compression_layout[plate_dict_index]:
-            # If "Project Plate" is not present but "Sample Plate" is, use
-            # "Sample Plate" for "Project Plate" in plate_map
-            plate_map['Project Plate'] = \
-                compression_layout[plate_dict_index]['Sample Plate']
+        # If "Project Plate" is not present but "Sample Plate" is, use
+        # "Sample Plate" for "Project Plate" in plate_map
+             plate_map['Project Plate'] = \
+             compression_layout[plate_dict_index]['Sample Plate']
+
 
         # Assign 384 well from compressed plate position
         well_mapper._reset()
