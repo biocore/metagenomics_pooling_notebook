@@ -474,9 +474,9 @@ class TestPrep(TestCase):
                    'sample_plate', 'well_id_384', 'i7_index_id', 'index',
                    'i5_index_id', 'index2', 'lane', 'sample_project',
                    'well_description', 'vol_extracted_elution_ul',
-                   'platemap_generation_date','project_abbreviation',
+                   'platemap_generation_date', 'project_abbreviation',
                    'TubeCode', 'Kathseq_RackID', 'number_of_cells',
-                   'description', 'well_id_96']
+                   'description','well_id_96']
 
         data = [['importantsample1', 'EXPERIMENT_DESC', 'LIBRARY_PROTOCOL',
                  'Illumina', 'UCSDMI', '2019-11-03', 'sample1_S11_L003',
@@ -484,7 +484,8 @@ class TestPrep(TestCase):
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
                  'FooBar_666_p1', 'A3', 'iTru7_107_09', 'GCCTTGTT',
                  'iTru5_01_A', 'AACACCAC', '3', 'Baz_12345',
-                 'FooBar_666_p1.sample1.A3'],
+                 'FooBar_666_p1.sample1.A3', '70', '20230627', 'ADAPT',
+                 '0363132553', '', '', '', ''],
                 ['importantsample44', 'EXPERIMENT_DESC', 'LIBRARY_PROTOCOL',
                  'Illumina', 'UCSDMI', '2019-11-03', 'sample44_S14_L003',
                  'sequencing by synthesis', 'UCSD', 'Baz_12345',
@@ -492,7 +493,7 @@ class TestPrep(TestCase):
                  'Baz_12345_p3', 'B99', 'iTru7_107_14', 'GTCCTAAG',
                  'iTru5_01_A', 'CATCTGCT', '3', 'Baz_12345',
                  'Baz_12345_p3.sample44.B99', '70',
-                 '20230627', 'ADAPT', '0363132553', '', '', '']]
+                 '20230627', 'ADAPT', '0363132553', '', '', '', '']]
         obs = pd.DataFrame(data=data, columns=columns)
         exp = obs.copy()
         exp['center_name'] = 'UCSDMI'
