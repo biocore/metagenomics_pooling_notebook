@@ -211,7 +211,7 @@ class PlateValidationTests(TestCase):
             {
                 'Plate Position': '1',
                 'Project Abbreviation': 'ADAPT',
-                'Plate map file': \
+                'Plate map file':
                     './data/2022_summer_Celeste_Adaptation_16_plate_map.tsv',
                 'Primer Plate #': '1',
                 'Plating': 'SF',

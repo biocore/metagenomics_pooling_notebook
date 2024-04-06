@@ -864,10 +864,9 @@ def generate_qiita_prep_file(platedf, seqtype):
     remove_these = {'Blank', 'Col', 'Compressed Plate Name', 'Plate Position',
                     'EMP Primer Plate Well', 'Forward Primer Pad', 'Name',
                     'Illumina 5prime Adapter', 'Original Name', 'Plate', 'Row',
-                    'Primer For PCR', 'Project Plate', 'index', 
+                    'Primer For PCR', 'Project Plate', 'index',
                     'Plate elution volume', 'Plate map file', 'Time',
                     'RackID'}
-
 
     # only remove the columns from the above set that are actually present in
     # the prep dataframe to avoid possible errors.

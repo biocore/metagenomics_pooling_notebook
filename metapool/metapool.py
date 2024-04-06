@@ -1547,37 +1547,32 @@ def compress_plates(compression_layout, sample_accession_df,
 
     for plate_dict_index in range(len(compression_layout)):
         # Iterables
-        fp = compression_layout[plate_dict_index]['Plate map file']
-        position = compression_layout[plate_dict_index]['Plate Position']
+        pd_idx = compression_layout[plate_dict_index]
 
         # Populate plate map
-        plate_map = read_visionmate_file(fp, ['TubeCode', 'RackID'])
-        plate_map['Project Name'] = \
-            compression_layout[plate_dict_index]['Project Name']
-        plate_map['Plate Position'] = position
-        plate_map['Project Abbreviation'] = \
-            compression_layout[plate_dict_index]['Project Abbreviation']
-        plate_map['vol_extracted_elution_ul'] = \
-            compression_layout[plate_dict_index]['Plate elution volume']
-        if 'Project Plate' in compression_layout[plate_dict_index]:
-        # If yes, use "Project Plate" to construct the value for
-        # "Project Plate" in plate_map
-            plate_map['Project Plate'] = \
-            str(compression_layout[plate_dict_index]['Project Name'] +
-            '_' + compression_layout[plate_dict_index]['Project Plate'])
-        elif 'Sample Plate' in compression_layout[plate_dict_index]:
-        # If "Project Plate" is not present but "Sample Plate" is, use
-        # "Sample Plate" for "Project Plate" in plate_map
-             plate_map['Project Plate'] = \
-             compression_layout[plate_dict_index]['Sample Plate']
-
+        plate_map = read_visionmate_file(pd_idx['Plate map file'],
+                                         ['TubeCode', 'RackID'])
+        plate_map['Project Name'] = pd_idx['Project Name']
+        plate_map['Plate Position'] = pd_idx['Plate Position']
+        plate_map['Project Abbreviation'] = pd_idx['Project Abbreviation']
+        plate_map['vol_extracted_elution_ul'] = pd_idx['Plate elution volume']
+        if 'Project Plate' in pd_idx:
+            # If yes, use "Project Plate" to construct the value for
+            # "Project Plate" in plate_map
+            plate_map['Project Plate'] = (f"{pd_idx['Project Name']}_"
+                                          f"{pd_idx['Project Plate']}")
+        elif 'Sample Plate' in pd_idx:
+            # If "Project Plate" is not present but "Sample Plate" is, use
+            # "Sample Plate" for "Project Plate" in plate_map
+            plate_map['Project Plate'] = pd_idx['Sample Plate']
 
         # Assign 384 well from compressed plate position
         well_mapper._reset()
 
         for well_96_id in plate_map['LocationCell']:
             well_384_id = \
-                well_mapper.get_384_well_location(well_96_id, position)
+                well_mapper.get_384_well_location(well_96_id,
+                                                  pd_idx['Plate Position'])
             col = 'LocationCell'
             plate_map.loc[plate_map[col] == well_96_id, well_col] = \
                 well_384_id
