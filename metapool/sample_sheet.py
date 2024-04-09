@@ -434,7 +434,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         # been removed and non-essential columns have been dropped.
         out['Well_description'] = well_description
 
-        for column in self.get_sample_columns:
+        for column in self.get_sample_columns():
             if column not in out.columns:
                 warnings.warn('The column %s in the sample sheet is empty' %
                               column)
@@ -1178,7 +1178,7 @@ def load_sample_sheet(sample_sheet_path):
         return sheet
 
     sheet = MetagenomicSampleSheetv101(sample_sheet_path)
-    if sheet.validate_and_scrub_sample_sheet(echo_msgs=True):
+    if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
         return sheet
 
     sheet = MetagenomicSampleSheetv100(sample_sheet_path)
