@@ -425,7 +425,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             # [Data] section of a sample-sheet e.g.: 'Extraction Kit Lot'.
             # There may also be required columns that aren't defined in out.
             subset = list(
-                set(self.data_columns) & set(
+                set(self.get_sample_columns()) & set(
                     out.columns))
 
             out = out[subset]
@@ -434,7 +434,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         # been removed and non-essential columns have been dropped.
         out['Well_description'] = well_description
 
-        for column in self.data_columns:
+        for column in self.get_sample_columns:
             if column not in out.columns:
                 warnings.warn('The column %s in the sample sheet is empty' %
                               column)
@@ -537,6 +537,9 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
         return int(lanes[0])
 
+    def get_sample_columns(self):
+        return self.data_columns
+
     def validate_and_scrub_sample_sheet(self, echo_msgs=True):
         """Validate the sample sheet and scrub invalid characters
 
@@ -582,7 +585,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
         # we print an error return None and exit when this happens otherwise
         # we won't be able to run other checks
-        for column in self.data_columns:
+        for column in self.get_sample_columns():
             if column not in self.all_sample_keys:
                 msgs.append(ErrorMessage(f'The {column} column in the Data '
                                          'section is missing'))
@@ -825,7 +828,7 @@ class MetagenomicSampleSheetv101(KLSampleSheet):
     _HEADER = {
         'IEMFileVersion': '4',
         'SheetType': _STANDARD_METAG_SHEET_TYPE,
-        'SheetVersion': '100',
+        'SheetVersion': '101',
         'Investigator Name': 'Knight',
         'Experiment Name': 'RKL_experiment',
         'Date': None,
@@ -839,6 +842,23 @@ class MetagenomicSampleSheetv101(KLSampleSheet):
     data_columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
                     'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
                     'Sample_Project', 'Well_description']
+
+    # Names of columns needed in the sample-information-file output that is
+    # later passed into Qiita:
+    # 'katharoseq_aliquot_volume_ul',
+    # 'katharoseq_batch_information',
+    # 'katharoseq_cell_count',
+    # 'katharoseq_plate_number',
+    # 'katharoseq_strain'
+
+    # columns present in an pre-prep file (amplicon) that included katharoseq
+    # controls. Presumably we will need these same columns in a sample-sheet.
+    optional_katharoseq_columns = ['Kathseq_RackID', 'TubeCode',
+                                   'katharo_description',
+                                   'number_of_cells',
+                                   'platemap_generation_date',
+                                   'project_abbreviation',
+                                   'vol_extracted_elution_ul', 'well_id_96']
 
     # For now, assume only MetagenomicSampleSheetv101 (v100, v95, v99) contains
     # 'contains_replicates' column. Assume AbsQuantSampleSheetv10 doesn't.
@@ -875,6 +895,15 @@ class MetagenomicSampleSheetv101(KLSampleSheet):
             if sample.Sample_Name.lower().startswith('kath'):
                 self.contains_katharoseq_samples = True
                 break
+
+    def get_sample_columns(self):
+        # if [Data] section contains katharoseq samples, add the expected
+        # additional katharoseq columns to the official list of expected
+        # columns before validation or other processing begins.
+        if self.contains_katharoseq_samples:
+            return self.data_columns + self.optional_katharoseq_columns
+
+        return self.data_columns
 
 
 class MetagenomicSampleSheetv100(KLSampleSheet):
@@ -1148,11 +1177,11 @@ def load_sample_sheet(sample_sheet_path):
     if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
         return sheet
 
-    sheet = MetagenomicSampleSheetv100(sample_sheet_path)
-    if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
+    sheet = MetagenomicSampleSheetv101(sample_sheet_path)
+    if sheet.validate_and_scrub_sample_sheet(echo_msgs=True):
         return sheet
 
-    sheet = MetagenomicSampleSheetv101(sample_sheet_path)
+    sheet = MetagenomicSampleSheetv100(sample_sheet_path)
     if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
         return sheet
 
@@ -1161,12 +1190,6 @@ def load_sample_sheet(sample_sheet_path):
         return sheet
 
     sheet = MetatranscriptomicSampleSheetv10(sample_sheet_path)
-
-    if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
-        return sheet
-
-    sheet = MetatranscriptomicSampleSheetv0(sample_sheet_path)
-
     if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
         return sheet
 
