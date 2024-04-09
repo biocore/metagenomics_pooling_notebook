@@ -1545,7 +1545,7 @@ class AdditionalSampleSheetCreationTests(BaseTests):
         sheet = MetatranscriptomicSampleSheetv0()
         sheet.Header['IEMFileVersion'] = 4
         sheet.Header['SheetType'] = 'standard_metag'
-        sheet.Header['SheetVersion'] = '100'
+        sheet.Header['SheetVersion'] = '0'
         sheet.Header['Investigator Name'] = 'Knight'
         sheet.Header['Experiment Name'] = 'RKO_experiment'
         sheet.Header['Date'] = '2021-08-17'

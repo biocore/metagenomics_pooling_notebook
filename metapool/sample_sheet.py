@@ -625,6 +625,22 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             msgs.append(ErrorMessage("'SheetType' value is not "
                                      f"'{expected_sheet_type}'"))
 
+        expected_sheet_version = int(type(self)._HEADER['SheetVersion'])
+
+        # sanitize sample-sheet SheetVersion before attempting to convert to
+        # int() type. Remove any additional enclosing quotes.
+        sheet_version = list(self.Header['SheetVersion'])
+        sheet_version = [c for c in sheet_version if c not in ['"', "'"]]
+        try:
+            sheet_version = int(''.join(sheet_version))
+        except ValueError:
+            msgs.append(ErrorMessage(f"'{self.Header['SheetVersion']}' does"
+                                     "not look like a valid value"))
+
+        if sheet_version != expected_sheet_version:
+            msgs.append(ErrorMessage("'SheetVersion' value is not "
+                                     f"'{expected_sheet_version}'"))
+
         # if any errors are found up to this point then we can't continue with
         # the validation process.
         if msgs:
@@ -803,6 +819,62 @@ class AmpliconSampleSheet(KLSampleSheet):
         }
 
 
+class MetagenomicSampleSheetv101(KLSampleSheet):
+    # Adds support for optional KATHAROSEQ columns in [Data] section.
+
+    _HEADER = {
+        'IEMFileVersion': '4',
+        'SheetType': _STANDARD_METAG_SHEET_TYPE,
+        'SheetVersion': '100',
+        'Investigator Name': 'Knight',
+        'Experiment Name': 'RKL_experiment',
+        'Date': None,
+        'Workflow': 'GenerateFASTQ',
+        'Application': 'FASTQ Only',
+        'Assay': _METAGENOMIC,
+        'Description': '',
+        'Chemistry': 'Default',
+    }
+
+    data_columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
+                    'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                    'Sample_Project', 'Well_description']
+
+    # For now, assume only MetagenomicSampleSheetv101 (v100, v95, v99) contains
+    # 'contains_replicates' column. Assume AbsQuantSampleSheetv10 doesn't.
+    _BIOINFORMATICS_COLUMNS = {'Sample_Project', 'QiitaID', 'BarcodesAreRC',
+                               'ForwardAdapter', 'ReverseAdapter',
+                               'HumanFiltering', 'contains_replicates',
+                               'library_construction_protocol',
+                               'experiment_design_description'}
+
+    CARRIED_PREP_COLUMNS = ['experiment_design_description', 'i5_index_id',
+                            'i7_index_id', 'index', 'index2',
+                            'library_construction_protocol', 'sample_name',
+                            'sample_plate', 'sample_project',
+                            'well_description', 'well_id_384']
+
+    def __init__(self, path=None):
+        super().__init__(path=path)
+        self.remapper = {
+            'sample sheet Sample_ID': 'Sample_ID',
+            'Sample': 'Sample_Name',
+            'Project Plate': 'Sample_Plate',
+            'Well': 'well_id_384',
+            'i7 name': 'I7_Index_ID',
+            'i7 sequence': 'index',
+            'i5 name': 'I5_Index_ID',
+            'i5 sequence': 'index2',
+            'Project Name': 'Sample_Project',
+        }
+
+        self.contains_katharoseq_samples = False
+        for sample in self.samples:
+            if sample.Sample_Name.startswith('KATHARO'):
+                self.contains_katharoseq_samples = True
+                break
+
+
 class MetagenomicSampleSheetv100(KLSampleSheet):
     _HEADER = {
         'IEMFileVersion': '4',
@@ -821,18 +893,11 @@ class MetagenomicSampleSheetv100(KLSampleSheet):
     # Note that there doesn't appear to be a difference between 95, 99, and 100
     # beyond the value observed in 'Well_description' column. The real
     # difference is between standard_metag and abs_quant_metag.
-
-    # Marks change from 'Metagenomics' to 'Metagenomic' - encapsulate this
-    # change: TODO.
-
-    # Note: Remove syndna_pool_number as that was part of the purpose of
-    # making this change. Also, it's always going to be empty or worse have
-    # a value that won't be checked.
     data_columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
                     'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
                     'Sample_Project', 'Well_description']
 
-    # For now, assume only MetagenomicSampleSheetv100 (and v95, v99) contains
+    # For now, assume only MetagenomicSampleSheetv101, v100, v95, v99 contains
     # 'contains_replicates' column. Assume AbsQuantSampleSheetv10 doesn't.
 
     _BIOINFORMATICS_COLUMNS = {'Sample_Project', 'QiitaID', 'BarcodesAreRC',
@@ -1084,6 +1149,10 @@ def load_sample_sheet(sample_sheet_path):
     sheet = MetagenomicSampleSheetv100(sample_sheet_path)
     if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
         return sheet
+
+    # sheet = MetagenomicSampleSheetv101(sample_sheet_path)
+    # if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
+    #    return sheet
 
     sheet = MetagenomicSampleSheetv90(sample_sheet_path)
     if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
