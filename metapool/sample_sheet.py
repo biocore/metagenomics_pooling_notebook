@@ -870,7 +870,9 @@ class MetagenomicSampleSheetv101(KLSampleSheet):
 
         self.contains_katharoseq_samples = False
         for sample in self.samples:
-            if sample.Sample_Name.startswith('KATHARO'):
+            # assume any sample-name beginning with 'kath' in any form of
+            # case is a katharoseq sample.
+            if sample.Sample_Name.lower().startswith('kath'):
                 self.contains_katharoseq_samples = True
                 break
 
@@ -1150,9 +1152,9 @@ def load_sample_sheet(sample_sheet_path):
     if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
         return sheet
 
-    # sheet = MetagenomicSampleSheetv101(sample_sheet_path)
-    # if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
-    #    return sheet
+    sheet = MetagenomicSampleSheetv101(sample_sheet_path)
+    if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
+        return sheet
 
     sheet = MetagenomicSampleSheetv90(sample_sheet_path)
     if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
