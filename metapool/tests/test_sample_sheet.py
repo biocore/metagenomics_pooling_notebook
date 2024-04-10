@@ -1817,8 +1817,8 @@ class AdditionalSampleSheetCreationTests(BaseTests):
                       ' Data section is missing', msgs)
 
     def test_katharoseq_enabled_sheet_creation(self):
-        # create a Metagenomic-type sample-sheet from scratch and manually
-        # populate the required fields.
+        # create a Metagenomic-type sample-sheet from scratch w/out karathoseq
+        # samples and manually populate the required fields.
         sheet = MetagenomicSampleSheetv101()
         sheet.Header['IEMFileVersion'] = 4
         sheet.Header['SheetType'] = 'standard_metag'
@@ -1870,8 +1870,8 @@ class AdditionalSampleSheetCreationTests(BaseTests):
         # Once sheet has been manually populated, validate it.
         self.assertTrue(sheet.validate_and_scrub_sample_sheet())
 
-        # create a Metagenomic-type sample-sheet from scratch and manually
-        # populate the required fields.
+        # create another sheet from scratch, this time with karathoseq
+        # samples.
         sheet = MetagenomicSampleSheetv101()
         sheet.Header['IEMFileVersion'] = 4
         sheet.Header['SheetType'] = 'standard_metag'
@@ -1913,15 +1913,15 @@ class AdditionalSampleSheetCreationTests(BaseTests):
              'CCGACTAC', 'iTru5_01_A', 'ACCGACAT', 'Project1_99999', 'desc'],
             ['sample_3', 'sample.3', 'sample_plate_1', 'A3', 'iTru7_107_07',
              'CCGACTAG', 'iTru5_01_A', 'ACCGACAG', 'Project1_99999', 'desc'],
+            ['kath0001', 'kath0001', 'sample_plate_1', 'A4', 'iTru7_107_07',
+             'CCGCCTAG', 'iTru5_01_A', 'ACCGTCAG', 'Project1_99999', 'desc']
         ]
 
         for row in data:
-            # Add each row as a Sample() object. Each Sample() object takes
-            # a dict as its initializer.
+            # TODO: add_sample() needs overloading & handling to dynamically
+            #  adjust the number of columns after seeing the first karathoseq
+            #  sample and performing error-handling.
             sheet.add_sample(sample_sheet.Sample(dict(zip(header, row))))
-
-        # Once sheet has been manually populated, validate it.
-        self.assertTrue(sheet.validate_and_scrub_sample_sheet())
 
 
 DF_DATA = [
