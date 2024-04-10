@@ -888,19 +888,26 @@ class MetagenomicSampleSheetv101(KLSampleSheet):
             'Project Name': 'Sample_Project',
         }
 
-        self.contains_katharoseq_samples = False
+    def contains_katharoseq_samples(self):
+        # when creating samples manually, as opposed to loading a sample-sheet
+        # from file, whether or not a sample-sheet contains katharoseq
+        # controls can change from add_sample() to add_sample() and won't be
+        # determined when MetagenomicSampleSheetv101() is created w/out a
+        # file. Hence, perform this check on demand() as opposed to once at
+        # init().
         for sample in self.samples:
             # assume any sample-name beginning with 'kath' in any form of
             # case is a katharoseq sample.
             if sample.Sample_Name.lower().startswith('kath'):
-                self.contains_katharoseq_samples = True
-                break
+                return True
+
+        return False
 
     def get_sample_columns(self):
         # if [Data] section contains katharoseq samples, add the expected
         # additional katharoseq columns to the official list of expected
         # columns before validation or other processing begins.
-        if self.contains_katharoseq_samples:
+        if self.contains_katharoseq_samples():
             return self.data_columns + self.optional_katharoseq_columns
 
         return self.data_columns
