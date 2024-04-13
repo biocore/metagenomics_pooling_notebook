@@ -2182,6 +2182,7 @@ class AdditionalSampleSheetCreationTests(BaseTests):
                        'vol_extracted_elution_ul', 'Lane'}
 
         self.assertEqual(obs_columns, exp_columns)
+        self.assertTrue(sheet.validate_and_scrub_sample_sheet())
 
 
 DF_DATA = [
