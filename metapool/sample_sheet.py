@@ -377,73 +377,62 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 else:
                     pass
 
-    def _remap_table(self, table, strict=True):
+    def _remap_table(self, table, strict):
+        result = table.copy(deep=True)
+
+        if strict:
+            # All columns not defined in remapper will be filtered result.
+            result = table[self.remapper.keys()].copy()
+            result.rename(self.remapper, axis=1, inplace=True)
+        else:
+            # if a column named 'index' is present in table, assume it is a
+            # numeric index and not a sequence of bases, which is required in
+            # the output. Assume the column that will become 'index' is
+            # defined in remapper.
+            if 'index' in set(result.columns):
+                result.drop(columns=['index'], inplace=True)
+
+            remapper = KLSampleSheet.column_alts | self.remapper
+            result.rename(remapper, axis=1, inplace=True)
+
+            # result may contain additional columns that aren't allowed in the
+            # [Data] section of a sample-sheet e.g.: 'Extraction Kit Lot'.
+            # There may also be required columns that aren't defined in result.
+
+            # once all columns have been renamed to their preferred names, we
+            # must determine the proper set of column names for this sample-
+            # sheet. For legacy classes this is simply the list of columns
+            # defined in each sample-sheet version. For newer classes, this is
+            # defined at run-time and requires examining the metadata that
+            # will define the [Data] section.
+            result.to_csv('result.csv')
+            required_columns = self._get_expected_columns(table=result)
+            subset = list(set(required_columns) & set(result.columns))
+            result = result[subset]
+
+        return result
+
+    def _add_data_to_sheet(self, table, sequencer, lanes, assay, strict=True):
         if self.remapper is None:
             raise ValueError("sample-sheet does not contain a valid Assay"
                              " type.")
 
         # Well_description column is now defined here as the concatenation
         # of the following columns. If the column existed previously it will
-        # be overwritten, otherwise it will be created here. Alternate versions
-        # of the column name have already been resolved at this point.
+        # be overwritten, otherwise it will be created here.
+        well_description = table['Project Plate'].astype(str) + "." + \
+            table['Sample'].astype(str) + "." + table['Well'].astype(str)
 
-        # Note that the amplicon notebook currently generates the same values
-        # for this column. If the functionality in the notebook changes, the
-        # output will continue to be redfined with the current values here.
-        well_description = table['Project Plate'].astype(str) + "." + table[
-            'Sample'].astype(str) + "." + table['Well'].astype(str)
+        table = self._remap_table(table, strict)
 
-        if strict:
-            # legacy operation. All columns not defined in remapper will be
-            # filtered out.
-            out = table[self.remapper.keys()].copy()
-            out.rename(self.remapper, axis=1, inplace=True)
-        else:
-            out = table.copy(deep=True)
+        table['Well_description'] = well_description
 
-            # if a column named 'index' is present in table, assume it is a
-            # numeric index and not a sequence of bases, which is required in
-            # the output. Assume the column that will become 'index' is
-            # defined in remapper.
-            if 'index' in set(out.columns):
-                out.drop(columns=['index'], inplace=True)
-
-            # if an alternate form of a column name defined in
-            # _KL_SAMPLE_SHEET_COLUMN_ALTS is found in table, assume it should
-            # be renamed to its proper form and be included in the output e.g.:
-            # 'sample_plate' -> 'Sample_Plate'.
-
-            # assume keys in _KL_SAMPLE_SHEET_COLUMN_ALTS do not overlap w/
-            # remapper (they currently do not). Define the full set of
-            # potential columns to rename in table.
-
-            # new syntax in 3.9 allows us to merge two dicts together w/OR.
-            remapper = KLSampleSheet.column_alts | self.remapper
-            out.rename(remapper, axis=1, inplace=True)
-
-            # out may contain additional columns that aren't allowed in the
-            # [Data] section of a sample-sheet e.g.: 'Extraction Kit Lot'.
-            # There may also be required columns that aren't defined in out.
-            subset = list(
-                set(self.get_sample_columns()) & set(
-                    out.columns))
-
-            out = out[subset]
-
-        # append the new 'Well_description' column, now that alternates have
-        # been removed and non-essential columns have been dropped.
-        out['Well_description'] = well_description
-
-        for column in self.get_sample_columns():
-            if column not in out.columns:
+        for column in self._get_expected_columns():
+            if column not in table.columns:
                 warnings.warn('The column %s in the sample sheet is empty' %
                               column)
-                out[column] = ''
+                table[column] = ''
 
-        return out
-
-    def _add_data_to_sheet(self, table, sequencer, lanes, assay, strict=True):
-        table = self._remap_table(table, strict)
         if assay != _AMPLICON:
             table['index2'] = sequencer_i5_index(sequencer, table['index2'])
 
@@ -454,6 +443,8 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             for sample in table.to_dict(orient='records'):
                 sample['Lane'] = lane
                 self.add_sample(sample_sheet.Sample(sample))
+
+        return table
 
     def _add_metadata_to_sheet(self, metadata, sequencer):
         # set the default to avoid index errors if only one of the two is
@@ -537,7 +528,10 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
         return int(lanes[0])
 
-    def get_sample_columns(self):
+    def _get_expected_columns(self, table=None):
+        # this base (general) implementation of this method does nothing w/
+        # the table parameter. It is present only for compatibility with child
+        # methods.
         return self.data_columns
 
     def validate_and_scrub_sample_sheet(self, echo_msgs=True):
@@ -585,7 +579,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
         # we print an error return None and exit when this happens otherwise
         # we won't be able to run other checks
-        for column in self.get_sample_columns():
+        for column in self._get_expected_columns():
             if column not in self.all_sample_keys:
                 msgs.append(ErrorMessage(f'The {column} column in the Data '
                                          'section is missing'))
@@ -877,6 +871,11 @@ class MetagenomicSampleSheetv101(KLSampleSheet):
     def __init__(self, path=None):
         super().__init__(path=path)
         self.remapper = {
+            # TODO: It seems like the optional columns need to be defined in
+            # the remapper, even if they map to itself - this will let those
+            # columns pass through remapper if they're present, even on strict
+            # setting. Unconfirmed if it will blow up if the columns aren't
+            # present but I think it should be okay.
             'sample sheet Sample_ID': 'Sample_ID',
             'Sample': 'Sample_Name',
             'Project Plate': 'Sample_Plate',
@@ -886,6 +885,7 @@ class MetagenomicSampleSheetv101(KLSampleSheet):
             'i5 name': 'I5_Index_ID',
             'i5 sequence': 'index2',
             'Project Name': 'Sample_Project',
+            'Kathseq_RackID': 'Kathseq_RackID'
         }
 
     def contains_katharoseq_samples(self):
@@ -903,12 +903,28 @@ class MetagenomicSampleSheetv101(KLSampleSheet):
 
         return False
 
-    def get_sample_columns(self):
-        # if [Data] section contains katharoseq samples, add the expected
-        # additional katharoseq columns to the official list of expected
-        # columns before validation or other processing begins.
-        if self.contains_katharoseq_samples():
-            return self.data_columns + self.optional_katharoseq_columns
+    def _table_contains_katharoseq_samples(self, table):
+        # for instances when a MetagenomicSampleSheetv101() object contains
+        # no samples, and the samples will be added in a single method call.
+        # this helper method will return True only if a katharo-control
+        # sample is found. Note criteria for this method should be kept
+        # consistent w/the above method (contains_katharoseq_samples).
+        return table['Sample_Name'].str.startswith('kath').any()
+
+    def _get_expected_columns(self, table=None):
+        if table is None:
+            # if [Data] section contains katharoseq samples, add the expected
+            # additional katharoseq columns to the official list of expected
+            # columns before validation or other processing begins.
+            if self.contains_katharoseq_samples():
+                return self.data_columns + self.optional_katharoseq_columns
+        else:
+            # assume that there are no samples added to this object yet. This
+            # means that self.contains_katharoseq_samples() will always return
+            # False. Assume table contains a list of samples that may or may
+            # not contain katharoseq controls.
+            if self._table_contains_katharoseq_samples(table):
+                return self.data_columns + self.optional_katharoseq_columns
 
         return self.data_columns
 
@@ -1211,7 +1227,9 @@ def load_sample_sheet(sample_sheet_path):
 def _create_sample_sheet(sheet_type, sheet_version, assay_type):
     if sheet_type == _STANDARD_METAG_SHEET_TYPE:
         if assay_type == _METAGENOMIC:
-            if sheet_version == '90':
+            if sheet_version == '101':
+                sheet = MetagenomicSampleSheetv101()
+            elif sheet_version == '90':
                 sheet = MetagenomicSampleSheetv90()
             elif sheet_version in ['95', '99', '100']:
                 # 95, 99, and v100 are functionally the same type.
@@ -1320,6 +1338,10 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
 
     if len(messages) == 0:
         sheet._add_metadata_to_sheet(metadata, sequencer)
+
+        # the problem is that _add_data_to_sheet() is not adding all of the
+        # required columns - is it because they're not beign supplied or it
+        # doesn't know to add them in this case? We need to find out! TODO
         sheet._add_data_to_sheet(table, sequencer, lanes, metadata['Assay'],
                                  strict)
 
