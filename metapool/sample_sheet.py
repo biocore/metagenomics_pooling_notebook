@@ -9,6 +9,7 @@ import pandas as pd
 from metapool.metapool import (bcl_scrub_name, sequencer_i5_index,
                                REVCOMP_SEQUENCERS)
 from metapool.plate import ErrorMessage, WarningMessage, PlateReplication
+from metapool.prep import remove_qiita_id
 
 
 _AMPLICON = 'TruSeq HT'
@@ -1239,6 +1240,150 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
     for message in messages:
         msgs.append(str(message))
         message.echo()
+
+    # we print an error return None and exit when this happens otherwise we
+    # won't be able to run some of the other checks
+    for column in _KL_SAMPLE_SHEET_DATA_COLUMNS:
+        if column not in sheet.all_sample_keys:
+            msgs.append(
+                ErrorMessage('The %s column in the Data section is missing' %
+                             column))
+    for section in ['Bioinformatics', 'Contact']:
+        if getattr(sheet, section) is None:
+            msgs.append(ErrorMessage('The %s section cannot be empty' %
+                                     section))
+
+    # if any errors are found up to this point then we can't continue with the
+    # validation
+    if msgs:
+        return msgs, None
+
+    # we track the updated projects as a dictionary so we can propagate these
+    # changes to the Bioinformatics and Contact sections
+    updated_samples, updated_projects = [], {}
+    for sample in sheet.samples:
+        new_sample = bcl_scrub_name(sample.Sample_ID)
+        new_project = bcl_scrub_name(sample.Sample_Project)
+
+        if new_sample != sample.Sample_ID:
+            updated_samples.append(sample.Sample_ID)
+            sample.Sample_ID = new_sample
+        if new_project != sample.Sample_Project:
+            updated_projects[sample.Sample_Project] = new_project
+            sample['Sample_Project'] = new_project
+
+    if updated_samples:
+        msgs.append(
+            WarningMessage('The following sample names were scrubbed for'
+                           ' bcl2fastq compatibility:\n%s' %
+                           ', '.join(updated_samples)))
+    if updated_projects:
+        msgs.append(
+            WarningMessage('The following project names were scrubbed for'
+                           ' bcl2fastq compatibility. If the same invalid '
+                           'characters are also found in the Bioinformatics '
+                           'and Contacts sections those will be automatically '
+                           'scrubbed too:\n%s' %
+                           ', '.join(sorted(updated_projects))))
+
+        # make the changes to prevent useless errors where the scurbbed names
+        # fail to match between sections.
+        sheet.Contact.Sample_Project.replace(updated_projects, inplace=True)
+        sheet.Bioinformatics.Sample_Project.replace(updated_projects,
+                                                    inplace=True)
+
+    pairs = collections.Counter([(s.Lane, s.Sample_Project)
+                                 for s in sheet.samples])
+    # warn users when there's missing lane values
+    empty_projects = [project for lane, project in pairs
+                      if str(lane).strip() == '']
+    if empty_projects:
+        msgs.append(
+            ErrorMessage('The following projects are missing a Lane value: '
+                         '%s' % ', '.join(sorted(empty_projects))))
+
+    projects = {s.Sample_Project for s in sheet.samples}
+
+    # project identifiers are digit groups at the end of the project name
+    # preceded by an underscore CaporasoIllumina_550
+    qiita_id_re = re.compile(r'(.+)_(\d+)$')
+    bad_projects = []
+    for project_name in projects:
+        if re.search(qiita_id_re, project_name) is None:
+            bad_projects.append(project_name)
+    if bad_projects:
+        msgs.append(
+            ErrorMessage('The following project names in the Sample_Project '
+                         'column are missing a Qiita study '
+                         'identifier: %s' % ', '.join(sorted(bad_projects))))
+
+    # check Sample_project values match across sections
+    bfx = set(sheet.Bioinformatics['Sample_Project'])
+    contact = set(sheet.Contact['Sample_Project'])
+    not_shared = projects ^ bfx
+    if not_shared:
+        msgs.append(
+            ErrorMessage('The following projects need to be in the Data and '
+                         'Bioinformatics sections %s' %
+                         ', '.join(sorted(not_shared))))
+    elif not contact.issubset(projects):
+        msgs.append(
+            ErrorMessage(('The following projects were only found in the '
+                          'Contact section: %s projects need to be listed in '
+                          'the Data and Bioinformatics section in order to '
+                          'be included in the Contact section.') %
+                         ', '.join(sorted(contact - projects))))
+
+    # confirm qiita_ids that append fully-qualified project_names have the
+    # same qiita-id as is in the adjacent column.
+    for index, row in sheet.Bioinformatics.iterrows():
+        project_name = row['Sample_Project']
+        qiita_id = row['QiitaID']
+        tmp = project_name.replace("%s_" % remove_qiita_id(project_name), '')
+
+        if tmp != qiita_id:
+            msgs.append(ErrorMessage("The Qiita ID of '%s' does not match "
+                                     "'%s'" % (project_name, qiita_id)))
+
+    # confirm that each project defined in the sample-sheet has its own
+    # unique Qiita ID. Two projects cannot share the same ID.
+    counts = collections.Counter(sheet.Bioinformatics['QiitaID'])
+    for qid in counts:
+        if counts[qid] > 1:
+            msgs.append(ErrorMessage("The Qiita ID '%s' was assigned to more "
+                                     "than one project" % qid))
+
+    # if there are no error messages then return the sheet
+    if not any([isinstance(m, ErrorMessage) for m in msgs]):
+        return msgs, sheet
+    else:
+        return msgs, None
+
+
+def validate_and_scrub_sample_sheet(sheet):
+    """Validate the sample sheet and scrub invalid characters
+
+    The character scrubbing is only applied to the Sample_Project and the
+    Sample_ID columns. The main difference between this function and
+    quiet_validate_and_scrub_sample_sheet is that this function will *always*
+    print errors and warnings to standard output.
+
+    Parameters
+    ----------
+    sheet: sample_sheet.KLSampleSheet
+        The sample sheet object to validate and scrub.
+
+    Returns
+    -------
+    sample_sheet.SampleSheet
+        Corrected and validated sample sheet if no errors are found.
+    """
+    msgs, sheet = quiet_validate_and_scrub_sample_sheet(sheet)
+
+    [msg.echo() for msg in msgs]
+
+    if sheet is not None:
+        return sheet
 
     # Introduce an exception raised for API calls that aren't reporting echo()
     # to the user. Specifically, calls from other modules rather than
