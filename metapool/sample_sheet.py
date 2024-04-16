@@ -308,7 +308,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 if section is not None:
                     # these sections are represented as DataFrame objects
                     writer.writerow(pad_iterable(section.columns.tolist(),
-                                    csv_width))
+                                                 csv_width))
 
                     for _, row in section.iterrows():
                         writer.writerow(pad_iterable(row.values.tolist(),
@@ -405,7 +405,6 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             # defined in each sample-sheet version. For newer classes, this is
             # defined at run-time and requires examining the metadata that
             # will define the [Data] section.
-            result.to_csv('result.csv')
             required_columns = self._get_expected_columns(table=result)
             subset = list(set(required_columns) & set(result.columns))
             result = result[subset]
@@ -837,14 +836,6 @@ class MetagenomicSampleSheetv101(KLSampleSheet):
                     'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
                     'Sample_Project', 'Well_description']
 
-    # Names of columns needed in the sample-information-file output that is
-    # later passed into Qiita:
-    # 'katharoseq_aliquot_volume_ul',
-    # 'katharoseq_batch_information',
-    # 'katharoseq_cell_count',
-    # 'katharoseq_plate_number',
-    # 'katharoseq_strain'
-
     # columns present in an pre-prep file (amplicon) that included katharoseq
     # controls. Presumably we will need these same columns in a sample-sheet.
     optional_katharoseq_columns = ['Kathseq_RackID', 'TubeCode',
@@ -871,11 +862,6 @@ class MetagenomicSampleSheetv101(KLSampleSheet):
     def __init__(self, path=None):
         super().__init__(path=path)
         self.remapper = {
-            # TODO: It seems like the optional columns need to be defined in
-            # the remapper, even if they map to itself - this will let those
-            # columns pass through remapper if they're present, even on strict
-            # setting. Unconfirmed if it will blow up if the columns aren't
-            # present but I think it should be okay.
             'sample sheet Sample_ID': 'Sample_ID',
             'Sample': 'Sample_Name',
             'Project Plate': 'Sample_Plate',
@@ -951,8 +937,8 @@ class MetagenomicSampleSheetv100(KLSampleSheet):
                     'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
                     'Sample_Project', 'Well_description']
 
-    # For now, assume only MetagenomicSampleSheetv101, v100, v95, v99 contains
-    # 'contains_replicates' column. Assume AbsQuantSampleSheetv10 doesn't.
+    # For now, assume only AbsQuantSampleSheetv10 doesn't contain
+    # 'contains_replicates' column, while the others do.
 
     _BIOINFORMATICS_COLUMNS = {'Sample_Project', 'QiitaID', 'BarcodesAreRC',
                                'ForwardAdapter', 'ReverseAdapter',
@@ -1338,10 +1324,6 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
 
     if len(messages) == 0:
         sheet._add_metadata_to_sheet(metadata, sequencer)
-
-        # the problem is that _add_data_to_sheet() is not adding all of the
-        # required columns - is it because they're not beign supplied or it
-        # doesn't know to add them in this case? We need to find out! TODO
         sheet._add_data_to_sheet(table, sequencer, lanes, metadata['Assay'],
                                  strict)
 
