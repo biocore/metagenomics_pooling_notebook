@@ -1806,6 +1806,35 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
              'CMGCCGCGGTAA', 'pool1']
         ]
 
+        self.test_sheet = MetagenomicSampleSheetv101()
+        self.test_sheet.Header['IEMFileVersion'] = 4
+        self.test_sheet.Header['sheetType'] = 'standard_metag'
+        self.test_sheet.Header['sheetVersion'] = '101'
+        self.test_sheet.Header['Investigator Name'] = 'Knight'
+        self.test_sheet.Header['Experiment Name'] = 'RKO_experiment'
+        self.test_sheet.Header['Date'] = '2021-08-17'
+        self.test_sheet.Header['Workflow'] = 'GenerateFASTQ'
+        self.test_sheet.Header['Application'] = 'FASTQ Only'
+        self.test_sheet.Header['Assay'] = 'Metagenomic'
+        self.test_sheet.Header['Description'] = ''
+        self.test_sheet.Header['Chemistry'] = 'Default'
+        self.test_sheet.Reads = [151, 151]
+        self.test_sheet.Settings['ReverseComplement'] = 0
+
+        self.test_sheet.Bioinformatics = pd.DataFrame(
+            columns=['Sample_Project', 'QiitaID', 'BarcodesAreRC',
+                     'ForwardAdapter', 'ReverseAdapter', 'HumanFiltering',
+                     'contains_replicates', 'library_construction_protocol',
+                     'experiment_design_description'], data=[
+                ['Project1_99999', '99999', 'False', 'AACC', 'GGTT', 'False',
+                 'False', 'protocol_1', 'a designed experiment']
+            ])
+
+        self.test_sheet.Contact = pd.DataFrame(
+            columns=['Email', 'Sample_Project'],
+            data=[['c2cowart@ucsd.edu',
+                   'Project1_99999'], ])
+
     def test_katharoseq_enabled_sheet_load(self):
         # load metagenomic sample-sheet w/out katharoseq samples in the [Data]
         # section, and get a list of the columns.
@@ -1938,36 +1967,6 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
 
     def test_katharoseq_enabled_sheet_creation(self):
         # create a sheet from scratch, this time with karathoseq samples.
-        sheet = MetagenomicSampleSheetv101()
-        sheet.Header['IEMFileVersion'] = 4
-        sheet.Header['sheetType'] = 'standard_metag'
-        sheet.Header['sheetVersion'] = '101'
-        sheet.Header['Investigator Name'] = 'Knight'
-        sheet.Header['Experiment Name'] = 'RKO_experiment'
-        sheet.Header['Date'] = '2021-08-17'
-        sheet.Header['Workflow'] = 'GenerateFASTQ'
-        sheet.Header['Application'] = 'FASTQ Only'
-        sheet.Header['Assay'] = 'Metagenomic'
-        sheet.Header['Description'] = ''
-        sheet.Header['Chemistry'] = 'Default'
-        sheet.Reads = [151, 151]
-        sheet.Settings['ReverseComplement'] = 0
-
-        data = [
-            ['Project1_99999', '99999', 'False', 'AACC', 'GGTT', 'False',
-             'False', 'protocol_1', 'a designed experiment']
-        ]
-
-        sheet.Bioinformatics = pd.DataFrame(
-            columns=['Sample_Project', 'QiitaID', 'BarcodesAreRC',
-                     'ForwardAdapter', 'ReverseAdapter', 'HumanFiltering',
-                     'contains_replicates', 'library_construction_protocol',
-                     'experiment_design_description'], data=data)
-
-        sheet.Contact = pd.DataFrame(columns=['Email', 'Sample_Project'],
-                                     data=[['c2cowart@ucsd.edu',
-                                            'Project1_99999'], ])
-
         header = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
                   'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
                   'Sample_Project', 'Well_description']
@@ -1998,17 +1997,18 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
             # katharoseq columns are present when katharoseq controls are in
             # the [Data] section and not present otherwise won't be determined
             # until validation() is called.
-            sheet.add_sample(sample_sheet.Sample(dict(zip(header, row))))
+            self.test_sheet.add_sample(sample_sheet.Sample(dict(zip(header,
+                                                                    row))))
 
         # sheet should not be valid, since we added a katharoseq control w/out
         # adding the additional columns.
-        self.assertFalse(sheet.validate_and_scrub_sample_sheet())
+        self.assertFalse(self.test_sheet.validate_and_scrub_sample_sheet())
 
         # confirm that a katharoseq control was found among the samples.
-        self.assertTrue(sheet.contains_katharoseq_samples())
+        self.assertTrue(self.test_sheet.contains_katharoseq_samples())
 
         # validate sheet again, this time get the list of error messages.
-        msgs = sheet.quiet_validate_and_scrub_sample_sheet()
+        msgs = self.test_sheet.quiet_validate_and_scrub_sample_sheet()
         msgs = [str(msg) for msg in msgs]
 
         # assert this message is present in the results, and assume all of the
@@ -2019,36 +2019,6 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
     def test_katharoseq_enabled_sheet_creation_manual(self):
         # create a sheet manually, this time with the proper type and
         # number of columns.
-        sheet = MetagenomicSampleSheetv101()
-        sheet.Header['IEMFileVersion'] = 4
-        sheet.Header['sheetType'] = 'standard_metag'
-        sheet.Header['sheetVersion'] = '101'
-        sheet.Header['Investigator Name'] = 'Knight'
-        sheet.Header['Experiment Name'] = 'RKO_experiment'
-        sheet.Header['Date'] = '2021-08-17'
-        sheet.Header['Workflow'] = 'GenerateFASTQ'
-        sheet.Header['Application'] = 'FASTQ Only'
-        sheet.Header['Assay'] = 'Metagenomic'
-        sheet.Header['Description'] = ''
-        sheet.Header['Chemistry'] = 'Default'
-        sheet.Reads = [151, 151]
-        sheet.Settings['ReverseComplement'] = 0
-
-        data = [
-            ['Project1_99999', '99999', 'False', 'AACC', 'GGTT', 'False',
-             'False', 'protocol_1', 'a designed experiment']
-        ]
-
-        sheet.Bioinformatics = pd.DataFrame(
-            columns=['Sample_Project', 'QiitaID', 'BarcodesAreRC',
-                     'ForwardAdapter', 'ReverseAdapter', 'HumanFiltering',
-                     'contains_replicates', 'library_construction_protocol',
-                     'experiment_design_description'], data=data)
-
-        sheet.Contact = pd.DataFrame(columns=['Email', 'Sample_Project'],
-                                     data=[['c2cowart@ucsd.edu',
-                                            'Project1_99999'], ])
-
         header = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
                   'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
                   'Sample_Project', 'Well_description', 'Kathseq_RackID',
@@ -2086,11 +2056,12 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
             # katharoseq columns are present when katharoseq controls are in
             # the [Data] section and not present otherwise won't be determined
             # until validation() is called.
-            sheet.add_sample(sample_sheet.Sample(dict(zip(header, row))))
+            self.test_sheet.add_sample(sample_sheet.Sample(dict(zip(header,
+                                                                    row))))
 
-        self.assertTrue(sheet.validate_and_scrub_sample_sheet())
-        self.assertTrue(sheet.contains_katharoseq_samples())
-        msgs = sheet.quiet_validate_and_scrub_sample_sheet()
+        self.assertTrue(self.test_sheet.validate_and_scrub_sample_sheet())
+        self.assertTrue(self.test_sheet.contains_katharoseq_samples())
+        msgs = self.test_sheet.quiet_validate_and_scrub_sample_sheet()
         self.assertEqual([], msgs)
 
     def test_katharoseq_make_sample_sheet(self):
