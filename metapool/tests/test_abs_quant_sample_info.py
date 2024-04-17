@@ -33,6 +33,10 @@ class TestAbsQuantSampleInfo(TestCase):
 
     def test_add_abs_quant_metadata(self):
         valid_core_input_dict = {
+            MASS_STORAGE_TUBE_AND_STORAGE_LIQUID_BEFORE_SAMPLE_G_KEY:
+                [16.9, 15.9],
+            MASS_STORAGE_TUBE_AND_STORAGE_LIQUID_BEFORE_SAMPLE_MG_KEY:
+                [16900.0, 15900.0],
             MASS_STORAGE_TUBE_AND_STORAGE_LIQUID_AFTER_SAMPLE_MG_KEY:
                 [20478, 19478],
             MASS_STORAGE_TUBE_AND_STORAGE_LIQUID_AFTER_SAMPLE_G_KEY:
@@ -49,10 +53,6 @@ class TestAbsQuantSampleInfo(TestCase):
             STORAGE_LIQUID_TYPE_KEY:
                 [self.storage_liquid_type, self.storage_liquid_type],
             MASS_STORAGE_TUBE_ONLY_G_KEY: [7.18, 7.18],
-            MASS_STORAGE_TUBE_AND_STORAGE_LIQUID_BEFORE_SAMPLE_G_KEY:
-                [16.9, 15.9],
-            MASS_STORAGE_TUBE_AND_STORAGE_LIQUID_BEFORE_SAMPLE_MG_KEY:
-                [16900.0, 15900.0],
             DENSITY_STORAGE_LIQUID_G_ML_KEY: [1.11, 1.01],
             DENSITY_STORAGE_LIQUID_KG_L_KEY: [1.11, 1.01],
             DENSITY_SAMPLE_G_ML_KEY: [1.06, 1.06],
@@ -115,6 +115,9 @@ class TestAbsQuantSampleInfo(TestCase):
 
     def test__validate_input_df(self):
         valid_core_input_dict = {
+            MASS_STORAGE_TUBE_AND_STORAGE_LIQUID_BEFORE_SAMPLE_G_KEY: [16.9],
+            MASS_STORAGE_TUBE_AND_STORAGE_LIQUID_BEFORE_SAMPLE_MG_KEY:
+                [16900.0],
             MASS_STORAGE_TUBE_AND_STORAGE_LIQUID_AFTER_SAMPLE_MG_KEY: [20478],
             MASS_STORAGE_TUBE_AND_STORAGE_LIQUID_AFTER_SAMPLE_G_KEY: [20.478],
             VOL_HOMOGENATE_ALIQUOT_INPUT_ML_KEY: [0.1],
@@ -145,9 +148,9 @@ class TestAbsQuantSampleInfo(TestCase):
     def test__add_config_metadata(self):
         valid_core_input_dict = {
             MASS_STORAGE_TUBE_AND_STORAGE_LIQUID_BEFORE_SAMPLE_G_KEY:
-                [17.0416, 16.0416],
+                [16.9, 15.9],
             MASS_STORAGE_TUBE_AND_STORAGE_LIQUID_BEFORE_SAMPLE_MG_KEY:
-                [17041.6, 16041.6],
+                [16900.0, 15900.0],
             MASS_STORAGE_TUBE_AND_STORAGE_LIQUID_AFTER_SAMPLE_MG_KEY:
                 [20478, 19478],
             MASS_STORAGE_TUBE_AND_STORAGE_LIQUID_AFTER_SAMPLE_G_KEY:
@@ -165,11 +168,9 @@ class TestAbsQuantSampleInfo(TestCase):
                 self.storage_liquid_type: {
                     STORAGE_LIQUID_LOT_NUM_STR_KEY: {
                         "123456789": {
-                            MASS_STORAGE_TUBE_AND_STORAGE_LIQUID_BEFORE_SAMPLE_G_KEY: 16.9,  # noqa: E501
                             DENSITY_STORAGE_LIQUID_G_ML_KEY: 1.11
                         },
                         "223456789": {
-                            MASS_STORAGE_TUBE_AND_STORAGE_LIQUID_BEFORE_SAMPLE_G_KEY: 15.9,  # noqa: E501
                             DENSITY_STORAGE_LIQUID_G_ML_KEY: 1.01
                         }
                     },
@@ -183,10 +184,6 @@ class TestAbsQuantSampleInfo(TestCase):
             STORAGE_LIQUID_TYPE_KEY:
                 [self.storage_liquid_type, self.storage_liquid_type],
             MASS_STORAGE_TUBE_ONLY_G_KEY: [7.18, 7.18],
-            MASS_STORAGE_TUBE_AND_STORAGE_LIQUID_BEFORE_SAMPLE_G_KEY:
-                [16.9, 15.9],
-            MASS_STORAGE_TUBE_AND_STORAGE_LIQUID_BEFORE_SAMPLE_MG_KEY:
-                [16900.0, 15900.0],
             DENSITY_STORAGE_LIQUID_G_ML_KEY: [1.11, 1.01],
             DENSITY_STORAGE_LIQUID_KG_L_KEY: [1.11, 1.01],
             DENSITY_SAMPLE_G_ML_KEY: [1.06, 1.06],
