@@ -165,11 +165,11 @@ class TestAbsQuantSampleInfo(TestCase):
                 self.storage_liquid_type: {
                     STORAGE_LIQUID_LOT_NUM_STR_KEY: {
                         "123456789": {
-#                             MASS_STORAGE_TUBE_AND_STORAGE_LIQUID_BEFORE_SAMPLE_G_KEY: 16.9,  # noqa: E501
+                             MASS_STORAGE_TUBE_AND_STORAGE_LIQUID_BEFORE_SAMPLE_G_KEY: 16.9,  # noqa: E501
                             DENSITY_STORAGE_LIQUID_G_ML_KEY: 1.11
                         },
                         "223456789": {
-#                            MASS_STORAGE_TUBE_AND_STORAGE_LIQUID_BEFORE_SAMPLE_G_KEY: 15.9,  # noqa: E501
+                            MASS_STORAGE_TUBE_AND_STORAGE_LIQUID_BEFORE_SAMPLE_G_KEY: 15.9,  # noqa: E501
                             DENSITY_STORAGE_LIQUID_G_ML_KEY: 1.01
                         }
                     },
