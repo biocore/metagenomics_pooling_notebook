@@ -1863,6 +1863,10 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
                'platemap_generation_date', 'project_abbreviation',
                'vol_extracted_elution_ul', 'well_id_96']
         obs = sheet2._get_expected_columns()
+
+        print("EXP: %s" % exp)
+        print("OBS: %s" % obs)
+        # CHARLIE
         self.assertEqual(obs, exp)
         self.assertTrue(sheet1.validate_and_scrub_sample_sheet())
 
@@ -1979,8 +1983,9 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
             ['sample_3', 'sample.3', 'sample_plate_1', 'A3', 'iTru7_107_07',
              'CCGACTAG', 'iTru5_01_A', 'ACCGACAG', 'Project1_99999', 'desc'],
             # added katharoseq control here.
-            ['kath0001', 'kath0001', 'sample_plate_1', 'A4', 'iTru7_107_07',
-             'CCGCCTAG', 'iTru5_01_A', 'ACCGTCAG', 'Project1_99999', 'desc']
+            ['katharo0001', 'katharo0001', 'sample_plate_1', 'A4',
+             'iTru7_107_07', 'CCGCCTAG', 'iTru5_01_A', 'ACCGTCAG',
+             'Project1_99999', 'desc']
         ]
 
         for row in data:
@@ -1991,7 +1996,7 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
             #
             # We can assume that a user creating a katharoseq-enabled
             # sample-sheet will include the katharoseq-enabled columns, even
-            # for sample-names that don't begin with 'kath'.
+            # for sample-names that don't begin with 'katharo'.
             #
             # Hence, as when using load_sample_sheet(), confirmation that
             # katharoseq columns are present when katharoseq controls are in
@@ -2037,9 +2042,9 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
              'CCGACTAG', 'iTru5_01_A', 'ACCGACAG', 'Project1_99999', 'desc',
              '', '', '', '', '', '', '', ''],
             # added katharoseq control here.
-            ['kath0001', 'kath0001', 'sample_plate_1', 'A4', 'iTru7_107_07',
-             'CCGCCTAG', 'iTru5_01_A', 'ACCGTCAG', 'Project1_99999', 'desc',
-             '', '', '', '', '', '', '', '']
+            ['katharo0001', 'katharo0001', 'sample_plate_1', 'A4',
+             'iTru7_107_07', 'CCGCCTAG', 'iTru5_01_A', 'ACCGTCAG',
+             'Project1_99999', 'desc', '', '', '', '', '', '', '', '']
         ]
 
         for row in data:
@@ -2050,7 +2055,7 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
             #
             # We can assume that a user creating a katharoseq-enabled
             # sample-sheet will include the katharoseq-enabled columns, even
-            # for sample-names that don't begin with 'kath'.
+            # for sample-names that don't begin with 'katharo'.
             #
             # Hence, as when using load_sample_sheet(), confirmation that
             # katharoseq columns are present when katharoseq controls are in
@@ -2106,8 +2111,8 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
         # dataset that has only one of the optional columns (Kathseq_RackID)
         # included. This should result in an error raised.
 
-        # To do this, we will change the name of the sample to begin w/kath.
-        self.data[0][1] = 'kath.01'  # changing sample_name
+        # To do this, we will change the name of the sample to begin w/katharo.
+        self.data[0][1] = 'katharo.01'  # changing sample_name
 
         table = pd.DataFrame(columns=self.input_columns, data=self.data)
 
@@ -2127,8 +2132,8 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
 
     def test_katharoseq_make_sample_sheet_all_optional_columns(self):
         # test make_sample_sheet() w/katharoseq data. To do this, change the
-        # name of the sample to begin w/kath.
-        self.data[0][1] = 'kath.01'  # changing sample_name
+        # name of the sample to begin w/katharo.
+        self.data[0][1] = 'katharo.01'  # changing sample_name
 
         # add missing columns to the data and populate them with 'junk value'.
         optional_columns = ['Kathseq_RackID', 'TubeCode',

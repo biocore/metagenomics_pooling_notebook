@@ -4,7 +4,8 @@ from .prep import (preparations_for_run, parse_prep, generate_qiita_prep_file,
                    demux_pre_prep, pre_prep_needs_demuxing)
 from .sample_sheet import (sample_sheet_to_dataframe, make_sample_sheet,
                            AmpliconSampleSheet, MetagenomicSampleSheetv90,
-                           MetagenomicSampleSheetv100, AbsQuantSampleSheetv10,
+                           MetagenomicSampleSheetv100,
+                           MetagenomicSampleSheetv101, AbsQuantSampleSheetv10,
                            MetatranscriptomicSampleSheetv0, demux_sample_sheet,
                            sheet_needs_demuxing, KLSampleSheet,
                            load_sample_sheet, MetatranscriptomicSampleSheetv10)
@@ -29,7 +30,8 @@ __all__ = ['IGMManifest', 'add_controls', 'assign_emp_index', 'autopool',
            'requires_dilution', 'run_counts', 'sample_sheet_to_dataframe',
            'sheet_needs_demuxing', 'sum_lanes', 'validate_plate_metadata',
            'MetagenomicSampleSheetv90', 'MetagenomicSampleSheetv100',
-           'AmpliconSampleSheet', 'MetatranscriptomicSampleSheetv0',
+           'MetagenomicSampleSheetv101', 'AmpliconSampleSheet',
+           'MetatranscriptomicSampleSheetv0',
            'MetatranscriptomicSampleSheetv10', 'AbsQuantSampleSheetv10',
            # KLSampleSheet is needed for instance() calls.
            'KLSampleSheet', 'load_sample_sheet']

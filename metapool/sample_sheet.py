@@ -882,9 +882,9 @@ class MetagenomicSampleSheetv101(KLSampleSheet):
         # file. Hence, perform this check on demand() as opposed to once at
         # init().
         for sample in self.samples:
-            # assume any sample-name beginning with 'kath' in any form of
+            # assume any sample-name beginning with 'katharo' in any form of
             # case is a katharoseq sample.
-            if sample.Sample_Name.lower().startswith('kath'):
+            if sample.Sample_Name.lower().startswith('katharo'):
                 return True
 
         return False
@@ -895,7 +895,7 @@ class MetagenomicSampleSheetv101(KLSampleSheet):
         # this helper method will return True only if a katharo-control
         # sample is found. Note criteria for this method should be kept
         # consistent w/the above method (contains_katharoseq_samples).
-        return table['Sample_Name'].str.startswith('kath').any()
+        return table['Sample_Name'].str.startswith('katharo').any()
 
     def _get_expected_columns(self, table=None):
         if table is None:
