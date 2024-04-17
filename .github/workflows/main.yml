@@ -9,11 +9,11 @@ on:
       - master
       - dev
   push:
-    # TODO: remove * entry after testing
+    # TODO: remove remove_tube_mass_from_config entry after testing
     branches: 
       - master
       - dev
-      - '*'
+      - 'remove_tube_mass_from_config'
 
 jobs:
   # name of job
