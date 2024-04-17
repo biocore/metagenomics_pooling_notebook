@@ -8,6 +8,7 @@ import pandas as pd
 import sample_sheet
 
 from metapool.sample_sheet import (KLSampleSheet, AmpliconSampleSheet,
+                                   MetagenomicSampleSheetv101,
                                    MetagenomicSampleSheetv100,
                                    MetagenomicSampleSheetv90,
                                    MetatranscriptomicSampleSheetv0,
@@ -797,7 +798,9 @@ class SampleSheetWorkflow(BaseTests):
     def test_column_alternatives(self):
         # confirm standard 'Well_description' column name behaved as intended.
         table2 = self.table.copy(deep=True)
+
         table2['Well_description'] = ['Row A', 'Row B', 'Row C']
+
         table2['Project Name'] = ['Koening_ITS_101', 'Yanomani_2008_10052',
                                   'Yanomani_2008_10052']
 
@@ -895,7 +898,14 @@ class SampleSheetWorkflow(BaseTests):
             # expect 'Well_description' to be empty since it is created and
             # populated before _remap_table() is called.
             sheet = AmpliconSampleSheet()
-            obs = sheet._remap_table(self.table, strict=False)
+
+            # functionality that handles empty I5_Index_ID and index2 columns,
+            # as well as generates Well_description column was migrated up
+            # to _remap_table()'s caller, _add_data_to_sheet(). Hence, call
+            # this method to ensure that the observed table remains as
+            # expected.
+            obs = sheet._add_data_to_sheet(self.table, 'HiSeq4000', [1],
+                                           'TruSeq HT', strict=False)
             self.assertEqual(len(obs), 3)
             pd.testing.assert_frame_equal(obs, exp, check_like=True)
 
@@ -1545,7 +1555,7 @@ class AdditionalSampleSheetCreationTests(BaseTests):
         sheet = MetatranscriptomicSampleSheetv0()
         sheet.Header['IEMFileVersion'] = 4
         sheet.Header['SheetType'] = 'standard_metag'
-        sheet.Header['SheetVersion'] = '100'
+        sheet.Header['SheetVersion'] = '0'
         sheet.Header['Investigator Name'] = 'Knight'
         sheet.Header['Experiment Name'] = 'RKO_experiment'
         sheet.Header['Date'] = '2021-08-17'
@@ -1730,6 +1740,429 @@ class AdditionalSampleSheetCreationTests(BaseTests):
                "ErrorMessage: 'Assay' value is not 'Metagenomic'"}
 
         self.assertEqual(obs, exp)
+
+
+class KarathoseqEnabledSheetCreationTests(BaseTests):
+    def setUp(self):
+        self.katharoseq_1 = join('metapool', 'tests', 'data',
+                                 'test_katharoseq_sheet1.csv')
+
+        self.katharoseq_2 = join('metapool', 'tests', 'data',
+                                 'test_katharoseq_sheet2.csv')
+
+        self.katharoseq_3 = join('metapool', 'tests', 'data',
+                                 'test_katharoseq_sheet3.csv')
+
+        self.input_columns = ['sample sheet Sample_ID',
+                              'Sample', 'Row', 'Col', 'Blank', 'Project Plate',
+                              'Project Name', 'Compressed Plate Name', 'Well',
+                              'Plate Position', 'Primer Plate #', 'Plating',
+                              'Extraction Kit Lot', 'Extraction Robot',
+                              'TM1000 8 Tool', 'Primer Date', 'MasterMix Lot',
+                              'Water Lot', 'Processing Robot', 'Sample Plate',
+                              'Project_Name', 'Original Name', 'Plate',
+                              'EMP Primer Plate Well', 'Name',
+                              "Illumina 5' Adapter", 'Golay Barcode',
+                              'Forward Primer Pad', 'Forward Primer Linker',
+                              '515FB Forward Primer (Parada)',
+                              'Primer For PCR', 'syndna_pool_number']
+
+        self.metadata = {
+            'Bioinformatics': [
+                {
+                    'Sample_Project': 'MyProject_99999',
+                    'QiitaID': '101',
+                    'BarcodesAreRC': 'False',
+                    'ForwardAdapter': 'GATACA',
+                    'ReverseAdapter': 'CATCAT',
+                    'HumanFiltering': 'False',
+                    'library_construction_protocol': 'Knight Lab Kapa HP',
+                    'experiment_design_description': 'some description',
+                    'contains_replicates': 'False'
+                }
+            ],
+            'Contact': [
+                {
+                    'Sample_Project': 'MyProject_99999',
+                    'Email': 'foo@bar.org'
+                }
+            ],
+            'Assay': 'Metagenomic',
+            'SheetType': 'standard_metag',
+            'SheetVersion': '101'
+        }
+
+        self.data = [
+            ['sample1', 'sample1', 'A', 1, False, 'THDMI_10317_PUK2',
+             'MyProject_99999', 'THDMI_10317_UK2-US6', 'A1', '1', '1',
+             'SF',
+             '166032128', 'Carmen_HOWE_KF3', '109379Z', '2021-08-17',
+             '978215',
+             'RNBJ0628', 'Echo550', 'THDMI_UK_Plate_2', 'THDMI UK', '',
+             '1',
+             'A1', '515rcbc0', 'AATGATACGGCGACCACCGAGATCTACACGCT',
+             'AGCCTTCGTCGC', 'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
+             'AATGATACGGCGACCACCGAGATCTACACGCTAGCCTTCGTCGCTATGGTAATTGTGTGYCAG'
+             'CMGCCGCGGTAA', 'pool1']
+        ]
+
+        self.test_sheet = MetagenomicSampleSheetv101()
+        self.test_sheet.Header['IEMFileVersion'] = 4
+        self.test_sheet.Header['sheetType'] = 'standard_metag'
+        self.test_sheet.Header['sheetVersion'] = '101'
+        self.test_sheet.Header['Investigator Name'] = 'Knight'
+        self.test_sheet.Header['Experiment Name'] = 'RKO_experiment'
+        self.test_sheet.Header['Date'] = '2021-08-17'
+        self.test_sheet.Header['Workflow'] = 'GenerateFASTQ'
+        self.test_sheet.Header['Application'] = 'FASTQ Only'
+        self.test_sheet.Header['Assay'] = 'Metagenomic'
+        self.test_sheet.Header['Description'] = ''
+        self.test_sheet.Header['Chemistry'] = 'Default'
+        self.test_sheet.Reads = [151, 151]
+        self.test_sheet.Settings['ReverseComplement'] = 0
+
+        self.test_sheet.Bioinformatics = pd.DataFrame(
+            columns=['Sample_Project', 'QiitaID', 'BarcodesAreRC',
+                     'ForwardAdapter', 'ReverseAdapter', 'HumanFiltering',
+                     'contains_replicates', 'library_construction_protocol',
+                     'experiment_design_description'], data=[
+                ['Project1_99999', '99999', 'False', 'AACC', 'GGTT', 'False',
+                 'False', 'protocol_1', 'a designed experiment']
+            ])
+
+        self.test_sheet.Contact = pd.DataFrame(
+            columns=['Email', 'Sample_Project'],
+            data=[['c2cowart@ucsd.edu',
+                   'Project1_99999'], ])
+
+    def test_katharoseq_enabled_sheet_load(self):
+        # load metagenomic sample-sheet w/out katharoseq samples in the [Data]
+        # section, and get a list of the columns.
+        sheet1 = load_sample_sheet(self.katharoseq_1)
+        # confirm that the sheet is of the new karathoseq-enabled type.
+        self.assertEqual(type(sheet1), MetagenomicSampleSheetv101)
+        obs = sheet1._get_expected_columns()
+
+        # because sheet1 does not contain karathoseq samples, it should not
+        # contain additional karathoseq-specific columns.
+        exp = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
+               'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+               'Sample_Project',
+               'Well_description']
+        self.assertEqual(obs, exp)
+        self.assertTrue(sheet1.validate_and_scrub_sample_sheet())
+
+        # load metagenomic sample-sheet w/katharoseq samples in the [Data]
+        # section, and perform similar tests.
+        sheet2 = load_sample_sheet(self.katharoseq_2)
+        self.assertEqual(type(sheet2), MetagenomicSampleSheetv101)
+        exp = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
+               'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+               'Sample_Project', 'Well_description', 'Kathseq_RackID',
+               'TubeCode', 'katharo_description', 'number_of_cells',
+               'platemap_generation_date', 'project_abbreviation',
+               'vol_extracted_elution_ul', 'well_id_96']
+        obs = sheet2._get_expected_columns()
+
+        self.assertEqual(obs, exp)
+        self.assertTrue(sheet1.validate_and_scrub_sample_sheet())
+
+        # confirm that class-wide state is not permanently changed by loading
+        # a karathoseq-enabled file. Reloading sheet1 should continue to have
+        # only the shorter set of columns.
+        sheet1 = load_sample_sheet(self.katharoseq_1)
+        self.assertEqual(type(sheet1), MetagenomicSampleSheetv101)
+        exp = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
+               'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+               'Sample_Project',
+               'Well_description']
+        obs = sheet1._get_expected_columns()
+        self.assertEqual(obs, exp)
+        self.assertTrue(sheet1.validate_and_scrub_sample_sheet())
+
+        with self.assertRaisesRegex(ValueError, 'does not appear to be a valid'
+                                                ' sample-sheet.'):
+            load_sample_sheet(self.katharoseq_3)
+
+        # self.katharoseq_3 is a duplicate of self.katharoseq_2, except
+        # number_of_cells has been replaced w/number_of_sells. This is
+        # enough to fail load_sample_sheet(). Confirm specific error by
+        # manually loading the sample-sheet into an SampleSheet object.
+        sheet = MetagenomicSampleSheetv101(self.katharoseq_3)
+
+        # self.katharoseq_3 should load properly into an object, although it
+        # will later fail validation.
+        self.assertIsNotNone(sheet)
+
+        # confirm type is katharoseq-enabled.
+        self.assertEqual(type(sheet), MetagenomicSampleSheetv101)
+
+        # Note: _get_expected_columns() returns what columns the sample-sheet
+        # SHOULD have.
+        self.assertIn('number_of_cells', sheet._get_expected_columns())
+
+        # confirm validate_and_scrub_sample_sheet() returns False.
+        self.assertFalse(sheet.validate_and_scrub_sample_sheet())
+
+        msgs = sheet.quiet_validate_and_scrub_sample_sheet()
+
+        msgs = [str(msg) for msg in msgs]
+
+        self.assertIn('ErrorMessage: The number_of_cells column in the'
+                      ' Data section is missing', msgs)
+
+    def test_katharoseq_enabled_sheet_creation_no_kath(self):
+        # create a Metagenomic-type sample-sheet from scratch w/out karathoseq
+        # samples and manually populate the required fields.
+        sheet = MetagenomicSampleSheetv101()
+        sheet.Header['IEMFileVersion'] = 4
+        sheet.Header['SheetType'] = 'standard_metag'
+        sheet.Header['SheetVersion'] = '101'
+        sheet.Header['Investigator Name'] = 'Knight'
+        sheet.Header['Experiment Name'] = 'RKO_experiment'
+        sheet.Header['Date'] = '2021-08-17'
+        sheet.Header['Workflow'] = 'GenerateFASTQ'
+        sheet.Header['Application'] = 'FASTQ Only'
+        sheet.Header['Assay'] = 'Metagenomic'
+        sheet.Header['Description'] = ''
+        sheet.Header['Chemistry'] = 'Default'
+        sheet.Reads = [151, 151]
+        sheet.Settings['ReverseComplement'] = 0
+
+        data = [
+            ['Project1_99999', '99999', 'False', 'AACC', 'GGTT', 'False',
+             'False', 'protocol_1', 'a designed experiment']
+        ]
+
+        sheet.Bioinformatics = pd.DataFrame(
+            columns=['Sample_Project', 'QiitaID', 'BarcodesAreRC',
+                     'ForwardAdapter', 'ReverseAdapter', 'HumanFiltering',
+                     'contains_replicates', 'library_construction_protocol',
+                     'experiment_design_description'], data=data)
+
+        sheet.Contact = pd.DataFrame(columns=['Email', 'Sample_Project'],
+                                     data=[['c2cowart@ucsd.edu',
+                                            'Project1_99999'],])
+
+        header = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
+                  'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                  'Sample_Project', 'Well_description']
+
+        data = [
+            ['sample_1', 'sample.1', 'sample_plate_1', 'A1', 'iTru7_107_07',
+             'CCGACTAT', 'iTru5_01_A', 'ACCGACAA', 'Project1_99999', 'desc'],
+            ['sample_2', 'sample.2', 'sample_plate_1', 'A2', 'iTru7_107_07',
+             'CCGACTAC', 'iTru5_01_A', 'ACCGACAT', 'Project1_99999', 'desc'],
+            ['sample_3', 'sample.3', 'sample_plate_1', 'A3', 'iTru7_107_07',
+             'CCGACTAG', 'iTru5_01_A', 'ACCGACAG', 'Project1_99999', 'desc'],
+        ]
+
+        for row in data:
+            # Add each row as a Sample() object. Each Sample() object takes
+            # a dict as its initializer.
+            sheet.add_sample(sample_sheet.Sample(dict(zip(header, row))))
+
+        # Once sheet has been manually populated, validate it.
+        self.assertTrue(sheet.validate_and_scrub_sample_sheet())
+        self.assertFalse(sheet.contains_katharoseq_samples())
+
+    def test_katharoseq_enabled_sheet_creation(self):
+        # create a sheet from scratch, this time with karathoseq samples.
+        header = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
+                  'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                  'Sample_Project', 'Well_description']
+
+        data = [
+            ['sample_1', 'sample.1', 'sample_plate_1', 'A1', 'iTru7_107_07',
+             'CCGACTAT', 'iTru5_01_A', 'ACCGACAA', 'Project1_99999', 'desc'],
+            ['sample_2', 'sample.2', 'sample_plate_1', 'A2', 'iTru7_107_07',
+             'CCGACTAC', 'iTru5_01_A', 'ACCGACAT', 'Project1_99999', 'desc'],
+            ['sample_3', 'sample.3', 'sample_plate_1', 'A3', 'iTru7_107_07',
+             'CCGACTAG', 'iTru5_01_A', 'ACCGACAG', 'Project1_99999', 'desc'],
+            # added katharoseq control here.
+            ['katharo0001', 'katharo0001', 'sample_plate_1', 'A4',
+             'iTru7_107_07', 'CCGCCTAG', 'iTru5_01_A', 'ACCGTCAG',
+             'Project1_99999', 'desc']
+        ]
+
+        for row in data:
+            # For all children of Samplesheet() class, the first call to
+            # add_sample() determines the number, name, and ordering of
+            # columns in the [Data] section. Changing the columns in a
+            # subsequent call will raise an Error.
+            #
+            # We can assume that a user creating a katharoseq-enabled
+            # sample-sheet will include the katharoseq-enabled columns, even
+            # for sample-names that don't begin with 'katharo'.
+            #
+            # Hence, as when using load_sample_sheet(), confirmation that
+            # katharoseq columns are present when katharoseq controls are in
+            # the [Data] section and not present otherwise won't be determined
+            # until validation() is called.
+            self.test_sheet.add_sample(sample_sheet.Sample(dict(zip(header,
+                                                                    row))))
+
+        # sheet should not be valid, since we added a katharoseq control w/out
+        # adding the additional columns.
+        self.assertFalse(self.test_sheet.validate_and_scrub_sample_sheet())
+
+        # confirm that a katharoseq control was found among the samples.
+        self.assertTrue(self.test_sheet.contains_katharoseq_samples())
+
+        # validate sheet again, this time get the list of error messages.
+        msgs = self.test_sheet.quiet_validate_and_scrub_sample_sheet()
+        msgs = [str(msg) for msg in msgs]
+
+        # assert this message is present in the results, and assume all of the
+        # other messages one would expect to see are also present.
+        self.assertIn('ErrorMessage: The TubeCode column in the Data section '
+                      'is missing', msgs)
+
+    def test_katharoseq_enabled_sheet_creation_manual(self):
+        # create a sheet manually, this time with the proper type and
+        # number of columns.
+        header = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
+                  'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                  'Sample_Project', 'Well_description', 'Kathseq_RackID',
+                  'TubeCode', 'katharo_description', 'number_of_cells',
+                  'platemap_generation_date', 'project_abbreviation',
+                  'vol_extracted_elution_ul', 'well_id_96']
+
+        data = [
+            ['sample_1', 'sample.1', 'sample_plate_1', 'A1', 'iTru7_107_07',
+             'CCGACTAT', 'iTru5_01_A', 'ACCGACAA', 'Project1_99999', 'desc',
+             '', '', '', '', '', '', '', ''],
+            ['sample_2', 'sample.2', 'sample_plate_1', 'A2', 'iTru7_107_07',
+             'CCGACTAC', 'iTru5_01_A', 'ACCGACAT', 'Project1_99999', 'desc',
+             '', '', '', '', '', '', '', ''],
+            ['sample_3', 'sample.3', 'sample_plate_1', 'A3', 'iTru7_107_07',
+             'CCGACTAG', 'iTru5_01_A', 'ACCGACAG', 'Project1_99999', 'desc',
+             '', '', '', '', '', '', '', ''],
+            # added katharoseq control here.
+            ['katharo0001', 'katharo0001', 'sample_plate_1', 'A4',
+             'iTru7_107_07', 'CCGCCTAG', 'iTru5_01_A', 'ACCGTCAG',
+             'Project1_99999', 'desc', '', '', '', '', '', '', '', '']
+        ]
+
+        for row in data:
+            # For all children of Samplesheet() class, the first call to
+            # add_sample() determines the number, name, and ordering of
+            # columns in the [Data] section. Changing the columns in a
+            # subsequent call will raise an Error.
+            #
+            # We can assume that a user creating a katharoseq-enabled
+            # sample-sheet will include the katharoseq-enabled columns, even
+            # for sample-names that don't begin with 'katharo'.
+            #
+            # Hence, as when using load_sample_sheet(), confirmation that
+            # katharoseq columns are present when katharoseq controls are in
+            # the [Data] section and not present otherwise won't be determined
+            # until validation() is called.
+            self.test_sheet.add_sample(sample_sheet.Sample(dict(zip(header,
+                                                                    row))))
+
+        self.assertTrue(self.test_sheet.validate_and_scrub_sample_sheet())
+        self.assertTrue(self.test_sheet.contains_katharoseq_samples())
+        msgs = self.test_sheet.quiet_validate_and_scrub_sample_sheet()
+        self.assertEqual([], msgs)
+
+    def test_katharoseq_make_sample_sheet(self):
+        table = pd.DataFrame(columns=self.input_columns, data=self.data)
+        sheet = make_sample_sheet(self.metadata, table, 'iSeq', [1],
+                                  strict=False)
+
+        # confirm that we get a sample-sheet w/out katharoseq-control-related
+        # columns.
+        self.assertIsNotNone(sheet)
+        self.assertIsInstance(sheet, MetagenomicSampleSheetv101)
+        self.assertFalse(sheet.contains_katharoseq_samples())
+        obs_columns = set(sheet.samples[0].to_json().keys())
+        exp_columns = {'Sample_ID', 'Sample_Name', 'Sample_Plate',
+                       'well_id_384', 'I7_Index_ID', 'index', 'I5_Index_ID',
+                       'index2', 'Sample_Project', 'Well_description',
+                       'Lane'}
+        self.assertEqual(obs_columns, exp_columns)
+
+    def test_katharoseq_make_sample_sheet_one_optional_column_ok(self):
+        self.input_columns.append('Kathseq_RackID')
+        self.data[0].append('MyRackID')
+        table = pd.DataFrame(columns=self.input_columns, data=self.data)
+
+        # sheet will be created but extended columns will not be present
+        # and no error is raised. Kathseq_RackID is silently dropped.
+        sheet = make_sample_sheet(self.metadata, table, 'iSeq', [1],
+                                  strict=False)
+
+        self.assertIsNotNone(sheet)
+        self.assertIsInstance(sheet, MetagenomicSampleSheetv101)
+        self.assertFalse(sheet.contains_katharoseq_samples())
+        obs_columns = set(sheet.samples[0].to_json().keys())
+        exp_columns = {'Sample_ID', 'Sample_Name', 'Sample_Plate',
+                       'well_id_384', 'I7_Index_ID', 'index', 'I5_Index_ID',
+                       'index2', 'Sample_Project', 'Well_description',
+                       'Lane'}
+        self.assertEqual(obs_columns, exp_columns)
+
+    def test_katharoseq_make_sample_sheet_one_optional_column_error(self):
+        # attempt to make a sample-sheet using make_sample_sheet and w/a
+        # dataset that has only one of the optional columns (Kathseq_RackID)
+        # included. This should result in an error raised.
+
+        # To do this, we will change the name of the sample to begin w/katharo.
+        self.data[0][1] = 'katharo.01'  # changing sample_name
+
+        table = pd.DataFrame(columns=self.input_columns, data=self.data)
+
+        exp = ("ErrorMessage: The TubeCode column in the Data section is "
+               "missing\nErrorMessage: The katharo_description column in the "
+               "Data section is missing\nErrorMessage: The number_of_cells "
+               "column in the Data section is missing\nErrorMessage: The "
+               "platemap_generation_date column in the Data section is "
+               "missing\nErrorMessage: The project_abbreviation column in the"
+               " Data section is missing\nErrorMessage: The vol_extracted_"
+               "elution_ul column in the Data section is missing\nError"
+               "Message: The well_id_96 column in the Data section is missing")
+
+        with self.assertRaisesRegex(ValueError, exp):
+            make_sample_sheet(self.metadata, table, 'iSeq', [1],
+                              strict=False)
+
+    def test_katharoseq_make_sample_sheet_all_optional_columns(self):
+        # test make_sample_sheet() w/katharoseq data. To do this, change the
+        # name of the sample to begin w/katharo.
+        self.data[0][1] = 'katharo.01'  # changing sample_name
+
+        # add missing columns to the data and populate them with 'junk value'.
+        optional_columns = ['Kathseq_RackID', 'TubeCode',
+                            'katharo_description', 'number_of_cells',
+                            'platemap_generation_date', 'project_abbreviation',
+                            'vol_extracted_elution_ul', 'well_id_96']
+
+        for column in optional_columns:
+            self.input_columns.append(column)
+            self.data[0].append('junk_value')
+
+        table = pd.DataFrame(columns=self.input_columns, data=self.data)
+
+        sheet = make_sample_sheet(self.metadata, table, 'iSeq', [1],
+                                  strict=False)
+
+        # confirm that a sheet was created w/all the extended columns
+        # required for katharoseq-controls.
+        self.assertIsNotNone(sheet)
+        self.assertIsInstance(sheet, MetagenomicSampleSheetv101)
+        self.assertTrue(sheet.contains_katharoseq_samples())
+        obs_columns = set(sheet.samples[0].to_json().keys())
+        exp_columns = {'Sample_Project', 'Sample_ID', 'TubeCode', 'index2',
+                       'index', 'Kathseq_RackID', 'well_id_384',
+                       'katharo_description', 'Well_description',
+                       'platemap_generation_date', 'Sample_Plate',
+                       'I5_Index_ID', 'well_id_96', 'number_of_cells',
+                       'project_abbreviation', 'Sample_Name', 'I7_Index_ID',
+                       'vol_extracted_elution_ul', 'Lane'}
+
+        self.assertEqual(obs_columns, exp_columns)
+        self.assertTrue(sheet.validate_and_scrub_sample_sheet())
 
 
 DF_DATA = [
