@@ -1864,9 +1864,6 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
                'vol_extracted_elution_ul', 'well_id_96']
         obs = sheet2._get_expected_columns()
 
-        print("EXP: %s" % exp)
-        print("OBS: %s" % obs)
-        # CHARLIE
         self.assertEqual(obs, exp)
         self.assertTrue(sheet1.validate_and_scrub_sample_sheet())
 
