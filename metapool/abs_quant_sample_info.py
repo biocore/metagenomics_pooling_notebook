@@ -218,10 +218,6 @@ def _add_config_metadata(
         storage_liquid_dict[MASS_STORAGE_TUBE_ONLY_G_KEY]
 
     lot_nums_dict = storage_liquid_dict.get(STORAGE_LIQUID_LOT_NUM_STR_KEY)
-    calc_df[MASS_STORAGE_TUBE_AND_STORAGE_LIQUID_BEFORE_SAMPLE_G_KEY] = (
-        calc_df[STORAGE_LIQUID_LOT_NUM_STR_KEY].apply(
-            lambda x: lot_nums_dict.get(x).get(
-                MASS_STORAGE_TUBE_AND_STORAGE_LIQUID_BEFORE_SAMPLE_G_KEY)))
 
     calc_df[DENSITY_STORAGE_LIQUID_G_ML_KEY] = (
         calc_df[STORAGE_LIQUID_LOT_NUM_STR_KEY].apply(
