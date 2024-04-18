@@ -36,46 +36,6 @@ class SeqproTests(unittest.TestCase):
     def tearDown(self):
         rmtree(self.vf_test_dir, ignore_errors=True)
 
-    def test_atropos_run(self):
-        runner = CliRunner()
-
-        with runner.isolated_filesystem():
-            result = runner.invoke(
-                format_preparation_files,
-                args=[
-                    self.run,
-                    self.sheet,
-                    "./",
-                    "--pipeline",
-                    "atropos-and-bowtie2",
-                ],
-            )
-
-            # assert that expected error message appeared in stdout. we are
-            # not concerned w/warning messages that may also appear.
-            self.assertIn(
-                "Stats collection is not supported for pipeline "
-                "atropos-and-bowtie2",
-                result.output,
-            )
-            self.assertEqual(result.exit_code, 0)
-
-            exp_preps = [
-                "191103_D32611_0365_G00DHB5YXX.Baz_12345.1.tsv",
-                "191103_D32611_0365_G00DHB5YXX.Baz_12345.3.tsv",
-                "191103_D32611_0365_G00DHB5YXX.FooBar_666.3.tsv",
-            ]
-
-            self.assertEqual(sorted(os.listdir("./")), exp_preps)
-
-            for prep, exp_lines in zip(exp_preps, [4, 4, 5]):
-                with open(prep) as f:
-                    self.assertEqual(
-                        len(f.read().split("\n")),
-                        exp_lines,
-                        "Assertion error in %s" % prep,
-                    )
-
     def test_fastp_run(self):
         runner = CliRunner()
 
@@ -85,9 +45,7 @@ class SeqproTests(unittest.TestCase):
                 args=[
                     self.fastp_run,
                     self.fastp_sheet,
-                    "./",
-                    "--pipeline",
-                    "fastp-and-minimap2",
+                    "./"
                 ],
             )
 
@@ -396,9 +354,7 @@ class SeqproTests(unittest.TestCase):
                 args=[
                     self.fastp_run,
                     self.v90_test_sheet,
-                    "./",
-                    "--pipeline",
-                    "fastp-and-minimap2",
+                    "./"
                 ],
             )
 
@@ -442,9 +398,7 @@ class SeqproBCLConvertTests(unittest.TestCase):
                 args=[
                     self.temp_copy,
                     self.fastp_sheet,
-                    "./",
-                    "--pipeline",
-                    "fastp-and-minimap2",
+                    "./"
                 ],
             )
             self.assertEqual(result.output, "")
