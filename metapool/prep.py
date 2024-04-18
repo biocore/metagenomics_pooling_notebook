@@ -156,7 +156,7 @@ def remove_qiita_id(project_name):
         return matches[1]
 
 
-def get_run_prefix(run_path, project, sample_id, lane, pipeline):
+def get_run_prefix(run_path, project, sample_id, lane):
     """For a sample find the run prefix
 
     Parameters
@@ -169,9 +169,6 @@ def get_run_prefix(run_path, project, sample_id, lane, pipeline):
         Sample ID (was sample_name). Changed to reflect name used for files.
     lane: str
         Lane number
-    pipeline: str
-        The pipeline used to generate the data. Should be one of
-        `atropos-and-bowtie2` or `fastp-and-minimap2`.
 
     Returns
     -------
@@ -182,32 +179,17 @@ def get_run_prefix(run_path, project, sample_id, lane, pipeline):
     base = os.path.join(run_path, project)
     path = base
 
-    # each pipeline sets up a slightly different directory structure,
-    # importantly fastp-and-minimap2 won't save intermediate files
-    if pipeline == 'atropos-and-bowtie2':
-        qc = os.path.join(base, 'atropos_qc')
-        hf = os.path.join(base, 'filtered_sequences')
+    qc = os.path.join(base, 'trimmed_sequences')
+    hf = os.path.join(base, 'filtered_sequences')
 
-        # If both folders exist and have sequence files always prefer the
-        # human-filtered sequences
-        if _exists_and_has_files(qc):
-            path = qc
-            if _exists_and_has_files(hf):
-                path = hf
-    elif pipeline == 'fastp-and-minimap2':
-        qc = os.path.join(base, 'trimmed_sequences')
-        hf = os.path.join(base, 'filtered_sequences')
-
-        if _exists_and_has_files(qc) and _exists_and_has_files(hf):
-            path = hf
-        elif _exists_and_has_files(qc):
-            path = qc
-        elif _exists_and_has_files(hf):
-            path = hf
-        else:
-            path = base
+    if _exists_and_has_files(qc) and _exists_and_has_files(hf):
+        path = hf
+    elif _exists_and_has_files(qc):
+        path = qc
+    elif _exists_and_has_files(hf):
+        path = hf
     else:
-        raise ValueError('Invalid pipeline "%s"' % pipeline)
+        path = base
 
     search_me = '%s_S*_L*%s_R*.fastq.gz' % (sample_id, lane)
 
@@ -453,7 +435,7 @@ def process_sample(sample, prep_columns, run_center, run_date, run_prefix,
 
 
 def preparations_for_run(run_path, sheet, generated_prep_columns,
-                         carried_prep_columns, pipeline='fastp-and-minimap2'):
+                         carried_prep_columns):
     """Given a run's path and sample sheet generates preparation files
 
     Parameters
@@ -469,11 +451,6 @@ def preparations_for_run(run_path, sheet, generated_prep_columns,
     carried_prep_columns: list
         List of required columns for output that are expected in KLSampleSheet.
         Varies w/different versions of KLSampleSheet.
-    pipeline: str, optional
-        Which pipeline generated the data. The important difference is that
-        `atropos-and-bowtie2` saves intermediate files, whereas
-        `fastp-and-minimap2` doesn't. Default is `fastp-and-minimap2`, the
-        latest version of the sequence processing pipeline.
 
     Returns
     -------
@@ -533,8 +510,7 @@ def preparations_for_run(run_path, sheet, generated_prep_columns,
                 else:
                     sample_id = sample.sample_id
 
-                run_prefix = get_run_prefix(run_path, project, sample_id, lane,
-                                            pipeline)
+                run_prefix = get_run_prefix(run_path, project, sample_id, lane)
 
                 # ignore the sample if there's no file
                 if run_prefix is not None:

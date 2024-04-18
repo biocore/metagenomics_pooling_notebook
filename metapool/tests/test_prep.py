@@ -75,6 +75,9 @@ class TestPrep(TestCase):
         # make sure the columns are in the same order before comparing
         obs_df = obs_df[exp.columns].copy()
 
+        exp.to_csv('exp')
+        obs_df.to_csv('obs')
+
         pd.testing.assert_frame_equal(obs_df, exp)
 
         data = [['sample.1', 'Eqiiperiment', 'Knight Lab Kapa HP',
@@ -202,8 +205,7 @@ class TestPrep(TestCase):
         obs = preparations_for_run(self.good_run,
                                    sample_sheet_to_dataframe(sheet),
                                    sheet.GENERATED_PREP_COLUMNS,
-                                   sheet.CARRIED_PREP_COLUMNS,
-                                   pipeline='atropos-and-bowtie2')
+                                   sheet.CARRIED_PREP_COLUMNS)
         self._check_run_191103_D32611_0365_G00DHB5YXX(obs)
 
     def test_preparations_for_run_missing_columns(self):
@@ -217,8 +219,7 @@ class TestPrep(TestCase):
         with self.assertWarns(UserWarning) as cm:
             obs = preparations_for_run(self.good_run, ss,
                                        sheet.GENERATED_PREP_COLUMNS,
-                                       sheet.CARRIED_PREP_COLUMNS,
-                                       pipeline='atropos-and-bowtie2')
+                                       sheet.CARRIED_PREP_COLUMNS)
 
             self.assertEqual(str(cm.warnings[0].message), "'well_description' "
                                                           "is not present in s"
@@ -287,67 +288,57 @@ class TestPrep(TestCase):
 
     def test_get_run_prefix(self):
         # project 1
-        obs = get_run_prefix(self.good_run, 'Baz_12345', 'sample_1', '1',
-                             'atropos-and-bowtie2')
+        obs = get_run_prefix(self.good_run, 'Baz_12345', 'sample_1', '1')
         self.assertEqual('sample_1_S11_L001', obs)
 
-        obs = get_run_prefix(self.good_run, 'Baz_12345', 'sample_1', '3',
-                             'atropos-and-bowtie2')
+        obs = get_run_prefix(self.good_run, 'Baz_12345', 'sample_1', '3')
         self.assertEqual('sample_1_S11_L003', obs)
 
-        obs = get_run_prefix(self.good_run, 'Baz_12345', 'sample_2', '1',
-                             'atropos-and-bowtie2')
+        obs = get_run_prefix(self.good_run, 'Baz_12345', 'sample_2', '1')
         self.assertEqual('sample_2_S10_L001', obs)
 
-        obs = get_run_prefix(self.good_run, 'Baz_12345', 'sample_2', '3',
-                             'atropos-and-bowtie2')
-        self.assertIsNone(obs)
-
         # project 2
-        obs = get_run_prefix(self.good_run, 'FooBar_666', 'sample_31', '3',
-                             'atropos-and-bowtie2')
+        obs = get_run_prefix(self.good_run, 'FooBar_666', 'sample_31', '3')
         self.assertEqual('sample_31_S13_L003', obs)
 
-        obs = get_run_prefix(self.good_run, 'FooBar_666', 'sample_32', '3',
-                             'atropos-and-bowtie2')
+        obs = get_run_prefix(self.good_run, 'FooBar_666', 'sample_32', '3')
         self.assertEqual('sample_32_S19_L003', obs)
 
-        obs = get_run_prefix(self.good_run, 'FooBar_666', 'sample_34', '3',
-                             'atropos-and-bowtie2')
+        obs = get_run_prefix(self.good_run, 'FooBar_666', 'sample_34', '3')
         self.assertEqual('sample_34_S33_L003', obs)
 
     def test_get_run_prefix_fastp_minimap(self):
         obs = get_run_prefix(self.good_run_new_version, 'Baz_12345', 'sample1',
-                             '1', 'fastp-and-minimap2')
+                             '1')
         self.assertEqual('sample1_S11_L001', obs)
 
         obs = get_run_prefix(self.good_run_new_version, 'Baz_12345', 'sample1',
-                             '3', 'fastp-and-minimap2')
+                             '3')
         self.assertEqual('sample1_S11_L003', obs)
 
         obs = get_run_prefix(self.good_run_new_version, 'Baz_12345', 'sample2',
-                             '1', 'fastp-and-minimap2')
+                             '1')
         self.assertEqual('sample2_S10_L001', obs)
 
         obs = get_run_prefix(self.good_run_new_version, 'Baz_12345',
-                             'sample44', '3', 'fastp-and-minimap2')
+                             'sample44', '3')
         self.assertIsNone(obs)
 
         obs = get_run_prefix(self.good_run_new_version, 'Baz_12345', 'sample2',
-                             '3', 'fastp-and-minimap2')
+                             '3')
         self.assertIsNone(obs)
 
         # project 2
         obs = get_run_prefix(self.good_run_new_version, 'FooBar_666',
-                             'sample31', '3', 'fastp-and-minimap2')
+                             'sample31', '3')
         self.assertEqual('sample31_S13_L003', obs)
 
         obs = get_run_prefix(self.good_run_new_version, 'FooBar_666',
-                             'sample32', '3', 'fastp-and-minimap2')
+                             'sample32', '3')
         self.assertEqual('sample32_S19_L003', obs)
 
         obs = get_run_prefix(self.good_run_new_version, 'FooBar_666',
-                             'sample34', '3', 'fastp-and-minimap2')
+                             'sample34', '3')
         self.assertIsNone(obs)
 
     def test_get_run_prefix_more_than_forward_and_reverse(self):
@@ -365,15 +356,15 @@ class TestPrep(TestCase):
         # project 2
         with self.assertWarnsRegex(Warning, message):
             obs = get_run_prefix(self.OKish_run_new_version, 'FooBar_666',
-                                 'sample31', '3', 'fastp-and-minimap2')
+                                 'sample31', '3')
             self.assertIsNone(obs)
 
         obs = get_run_prefix(self.OKish_run_new_version, 'FooBar_666',
-                             'sample32', '3', 'fastp-and-minimap2')
+                             'sample32', '3')
         self.assertEqual('sample32_S19_L003', obs)
 
         obs = get_run_prefix(self.OKish_run_new_version, 'FooBar_666',
-                             'sample34', '3', 'fastp-and-minimap2')
+                             'sample34', '3')
         self.assertIsNone(obs)
 
     def test_is_non_empty_gz_file(self):
