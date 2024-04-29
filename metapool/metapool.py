@@ -150,7 +150,7 @@ def extract_stats_metadata(stats_json_fp, lane_numbers):
     return (
         {"Flowcell": flowcell, "RunNumber": run_number, "RunId": run_id},
         filtered_results,
-        filtered_unknowns,
+        filtered_unknowns
     )
 
 
@@ -517,7 +517,7 @@ def format_dna_norm_picklist(
     water_plate_name="Water",
     dna_plate_type="384PP_AQ_BP2",
     water_plate_type="384PP_AQ_BP2",
-    dest_plate_name="NormalizedDNA",
+    dest_plate_name="NormalizedDNA"
 ):
     """
     Writes Echo-format pick list to achieve a normalized input DNA pool
@@ -591,7 +591,7 @@ def format_dna_norm_picklist(
 
     # DNA additions
     for index, sample in np.ndenumerate(sample_names):
-        picklist += "\n" + "\t".join(
+        picklist += '\n' + '\t'.join(
             [
                 str(sample),
                 str(sample_plates[index]),
@@ -1374,8 +1374,7 @@ def linear_transform(input_values, output_min=100, output_max=1000):
 
     diff1 = input_values - input_min
     diff2 = output_max - output_min
-    transformed_values = ((diff1) * (diff2) / input_range) + output_min
-    return transformed_values
+    return (diff1 * diff2 / input_range) + output_min
 
 
 def calculate_iseqnorm_pooling_volumes(
@@ -1462,7 +1461,7 @@ def calculate_iseqnorm_pooling_volumes(
         hue="Blank",
         data=plate_df,
         alpha=0.5,
-        ax=ax1,
+        ax=ax1
     )
     plt.xscale("log")
     sns.histplot(plate_df[normalization_column], ax=ax2)
@@ -1475,7 +1474,7 @@ def estimate_read_depth(
     plate_df,
     estimated_total_output=4e9,
     on_target_column="Filtered Reads",
-    off_target_column="Raw Reads",
+    off_target_column="Raw Reads"
 ):
     """
     Builds a figure to estimate read depth per sample when
@@ -1568,24 +1567,24 @@ def add_syndna(plate_df, syndna_pool_number=None, syndna_concentration=None,
     plate_df : pd.DataFrame
         returns a pandas dataframe with extra columns"""
 
-    plate_df_ = plate_df.copy()
-    plate_df_[SYNDNA_POOL_NUM_KEY] = syndna_pool_number
+    result = plate_df.copy()
+    result[SYNDNA_POOL_NUM_KEY] = syndna_pool_number
     if syndna_pool_number is None:
         warnings.warn("Returning input plate dataframe;"
                       "no synDNA will be added to this prep")
 
-        return plate_df_
+        return result
 
     else:
-        if NORMALIZED_DNA_VOL_KEY not in plate_df_.columns:
+        if NORMALIZED_DNA_VOL_KEY not in result.columns:
             raise Exception(
                 "The plate dataframe (plate_df) must have input "
                 "normalization values already calculated before "
                 "calculating synDNA addition"
             )
 
-        plate_df_[INPUT_DNA_KEY] = plate_df_[SAMPLE_DNA_CONC_KEY] * \
-            plate_df_[NORMALIZED_DNA_VOL_KEY] / 1000
+        result[INPUT_DNA_KEY] = result[SAMPLE_DNA_CONC_KEY] * \
+            result[NORMALIZED_DNA_VOL_KEY] / 1000
         # synDNA volume is in nL
         if syndna_concentration is None:
             raise Exception("Specify the concentration of the synDNA"
@@ -1593,17 +1592,17 @@ def add_syndna(plate_df, syndna_pool_number=None, syndna_concentration=None,
         # The 1000 multiplier is to transform µL to nL because the Echo
         # dispenser uses nL as the volume unit but concentrations are
         # reported in ng/µL.
-        plate_df_[SYNDNA_VOL_KEY] = 1000 * (
-            plate_df_[INPUT_DNA_KEY]
+        result[SYNDNA_VOL_KEY] = 1000 * (
+            result[INPUT_DNA_KEY]
             * (syndna_percentage * 10**-2)
             / syndna_concentration
         )
 
-        plate_df_[SYNDNA_POOL_MASS_NG_KEY] = (
-            plate_df_[SYNDNA_VOL_KEY] / 1000
+        result[SYNDNA_POOL_MASS_NG_KEY] = (
+            result[SYNDNA_VOL_KEY] / 1000
         ) * syndna_concentration
 
-        return plate_df_
+        return result
 
 
 def read_visionmate_file(file_path_, cast_as_str, sep="\t", validate=True):
@@ -1841,7 +1840,7 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None):
             katharoseq_cell_counts[["LocationRow", "RackID",
                                     "number_of_cells"]],
             on=["LocationRow", "RackID"],
-            how="left",
+            how="left"
         )
         katharoseq_merged.rename(columns={"RackID": "Kathseq_RackID"},
                                  inplace=True)
@@ -1869,7 +1868,7 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None):
             + plate_df["Col"].astype(str)
             + "."
             + plate_df["number_of_cells"].astype(str),
-            plate_df["Sample"],
+            plate_df["Sample"]
         )
 
     else:
@@ -1888,7 +1887,7 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None):
         + "."
         + plate_df["Row"]
         + plate_df["Col"].astype(str),
-        plate_df["Sample"],
+        plate_df["Sample"]
     )
 
     # Assign BLANK column
@@ -2024,14 +2023,14 @@ def validate_plate_df(
     # Checks that a full katharoseq 8-point serial dilution was added, when
     # appropriate
     if "number_of_cells" in plate_df.columns:
-        dilutions_ = plate_df.loc[
+        dilutions = plate_df.loc[
             ~plate_df["number_of_cells"].isnull(), "number_of_cells"
         ].nunique()
-        if dilutions_ < 8:
+        if dilutions < 8:
             raise ValueError(
-                f"There should be 8 dilution points of katharoseq"
-                f" controls and your plate_df only has"
-                f" {dilutions_}"
+                "There should be 8 dilution points of katharoseq"
+                " controls and your plate_df only has"
+                f" {dilutions}"
             )
 
     # remove any leading and/or trailing whitespace before determining if
