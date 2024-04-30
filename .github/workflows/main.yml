@@ -139,7 +139,7 @@ jobs:
           nosetests --with-coverage --cover-inclusive --cover-package metapool
           # -i switch introduced to ignore errors when reading source files.
           # See: https://stackoverflow.com/questions/2386975/no-source-for-code-message-in-coverage-py
-          coverage -i report
+          coverage report -i
 
       - name: Python linter
         shell: bash -l {0}
