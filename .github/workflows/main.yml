@@ -137,7 +137,9 @@ jobs:
         run: |
           conda activate metapool
           nosetests --with-coverage --cover-inclusive --cover-package metapool
-          coverage report
+          # -i switch introduced to ignore errors when reading source files.
+          # See: https://stackoverflow.com/questions/2386975/no-source-for-code-message-in-coverage-py
+          coverage -i report
 
       - name: Python linter
         shell: bash -l {0}
