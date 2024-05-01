@@ -8,6 +8,7 @@ from glob import glob
 from datetime import datetime
 from string import ascii_letters, digits
 from metapool.plate import PlateReplication
+from collections import Counter
 
 
 REQUIRED_MF_COLUMNS = {'sample_name', 'barcode', 'primer', 'primer_plate',
@@ -728,6 +729,7 @@ def generate_qiita_prep_file(platedf, seqtype):
             'Golay Barcode': 'barcode',
             '515FB Forward Primer (Parada)': 'primer',
             'Project Name': 'project_name',
+            'Project_Name': 'project_name',
             'Well': 'well_id_384',
             'Primer Plate #': 'primer_plate',
             'Plating': 'plating',
@@ -743,6 +745,8 @@ def generate_qiita_prep_file(platedf, seqtype):
             'Processing Robot': 'processing_robot',
             'Sample Plate': 'sample_plate',
             'Forward Primer Linker': 'linker',
+            'Date': 'platemap_generation_date',
+            'Project Abbreviation': 'project_abbreviation'
         }
     else:
         column_renamer = {
@@ -750,6 +754,7 @@ def generate_qiita_prep_file(platedf, seqtype):
             'Golay Barcode': 'barcode',
             'Reverse complement of 3prime Illumina Adapter': 'primer',
             'Project Name': 'project_name',
+            'Project_Name': 'project_name',
             'Well': 'well_id_384',
             'Primer Plate #': 'primer_plate',
             'Plating': 'plating',
@@ -764,7 +769,9 @@ def generate_qiita_prep_file(platedf, seqtype):
             'Water Lot': 'water_lot',
             'Processing Robot': 'processing_robot',
             'Sample Plate': 'sample_plate',
-            'Reverse Primer Linker': 'linker'
+            'Reverse Primer Linker': 'linker',
+            'Date': 'platemap_generation_date',
+            'Project Abbreviation': 'project_abbreviation'
         }
 
     prep = platedf.copy()
@@ -814,6 +821,14 @@ def generate_qiita_prep_file(platedf, seqtype):
         if c not in prep.columns:
             prep[c] = ''
 
+    if not prep.columns.is_unique:
+        column_names = Counter(list(prep.columns))
+        duplicates = [x for x in column_names if column_names[x] > 1]
+        raise ValueError(
+            "One or more columns in DataFrame resolve to the same"
+            " column name(s): %s" % ", ".join(duplicates)
+        )
+
     # the approved order of columns in the prep-file.
     column_order = ['sample_name', 'barcode', 'primer', 'primer_plate',
                     'well_id_384', 'plating', 'extractionkit_lot',
@@ -835,7 +850,9 @@ def generate_qiita_prep_file(platedf, seqtype):
     remove_these = {'Blank', 'Col', 'Compressed Plate Name', 'Plate Position',
                     'EMP Primer Plate Well', 'Forward Primer Pad', 'Name',
                     'Illumina 5prime Adapter', 'Original Name', 'Plate', 'Row',
-                    'Primer For PCR', 'Project Plate', 'index', 'Project_Name'}
+                    'Primer For PCR', 'Project Plate', 'index',
+                    'Plate elution volume', 'Plate map file', 'Time',
+                    'RackID'}
 
     # only remove the columns from the above set that are actually present in
     # the prep dataframe to avoid possible errors.
