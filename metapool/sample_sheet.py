@@ -411,7 +411,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
         return result
 
-    def _add_data_to_sheet(self, table, sequencer, lanes, assay, strict=True):
+    def _add_data_to_sheet(self, table, sequencer, lane, assay, strict=True):
         if self.remapper is None:
             raise ValueError("sample-sheet does not contain a valid Assay"
                              " type.")
@@ -438,10 +438,9 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             self.Bioinformatics['BarcodesAreRC'] = str(
                 sequencer in REVCOMP_SEQUENCERS)
 
-        for lane in lanes:
-            for sample in table.to_dict(orient='records'):
-                sample['Lane'] = lane
-                self.add_sample(sample_sheet.Sample(sample))
+        for sample in table.to_dict(orient='records'):
+            sample['Lane'] = lane
+            self.add_sample(sample_sheet.Sample(sample))
 
         return table
 
@@ -1248,7 +1247,7 @@ def _create_sample_sheet(sheet_type, sheet_version, assay_type):
     return sheet
 
 
-def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
+def make_sample_sheet(metadata, table, sequencer, lane, strict=True):
     """Write a valid sample sheet
 
     Parameters
@@ -1288,8 +1287,8 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
         DNA pool number ('syndna_pool_number').
     sequencer: string
         A string representing the sequencer used.
-    lanes: list of integers
-        A list of integers representing the lanes used.
+    lane: an integer
+        An integer representing the lane used.
     strict: boolean
         If True, a subset of columns based on Assay type will define the
         columns in the [Data] section of the sample-sheet. Otherwise all
@@ -1324,7 +1323,7 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
 
     if len(messages) == 0:
         sheet._add_metadata_to_sheet(metadata, sequencer)
-        sheet._add_data_to_sheet(table, sequencer, lanes, metadata['Assay'],
+        sheet._add_data_to_sheet(table, sequencer, lane, metadata['Assay'],
                                  strict)
 
         # now that we have a SampleSheet() object, validate it for any

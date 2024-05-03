@@ -734,7 +734,7 @@ class SampleSheetWorkflow(BaseTests):
             # first, assert that make_sample_sheet() raises an Error when the
             # projects are improperly defined.
             with self.assertRaisesRegex(ValueError, message2):
-                make_sample_sheet(self.md_ampl, table2, 'HiSeq4000', [5, 7],
+                make_sample_sheet(self.md_ampl, table2, 'HiSeq4000', 5,
                                   strict=False)
 
             # second, correct the errors in the [Data] section.
@@ -742,7 +742,7 @@ class SampleSheetWorkflow(BaseTests):
                                       'Yanomani_2008_10052']
 
             obs = make_sample_sheet(self.md_ampl, table2, 'HiSeq4000',
-                                    [5, 7], strict=False)
+                                    5, strict=False)
 
         self.assertIsInstance(obs, AmpliconSampleSheet)
 
@@ -765,7 +765,7 @@ class SampleSheetWorkflow(BaseTests):
         }
 
         self.assertEqual(obs.Header, header)
-        self.assertEqual(len(obs.samples), 6)
+        self.assertEqual(len(obs.samples), 3)
 
         data = (
             [5, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
@@ -808,7 +808,7 @@ class SampleSheetWorkflow(BaseTests):
         obs = make_sample_sheet(self.md_ampl,
                                 table2,
                                 'HiSeq4000',
-                                [5, 7],
+                                5,
                                 strict=False)
 
         self.assertIsNotNone(obs, msg="make_sample_sheet() failed")
@@ -850,7 +850,7 @@ class SampleSheetWorkflow(BaseTests):
         obs = make_sample_sheet(self.md_ampl,
                                 table2,
                                 'HiSeq4000',
-                                [5, 7],
+                                5,
                                 strict=False)
 
         for sample, row in zip(obs.samples, data):
@@ -864,7 +864,7 @@ class SampleSheetWorkflow(BaseTests):
         obs = make_sample_sheet(self.md_ampl,
                                 table2,
                                 'HiSeq4000',
-                                [5, 7],
+                                5,
                                 strict=False)
 
         for sample, row in zip(obs.samples, data):
@@ -1071,7 +1071,7 @@ class SampleSheetWorkflow(BaseTests):
                    r'in the sample sheet is empty')
 
         with self.assertWarnsRegex(UserWarning, message):
-            self.sheet._add_data_to_sheet(self.table, 'HiSeq4000', [1],
+            self.sheet._add_data_to_sheet(self.table, 'HiSeq4000', 1,
                                           'TruSeq HT', strict=False)
 
         self.assertEqual(len(self.sheet), 3)
@@ -2068,7 +2068,7 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
 
     def test_katharoseq_make_sample_sheet(self):
         table = pd.DataFrame(columns=self.input_columns, data=self.data)
-        sheet = make_sample_sheet(self.metadata, table, 'iSeq', [1],
+        sheet = make_sample_sheet(self.metadata, table, 'iSeq', 1,
                                   strict=False)
 
         # confirm that we get a sample-sheet w/out katharoseq-control-related
@@ -2090,7 +2090,7 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
 
         # sheet will be created but extended columns will not be present
         # and no error is raised. Kathseq_RackID is silently dropped.
-        sheet = make_sample_sheet(self.metadata, table, 'iSeq', [1],
+        sheet = make_sample_sheet(self.metadata, table, 'iSeq', 1,
                                   strict=False)
 
         self.assertIsNotNone(sheet)
@@ -2124,7 +2124,7 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
                "Message: The well_id_96 column in the Data section is missing")
 
         with self.assertRaisesRegex(ValueError, exp):
-            make_sample_sheet(self.metadata, table, 'iSeq', [1],
+            make_sample_sheet(self.metadata, table, 'iSeq', 1,
                               strict=False)
 
     def test_katharoseq_make_sample_sheet_all_optional_columns(self):
@@ -2144,7 +2144,7 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
 
         table = pd.DataFrame(columns=self.input_columns, data=self.data)
 
-        sheet = make_sample_sheet(self.metadata, table, 'iSeq', [1],
+        sheet = make_sample_sheet(self.metadata, table, 'iSeq', 1,
                                   strict=False)
 
         # confirm that a sheet was created w/all the extended columns
