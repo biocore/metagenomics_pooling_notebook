@@ -734,15 +734,13 @@ class SampleSheetWorkflow(BaseTests):
             # first, assert that make_sample_sheet() raises an Error when the
             # projects are improperly defined.
             with self.assertRaisesRegex(ValueError, message2):
-                make_sample_sheet(self.md_ampl, table2, 'HiSeq4000', 5,
-                                  strict=False)
+                make_sample_sheet(self.md_ampl, table2, 'HiSeq4000', 5)
 
             # second, correct the errors in the [Data] section.
             table2['Project Name'] = ['Koening_ITS_101', 'Yanomani_2008_10052',
                                       'Yanomani_2008_10052']
 
-            obs = make_sample_sheet(self.md_ampl, table2, 'HiSeq4000',
-                                    5, strict=False)
+            obs = make_sample_sheet(self.md_ampl, table2, 'HiSeq4000', 5)
 
         self.assertIsInstance(obs, AmpliconSampleSheet)
 
@@ -805,11 +803,7 @@ class SampleSheetWorkflow(BaseTests):
                                   'Yanomani_2008_10052']
 
         # allow 'Well_description' column to pass through to obs.
-        obs = make_sample_sheet(self.md_ampl,
-                                table2,
-                                'HiSeq4000',
-                                5,
-                                strict=False)
+        obs = make_sample_sheet(self.md_ampl, table2, 'HiSeq4000', 5)
 
         self.assertIsNotNone(obs, msg="make_sample_sheet() failed")
         self.assertIsInstance(obs, AmpliconSampleSheet)
@@ -847,11 +841,7 @@ class SampleSheetWorkflow(BaseTests):
         table2.rename({'Well_description': 'well_description'},
                       axis=1, inplace=True)
 
-        obs = make_sample_sheet(self.md_ampl,
-                                table2,
-                                'HiSeq4000',
-                                5,
-                                strict=False)
+        obs = make_sample_sheet(self.md_ampl, table2, 'HiSeq4000', 5)
 
         for sample, row in zip(obs.samples, data):
             exp = sample_sheet.Sample(dict(zip(keys, row)))
@@ -861,11 +851,7 @@ class SampleSheetWorkflow(BaseTests):
         table2.rename({'well_description': 'description'},
                       axis=1, inplace=True)
 
-        obs = make_sample_sheet(self.md_ampl,
-                                table2,
-                                'HiSeq4000',
-                                5,
-                                strict=False)
+        obs = make_sample_sheet(self.md_ampl, table2, 'HiSeq4000', 5)
 
         for sample, row in zip(obs.samples, data):
             exp = sample_sheet.Sample(dict(zip(keys, row)))
@@ -905,7 +891,7 @@ class SampleSheetWorkflow(BaseTests):
             # this method to ensure that the observed table remains as
             # expected.
             obs = sheet._add_data_to_sheet(self.table, 'HiSeq4000', [1],
-                                           'TruSeq HT', strict=False)
+                                           'TruSeq HT')
             self.assertEqual(len(obs), 3)
             pd.testing.assert_frame_equal(obs, exp, check_like=True)
 
@@ -952,7 +938,7 @@ class SampleSheetWorkflow(BaseTests):
 
         sheet = MetagenomicSampleSheetv100()
 
-        obs = sheet._remap_table(self.table, strict=False)
+        obs = sheet._remap_table(self.table)
 
         self.assertEqual(len(obs), 3)
 
@@ -1002,7 +988,7 @@ class SampleSheetWorkflow(BaseTests):
 
         sheet = MetatranscriptomicSampleSheetv0()
 
-        obs = sheet._remap_table(self.table, strict=False)
+        obs = sheet._remap_table(self.table)
         obs = obs[['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
                    'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
                    'Sample_Project', 'Well_description']]
@@ -1056,7 +1042,7 @@ class SampleSheetWorkflow(BaseTests):
 
         sheet = MetatranscriptomicSampleSheetv10()
 
-        obs = sheet._remap_table(self.table, strict=False)
+        obs = sheet._remap_table(self.table)
         obs = obs[['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
                    'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
                    'Sample_Project', 'total_rna_concentration_ng_ul',
@@ -1072,7 +1058,7 @@ class SampleSheetWorkflow(BaseTests):
 
         with self.assertWarnsRegex(UserWarning, message):
             self.sheet._add_data_to_sheet(self.table, 'HiSeq4000', 1,
-                                          'TruSeq HT', strict=False)
+                                          'TruSeq HT')
 
         self.assertEqual(len(self.sheet), 3)
 
@@ -2068,8 +2054,7 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
 
     def test_katharoseq_make_sample_sheet(self):
         table = pd.DataFrame(columns=self.input_columns, data=self.data)
-        sheet = make_sample_sheet(self.metadata, table, 'iSeq', 1,
-                                  strict=False)
+        sheet = make_sample_sheet(self.metadata, table, 'iSeq', 1)
 
         # confirm that we get a sample-sheet w/out katharoseq-control-related
         # columns.
@@ -2090,8 +2075,7 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
 
         # sheet will be created but extended columns will not be present
         # and no error is raised. Kathseq_RackID is silently dropped.
-        sheet = make_sample_sheet(self.metadata, table, 'iSeq', 1,
-                                  strict=False)
+        sheet = make_sample_sheet(self.metadata, table, 'iSeq', 1)
 
         self.assertIsNotNone(sheet)
         self.assertIsInstance(sheet, MetagenomicSampleSheetv101)
@@ -2124,8 +2108,7 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
                "Message: The well_id_96 column in the Data section is missing")
 
         with self.assertRaisesRegex(ValueError, exp):
-            make_sample_sheet(self.metadata, table, 'iSeq', 1,
-                              strict=False)
+            make_sample_sheet(self.metadata, table, 'iSeq', 1)
 
     def test_katharoseq_make_sample_sheet_all_optional_columns(self):
         # test make_sample_sheet() w/katharoseq data. To do this, change the
@@ -2144,8 +2127,7 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
 
         table = pd.DataFrame(columns=self.input_columns, data=self.data)
 
-        sheet = make_sample_sheet(self.metadata, table, 'iSeq', 1,
-                                  strict=False)
+        sheet = make_sample_sheet(self.metadata, table, 'iSeq', 1)
 
         # confirm that a sheet was created w/all the extended columns
         # required for katharoseq-controls.

@@ -377,41 +377,36 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 else:
                     pass
 
-    def _remap_table(self, table, strict):
+    def _remap_table(self, table):
         result = table.copy(deep=True)
 
-        if strict:
-            # All columns not defined in remapper will be filtered result.
-            result = table[self.remapper.keys()].copy()
-            result.rename(self.remapper, axis=1, inplace=True)
-        else:
-            # if a column named 'index' is present in table, assume it is a
-            # numeric index and not a sequence of bases, which is required in
-            # the output. Assume the column that will become 'index' is
-            # defined in remapper.
-            if 'index' in set(result.columns):
-                result.drop(columns=['index'], inplace=True)
+        # if a column named 'index' is present in table, assume it is a
+        # numeric index and not a sequence of bases, which is required in
+        # the output. Assume the column that will become 'index' is
+        # defined in remapper.
+        if 'index' in set(result.columns):
+            result.drop(columns=['index'], inplace=True)
 
-            remapper = KLSampleSheet.column_alts | self.remapper
-            result.rename(remapper, axis=1, inplace=True)
+        remapper = KLSampleSheet.column_alts | self.remapper
+        result.rename(remapper, axis=1, inplace=True)
 
-            # result may contain additional columns that aren't allowed in the
-            # [Data] section of a sample-sheet e.g.: 'Extraction Kit Lot'.
-            # There may also be required columns that aren't defined in result.
+        # result may contain additional columns that aren't allowed in the
+        # [Data] section of a sample-sheet e.g.: 'Extraction Kit Lot'.
+        # There may also be required columns that aren't defined in result.
 
-            # once all columns have been renamed to their preferred names, we
-            # must determine the proper set of column names for this sample-
-            # sheet. For legacy classes this is simply the list of columns
-            # defined in each sample-sheet version. For newer classes, this is
-            # defined at run-time and requires examining the metadata that
-            # will define the [Data] section.
-            required_columns = self._get_expected_columns(table=result)
-            subset = list(set(required_columns) & set(result.columns))
-            result = result[subset]
+        # once all columns have been renamed to their preferred names, we
+        # must determine the proper set of column names for this sample-
+        # sheet. For legacy classes this is simply the list of columns
+        # defined in each sample-sheet version. For newer classes, this is
+        # defined at run-time and requires examining the metadata that
+        # will define the [Data] section.
+        required_columns = self._get_expected_columns(table=result)
+        subset = list(set(required_columns) & set(result.columns))
+        result = result[subset]
 
         return result
 
-    def _add_data_to_sheet(self, table, sequencer, lane, assay, strict=True):
+    def _add_data_to_sheet(self, table, sequencer, lane, assay):
         if self.remapper is None:
             raise ValueError("sample-sheet does not contain a valid Assay"
                              " type.")
@@ -422,9 +417,15 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         well_description = table['Project Plate'].astype(str) + "." + \
             table['Sample'].astype(str) + "." + table['Well'].astype(str)
 
-        table = self._remap_table(table, strict)
+        table = self._remap_table(table)
 
         table['Well_description'] = well_description
+
+        # expected will be in the column order expected for the output.
+        # unexpected will be sorted and appended to the end.
+        expected = self._get_all_expected_columns()
+        unexpected = sorted(list(set(table.columns) - set(expected)))
+        table = table.reindex(expected + unexpected, axis=1)
 
         for column in self._get_expected_columns():
             if column not in table.columns:
@@ -531,6 +532,9 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         # the table parameter. It is present only for compatibility with child
         # methods.
         return self.data_columns
+
+    def _get_all_expected_columns(self):
+        return self._get_expected_columns()
 
     def validate_and_scrub_sample_sheet(self, echo_msgs=True):
         """Validate the sample sheet and scrub invalid characters
@@ -913,6 +917,9 @@ class MetagenomicSampleSheetv101(KLSampleSheet):
 
         return self.data_columns
 
+    def _get_all_expected_columns(self):
+        return self.data_columns + self.optional_katharoseq_columns
+
 
 class MetagenomicSampleSheetv100(KLSampleSheet):
     _HEADER = {
@@ -1247,7 +1254,7 @@ def _create_sample_sheet(sheet_type, sheet_version, assay_type):
     return sheet
 
 
-def make_sample_sheet(metadata, table, sequencer, lane, strict=True):
+def make_sample_sheet(metadata, table, sequencer, lane):
     """Write a valid sample sheet
 
     Parameters
@@ -1285,15 +1292,13 @@ def make_sample_sheet(metadata, table, sequencer, lane, strict=True):
         name'), description ('Sample'), well identifier ('Well'), project
         plate ('Project Plate'), project name ('Project Name'), and synthetic
         DNA pool number ('syndna_pool_number').
+        Additional columns will silently pass through. If their names are
+        listed in the remapper, they will be converted as one would expect of
+        the expected/required columns.
     sequencer: string
         A string representing the sequencer used.
     lane: an integer
         An integer representing the lane used.
-    strict: boolean
-        If True, a subset of columns based on Assay type will define the
-        columns in the [Data] section of the sample-sheet. Otherwise all
-        columns in table will pass through into the sample-sheet. Either way
-        some columns will be renamed as needed by Assay type.
 
     Returns
     -------
@@ -1323,8 +1328,8 @@ def make_sample_sheet(metadata, table, sequencer, lane, strict=True):
 
     if len(messages) == 0:
         sheet._add_metadata_to_sheet(metadata, sequencer)
-        sheet._add_data_to_sheet(table, sequencer, lane, metadata['Assay'],
-                                 strict)
+        table.to_csv("foo")
+        sheet._add_data_to_sheet(table, sequencer, lane, metadata['Assay'])
 
         # now that we have a SampleSheet() object, validate it for any
         # additional errors that may have been present in the data and/or
@@ -1336,6 +1341,7 @@ def make_sample_sheet(metadata, table, sequencer, lane, strict=True):
             # Echo any warning messages.
             for warning_msg in messages:
                 warning_msg.echo()
+
             return sheet
 
     # Continue legacy behavior of echoing ErrorMessages and WarningMessages.
