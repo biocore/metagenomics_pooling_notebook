@@ -1328,7 +1328,6 @@ def make_sample_sheet(metadata, table, sequencer, lane):
 
     if len(messages) == 0:
         sheet._add_metadata_to_sheet(metadata, sequencer)
-        table.to_csv("foo")
         sheet._add_data_to_sheet(table, sequencer, lane, metadata['Assay'])
 
         # now that we have a SampleSheet() object, validate it for any
