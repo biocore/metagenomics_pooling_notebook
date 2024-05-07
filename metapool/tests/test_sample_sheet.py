@@ -3,10 +3,8 @@ import unittest
 import tempfile
 from datetime import datetime
 from os.path import join, dirname
-
 import pandas as pd
 import sample_sheet
-
 from metapool.sample_sheet import (KLSampleSheet, AmpliconSampleSheet,
                                    MetagenomicSampleSheetv101,
                                    MetagenomicSampleSheetv100,
@@ -52,18 +50,8 @@ class BaseTests(unittest.TestCase):
 
         bfx = [
             {
-             'Sample_Project': 'Koening_ITS_101',
-             'QiitaID': '101',
-             'BarcodesAreRC': 'False',
-             'ForwardAdapter': 'GATACA',
-             'ReverseAdapter': 'CATCAT',
-             'HumanFiltering': 'False',
-             'library_construction_protocol': 'Knight Lab Kapa HP',
-             'experiment_design_description': 'Eqiiperiment'
-            },
-            {
-             'Sample_Project': 'Yanomani_2008_10052',
-             'QiitaID': '10052',
+             'Sample_Project': 'THDMI_10317',
+             'QiitaID': '10317',
              'BarcodesAreRC': 'False',
              'ForwardAdapter': 'GATACA',
              'ReverseAdapter': 'CATCAT',
@@ -75,12 +63,8 @@ class BaseTests(unittest.TestCase):
 
         contact = [
             {
-             'Sample_Project': 'Koening_ITS_101',
+             'Sample_Project': 'THDMI_10317',
              'Email': 'yoshiki@compy.com,ilike@turtles.com'
-            },
-            {
-             'Sample_Project': 'Yanomani_2008_10052',
-             'Email': 'mgdb@gmail.com'
             }
         ]
 
@@ -94,9 +78,43 @@ class BaseTests(unittest.TestCase):
             'SheetVersion': '0'
         }
 
+        # a version of this metadata for metagenomic tests w/multiple
+        # projects.
         self.md_metag = {
-            'Bioinformatics': bfx,
-            'Contact': contact,
+            'Bioinformatics': [
+                {
+                    'Sample_Project': 'Koening_ITS_101',
+                    'QiitaID': '101',
+                    'BarcodesAreRC': 'False',
+                    'ForwardAdapter': 'GATACA',
+                    'ReverseAdapter': 'CATCAT',
+                    'HumanFiltering': 'False',
+                    'library_construction_protocol':
+                        'Knight Lab Kapa HyperPlus',
+                    'experiment_design_description': 'KHP'
+                },
+                {
+                    'Sample_Project': 'Yanomani_2008_10052',
+                    'QiitaID': '10052',
+                    'BarcodesAreRC': 'False',
+                    'ForwardAdapter': 'GATACA',
+                    'ReverseAdapter': 'CATCAT',
+                    'HumanFiltering': 'False',
+                    'library_construction_protocol':
+                        'Knight Lab Kapa HyperPlus',
+                    'experiment_design_description': 'KHP'
+                }
+            ],
+            'Contact': [
+                {
+                    'Sample_Project': 'Koening_ITS_101',
+                    'Email': 'yoshiki@compy.com,ilike@turtles.com'
+                },
+                {
+                    'Sample_Project': 'Yanomani_2008_10052',
+                    'Email': 'mgdb@gmail.com'
+                }
+            ],
             'Assay': 'Metagenomic',
             'SheetType': 'standard_metag',
             'SheetVersion': '100'
@@ -454,13 +472,13 @@ class KLSampleSheetTests(BaseTests):
                      'experiment_design_description'],
             data=[
                 ['Koening_ITS_101', '101', 'False', 'GATACA', 'CATCAT',
-                 'False', 'Knight Lab Kapa HP', 'Eqiiperiment'],
+                 'False', 'Knight Lab Kapa HyperPlus', 'KHP'],
                 ['Yanomani_2008_10052', '10052', 'False', 'GATACA', 'CATCAT',
-                 'False', 'Knight Lab Kapa HP', 'Eqiiperiment'],
+                 'False', 'Knight Lab Kapa HyperPlus', 'KHP'],
                 ['paco_Koening_ITS_101', '101', 'False', 'GATACA', 'CATCAT',
-                 'False', 'Knight Lab Kapa HP', 'Eqiiperiment'],
+                 'False', 'Knight Lab Kapa HyperPlus', 'KHP'],
                 ['paco_Yanomani_2008_10052', '10052', 'False', 'GATACA',
-                 'CATCAT', 'False', 'Knight Lab Kapa HP', 'Eqiiperiment']
+                 'CATCAT', 'False', 'Knight Lab Kapa HyperPlus', 'KHP ']
             ]
         )
 
@@ -579,81 +597,6 @@ class SampleSheetWorkflow(BaseTests):
     def setUp(self):
         super().setUp()
 
-        self.sheet = AmpliconSampleSheet()
-        self.sheet.Header['IEM4FileVersion'] = 4
-        self.sheet.Header['Investigator Name'] = 'Knight'
-        self.sheet.Header['Experiment Name'] = 'RKO_experiment'
-        self.sheet.Header['Date'] = '2021-08-17'
-        self.sheet.Header['Workflow'] = 'GenerateFASTQ'
-        self.sheet.Header['Application'] = 'FASTQ Only'
-        self.sheet.Header['Assay'] = 'TruSeq HT'
-        self.sheet.Header['Description'] = ''
-        self.sheet.Header['Chemistry'] = 'Default'
-        self.sheet.Reads = [151, 151]
-        self.sheet.Settings['ReverseComplement'] = 0
-
-        self.sheet.Bioinformatics = pd.DataFrame(
-            columns=['Sample_Project', 'QiitaID', 'BarcodesAreRC',
-                     'ForwardAdapter', 'ReverseAdapter', 'HumanFiltering'],
-            data=[
-                ['THDMI_10317', '10317', 'False', 'AACC', 'GGTT', 'False']
-            ]
-        )
-
-        # check for Contact
-        self.sheet.Contact = pd.DataFrame(
-            columns=['Email', 'Sample_Project'],
-            data=[
-                ['daniel@tmi.com', 'THDMI_10317'],
-            ]
-        )
-
-        data = [
-            ['X00180471',
-             'X00180471', 'A', 1, False, 'THDMI_10317_PUK2', 'THDMI_10317',
-             'THDMI_10317_UK2-US6', 'A1', '1', '1', 'SF', '166032128',
-             'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
-             'Echo550', 'THDMI_UK_Plate_2', 'THDMI UK', '', '1', 'A1',
-             '515rcbc0', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'AGCCTTCGTCGC',
-             'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
-             'AATGATACGGCGACCACCGAGATCTACACGCTAGCCTTCGTCGCTATGGTAATTGTGTGYCAG'
-             'CMGCCGCGGTAA', 'pool1'],
-            ['X00180199',
-             'X00180199', 'C', 1, False, 'THDMI_10317_PUK2', 'THDMI_10317',
-             'THDMI_10317_UK2-US6', 'C1', '1', '1', 'SF', '166032128',
-             'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
-             'Echo550', 'THDMI_UK_Plate_2', 'THDMI UK', '', '1', 'B1',
-             '515rcbc12', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'CGTATAAATGCG',
-             'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
-             'AATGATACGGCGACCACCGAGATCTACACGCTCGTATAAATGCGTATGGTAATTGTGTGYCAG'
-             'CMGCCGCGGTAA', 'pool1'],
-            ['X00179789',
-             'X00179789', 'E', 1, False, 'THDMI_10317_PUK2', 'THDMI_10317',
-             'THDMI_10317_UK2-US6', 'E1', '1', '1', 'SF', '166032128',
-             'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
-             'Echo550', 'THDMI_UK_Plate_2', 'THDMI UK', '', '1', 'C1',
-             '515rcbc24', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'TGACTAATGGCC',
-             'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
-             'AATGATACGGCGACCACCGAGATCTACACGCTTGACTAATGGCCTATGGTAATTGTGTGYCAG'
-             'CMGCCGCGGTAA', 'pool1'],
-        ]
-
-        self.table = pd.DataFrame(
-            columns=['sample sheet Sample_ID',
-                     'Sample', 'Row', 'Col', 'Blank', 'Project Plate',
-                     'Project Name', 'Compressed Plate Name', 'Well',
-                     'Plate Position', 'Primer Plate #', 'Plating',
-                     'Extraction Kit Lot', 'Extraction Robot', 'TM1000 8 Tool',
-                     'Primer Date', 'MasterMix Lot', 'Water Lot',
-                     'Processing Robot', 'Sample Plate', 'Project_Name',
-                     'Original Name', 'Plate', 'EMP Primer Plate Well', 'Name',
-                     "Illumina 5' Adapter", 'Golay Barcode',
-                     'Forward Primer Pad', 'Forward Primer Linker',
-                     '515FB Forward Primer (Parada)', 'Primer For PCR',
-                     'syndna_pool_number'],
-            data=data
-        )
-
     def test_validate_sample_sheet_metadata_empty(self):
         sheet = AmpliconSampleSheet()
         messages = sheet._validate_sample_sheet_metadata({})
@@ -729,18 +672,20 @@ class SampleSheetWorkflow(BaseTests):
                     "THDMI_10317, Yanomani_2008_10052")
 
         with self.assertWarnsRegex(UserWarning, message):
-            table2 = self.table.copy(deep=True)
+            table_copy = self.table.copy(deep=True)
 
             # first, assert that make_sample_sheet() raises an Error when the
             # projects are improperly defined.
             with self.assertRaisesRegex(ValueError, message2):
-                make_sample_sheet(self.md_ampl, table2, 'HiSeq4000', 5)
+                make_sample_sheet(self.md_ampl, table_copy, 'HiSeq4000', 5)
 
-            # second, correct the errors in the [Data] section.
-            table2['Project Name'] = ['Koening_ITS_101', 'Yanomani_2008_10052',
-                                      'Yanomani_2008_10052']
+                # second, correct the errors in the [Data] section.
+                table_copy['Project Name'] = ['Koening_ITS_101',
+                                              'Yanomani_2008_10052',
+                                              'Yanomani_2008_10052']
 
-            obs = make_sample_sheet(self.md_ampl, table2, 'HiSeq4000', 5)
+                obs = make_sample_sheet(self.md_ampl, table_copy,
+                                        'HiSeq4000', 5)
 
         self.assertIsInstance(obs, AmpliconSampleSheet)
 
@@ -896,7 +841,25 @@ class SampleSheetWorkflow(BaseTests):
             pd.testing.assert_frame_equal(obs, exp, check_like=True)
 
     def test_remap_table_metagenomics(self):
-        data = [
+        exp_columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate',
+                       'well_id_384', 'I7_Index_ID', 'index',
+                       'I5_Index_ID', 'index2', 'Sample_Project',
+                       'Well_description']
+
+        exp_data = [
+            ['33-A1', '33-A1', 'The_plate', 'A1', 'iTru7_109_01',
+             'CTCGTCTT', 'iTru5_19_A', 'AACGCACA', 'Tst_project_1234',
+             'The_plate.33-A1.A1'],
+            ['820072905-2', '820072905-2', 'The_plate', 'C1', 'iTru7_109_02',
+             'CGAACTGT', 'iTru5_19_B', 'ATGCCTAG', 'Tst_project_1234',
+             'The_plate.820072905-2.C1'],
+            ['820029517-3', '820029517-3', 'The_plate', 'E1', 'iTru7_109_03',
+             'CATTCGGT', 'iTru5_19_C', 'CATACGGA', 'Tst_project_1234',
+             'The_plate.820029517-3.E1']]
+
+        exp = pd.DataFrame(columns=exp_columns, data=exp_data)
+
+        obs_data = [
             ['33-A1', 'A', 1, True, 'A1', 0, 0, 'AACGCACACTCGTCTT',
              'iTru5_19_A', 'AACGCACA', 'A1', 'iTru5_plate', 'iTru7_109_01',
              'CTCGTCTT', 'A22', 'iTru7_plate', '33-A1', 'pool1',
@@ -910,35 +873,21 @@ class SampleSheetWorkflow(BaseTests):
              'CATTCGGT', 'C22', 'iTru7_plate', '820029517-3',
              'pool1', 'The_plate.820029517-3.E1']
         ]
-        columns = ['Sample', 'Row', 'Col', 'Blank', 'Well', 'index',
-                   'index combo', 'index combo seq', 'i5 name', 'i5 sequence',
-                   'i5 well', 'i5 plate', 'i7 name', 'i7 sequence', 'i7 well',
-                   'i7 plate', 'sample sheet Sample_ID', 'syndna_pool_number',
-                   'Well_description']
-        self.table = pd.DataFrame(data=data, columns=columns)
-        self.table['Project Name'] = 'Tst_project_1234'
-        self.table['Project Plate'] = 'The_plate'
 
-        columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
-                   'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
-                   'Sample_Project', 'Well_description']
-        data = [
-            ['33-A1', '33-A1', 'The_plate', 'A1', 'iTru7_109_01',
-             'CTCGTCTT', 'iTru5_19_A', 'AACGCACA', 'Tst_project_1234',
-             'The_plate.33-A1.A1'],
-            ['820072905-2', '820072905-2', 'The_plate', 'C1', 'iTru7_109_02',
-             'CGAACTGT', 'iTru5_19_B', 'ATGCCTAG', 'Tst_project_1234',
-             'The_plate.820072905-2.C1'],
-            ['820029517-3', '820029517-3', 'The_plate', 'E1', 'iTru7_109_03',
-             'CATTCGGT', 'iTru5_19_C', 'CATACGGA', 'Tst_project_1234',
-             'The_plate.820029517-3.E1'],
-        ]
+        obs_columns = ['Sample', 'Row', 'Col', 'Blank', 'Well', 'index',
+                       'index combo', 'index combo seq', 'i5 name',
+                       'i5 sequence', 'i5 well', 'i5 plate', 'i7 name',
+                       'i7 sequence', 'i7 well', 'i7 plate',
+                       'sample sheet Sample_ID', 'syndna_pool_number',
+                       'Well_description']
 
-        exp = pd.DataFrame(columns=columns, data=data)
+        obs_df = pd.DataFrame(columns=obs_columns, data=obs_data)
+        obs_df['Project Name'] = 'Tst_project_1234'
+        obs_df['Project Plate'] = 'The_plate'
 
         sheet = MetagenomicSampleSheetv100()
 
-        obs = sheet._remap_table(self.table)
+        obs = sheet._remap_table(obs_df)
 
         self.assertEqual(len(obs), 3)
 
@@ -965,6 +914,7 @@ class SampleSheetWorkflow(BaseTests):
                    'i5 well', 'i5 plate', 'i7 name', 'i7 sequence', 'i7 well',
                    'i7 plate', 'sample sheet Sample_ID',
                    'Well_description']
+
         self.table = pd.DataFrame(data=data, columns=columns)
         self.table['Project Name'] = 'Tst_project_1234'
         self.table['Project Plate'] = 'The_plate'
@@ -2066,6 +2016,7 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
                        'well_id_384', 'I7_Index_ID', 'index', 'I5_Index_ID',
                        'index2', 'Sample_Project', 'Well_description',
                        'Lane'}
+
         self.assertEqual(obs_columns, exp_columns)
 
     def test_katharoseq_make_sample_sheet_one_optional_column_ok(self):

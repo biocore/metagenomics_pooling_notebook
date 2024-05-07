@@ -384,6 +384,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         # numeric index and not a sequence of bases, which is required in
         # the output. Assume the column that will become 'index' is
         # defined in remapper.
+
         if 'index' in set(result.columns):
             result.drop(columns=['index'], inplace=True)
 
@@ -401,6 +402,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         # defined at run-time and requires examining the metadata that
         # will define the [Data] section.
         required_columns = self._get_expected_columns(table=result)
+
         subset = list(set(required_columns) & set(result.columns))
         result = result[subset]
 
@@ -421,11 +423,13 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
         table['Well_description'] = well_description
 
-        # expected will be in the column order expected for the output.
-        # unexpected will be sorted and appended to the end.
-        expected = self._get_all_expected_columns()
-        unexpected = sorted(list(set(table.columns) - set(expected)))
-        table = table.reindex(expected + unexpected, axis=1)
+        # ordered_columns will be in the column order expected for the output.
+        # unexpected columns will be sorted and appended to the end.
+        ordered_columns = list(self._get_all_expected_columns())
+        ordered_columns += sorted(list(set(table.columns) -
+                                       set(ordered_columns)))
+
+        table = table.reindex(ordered_columns, axis=1)
 
         for column in self._get_expected_columns():
             if column not in table.columns:
@@ -970,6 +974,11 @@ class MetagenomicSampleSheetv100(KLSampleSheet):
             'i5 name': 'I5_Index_ID',
             'i5 sequence': 'index2',
             'Project Name': 'Sample_Project',
+            # 'I5_Index_ID': 'I5_Index_ID',
+            # 'index': 'index'
+            # 'Sample_Plate': 'Sample_Plate',
+            # 'Sample_ID': 'Sample_ID',
+            # 'Sample_Project': 'Sample_Project'
         }
 
 
