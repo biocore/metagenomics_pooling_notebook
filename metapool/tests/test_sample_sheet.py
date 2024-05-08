@@ -14,7 +14,9 @@ from metapool.sample_sheet import (KLSampleSheet, AmpliconSampleSheet,
                                    AbsQuantSampleSheetv10,
                                    sample_sheet_to_dataframe,
                                    make_sample_sheet, load_sample_sheet,
-                                   demux_sample_sheet, sheet_needs_demuxing)
+                                   demux_sample_sheet, sheet_needs_demuxing,
+                                   _METAGENOMIC, _METATRANSCRIPTOMIC,
+                                   _AMPLICON)
 from metapool.plate import ErrorMessage, WarningMessage
 
 
@@ -478,7 +480,7 @@ class KLSampleSheetTests(BaseTests):
                 ['paco_Koening_ITS_101', '101', 'False', 'GATACA', 'CATCAT',
                  'False', 'Knight Lab Kapa HyperPlus', 'KHP'],
                 ['paco_Yanomani_2008_10052', '10052', 'False', 'GATACA',
-                 'CATCAT', 'False', 'Knight Lab Kapa HyperPlus', 'KHP ']
+                 'CATCAT', 'False', 'Knight Lab Kapa HyperPlus', 'KHP']
             ]
         )
 
@@ -597,6 +599,52 @@ class SampleSheetWorkflow(BaseTests):
     def setUp(self):
         super().setUp()
 
+        self.metadata1 = {
+            'Bioinformatics': [
+                {
+                    'Sample_Project': 'Example_Project_1',
+                    'QiitaID': '1',
+                    'BarcodesAreRC': 'False',
+                    'ForwardAdapter': 'GATCGGAAGAGCACACGTCTGAACTCCAGTCAC',
+                    'ReverseAdapter': 'GATCGGAAGAGCGTCGTGTAGGGAAAGGAGTGT',
+                    'HumanFiltering': 'True',
+                    'library_construction_protocol': 'Knight Lab KAPA HyperPlus',
+                    'experiment_design_description': 'Example_Project_1_Description',
+                    'contains_replicates': False
+                },
+            ],
+            'Contact': [
+                {
+                    'Sample_Project': 'Example_Project_1',
+                    # non-admin contacts who want to know when the sequences
+                    # are available in Qiita
+                    'Email': 'jonsan@gmail.com'
+                },
+            ],
+            'Assay': 'Metagenomic',
+            'SheetType': 'standard_metag',
+            'SheetVersion': '100'
+        }
+
+        data = [['33-A1', 'A', 1, True, 'Example Plate 1', 'Example_Project_1', 'FinRisk Plate 33-36', 'A1', 'A1', 0, 0,
+                'AACGCACACTCGTCTT', 'iTru5_19_A', 'AACGCACA', 'A1', 'iTru5_plate', 'iTru7_109_01', 'CTCGTCTT', 'A22', 'iTru7_plate', '33-A1'],
+                ['820072905-2', 'C', 1, False, 'Example Plate 1', 'Example_Project_1', 'FinRisk Plate 33-36', 'C1', 'C1', 1, 1,
+                'ATGCCTAGCGAACTGT', 'iTru5_19_B', 'ATGCCTAG', 'B1', 'iTru5_plate', 'iTru7_109_02', 'CGAACTGT', 'B22', 'iTru7_plate', '820072905-2'],
+                ['820029517-3', 'E', 1, False, 'Example Plate 1', 'Example_Project_1', 'FinRisk Plate 33-36', 'E1', 'E1', 2, 2,
+                'CATACGGACATTCGGT', 'iTru5_19_C', 'CATACGGA', 'C1', 'iTru5_plate', 'iTru7_109_03', 'CATTCGGT', 'C22', 'iTru7_plate', '820029517-3'],
+                ['820073753-4', 'G', 1, False, 'Example Plate 1', 'Example_Project_1', 'FinRisk Plate 33-36', 'G1', 'G1', 3, 3,
+                'GGTCACTATCGGTTAC', 'iTru5_19_D', 'GGTCACTA', 'D1', 'iTru5_plate', 'iTru7_109_04', 'TCGGTTAC', 'D22', 'iTru7_plate', '820073753-4'],
+                ['820049719-1', 'I', 1, False, 'Example Plate 1', 'Example_Project_1', 'FinRisk Plate 33-36', 'H1', 'I1', 4, 4,
+                'GTATTCCGAAGTCGAG', 'iTru5_19_E', 'GTATTCCG', 'E1', 'iTru5_plate', 'iTru7_109_05', 'AAGTCGAG', 'E22', 'iTru7_plate', '820049719-1']]
+
+        columns = ['Sample', 'Row', 'Col', 'Blank', 'Project Plate',
+                   'Project Name', 'Compressed Plate Name', 'well_id_96',
+                   'Well', 'index', 'index combo', 'index combo seq',
+                   'i5 name', 'i5 sequence', 'i5 well', 'i5 plate', 'i7 name',
+                   'i7 sequence', 'i7 well', 'i7 plate',
+                   'sample sheet Sample_ID']
+
+        self.plate_data1 = pd.DataFrame(data=data, columns=columns)
     def test_validate_sample_sheet_metadata_empty(self):
         sheet = AmpliconSampleSheet()
         messages = sheet._validate_sample_sheet_metadata({})
@@ -1002,34 +1050,17 @@ class SampleSheetWorkflow(BaseTests):
         pd.testing.assert_frame_equal(obs, exp, check_like=True)
 
     def test_add_data_to_sheet(self):
-        # for amplicon we expect the following three columns to not be there
-        message = (r'The column (I5_Index_ID|index2|Well_description) '
-                   r'in the sample sheet is empty')
+        sheet = MetagenomicSampleSheetv100()
+        sheet._add_metadata_to_sheet(self.metadata1, 'HiSeq4000')
+        # sequencer is needed by _add_data_to_sheet() to retrieve the proper
+        # values for index2 column.
+        sheet._add_data_to_sheet(self.plate_data1, 'HiSeq4000', 1, _METAGENOMIC)
 
-        with self.assertWarnsRegex(UserWarning, message):
-            self.sheet._add_data_to_sheet(self.table, 'HiSeq4000', 1,
-                                          'TruSeq HT')
+        # assert number of samples is correct.
+        self.assertEqual(len(sheet), 5)
 
-        self.assertEqual(len(self.sheet), 3)
-
-        data = (
-            [1, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
-             'AGCCTTCGTCGC', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00180471.A1'],
-            [1, 'X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1',
-             '515rcbc12', 'CGTATAAATGCG', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00180199.C1'],
-            [1, 'X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1',
-             '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00179789.E1'],
-        )
-        keys = ['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
-                'Sample_Well', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
-                'Sample_Project', 'Well_description']
-
-        for sample, row in zip(self.sheet.samples, data):
-            exp = sample_sheet.Sample(dict(zip(keys, row)))
-            self.assertEqual(dict(sample), dict(exp))
+        # assert sample-sheet is valid.
+        self.assertTrue(sheet.validate_and_scrub_sample_sheet())
 
     def test_add_metadata_to_sheet_all_defaults_amplicon(self):
         sheet = AmpliconSampleSheet()

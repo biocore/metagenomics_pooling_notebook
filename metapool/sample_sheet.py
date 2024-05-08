@@ -419,9 +419,9 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         well_description = table['Project Plate'].astype(str) + "." + \
             table['Sample'].astype(str) + "." + table['Well'].astype(str)
 
-        table = self._remap_table(table)
-
         table['Well_description'] = well_description
+
+        table = self._remap_table(table)
 
         # ordered_columns will be in the column order expected for the output.
         # unexpected columns will be sorted and appended to the end.
@@ -643,6 +643,10 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         if sheet_version != expected_sheet_version:
             msgs.append(ErrorMessage("'SheetVersion' value is not "
                                      f"'{expected_sheet_version}'"))
+
+        # validate additional constraints not defined here.
+        # TODO: There are things checked in _validate_sample_sheet_metadata() that
+        # need to be checked here as well.
 
         # if any errors are found up to this point then we can't continue with
         # the validation process.
