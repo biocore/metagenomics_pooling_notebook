@@ -408,20 +408,26 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
         return result
 
-    def _add_data_to_sheet(self, table, sequencer, lane, assay):
-        if self.remapper is None:
-            raise ValueError("sample-sheet does not contain a valid Assay"
-                             " type.")
+    def _add_data_to_sheet(self, table, sequencer, lane, is_amplicon):
+        # first change the names of the columns in the plate map table to
+        # those expected in a sample-sheet.
+        table = self._remap_table(table)
 
-        # Well_description column is now defined here as the concatenation
+        # Well_description column is (re)defined here as the concatenation
         # of the following columns. If the column existed previously it will
         # be overwritten, otherwise it will be created here.
-        well_description = table['Project Plate'].astype(str) + "." + \
-            table['Sample'].astype(str) + "." + table['Well'].astype(str)
-
-        table['Well_description'] = well_description
-
-        table = self._remap_table(table)
+        if 'Sample_Well' in table:
+            table['Well_description'] = table['Sample_Plate'].astype(str) \
+                + "." + table['Sample_Name'].astype(str) + "." + \
+                    table['Sample_Well'].astype(str)
+        elif 'well_id_384' in table:
+            table['Well_description'] = table['Sample_Plate'].astype(str) \
+                + "." + table['Sample_Name'].astype(str) + "." + \
+                    table['well_id_384'].astype(str)
+        else:
+            # silently handle the case where sample-well can't be identified.
+            table['Well_description'] = table['Sample_Plate'].astype(str) \
+                + "." + table['Sample_Name'].astype(str)
 
         # ordered_columns will be in the column order expected for the output.
         # unexpected columns will be sorted and appended to the end.
@@ -431,23 +437,19 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
         table = table.reindex(ordered_columns, axis=1)
 
-        for column in self._get_expected_columns():
-            if column not in table.columns:
-                warnings.warn('The column %s in the sample sheet is empty' %
-                              column)
-                table[column] = ''
-
-        if assay != _AMPLICON:
+        # assign the value for BarcodesAreRC column in the Bioinformatics
+        # section of non-amplicon sample-sheets based on the sequencer type.
+        if not is_amplicon:
             table['index2'] = sequencer_i5_index(sequencer, table['index2'])
 
             self.Bioinformatics['BarcodesAreRC'] = str(
                 sequencer in REVCOMP_SEQUENCERS)
 
-        for sample in table.to_dict(orient='records'):
-            sample['Lane'] = lane
-            self.add_sample(sample_sheet.Sample(sample))
+        # (re)assign the values for Lane column
+        table['Lane'] = lane
 
-        return table
+        for sample in table.to_dict(orient='records'):
+            self.add_sample(sample_sheet.Sample(sample))
 
     def _add_metadata_to_sheet(self, metadata, sequencer):
         # set the default to avoid index errors if only one of the two is
@@ -508,7 +510,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         if type_found is None:
             # if even the 'iSeq' substring could not be found, this is an
             # unlikely and unexpected value for sequencer.
-            raise ErrorMessage(f"{sequencer} isn't a known sequencer")
+            raise ValueError(f"{sequencer} isn't a known sequencer")
         elif type_found == 'iseq':
             #   Verify the settings exist before deleting them.
             if 'MaskShortReads' in self.Settings:
@@ -1283,7 +1285,6 @@ def make_sample_sheet(metadata, table, sequencer, lane):
           experiment_design_description
         - Contact: List of dictionaries describing the e-mails to send to
           external stakeholders: Sample_Project, Email
-
         - IEMFileVersion: Illumina's Experiment Manager version [4]
         - Investigator Name: [Knight]
         - Experiment Name: [RKL_experiment]
@@ -1325,11 +1326,27 @@ def make_sample_sheet(metadata, table, sequencer, lane):
     ValueError
         If the newly-created sample-sheet fails validation.
     """
+    if metadata is None:
+        raise ValueError("'metadata' parameter cannot be None")
+
+    if lane is None:
+        raise ValueError("'lane' parameter cannot be None")
+
+    if sequencer is None:
+        raise ValueError("'sequencer' parameter cannot be None")
+
+    if table is None:
+        raise ValueError("'table' parameter cannot be None")
+
+    # test the minimum number of attributes for continued processing.
     required_attributes = ['SheetType', 'SheetVersion', 'Assay']
 
     for attribute in required_attributes:
         if attribute not in metadata:
             raise ValueError("'%s' is not defined in metadata" % attribute)
+
+    if lane >= 25 or lane < 1:
+        raise ValueError("Acceptable values for 'lane' are between 1 and 25")
 
     sheet_type = metadata['SheetType']
     sheet_version = metadata['SheetVersion']
@@ -1341,7 +1358,7 @@ def make_sample_sheet(metadata, table, sequencer, lane):
 
     if len(messages) == 0:
         sheet._add_metadata_to_sheet(metadata, sequencer)
-        sheet._add_data_to_sheet(table, sequencer, lane, metadata['Assay'])
+        sheet._add_data_to_sheet(table, sequencer, lane, metadata['Assay'] == _AMPLICON)
 
         # now that we have a SampleSheet() object, validate it for any
         # additional errors that may have been present in the data and/or
