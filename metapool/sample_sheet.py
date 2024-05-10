@@ -9,6 +9,7 @@ import pandas as pd
 from metapool.metapool import (bcl_scrub_name, sequencer_i5_index,
                                REVCOMP_SEQUENCERS)
 from metapool.plate import ErrorMessage, WarningMessage, PlateReplication
+from collections import defaultdict
 
 
 _AMPLICON = 'TruSeq HT'
@@ -419,11 +420,11 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         if 'Sample_Well' in table:
             table['Well_description'] = table['Sample_Plate'].astype(str) \
                 + "." + table['Sample_Name'].astype(str) + "." + \
-                    table['Sample_Well'].astype(str)
+                table['Sample_Well'].astype(str)
         elif 'well_id_384' in table:
             table['Well_description'] = table['Sample_Plate'].astype(str) \
                 + "." + table['Sample_Name'].astype(str) + "." + \
-                    table['well_id_384'].astype(str)
+                table['well_id_384'].astype(str)
         else:
             # silently handle the case where sample-well can't be identified.
             table['Well_description'] = table['Sample_Plate'].astype(str) \
@@ -647,8 +648,8 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                                      f"'{expected_sheet_version}'"))
 
         # validate additional constraints not defined here.
-        # TODO: There are things checked in _validate_sample_sheet_metadata() that
-        # need to be checked here as well.
+        # TODO: There are things checked in _validate_sample_sheet_metadata()
+        #  that need to be checked here as well.
 
         # if any errors are found up to this point then we can't continue with
         # the validation process.
@@ -1345,8 +1346,11 @@ def make_sample_sheet(metadata, table, sequencer, lane):
         if attribute not in metadata:
             raise ValueError("'%s' is not defined in metadata" % attribute)
 
-    if lane >= 25 or lane < 1:
-        raise ValueError("Acceptable values for 'lane' are between 1 and 25")
+    if lane >= 9 or lane <= 0:
+        raise ValueError("Acceptable values for 'lane' are between 0 and 9")
+
+    if table.empty:
+        raise ValueError("'table' contains no values")
 
     sheet_type = metadata['SheetType']
     sheet_version = metadata['SheetVersion']
@@ -1354,11 +1358,36 @@ def make_sample_sheet(metadata, table, sequencer, lane):
 
     sheet = _create_sample_sheet(sheet_type, sheet_version, assay_type)
 
+    # invert the plate-map columns to sample-sheet columns dictionary
+    # for the purposes of error-handling.
+    rev_map = defaultdict(list)
+    for k in sheet.remapper:
+        rev_map[sheet.remapper[k]].append(k)
+
+    # if the following sample-sheet columns are missing, it will cause
+    # non-obvious errors below:
+    # Sample_Name, Sample_Plate, Sample_Project, index2, index, Sample_ID
+    # get the plate-map equivalent names for this version sample-sheet,
+    # and determine which are missing from the plate-map.
+    required_sheet_columns = ['Sample_Name', 'Sample_Plate', 'Sample_Project',
+                              'index2', 'index', 'Sample_ID']
+
+    required_pm_columns = []
+    for column in required_sheet_columns:
+        required_pm_columns += rev_map[column]
+
+    missing_pm_columns = set(required_pm_columns) - set(table.columns)
+
+    if len(missing_pm_columns) != 0:
+        raise ValueError("'table' parameter is missing the following columns:"
+                         " %s" % ','.join(missing_pm_columns))
+
     messages = sheet._validate_sample_sheet_metadata(metadata)
 
     if len(messages) == 0:
         sheet._add_metadata_to_sheet(metadata, sequencer)
-        sheet._add_data_to_sheet(table, sequencer, lane, metadata['Assay'] == _AMPLICON)
+        sheet._add_data_to_sheet(table, sequencer, lane,
+                                 metadata['Assay'] == _AMPLICON)
 
         # now that we have a SampleSheet() object, validate it for any
         # additional errors that may have been present in the data and/or

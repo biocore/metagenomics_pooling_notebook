@@ -608,8 +608,10 @@ class SampleSheetWorkflow(BaseTests):
                     'ForwardAdapter': 'GATCGGAAGAGCACACGTCTGAACTCCAGTCAC',
                     'ReverseAdapter': 'GATCGGAAGAGCGTCGTGTAGGGAAAGGAGTGT',
                     'HumanFiltering': 'True',
-                    'library_construction_protocol': 'Knight Lab KAPA HyperPlus',
-                    'experiment_design_description': 'Example_Project_1_Description',
+                    'library_construction_protocol':
+                        'Knight Lab KAPA HyperPlus',
+                    'experiment_design_description':
+                        'Example_Project_1_Description',
                     'contains_replicates': False
                 },
             ],
@@ -626,16 +628,31 @@ class SampleSheetWorkflow(BaseTests):
             'SheetVersion': '100'
         }
 
-        data = [['33-A1', 'A', 1, True, 'Example Plate 1', 'Example_Project_1', 'FinRisk Plate 33-36', 'A1', 'A1', 0, 0,
-                'AACGCACACTCGTCTT', 'iTru5_19_A', 'AACGCACA', 'A1', 'iTru5_plate', 'iTru7_109_01', 'CTCGTCTT', 'A22', 'iTru7_plate', '33-A1'],
-                ['820072905-2', 'C', 1, False, 'Example Plate 1', 'Example_Project_1', 'FinRisk Plate 33-36', 'C1', 'C1', 1, 1,
-                'ATGCCTAGCGAACTGT', 'iTru5_19_B', 'ATGCCTAG', 'B1', 'iTru5_plate', 'iTru7_109_02', 'CGAACTGT', 'B22', 'iTru7_plate', '820072905-2'],
-                ['820029517-3', 'E', 1, False, 'Example Plate 1', 'Example_Project_1', 'FinRisk Plate 33-36', 'E1', 'E1', 2, 2,
-                'CATACGGACATTCGGT', 'iTru5_19_C', 'CATACGGA', 'C1', 'iTru5_plate', 'iTru7_109_03', 'CATTCGGT', 'C22', 'iTru7_plate', '820029517-3'],
-                ['820073753-4', 'G', 1, False, 'Example Plate 1', 'Example_Project_1', 'FinRisk Plate 33-36', 'G1', 'G1', 3, 3,
-                'GGTCACTATCGGTTAC', 'iTru5_19_D', 'GGTCACTA', 'D1', 'iTru5_plate', 'iTru7_109_04', 'TCGGTTAC', 'D22', 'iTru7_plate', '820073753-4'],
-                ['820049719-1', 'I', 1, False, 'Example Plate 1', 'Example_Project_1', 'FinRisk Plate 33-36', 'H1', 'I1', 4, 4,
-                'GTATTCCGAAGTCGAG', 'iTru5_19_E', 'GTATTCCG', 'E1', 'iTru5_plate', 'iTru7_109_05', 'AAGTCGAG', 'E22', 'iTru7_plate', '820049719-1']]
+        data = [['33-A1', 'A', 1, True, 'Example Plate 1', 'Example_Project_1',
+                 'FinRisk Plate 33-36', 'A1', 'A1', 0, 0,
+                 'AACGCACACTCGTCTT', 'iTru5_19_A', 'AACGCACA', 'A1',
+                 'iTru5_plate', 'iTru7_109_01', 'CTCGTCTT', 'A22',
+                 'iTru7_plate', '33-A1'],
+                ['820072905-2', 'C', 1, False, 'Example Plate 1',
+                 'Example_Project_1', 'FinRisk Plate 33-36', 'C1', 'C1', 1, 1,
+                 'ATGCCTAGCGAACTGT', 'iTru5_19_B', 'ATGCCTAG', 'B1',
+                 'iTru5_plate', 'iTru7_109_02', 'CGAACTGT', 'B22',
+                 'iTru7_plate', '820072905-2'],
+                ['820029517-3', 'E', 1, False, 'Example Plate 1',
+                 'Example_Project_1', 'FinRisk Plate 33-36', 'E1', 'E1', 2, 2,
+                 'CATACGGACATTCGGT', 'iTru5_19_C', 'CATACGGA', 'C1',
+                 'iTru5_plate', 'iTru7_109_03', 'CATTCGGT', 'C22',
+                 'iTru7_plate', '820029517-3'],
+                ['820073753-4', 'G', 1, False, 'Example Plate 1',
+                 'Example_Project_1', 'FinRisk Plate 33-36', 'G1', 'G1', 3, 3,
+                 'GGTCACTATCGGTTAC', 'iTru5_19_D', 'GGTCACTA', 'D1',
+                 'iTru5_plate', 'iTru7_109_04', 'TCGGTTAC', 'D22',
+                 'iTru7_plate', '820073753-4'],
+                ['820049719-1', 'I', 1, False, 'Example Plate 1',
+                 'Example_Project_1', 'FinRisk Plate 33-36', 'H1', 'I1', 4, 4,
+                 'GTATTCCGAAGTCGAG', 'iTru5_19_E', 'GTATTCCG', 'E1',
+                 'iTru5_plate', 'iTru7_109_05', 'AAGTCGAG', 'E22',
+                 'iTru7_plate', '820049719-1']]
 
         columns = ['Sample', 'Row', 'Col', 'Blank', 'Project Plate',
                    'Project Name', 'Compressed Plate Name', 'well_id_96',
@@ -731,32 +748,68 @@ class SampleSheetWorkflow(BaseTests):
     def test_make_sample_sheet_bad_parameters(self):
         # make_sample_sheet() is perhaps the most-used entrypoint into
         # metapool. Hence, it warrants additional parameter checking.
-        with self.assertRaisesRegex(ValueError, "'lane' parameter cannot be None"):
-            make_sample_sheet(self.metadata1, self.plate_data1, 'HiSeq4000', None)
+        with self.assertRaisesRegex(ValueError, "'lane' parameter cannot be "
+                                                "None"):
+            make_sample_sheet(self.metadata1, self.plate_data1, 'HiSeq4000',
+                              None)
 
-        with self.assertRaisesRegex(ValueError, "'sequencer' parameter cannot be None"):
+        with self.assertRaisesRegex(ValueError, "'sequencer' parameter cannot "
+                                                "be None"):
             make_sample_sheet(self.metadata1, self.plate_data1, None, 1)
 
-        with self.assertRaisesRegex(ValueError, "'table' parameter cannot be None"):
+        with self.assertRaisesRegex(ValueError, "'table' parameter cannot be "
+                                                "None"):
             make_sample_sheet(self.metadata1, None, 'HiSeq4000', 1)
 
-        with self.assertRaisesRegex(ValueError, "'metadata' parameter cannot be None"):
+        with self.assertRaisesRegex(ValueError, "'metadata' parameter cannot "
+                                                "be None"):
             make_sample_sheet(None, self.plate_data1, 'HiSeq4000', 1)
 
-        with self.assertRaisesRegex(ValueError, "Acceptable values for 'lane' are between 1 and 25"):
-            make_sample_sheet(self.metadata1, self.plate_data1, 'HiSeq4000', 0)
+        with self.assertRaisesRegex(ValueError, "Acceptable values for 'lane'"
+                                                " are between 0 and 9"):
+            make_sample_sheet(self.metadata1, self.plate_data1, 'HiSeq4000',
+                              0)
 
-        with self.assertRaisesRegex(ValueError, "Acceptable values for 'lane' are between 1 and 25"):
-            make_sample_sheet(self.metadata1, self.plate_data1, 'HiSeq4000', 25)
+        with self.assertRaisesRegex(ValueError, "Acceptable values for 'lane'"
+                                                " are between 0 and 9"):
+            make_sample_sheet(self.metadata1, self.plate_data1, 'HiSeq4000',
+                              9)
 
-        with self.assertRaisesRegex(ValueError, "NotASequencer isn't a known sequencer"):
-            make_sample_sheet(self.metadata1, self.plate_data1, 'NotASequencer', 1)
+        with self.assertRaisesRegex(ValueError, "NotASequencer isn't a known"
+                                                " sequencer"):
+            make_sample_sheet(self.metadata1, self.plate_data1,
+                              'NotASequencer', 1)
+
+        # delete all rows and test w/an empty table
+        empty_table = self.plate_data1.copy(deep=True)
+        empty_table = empty_table.head(0)
+        with self.assertRaisesRegex(ValueError, "'table' contains no values"):
+            make_sample_sheet(self.metadata1, empty_table, 'HiSeq4000', 1)
+
+        # test with an entirely empty dataframe
+        empty_table_no_headers = pd.DataFrame()
+        with self.assertRaisesRegex(ValueError, "'table' contains no values"):
+            make_sample_sheet(self.metadata1, empty_table_no_headers,
+                              'HiSeq4000', 1)
+
+        # test with an important column missing
+        missing_col = self.plate_data1.copy(deep=True)
+        missing_col = missing_col.drop(columns=['sample sheet Sample_ID'])
+
+        with self.assertRaisesRegex(ValueError, "'table' parameter is missing "
+                                                "the following columns: sample"
+                                                " sheet Sample_ID"):
+            make_sample_sheet(self.metadata1, missing_col, 'HiSeq4000', 1)
 
     def test_make_sample_sheet(self):
         # much of make_sample_sheet's functionality is already tested in
         # test_add_data_to_sheet() and test_add_metadata().
         # TODO: add additional tests here.
-        self.assertTrue(False)
+
+        sheet = make_sample_sheet(self.metadata1, self.plate_data1,
+                                  'HiSeq4000', 1)
+
+        self.assertTrue(sheet.validate_and_scrub_sample_sheet())
 
     def test_column_alternatives(self):
         # confirm standard 'Well_description' column name behaved as intended.
@@ -1016,8 +1069,11 @@ class SampleSheetWorkflow(BaseTests):
         sheet._add_metadata_to_sheet(self.metadata1, 'HiSeq4000')
 
         # confirm sequencer values are being checked.
-        with self.assertRaisesRegex(ValueError, 'Your indicated sequencer \[NotASequencer\] is not recognized'):
-            sheet._add_data_to_sheet(self.plate_data1, 'NotASequencer', 1, False)
+        with self.assertRaisesRegex(ValueError, 'Your indicated sequencer '
+                                                "\[NotASequencer\] is not "
+                                                'recognized'):
+            sheet._add_data_to_sheet(self.plate_data1, 'NotASequencer',
+                                     1, False)
 
         # add data to the sheet. confirm a lane value that isn't 1.
         self.plate_data1['Well_description'] = 'some_value'
@@ -1046,7 +1102,7 @@ class SampleSheetWorkflow(BaseTests):
         # confirm _add_data_to_sheet() reordered the columns properly.
         self.assertEqual(set(obs), set(exp))
 
-        #pick a sample
+        # pick a sample
         sample = sheet.samples[0]
 
         # confirm Well_description column exists, is not 'some_value', and is
