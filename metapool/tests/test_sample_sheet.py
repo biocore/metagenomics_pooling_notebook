@@ -14,10 +14,9 @@ from metapool.sample_sheet import (KLSampleSheet, AmpliconSampleSheet,
                                    AbsQuantSampleSheetv10,
                                    sample_sheet_to_dataframe,
                                    make_sample_sheet, load_sample_sheet,
-                                   demux_sample_sheet, sheet_needs_demuxing,
-                                   _METAGENOMIC, _METATRANSCRIPTOMIC,
-                                   _AMPLICON)
+                                   demux_sample_sheet, sheet_needs_demuxing)
 from metapool.plate import ErrorMessage, WarningMessage
+from copy import deepcopy
 
 
 # The classes below share the same filepaths, so we use this dummy class
@@ -536,14 +535,14 @@ class KLSampleSheetTests(BaseTests):
 
     def test_validate(self):
         sheet = AmpliconSampleSheet()
-        obs = sheet._validate_sample_sheet_metadata(self.md_ampl)
+        obs = sheet._validate_addl_metadata(self.md_ampl)
         self.assertEqual(obs, [])
 
     def test_more_attributes(self):
         sheet = AmpliconSampleSheet()
         self.md_ampl['Ride'] = 'the lightning'
 
-        obs = sheet._validate_sample_sheet_metadata(self.md_ampl)
+        obs = sheet._validate_addl_metadata(self.md_ampl)
         exp = [ErrorMessage('These metadata keys are not supported: Ride')]
         self.assertEqual(obs, exp)
 
@@ -551,7 +550,7 @@ class KLSampleSheetTests(BaseTests):
         sheet = AmpliconSampleSheet()
         self.md_ampl['Assay'] = 'NewAssayType'
 
-        obs = sheet._validate_sample_sheet_metadata(self.md_ampl)
+        obs = sheet._validate_addl_metadata(self.md_ampl)
         exp = [ErrorMessage('NewAssayType is not a supported Assay')]
         self.assertEqual(obs, exp)
 
@@ -559,7 +558,7 @@ class KLSampleSheetTests(BaseTests):
         sheet = AmpliconSampleSheet()
         del self.md_ampl['Bioinformatics']
 
-        obs = sheet._validate_sample_sheet_metadata(self.md_ampl)
+        obs = sheet._validate_addl_metadata(self.md_ampl)
         exp = [ErrorMessage('Bioinformatics is a required attribute')]
         self.assertEqual(obs, exp)
 
@@ -572,7 +571,7 @@ class KLSampleSheetTests(BaseTests):
                             'ReverseAdapter, Sample_Project, '
                             'experiment_design_description, '
                             'library_construction_protocol')]
-        obs = sheet._validate_sample_sheet_metadata(self.md_ampl)
+        obs = sheet._validate_addl_metadata(self.md_ampl)
         self.assertEqual(str(obs[0]), str(exp[0]))
 
     def test_alt_sample_sheet(self):
@@ -685,7 +684,7 @@ class SampleSheetWorkflow(BaseTests):
 
     def test_validate_sample_sheet_metadata_empty(self):
         sheet = AmpliconSampleSheet()
-        messages = sheet._validate_sample_sheet_metadata({})
+        messages = sheet._validate_addl_metadata({})
 
         exp = [
             ErrorMessage('Assay is a required attribute'),
@@ -698,19 +697,19 @@ class SampleSheetWorkflow(BaseTests):
     def test_validate_sample_sheet_metadata_not_supported(self):
         sheet = AmpliconSampleSheet()
         self.md_ampl['Rush'] = 'XYZ'
-        messages = sheet._validate_sample_sheet_metadata(self.md_ampl)
+        msgs = sheet._validate_addl_metadata(self.md_ampl)
 
         exp = [
                 ErrorMessage('These metadata keys are not supported: Rush'),
         ]
 
-        self.assertEqual(messages, exp)
+        self.assertEqual(msgs, exp)
 
     def test_validate_sample_sheet_metadata_good(self):
         # self.md_ampl is patterned after legacy amplicon sample-sheet.
         sheet = AmpliconSampleSheet()
-        messages = sheet._validate_sample_sheet_metadata(self.md_ampl)
-        self.assertEqual(messages, [])
+        msgs = sheet._validate_addl_metadata(self.md_ampl)
+        self.assertEqual(msgs, [])
 
         # test _validate_sample_sheet_metadata() against a
         # MetagenomicSampleSheetv100 object which defines an extra column
@@ -718,7 +717,7 @@ class SampleSheetWorkflow(BaseTests):
         # self.metadata does not contain this extra column, ErrorMessage()s
         # should be returned saying as much.
         sheet = MetagenomicSampleSheetv100()
-        messages = sheet._validate_sample_sheet_metadata(self.md_metag)
+        msgs = sheet._validate_addl_metadata(self.md_metag)
 
         exp_msgs = ['In the Bioinformatics section Project #1 does not have '
                     'exactly these keys BarcodesAreRC, ForwardAdapter, Human'
@@ -731,8 +730,8 @@ class SampleSheetWorkflow(BaseTests):
                     'contains_replicates, experiment_design_description, '
                     'library_construction_protocol']
 
-        self.assertEqual(messages[0].message, exp_msgs[0])
-        self.assertEqual(messages[1].message, exp_msgs[1])
+        self.assertEqual(msgs[0].message, exp_msgs[0])
+        self.assertEqual(msgs[1].message, exp_msgs[1])
 
     def test_validate_sample_sheet_metadata_bad_assay_types(self):
         sheet = AmpliconSampleSheet()
@@ -741,9 +740,9 @@ class SampleSheetWorkflow(BaseTests):
 
         for invalid_type in invalid_types:
             self.md_ampl['Assay'] = invalid_type
-            messages = sheet._validate_sample_sheet_metadata(self.md_ampl)
+            msgs = sheet._validate_addl_metadata(self.md_ampl)
             exp = f'ErrorMessage: {invalid_type} is not a supported Assay'
-            self.assertEqual(str(messages[0]), exp)
+            self.assertEqual(str(msgs[0]), exp)
 
     def test_make_sample_sheet_bad_parameters(self):
         # make_sample_sheet() is perhaps the most-used entrypoint into
@@ -801,10 +800,68 @@ class SampleSheetWorkflow(BaseTests):
                                                 " sheet Sample_ID"):
             make_sample_sheet(self.metadata1, missing_col, 'HiSeq4000', 1)
 
+        # confirm the proper error message is returned when any of the major
+        # attributes of the metadata object are missing:
+        for key in self.metadata1:
+            tmp = deepcopy(self.metadata1)
+            del tmp[key]
+            msg = f"'{key}' is not defined in metadata"
+            with self.assertRaisesRegex(ValueError, msg):
+                make_sample_sheet(tmp, self.plate_data1, 'HiSeq4000', 1)
+
+        # supply an invalid assay type
+        tmp = deepcopy(self.metadata1)
+
+        tmp['Assay'] = 'NotAnAssay'
+
+        with self.assertRaisesRegex(ValueError, "'NotAnAssay' is an unrecog"
+                                                "nized Assay type"):
+            make_sample_sheet(tmp, self.plate_data1, 'HiSeq4000', 1)
+
+        # supply an invalid sheet-type.
+        tmp = deepcopy(self.metadata1)
+
+        tmp['SheetType'] = None
+
+        with self.assertRaisesRegex(ValueError,
+                                    "'None' is an unrecognized SheetType"):
+            make_sample_sheet(tmp, self.plate_data1, 'HiSeq4000', 1)
+
+        tmp = deepcopy(self.metadata1)
+
+        tmp['SheetType'] = 'NotASheetType'
+
+        with self.assertRaisesRegex(ValueError,  "'NotASheetType' is an "
+                                                 "unrecognized SheetType"):
+            make_sample_sheet(tmp, self.plate_data1, 'HiSeq4000', 1)
+
+        # test with an invalid sheet-version
+        tmp = deepcopy(self.metadata1)
+
+        tmp['SheetVersion'] = '999'
+
+        with self.assertRaisesRegex(ValueError,  "'999' is an unrecognized "
+                                                 "SheetVersion for 'standard"
+                                                 "_metag'"):
+            make_sample_sheet(tmp, self.plate_data1, 'HiSeq4000', 1)
+
+        # test bioinformatics and contacts sections
+        for section in ['Bioinformatics', 'Contact']:
+            for key in self.metadata1[section][0]:
+                tmp = deepcopy(self.metadata1)
+                tmp[section][0][key] = None
+                msg = (f"Project #1 in the {section} section does not have"
+                       f" {key} specified")
+                with self.assertRaisesRegex(ValueError, msg):
+                    make_sample_sheet(tmp, self.plate_data1, 'HiSeq4000', 1)
+
     def test_make_sample_sheet(self):
         # much of make_sample_sheet's functionality is already tested in
         # test_add_data_to_sheet() and test_add_metadata().
-        # TODO: add additional tests here.
+
+        # TODO: Add test for two different types of metagenomic sample-sheet,
+        #  to account for versioning. Test one metatranscriptomic or abs-quant
+        #  type as well.
 
         sheet = make_sample_sheet(self.metadata1, self.plate_data1,
                                   'HiSeq4000', 1)
@@ -1070,7 +1127,7 @@ class SampleSheetWorkflow(BaseTests):
 
         # confirm sequencer values are being checked.
         with self.assertRaisesRegex(ValueError, 'Your indicated sequencer '
-                                                "\[NotASequencer\] is not "
+                                                "\\[NotASequencer\\] is not "
                                                 'recognized'):
             sheet._add_data_to_sheet(self.plate_data1, 'NotASequencer',
                                      1, False)
@@ -1107,7 +1164,8 @@ class SampleSheetWorkflow(BaseTests):
 
         # confirm Well_description column exists, is not 'some_value', and is
         # instead the expected value.
-        self.assertEqual(sample['Well_description'], 'Example Plate 1.33-A1.A1')
+        self.assertEqual(sample['Well_description'],
+                         'Example Plate 1.33-A1.A1')
 
         # confirm Lane column exists and is the expected value.
         self.assertEqual(sample['Lane'], 4)

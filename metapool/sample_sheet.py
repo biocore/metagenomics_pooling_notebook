@@ -738,47 +738,44 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         # return all collected Messages, even if it's an empty list.
         return msgs
 
-    def _validate_sample_sheet_metadata(self, metadata):
+    def _validate_addl_metadata(self, metadata):
         msgs = []
 
-        for req in ['Assay', 'Bioinformatics', 'Contact']:
-            if req not in metadata:
-                msgs.append(ErrorMessage('%s is a required attribute' % req))
+        # Bioinformatics and Contact are the only remaining sections to
+        # validate. Assay, SheetType, and SheetVersion should have been
+        # confirmed before this method was called.
+        for section_name in ['Bioinformatics', 'Contact']:
+            if section_name not in metadata:
+                msgs.append(ErrorMessage(f"'{section_name}' is not defined"
+                                         " in metadata"))
+                # a missing section cannot be processed further.
+                continue
 
-        # if both sections are found, then check that all the columns are
-        # present, checks for the contents are done in the sample sheet
-        # validation routine
-        if 'Bioinformatics' in metadata and 'Contact' in metadata:
-            for section in ['Bioinformatics', 'Contact']:
-                if section == 'Bioinformatics':
-                    columns = self._BIOINFORMATICS_COLUMNS
+            if section_name == 'Bioinformatics':
+                exp_col = self._BIOINFORMATICS_COLUMNS
+            else:
+                exp_col = self._CONTACT_COLUMNS
+
+            for i, project in enumerate(metadata[section_name]):
+                obs_col = list(project.keys())
+                missing_col = set(exp_col) != set(obs_col)
+                if missing_col:
+                    msgs.append(ErrorMessage(f"{section_name} section is "
+                                             "missing the following columns:"
+                                             f" {missing_col}"))
+                    # we don't need to process the other projects, if any;
+                    # they're all missing the column.
+                    break
                 else:
-                    columns = self._CONTACT_COLUMNS
+                    # if required columns are present, confirm they are not
+                    # empty.
+                    for column in project:
+                        if project[column] in [None, '']:
+                            message = (f"Project #{i + 1} in the "
+                                       f"{section_name} section does not have"
+                                       f" {column} specified")
+                            msgs.append(ErrorMessage(message))
 
-                for i, project in enumerate(metadata[section]):
-                    if set(project.keys()) != columns:
-                        message = (('In the %s section Project #%d does not '
-                                    'have exactly these keys %s') %
-                                   (section, i + 1, ', '.join(sorted(columns)))
-                                   )
-                        msgs.append(ErrorMessage(message))
-                    if section == 'Bioinformatics':
-                        if (project['library_construction_protocol'] is None or
-                                project[
-                                    'library_construction_protocol'] == ''):
-                            message = (('In the %s section Project #%d does '
-                                        'not have library_construction_'
-                                        'protocol specified') %
-                                       (section, i + 1))
-                            msgs.append(ErrorMessage(message))
-                        if (project['experiment_design_description'] is None or
-                                project[
-                                    'experiment_design_description'] == ''):
-                            message = (('In the %s section Project #%d does '
-                                        'not have experiment_design_'
-                                        'description specified') %
-                                       (section, i + 1))
-                            msgs.append(ErrorMessage(message))
         if metadata.get('Assay') is not None and metadata['Assay'] \
                 not in self._ASSAYS:
             msgs.append(ErrorMessage('%s is not a supported Assay' %
@@ -1382,7 +1379,7 @@ def make_sample_sheet(metadata, table, sequencer, lane):
         raise ValueError("'table' parameter is missing the following columns:"
                          " %s" % ','.join(missing_pm_columns))
 
-    messages = sheet._validate_sample_sheet_metadata(metadata)
+    messages = sheet._validate_addl_metadata(metadata)
 
     if len(messages) == 0:
         sheet._add_metadata_to_sheet(metadata, sequencer)
