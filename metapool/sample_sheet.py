@@ -9,6 +9,7 @@ import pandas as pd
 from metapool.metapool import (bcl_scrub_name, sequencer_i5_index,
                                REVCOMP_SEQUENCERS)
 from metapool.plate import ErrorMessage, WarningMessage, PlateReplication
+from collections import defaultdict
 
 
 _AMPLICON = 'TruSeq HT'
@@ -74,11 +75,6 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                     'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
                     'Sample_Project', 'Well_description')
 
-    column_alts = {'well_description': 'Well_description',
-                   'description': 'Well_description',
-                   'Description': 'Well_description',
-                   'sample_plate': 'Sample_Plate'}
-
     CARRIED_PREP_COLUMNS = ['experiment_design_description', 'i5_index_id',
                             'i7_index_id', 'index', 'index2',
                             'library_construction_protocol', 'sample_name',
@@ -133,6 +129,9 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         # don't pass the path argument to avoid the superclass from parsing
         # the data.
         super().__init__()
+
+        # self.remapper is a mapping of plate-map file column names to
+        # sample-sheet column names.
         self.remapper = None
 
         self.Bioinformatics = None
@@ -222,7 +221,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                             f'have empty fields: {line}'
                         )
                     else:
-                        section_header = self._process_section_header(line)
+                        section_header = line
                     continue
 
                 elif section_name in {'Bioinformatics', 'Contact'}:
@@ -247,13 +246,6 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                     section = getattr(self, section_name)
                     section[key] = value
                     continue
-
-    def _process_section_header(self, columns):
-        for i in range(0, len(columns)):
-            if columns[i] in KLSampleSheet.column_alts:
-                # overwrite existing alternate name w/internal representation.
-                columns[i] = KLSampleSheet.column_alts[columns[i]]
-        return columns
 
     def write(self, handle, blank_lines=1) -> None:
         """Write to a file-like object.
@@ -377,73 +369,78 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 else:
                     pass
 
-    def _remap_table(self, table, strict):
+    def _remap_table(self, table):
         result = table.copy(deep=True)
 
-        if strict:
-            # All columns not defined in remapper will be filtered result.
-            result = table[self.remapper.keys()].copy()
-            result.rename(self.remapper, axis=1, inplace=True)
-        else:
-            # if a column named 'index' is present in table, assume it is a
-            # numeric index and not a sequence of bases, which is required in
-            # the output. Assume the column that will become 'index' is
-            # defined in remapper.
-            if 'index' in set(result.columns):
-                result.drop(columns=['index'], inplace=True)
+        # if a column named 'index' is present in table, assume it is a
+        # numeric index and not a sequence of bases, which is required in
+        # the output. Assume the column that will become 'index' is
+        # defined in remapper.
 
-            remapper = KLSampleSheet.column_alts | self.remapper
-            result.rename(remapper, axis=1, inplace=True)
+        if 'index' in set(result.columns):
+            result.drop(columns=['index'], inplace=True)
 
-            # result may contain additional columns that aren't allowed in the
-            # [Data] section of a sample-sheet e.g.: 'Extraction Kit Lot'.
-            # There may also be required columns that aren't defined in result.
+        result.rename(self.remapper, axis=1, inplace=True)
 
-            # once all columns have been renamed to their preferred names, we
-            # must determine the proper set of column names for this sample-
-            # sheet. For legacy classes this is simply the list of columns
-            # defined in each sample-sheet version. For newer classes, this is
-            # defined at run-time and requires examining the metadata that
-            # will define the [Data] section.
-            required_columns = self._get_expected_columns(table=result)
-            subset = list(set(required_columns) & set(result.columns))
-            result = result[subset]
+        # result may contain additional columns that aren't allowed in the
+        # [Data] section of a sample-sheet e.g.: 'Extraction Kit Lot'.
+        # There may also be required columns that aren't defined in result.
+
+        # once all columns have been renamed to their preferred names, we
+        # must determine the proper set of column names for this sample-
+        # sheet. For legacy classes this is simply the list of columns
+        # defined in each sample-sheet version. For newer classes, this is
+        # defined at run-time and requires examining the metadata that
+        # will define the [Data] section.
+        required_columns = self._get_expected_columns(table=result)
+
+        subset = list(set(required_columns) & set(result.columns))
+        result = result[subset]
 
         return result
 
-    def _add_data_to_sheet(self, table, sequencer, lanes, assay, strict=True):
-        if self.remapper is None:
-            raise ValueError("sample-sheet does not contain a valid Assay"
-                             " type.")
+    def _add_data_to_sheet(self, table, sequencer, lane, is_amplicon):
+        # first change the names of the columns in the plate map table to
+        # those expected in a sample-sheet.
+        table = self._remap_table(table)
 
-        # Well_description column is now defined here as the concatenation
+        # Well_description column is (re)defined here as the concatenation
         # of the following columns. If the column existed previously it will
         # be overwritten, otherwise it will be created here.
-        well_description = table['Project Plate'].astype(str) + "." + \
-            table['Sample'].astype(str) + "." + table['Well'].astype(str)
+        if 'Sample_Well' in table:
+            table['Well_description'] = table['Sample_Plate'].astype(str) \
+                + "." + table['Sample_Name'].astype(str) + "." + \
+                table['Sample_Well'].astype(str)
+        elif 'well_id_384' in table:
+            table['Well_description'] = table['Sample_Plate'].astype(str) \
+                + "." + table['Sample_Name'].astype(str) + "." + \
+                table['well_id_384'].astype(str)
+        else:
+            # silently handle the case where sample-well can't be identified.
+            table['Well_description'] = table['Sample_Plate'].astype(str) \
+                + "." + table['Sample_Name'].astype(str)
 
-        table = self._remap_table(table, strict)
+        # ordered_columns will be in the column order expected for the output.
+        # unexpected columns will be sorted and appended to the end.
+        ordered_columns = list(self._get_all_expected_columns())
+        ordered_columns += sorted(list(set(table.columns) -
+                                       set(ordered_columns)))
 
-        table['Well_description'] = well_description
+        table = table.reindex(ordered_columns, axis=1)
 
-        for column in self._get_expected_columns():
-            if column not in table.columns:
-                warnings.warn('The column %s in the sample sheet is empty' %
-                              column)
-                table[column] = ''
-
-        if assay != _AMPLICON:
+        # assign the value for BarcodesAreRC column in the Bioinformatics
+        # section of non-amplicon sample-sheets based on the sequencer type.
+        if not is_amplicon:
             table['index2'] = sequencer_i5_index(sequencer, table['index2'])
 
             self.Bioinformatics['BarcodesAreRC'] = str(
                 sequencer in REVCOMP_SEQUENCERS)
 
-        for lane in lanes:
-            for sample in table.to_dict(orient='records'):
-                sample['Lane'] = lane
-                self.add_sample(sample_sheet.Sample(sample))
+        # (re)assign the values for Lane column
+        table['Lane'] = lane
 
-        return table
+        for sample in table.to_dict(orient='records'):
+            self.add_sample(sample_sheet.Sample(sample))
 
     def _add_metadata_to_sheet(self, metadata, sequencer):
         # set the default to avoid index errors if only one of the two is
@@ -504,7 +501,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         if type_found is None:
             # if even the 'iSeq' substring could not be found, this is an
             # unlikely and unexpected value for sequencer.
-            raise ErrorMessage(f"{sequencer} isn't a known sequencer")
+            raise ValueError(f"{sequencer} isn't a known sequencer")
         elif type_found == 'iseq':
             #   Verify the settings exist before deleting them.
             if 'MaskShortReads' in self.Settings:
@@ -532,6 +529,9 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         # the table parameter. It is present only for compatibility with child
         # methods.
         return self.data_columns
+
+    def _get_all_expected_columns(self):
+        return self._get_expected_columns()
 
     def validate_and_scrub_sample_sheet(self, echo_msgs=True):
         """Validate the sample sheet and scrub invalid characters
@@ -637,6 +637,10 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             msgs.append(ErrorMessage("'SheetVersion' value is not "
                                      f"'{expected_sheet_version}'"))
 
+        # validate additional constraints not defined here.
+        # TODO: There are things checked in _validate_sample_sheet_metadata()
+        #  that need to be checked here as well.
+
         # if any errors are found up to this point then we can't continue with
         # the validation process.
         if msgs:
@@ -724,47 +728,44 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         # return all collected Messages, even if it's an empty list.
         return msgs
 
-    def _validate_sample_sheet_metadata(self, metadata):
+    def _validate_addl_metadata(self, metadata):
         msgs = []
 
-        for req in ['Assay', 'Bioinformatics', 'Contact']:
-            if req not in metadata:
-                msgs.append(ErrorMessage('%s is a required attribute' % req))
+        # Bioinformatics and Contact are the only remaining sections to
+        # validate. Assay, SheetType, and SheetVersion should have been
+        # confirmed before this method was called.
+        for section_name in ['Bioinformatics', 'Contact']:
+            if section_name not in metadata:
+                msgs.append(ErrorMessage(f"'{section_name}' is not defined"
+                                         " in metadata"))
+                # a missing section cannot be processed further.
+                continue
 
-        # if both sections are found, then check that all the columns are
-        # present, checks for the contents are done in the sample sheet
-        # validation routine
-        if 'Bioinformatics' in metadata and 'Contact' in metadata:
-            for section in ['Bioinformatics', 'Contact']:
-                if section == 'Bioinformatics':
-                    columns = self._BIOINFORMATICS_COLUMNS
+            if section_name == 'Bioinformatics':
+                exp_col = self._BIOINFORMATICS_COLUMNS
+            else:
+                exp_col = self._CONTACT_COLUMNS
+
+            for i, project in enumerate(metadata[section_name]):
+                obs_col = list(project.keys())
+                missing_col = set(exp_col) - set(obs_col)
+                if missing_col:
+                    msgs.append(ErrorMessage(f"{section_name} section is "
+                                             "missing the following columns:"
+                                             f" {', '.join(missing_col)}"))
+                    # we don't need to process the other projects, if any;
+                    # they're all missing the column.
+                    break
                 else:
-                    columns = self._CONTACT_COLUMNS
+                    # if required columns are present, confirm they are not
+                    # empty.
+                    for column in project:
+                        if project[column] in [None, '']:
+                            message = (f"Project #{i + 1} in the "
+                                       f"{section_name} section does not have"
+                                       f" {column} specified")
+                            msgs.append(ErrorMessage(message))
 
-                for i, project in enumerate(metadata[section]):
-                    if set(project.keys()) != columns:
-                        message = (('In the %s section Project #%d does not '
-                                    'have exactly these keys %s') %
-                                   (section, i + 1, ', '.join(sorted(columns)))
-                                   )
-                        msgs.append(ErrorMessage(message))
-                    if section == 'Bioinformatics':
-                        if (project['library_construction_protocol'] is None or
-                                project[
-                                    'library_construction_protocol'] == ''):
-                            message = (('In the %s section Project #%d does '
-                                        'not have library_construction_'
-                                        'protocol specified') %
-                                       (section, i + 1))
-                            msgs.append(ErrorMessage(message))
-                        if (project['experiment_design_description'] is None or
-                                project[
-                                    'experiment_design_description'] == ''):
-                            message = (('In the %s section Project #%d does '
-                                        'not have experiment_design_'
-                                        'description specified') %
-                                       (section, i + 1))
-                            msgs.append(ErrorMessage(message))
         if metadata.get('Assay') is not None and metadata['Assay'] \
                 not in self._ASSAYS:
             msgs.append(ErrorMessage('%s is not a supported Assay' %
@@ -914,6 +915,9 @@ class MetagenomicSampleSheetv101(KLSampleSheet):
 
         return self.data_columns
 
+    def _get_all_expected_columns(self):
+        return self.data_columns + self.optional_katharoseq_columns
+
 
 class MetagenomicSampleSheetv100(KLSampleSheet):
     _HEADER = {
@@ -964,6 +968,11 @@ class MetagenomicSampleSheetv100(KLSampleSheet):
             'i5 name': 'I5_Index_ID',
             'i5 sequence': 'index2',
             'Project Name': 'Sample_Project',
+            # 'I5_Index_ID': 'I5_Index_ID',
+            # 'index': 'index'
+            # 'Sample_Plate': 'Sample_Plate',
+            # 'Sample_ID': 'Sample_ID',
+            # 'Sample_Project': 'Sample_Project'
         }
 
 
@@ -1248,7 +1257,7 @@ def _create_sample_sheet(sheet_type, sheet_version, assay_type):
     return sheet
 
 
-def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
+def make_sample_sheet(metadata, table, sequencer, lane):
     """Write a valid sample sheet
 
     Parameters
@@ -1264,7 +1273,6 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
           experiment_design_description
         - Contact: List of dictionaries describing the e-mails to send to
           external stakeholders: Sample_Project, Email
-
         - IEMFileVersion: Illumina's Experiment Manager version [4]
         - Investigator Name: [Knight]
         - Experiment Name: [RKL_experiment]
@@ -1286,15 +1294,13 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
         name'), description ('Sample'), well identifier ('Well'), project
         plate ('Project Plate'), project name ('Project Name'), and synthetic
         DNA pool number ('syndna_pool_number').
+        Additional columns will silently pass through. If their names are
+        listed in the remapper, they will be converted as one would expect of
+        the expected/required columns.
     sequencer: string
         A string representing the sequencer used.
-    lanes: list of integers
-        A list of integers representing the lanes used.
-    strict: boolean
-        If True, a subset of columns based on Assay type will define the
-        columns in the [Data] section of the sample-sheet. Otherwise all
-        columns in table will pass through into the sample-sheet. Either way
-        some columns will be renamed as needed by Assay type.
+    lane: an integer
+        An integer representing the lane used.
 
     Returns
     -------
@@ -1308,11 +1314,30 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
     ValueError
         If the newly-created sample-sheet fails validation.
     """
+    if metadata is None:
+        raise ValueError("'metadata' parameter cannot be None")
+
+    if lane is None:
+        raise ValueError("'lane' parameter cannot be None")
+
+    if sequencer is None:
+        raise ValueError("'sequencer' parameter cannot be None")
+
+    if table is None:
+        raise ValueError("'table' parameter cannot be None")
+
+    # test the minimum number of attributes for continued processing.
     required_attributes = ['SheetType', 'SheetVersion', 'Assay']
 
     for attribute in required_attributes:
         if attribute not in metadata:
             raise ValueError("'%s' is not defined in metadata" % attribute)
+
+    if lane >= 9 or lane <= 0:
+        raise ValueError("Acceptable values for 'lane' are between 0 and 9")
+
+    if table.empty:
+        raise ValueError("'table' contains no values")
 
     sheet_type = metadata['SheetType']
     sheet_version = metadata['SheetVersion']
@@ -1320,12 +1345,36 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
 
     sheet = _create_sample_sheet(sheet_type, sheet_version, assay_type)
 
-    messages = sheet._validate_sample_sheet_metadata(metadata)
+    # invert the plate-map columns to sample-sheet columns dictionary
+    # for the purposes of error-handling.
+    rev_map = defaultdict(list)
+    for k in sheet.remapper:
+        rev_map[sheet.remapper[k]].append(k)
+
+    # if the following sample-sheet columns are missing, it will cause
+    # non-obvious errors below:
+    # Sample_Name, Sample_Plate, Sample_Project, index2, index, Sample_ID
+    # get the plate-map equivalent names for this version sample-sheet,
+    # and determine which are missing from the plate-map.
+    required_sheet_columns = ['Sample_Name', 'Sample_Plate', 'Sample_Project',
+                              'index2', 'index', 'Sample_ID']
+
+    required_pm_columns = []
+    for column in required_sheet_columns:
+        required_pm_columns += rev_map[column]
+
+    missing_pm_columns = set(required_pm_columns) - set(table.columns)
+
+    if len(missing_pm_columns) != 0:
+        raise ValueError("'table' parameter is missing the following columns:"
+                         " %s" % ','.join(missing_pm_columns))
+
+    messages = sheet._validate_addl_metadata(metadata)
 
     if len(messages) == 0:
         sheet._add_metadata_to_sheet(metadata, sequencer)
-        sheet._add_data_to_sheet(table, sequencer, lanes, metadata['Assay'],
-                                 strict)
+        sheet._add_data_to_sheet(table, sequencer, lane,
+                                 metadata['Assay'] == _AMPLICON)
 
         # now that we have a SampleSheet() object, validate it for any
         # additional errors that may have been present in the data and/or
@@ -1337,6 +1386,7 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
             # Echo any warning messages.
             for warning_msg in messages:
                 warning_msg.echo()
+
             return sheet
 
     # Continue legacy behavior of echoing ErrorMessages and WarningMessages.

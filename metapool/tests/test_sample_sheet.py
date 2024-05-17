@@ -3,10 +3,8 @@ import unittest
 import tempfile
 from datetime import datetime
 from os.path import join, dirname
-
 import pandas as pd
 import sample_sheet
-
 from metapool.sample_sheet import (KLSampleSheet, AmpliconSampleSheet,
                                    MetagenomicSampleSheetv101,
                                    MetagenomicSampleSheetv100,
@@ -18,6 +16,7 @@ from metapool.sample_sheet import (KLSampleSheet, AmpliconSampleSheet,
                                    make_sample_sheet, load_sample_sheet,
                                    demux_sample_sheet, sheet_needs_demuxing)
 from metapool.plate import ErrorMessage, WarningMessage
+from copy import deepcopy
 
 
 # The classes below share the same filepaths, so we use this dummy class
@@ -52,18 +51,8 @@ class BaseTests(unittest.TestCase):
 
         bfx = [
             {
-             'Sample_Project': 'Koening_ITS_101',
-             'QiitaID': '101',
-             'BarcodesAreRC': 'False',
-             'ForwardAdapter': 'GATACA',
-             'ReverseAdapter': 'CATCAT',
-             'HumanFiltering': 'False',
-             'library_construction_protocol': 'Knight Lab Kapa HP',
-             'experiment_design_description': 'Eqiiperiment'
-            },
-            {
-             'Sample_Project': 'Yanomani_2008_10052',
-             'QiitaID': '10052',
+             'Sample_Project': 'THDMI_10317',
+             'QiitaID': '10317',
              'BarcodesAreRC': 'False',
              'ForwardAdapter': 'GATACA',
              'ReverseAdapter': 'CATCAT',
@@ -75,12 +64,8 @@ class BaseTests(unittest.TestCase):
 
         contact = [
             {
-             'Sample_Project': 'Koening_ITS_101',
+             'Sample_Project': 'THDMI_10317',
              'Email': 'yoshiki@compy.com,ilike@turtles.com'
-            },
-            {
-             'Sample_Project': 'Yanomani_2008_10052',
-             'Email': 'mgdb@gmail.com'
             }
         ]
 
@@ -94,9 +79,43 @@ class BaseTests(unittest.TestCase):
             'SheetVersion': '0'
         }
 
+        # a version of this metadata for metagenomic tests w/multiple
+        # projects.
         self.md_metag = {
-            'Bioinformatics': bfx,
-            'Contact': contact,
+            'Bioinformatics': [
+                {
+                    'Sample_Project': 'Koening_ITS_101',
+                    'QiitaID': '101',
+                    'BarcodesAreRC': 'False',
+                    'ForwardAdapter': 'GATACA',
+                    'ReverseAdapter': 'CATCAT',
+                    'HumanFiltering': 'False',
+                    'library_construction_protocol':
+                        'Knight Lab Kapa HyperPlus',
+                    'experiment_design_description': 'KHP'
+                },
+                {
+                    'Sample_Project': 'Yanomani_2008_10052',
+                    'QiitaID': '10052',
+                    'BarcodesAreRC': 'False',
+                    'ForwardAdapter': 'GATACA',
+                    'ReverseAdapter': 'CATCAT',
+                    'HumanFiltering': 'False',
+                    'library_construction_protocol':
+                        'Knight Lab Kapa HyperPlus',
+                    'experiment_design_description': 'KHP'
+                }
+            ],
+            'Contact': [
+                {
+                    'Sample_Project': 'Koening_ITS_101',
+                    'Email': 'yoshiki@compy.com,ilike@turtles.com'
+                },
+                {
+                    'Sample_Project': 'Yanomani_2008_10052',
+                    'Email': 'mgdb@gmail.com'
+                }
+            ],
             'Assay': 'Metagenomic',
             'SheetType': 'standard_metag',
             'SheetVersion': '100'
@@ -454,13 +473,13 @@ class KLSampleSheetTests(BaseTests):
                      'experiment_design_description'],
             data=[
                 ['Koening_ITS_101', '101', 'False', 'GATACA', 'CATCAT',
-                 'False', 'Knight Lab Kapa HP', 'Eqiiperiment'],
+                 'False', 'Knight Lab Kapa HyperPlus', 'KHP'],
                 ['Yanomani_2008_10052', '10052', 'False', 'GATACA', 'CATCAT',
-                 'False', 'Knight Lab Kapa HP', 'Eqiiperiment'],
+                 'False', 'Knight Lab Kapa HyperPlus', 'KHP'],
                 ['paco_Koening_ITS_101', '101', 'False', 'GATACA', 'CATCAT',
-                 'False', 'Knight Lab Kapa HP', 'Eqiiperiment'],
+                 'False', 'Knight Lab Kapa HyperPlus', 'KHP'],
                 ['paco_Yanomani_2008_10052', '10052', 'False', 'GATACA',
-                 'CATCAT', 'False', 'Knight Lab Kapa HP', 'Eqiiperiment']
+                 'CATCAT', 'False', 'Knight Lab Kapa HyperPlus', 'KHP']
             ]
         )
 
@@ -516,14 +535,14 @@ class KLSampleSheetTests(BaseTests):
 
     def test_validate(self):
         sheet = AmpliconSampleSheet()
-        obs = sheet._validate_sample_sheet_metadata(self.md_ampl)
+        obs = sheet._validate_addl_metadata(self.md_ampl)
         self.assertEqual(obs, [])
 
     def test_more_attributes(self):
         sheet = AmpliconSampleSheet()
         self.md_ampl['Ride'] = 'the lightning'
 
-        obs = sheet._validate_sample_sheet_metadata(self.md_ampl)
+        obs = sheet._validate_addl_metadata(self.md_ampl)
         exp = [ErrorMessage('These metadata keys are not supported: Ride')]
         self.assertEqual(obs, exp)
 
@@ -531,7 +550,7 @@ class KLSampleSheetTests(BaseTests):
         sheet = AmpliconSampleSheet()
         self.md_ampl['Assay'] = 'NewAssayType'
 
-        obs = sheet._validate_sample_sheet_metadata(self.md_ampl)
+        obs = sheet._validate_addl_metadata(self.md_ampl)
         exp = [ErrorMessage('NewAssayType is not a supported Assay')]
         self.assertEqual(obs, exp)
 
@@ -539,129 +558,114 @@ class KLSampleSheetTests(BaseTests):
         sheet = AmpliconSampleSheet()
         del self.md_ampl['Bioinformatics']
 
-        obs = sheet._validate_sample_sheet_metadata(self.md_ampl)
-        exp = [ErrorMessage('Bioinformatics is a required attribute')]
-        self.assertEqual(obs, exp)
+        obs = sheet._validate_addl_metadata(self.md_ampl)
+        self.assertEqual(obs[0].message, "'Bioinformatics' is "
+                                         "not defined in metadata")
 
     def test_validate_missing_column_in_bioinformatics(self):
         sheet = AmpliconSampleSheet()
         del self.md_ampl['Bioinformatics'][0]['Sample_Project']
-        exp = [ErrorMessage('In the Bioinformatics section Project #1 does not'
-                            ' have exactly these keys BarcodesAreRC, '
-                            'ForwardAdapter, HumanFiltering, QiitaID, '
-                            'ReverseAdapter, Sample_Project, '
-                            'experiment_design_description, '
-                            'library_construction_protocol')]
-        obs = sheet._validate_sample_sheet_metadata(self.md_ampl)
+        exp = [ErrorMessage("Bioinformatics section is missing "
+                            "the following columns: Sample_Project")]
+        obs = sheet._validate_addl_metadata(self.md_ampl)
         self.assertEqual(str(obs[0]), str(exp[0]))
-
-    def test_alt_sample_sheet(self):
-        # testing with all the sheets we have access to
-        obs = MetagenomicSampleSheetv90(self.alt_ss).all_sample_keys
-
-        exp = ['Lane',
-               'Sample_ID',
-               'Sample_Name',
-               'Sample_Plate',
-               'well_id_384',
-               'I7_Index_ID',
-               'index',
-               'I5_Index_ID',
-               'index2',
-               'Sample_Project',
-               'syndna_pool_number',
-               'Well_description']
-
-        self.assertEqual(set(obs), set(exp))
 
 
 class SampleSheetWorkflow(BaseTests):
     def setUp(self):
         super().setUp()
 
-        self.sheet = AmpliconSampleSheet()
-        self.sheet.Header['IEM4FileVersion'] = 4
-        self.sheet.Header['Investigator Name'] = 'Knight'
-        self.sheet.Header['Experiment Name'] = 'RKO_experiment'
-        self.sheet.Header['Date'] = '2021-08-17'
-        self.sheet.Header['Workflow'] = 'GenerateFASTQ'
-        self.sheet.Header['Application'] = 'FASTQ Only'
-        self.sheet.Header['Assay'] = 'TruSeq HT'
-        self.sheet.Header['Description'] = ''
-        self.sheet.Header['Chemistry'] = 'Default'
-        self.sheet.Reads = [151, 151]
-        self.sheet.Settings['ReverseComplement'] = 0
+        self.metadata1 = {
+            'Bioinformatics': [
+                {
+                    'Sample_Project': 'Example_Project_1',
+                    'QiitaID': '1',
+                    'BarcodesAreRC': 'False',
+                    'ForwardAdapter': 'GATCGGAAGAGCACACGTCTGAACTCCAGTCAC',
+                    'ReverseAdapter': 'GATCGGAAGAGCGTCGTGTAGGGAAAGGAGTGT',
+                    'HumanFiltering': 'True',
+                    'library_construction_protocol':
+                        'Knight Lab KAPA HyperPlus',
+                    'experiment_design_description':
+                        'Example_Project_1_Description',
+                    'contains_replicates': False
+                },
+            ],
+            'Contact': [
+                {
+                    'Sample_Project': 'Example_Project_1',
+                    # non-admin contacts who want to know when the sequences
+                    # are available in Qiita
+                    'Email': 'jonsan@gmail.com'
+                },
+            ],
+            'Assay': 'Metagenomic',
+            'SheetType': 'standard_metag',
+            'SheetVersion': '100'
+        }
 
-        self.sheet.Bioinformatics = pd.DataFrame(
-            columns=['Sample_Project', 'QiitaID', 'BarcodesAreRC',
-                     'ForwardAdapter', 'ReverseAdapter', 'HumanFiltering'],
-            data=[
-                ['THDMI_10317', '10317', 'False', 'AACC', 'GGTT', 'False']
-            ]
-        )
+        data = [['33-A1', 'A', 1, True, 'Example Plate 1', 'Example_Project_1',
+                 'FinRisk Plate 33-36', 'A1', 'A1', 0, 0,
+                 'AACGCACACTCGTCTT', 'iTru5_19_A', 'AACGCACA', 'A1',
+                 'iTru5_plate', 'iTru7_109_01', 'CTCGTCTT', 'A22',
+                 'iTru7_plate', '33-A1'],
+                ['820072905-2', 'C', 1, False, 'Example Plate 1',
+                 'Example_Project_1', 'FinRisk Plate 33-36', 'C1', 'C1', 1, 1,
+                 'ATGCCTAGCGAACTGT', 'iTru5_19_B', 'ATGCCTAG', 'B1',
+                 'iTru5_plate', 'iTru7_109_02', 'CGAACTGT', 'B22',
+                 'iTru7_plate', '820072905-2'],
+                ['820029517-3', 'E', 1, False, 'Example Plate 1',
+                 'Example_Project_1', 'FinRisk Plate 33-36', 'E1', 'E1', 2, 2,
+                 'CATACGGACATTCGGT', 'iTru5_19_C', 'CATACGGA', 'C1',
+                 'iTru5_plate', 'iTru7_109_03', 'CATTCGGT', 'C22',
+                 'iTru7_plate', '820029517-3'],
+                ['820073753-4', 'G', 1, False, 'Example Plate 1',
+                 'Example_Project_1', 'FinRisk Plate 33-36', 'G1', 'G1', 3, 3,
+                 'GGTCACTATCGGTTAC', 'iTru5_19_D', 'GGTCACTA', 'D1',
+                 'iTru5_plate', 'iTru7_109_04', 'TCGGTTAC', 'D22',
+                 'iTru7_plate', '820073753-4'],
+                ['820049719-1', 'I', 1, False, 'Example Plate 1',
+                 'Example_Project_1', 'FinRisk Plate 33-36', 'H1', 'I1', 4, 4,
+                 'GTATTCCGAAGTCGAG', 'iTru5_19_E', 'GTATTCCG', 'E1',
+                 'iTru5_plate', 'iTru7_109_05', 'AAGTCGAG', 'E22',
+                 'iTru7_plate', '820049719-1']]
 
-        # check for Contact
-        self.sheet.Contact = pd.DataFrame(
-            columns=['Email', 'Sample_Project'],
-            data=[
-                ['daniel@tmi.com', 'THDMI_10317'],
-            ]
-        )
+        columns = ['Sample', 'Row', 'Col', 'Blank', 'Project Plate',
+                   'Project Name', 'Compressed Plate Name', 'well_id_96',
+                   'Well', 'index', 'index combo', 'index combo seq',
+                   'i5 name', 'i5 sequence', 'i5 well', 'i5 plate', 'i7 name',
+                   'i7 sequence', 'i7 well', 'i7 plate',
+                   'sample sheet Sample_ID']
 
+        self.plate_data1 = pd.DataFrame(data=data, columns=columns)
+
+        ##
         data = [
-            ['X00180471',
-             'X00180471', 'A', 1, False, 'THDMI_10317_PUK2', 'THDMI_10317',
-             'THDMI_10317_UK2-US6', 'A1', '1', '1', 'SF', '166032128',
-             'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
-             'Echo550', 'THDMI_UK_Plate_2', 'THDMI UK', '', '1', 'A1',
-             '515rcbc0', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'AGCCTTCGTCGC',
-             'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
-             'AATGATACGGCGACCACCGAGATCTACACGCTAGCCTTCGTCGCTATGGTAATTGTGTGYCAG'
-             'CMGCCGCGGTAA', 'pool1'],
-            ['X00180199',
-             'X00180199', 'C', 1, False, 'THDMI_10317_PUK2', 'THDMI_10317',
-             'THDMI_10317_UK2-US6', 'C1', '1', '1', 'SF', '166032128',
-             'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
-             'Echo550', 'THDMI_UK_Plate_2', 'THDMI UK', '', '1', 'B1',
-             '515rcbc12', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'CGTATAAATGCG',
-             'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
-             'AATGATACGGCGACCACCGAGATCTACACGCTCGTATAAATGCGTATGGTAATTGTGTGYCAG'
-             'CMGCCGCGGTAA', 'pool1'],
-            ['X00179789',
-             'X00179789', 'E', 1, False, 'THDMI_10317_PUK2', 'THDMI_10317',
-             'THDMI_10317_UK2-US6', 'E1', '1', '1', 'SF', '166032128',
-             'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
-             'Echo550', 'THDMI_UK_Plate_2', 'THDMI UK', '', '1', 'C1',
-             '515rcbc24', 'AATGATACGGCGACCACCGAGATCTACACGCT', 'TGACTAATGGCC',
-             'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
-             'AATGATACGGCGACCACCGAGATCTACACGCTTGACTAATGGCCTATGGTAATTGTGTGYCAG'
-             'CMGCCGCGGTAA', 'pool1'],
+            ['33-A1', '33-A1', 'The_plate', 'A1', 'iTru7_109_01', 'CTCGTCTT',
+             'iTru5_19_A', 'AACGCACA', 'Tst_project_1234', '1.1', '1.2',
+             'The_plate.33-A1.A1'],
+            ['820072905-2', '820072905-2', 'The_plate', 'C1', 'iTru7_109_02',
+             'CGAACTGT', 'iTru5_19_B', 'ATGCCTAG', 'Tst_project_1234', '1.3',
+             '1.4', 'The_plate.820072905-2.C1'],
+            ['820029517-3', '820029517-3', 'The_plate', 'E1', 'iTru7_109_03',
+             'CATTCGGT', 'iTru5_19_C', 'CATACGGA', 'Tst_project_1234', '1.5',
+             '1.6', 'The_plate.820029517-3.E1'],
         ]
 
-        self.table = pd.DataFrame(
-            columns=['sample sheet Sample_ID',
-                     'Sample', 'Row', 'Col', 'Blank', 'Project Plate',
-                     'Project Name', 'Compressed Plate Name', 'Well',
-                     'Plate Position', 'Primer Plate #', 'Plating',
-                     'Extraction Kit Lot', 'Extraction Robot', 'TM1000 8 Tool',
-                     'Primer Date', 'MasterMix Lot', 'Water Lot',
-                     'Processing Robot', 'Sample Plate', 'Project_Name',
-                     'Original Name', 'Plate', 'EMP Primer Plate Well', 'Name',
-                     "Illumina 5' Adapter", 'Golay Barcode',
-                     'Forward Primer Pad', 'Forward Primer Linker',
-                     '515FB Forward Primer (Parada)', 'Primer For PCR',
-                     'syndna_pool_number'],
-            data=data
-        )
+        columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
+                   'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                   'Sample_Project', 'total_rna_concentration_ng_ul',
+                   'vol_extracted_elution_ul', 'Well_description']
+
+        self.metatranscriptomics1 = pd.DataFrame(columns=columns, data=data)
 
     def test_validate_sample_sheet_metadata_empty(self):
         sheet = AmpliconSampleSheet()
-        messages = sheet._validate_sample_sheet_metadata({})
+        messages = sheet._validate_addl_metadata({})
 
         exp = [
-            ErrorMessage('Assay is a required attribute'),
-            ErrorMessage('Bioinformatics is a required attribute'),
-            ErrorMessage('Contact is a required attribute'),
+            ErrorMessage("'Bioinformatics' is not defined in metadata"),
+            ErrorMessage("'Contact' is not defined in metadata")
         ]
 
         self.assertEqual(messages, exp)
@@ -669,19 +673,19 @@ class SampleSheetWorkflow(BaseTests):
     def test_validate_sample_sheet_metadata_not_supported(self):
         sheet = AmpliconSampleSheet()
         self.md_ampl['Rush'] = 'XYZ'
-        messages = sheet._validate_sample_sheet_metadata(self.md_ampl)
+        msgs = sheet._validate_addl_metadata(self.md_ampl)
 
         exp = [
                 ErrorMessage('These metadata keys are not supported: Rush'),
         ]
 
-        self.assertEqual(messages, exp)
+        self.assertEqual(msgs, exp)
 
     def test_validate_sample_sheet_metadata_good(self):
         # self.md_ampl is patterned after legacy amplicon sample-sheet.
         sheet = AmpliconSampleSheet()
-        messages = sheet._validate_sample_sheet_metadata(self.md_ampl)
-        self.assertEqual(messages, [])
+        msgs = sheet._validate_addl_metadata(self.md_ampl)
+        self.assertEqual(msgs, [])
 
         # test _validate_sample_sheet_metadata() against a
         # MetagenomicSampleSheetv100 object which defines an extra column
@@ -689,21 +693,12 @@ class SampleSheetWorkflow(BaseTests):
         # self.metadata does not contain this extra column, ErrorMessage()s
         # should be returned saying as much.
         sheet = MetagenomicSampleSheetv100()
-        messages = sheet._validate_sample_sheet_metadata(self.md_metag)
+        msgs = sheet._validate_addl_metadata(self.md_metag)
 
-        exp_msgs = ['In the Bioinformatics section Project #1 does not have '
-                    'exactly these keys BarcodesAreRC, ForwardAdapter, Human'
-                    'Filtering, QiitaID, ReverseAdapter, Sample_Project, '
-                    'contains_replicates, experiment_design_description, '
-                    'library_construction_protocol',
-                    'In the Bioinformatics section Project #2 does not have '
-                    'exactly these keys BarcodesAreRC, ForwardAdapter, Human'
-                    'Filtering, QiitaID, ReverseAdapter, Sample_Project, '
-                    'contains_replicates, experiment_design_description, '
-                    'library_construction_protocol']
-
-        self.assertEqual(messages[0].message, exp_msgs[0])
-        self.assertEqual(messages[1].message, exp_msgs[1])
+        self.assertEqual(len(msgs), 1)
+        self.assertEqual(msgs[0].message, "Bioinformatics section is missing "
+                                          "the following columns: contains_"
+                                          "replicates")
 
     def test_validate_sample_sheet_metadata_bad_assay_types(self):
         sheet = AmpliconSampleSheet()
@@ -712,164 +707,162 @@ class SampleSheetWorkflow(BaseTests):
 
         for invalid_type in invalid_types:
             self.md_ampl['Assay'] = invalid_type
-            messages = sheet._validate_sample_sheet_metadata(self.md_ampl)
+            msgs = sheet._validate_addl_metadata(self.md_ampl)
             exp = f'ErrorMessage: {invalid_type} is not a supported Assay'
-            self.assertEqual(str(messages[0]), exp)
+            self.assertEqual(str(msgs[0]), exp)
+
+    def test_make_sample_sheet_bad_parameters(self):
+        # make_sample_sheet() is perhaps the most-used entrypoint into
+        # metapool. Hence, it warrants additional parameter checking.
+        with self.assertRaisesRegex(ValueError, "'lane' parameter cannot be "
+                                                "None"):
+            make_sample_sheet(self.metadata1, self.plate_data1, 'HiSeq4000',
+                              None)
+
+        with self.assertRaisesRegex(ValueError, "'sequencer' parameter cannot "
+                                                "be None"):
+            make_sample_sheet(self.metadata1, self.plate_data1, None, 1)
+
+        with self.assertRaisesRegex(ValueError, "'table' parameter cannot be "
+                                                "None"):
+            make_sample_sheet(self.metadata1, None, 'HiSeq4000', 1)
+
+        with self.assertRaisesRegex(ValueError, "'metadata' parameter cannot "
+                                                "be None"):
+            make_sample_sheet(None, self.plate_data1, 'HiSeq4000', 1)
+
+        with self.assertRaisesRegex(ValueError, "Acceptable values for 'lane'"
+                                                " are between 0 and 9"):
+            make_sample_sheet(self.metadata1, self.plate_data1, 'HiSeq4000',
+                              0)
+
+        with self.assertRaisesRegex(ValueError, "Acceptable values for 'lane'"
+                                                " are between 0 and 9"):
+            make_sample_sheet(self.metadata1, self.plate_data1, 'HiSeq4000',
+                              9)
+
+        with self.assertRaisesRegex(ValueError, "NotASequencer isn't a known"
+                                                " sequencer"):
+            make_sample_sheet(self.metadata1, self.plate_data1,
+                              'NotASequencer', 1)
+
+        # delete all rows and test w/an empty table
+        empty_table = self.plate_data1.copy(deep=True)
+        empty_table = empty_table.head(0)
+        with self.assertRaisesRegex(ValueError, "'table' contains no values"):
+            make_sample_sheet(self.metadata1, empty_table, 'HiSeq4000', 1)
+
+        # test with an entirely empty dataframe
+        empty_table_no_headers = pd.DataFrame()
+        with self.assertRaisesRegex(ValueError, "'table' contains no values"):
+            make_sample_sheet(self.metadata1, empty_table_no_headers,
+                              'HiSeq4000', 1)
+
+        # test with an important column missing
+        missing_col = self.plate_data1.copy(deep=True)
+        missing_col = missing_col.drop(columns=['sample sheet Sample_ID'])
+
+        with self.assertRaisesRegex(ValueError, "'table' parameter is missing "
+                                                "the following columns: sample"
+                                                " sheet Sample_ID"):
+            make_sample_sheet(self.metadata1, missing_col, 'HiSeq4000', 1)
+
+        # confirm the proper error message is returned when any of the major
+        # attributes of the metadata object are missing:
+        for key in self.metadata1:
+            tmp = deepcopy(self.metadata1)
+            del tmp[key]
+            msg = f"'{key}' is not defined in metadata"
+            with self.assertRaisesRegex(ValueError, msg):
+                make_sample_sheet(tmp, self.plate_data1, 'HiSeq4000', 1)
+
+        # supply an invalid assay type
+        tmp = deepcopy(self.metadata1)
+
+        tmp['Assay'] = 'NotAnAssay'
+
+        with self.assertRaisesRegex(ValueError, "'NotAnAssay' is an unrecog"
+                                                "nized Assay type"):
+            make_sample_sheet(tmp, self.plate_data1, 'HiSeq4000', 1)
+
+        # supply an invalid sheet-type.
+        tmp = deepcopy(self.metadata1)
+
+        tmp['SheetType'] = None
+
+        with self.assertRaisesRegex(ValueError,
+                                    "'None' is an unrecognized SheetType"):
+            make_sample_sheet(tmp, self.plate_data1, 'HiSeq4000', 1)
+
+        tmp = deepcopy(self.metadata1)
+
+        tmp['SheetType'] = 'NotASheetType'
+
+        with self.assertRaisesRegex(ValueError,  "'NotASheetType' is an "
+                                                 "unrecognized SheetType"):
+            make_sample_sheet(tmp, self.plate_data1, 'HiSeq4000', 1)
+
+        # test with an invalid sheet-version
+        tmp = deepcopy(self.metadata1)
+
+        tmp['SheetVersion'] = '999'
+
+        with self.assertRaisesRegex(ValueError,  "'999' is an unrecognized "
+                                                 "SheetVersion for 'standard"
+                                                 "_metag'"):
+            make_sample_sheet(tmp, self.plate_data1, 'HiSeq4000', 1)
+
+        # test bioinformatics and contacts sections
+        for section in ['Bioinformatics', 'Contact']:
+            for key in self.metadata1[section][0]:
+                tmp = deepcopy(self.metadata1)
+                tmp[section][0][key] = None
+                msg = (f"Project #1 in the {section} section does not have"
+                       f" {key} specified")
+                with self.assertRaisesRegex(ValueError, msg):
+                    make_sample_sheet(tmp, self.plate_data1, 'HiSeq4000', 1)
 
     def test_make_sample_sheet(self):
-        exp_bfx = pd.DataFrame(self.md_ampl['Bioinformatics'])
-        exp_contact = pd.DataFrame(self.md_ampl['Contact'])
+        # much of make_sample_sheet's functionality is already tested in
+        # test_add_data_to_sheet() and test_add_metadata().
 
-        # for amplicon we expect the following three columns to not be there
-        message = (r'The column (I5_Index_ID|index2|Well_description) '
-                   r'in the sample sheet is empty')
+        # TODO: Add test for two different types of metagenomic sample-sheet,
+        #  to account for versioning. Test one metatranscriptomic or abs-quant
+        #  type as well.
 
-        message2 = (r"ErrorMessage: The following projects need to be in the "
-                    "Data and Bioinformatics sections Koening_ITS_101, "
-                    "THDMI_10317, Yanomani_2008_10052")
+        sheet = make_sample_sheet(self.metadata1, self.plate_data1,
+                                  'HiSeq4000', 1)
 
-        with self.assertWarnsRegex(UserWarning, message):
-            table2 = self.table.copy(deep=True)
+        self.assertTrue(sheet.validate_and_scrub_sample_sheet())
 
-            # first, assert that make_sample_sheet() raises an Error when the
-            # projects are improperly defined.
-            with self.assertRaisesRegex(ValueError, message2):
-                make_sample_sheet(self.md_ampl, table2, 'HiSeq4000', [5, 7],
-                                  strict=False)
+    def test_well_description_generation(self):
+        # this test was formerly named test_column_alternatives() and tested
+        # that alternatives to common column names such as 'description' and
+        # 'well_description' would be silently renamed to 'Well_description'
+        # when reading sample-sheets from disk and when generating sample-
+        # sheets from plate-maps. This functionality has been removed as
+        # we now have different versions of sample-sheets with unique
+        # properties, and we want to ensure sample-sheets and plate-maps on
+        # file are valid w/out interpretation.
 
-            # second, correct the errors in the [Data] section.
-            table2['Project Name'] = ['Koening_ITS_101', 'Yanomani_2008_10052',
-                                      'Yanomani_2008_10052']
-
-            obs = make_sample_sheet(self.md_ampl, table2, 'HiSeq4000',
-                                    [5, 7], strict=False)
-
-        self.assertIsInstance(obs, AmpliconSampleSheet)
-
-        self.assertEqual(obs.Reads, [151, 151])
-        self.assertEqual(obs.Settings, {'ReverseComplement': '0'})
-
-        pd.testing.assert_frame_equal(obs.Bioinformatics, exp_bfx)
-        pd.testing.assert_frame_equal(obs.Contact, exp_contact)
-
-        header = {
-            'IEMFileVersion': '4',
-            'SheetType': 'dummy_amp',
-            'SheetVersion': '0',
-            'Date': datetime.today().strftime('%Y-%m-%d'),
-            'Workflow': 'GenerateFASTQ',
-            'Application': 'FASTQ Only',
-            'Assay': 'TruSeq HT',
-            'Description': '',
-            'Chemistry': 'Default',
-        }
-
-        self.assertEqual(obs.Header, header)
-        self.assertEqual(len(obs.samples), 6)
-
-        data = (
-            [5, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
-             'AGCCTTCGTCGC', '', '', 'Koening_ITS_101',
-             'THDMI_10317_PUK2.X00180471.A1'],
-            [5, 'X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1',
-             '515rcbc12', 'CGTATAAATGCG', '', '', 'Yanomani_2008_10052',
-             'THDMI_10317_PUK2.X00180199.C1'],
-            [5, 'X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1',
-             '515rcbc24', 'TGACTAATGGCC', '', '', 'Yanomani_2008_10052',
-             'THDMI_10317_PUK2.X00179789.E1'],
-            [7, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
-             'AGCCTTCGTCGC', '', '', 'Koening_ITS_101',
-             'THDMI_10317_PUK2.X00180471.A1'],
-            [7, 'X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1',
-             '515rcbc12', 'CGTATAAATGCG', '', '', 'Yanomani_2008_10052',
-             'THDMI_10317_PUK2.X00180199.C1'],
-            [7, 'X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1',
-             '515rcbc24', 'TGACTAATGGCC', '', '', 'Yanomani_2008_10052',
-             'THDMI_10317_PUK2.X00179789.E1'],
-        )
-        keys = ['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
-                'Sample_Well', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
-                'Sample_Project', 'Well_description']
-
-        for sample, row in zip(obs.samples, data):
-            exp = sample_sheet.Sample(dict(zip(keys, row)))
-            self.assertEqual(dict(sample), dict(exp))
-
-    def test_column_alternatives(self):
         # confirm standard 'Well_description' column name behaved as intended.
-        table2 = self.table.copy(deep=True)
-
-        table2['Well_description'] = ['Row A', 'Row B', 'Row C']
-
-        table2['Project Name'] = ['Koening_ITS_101', 'Yanomani_2008_10052',
-                                  'Yanomani_2008_10052']
-
-        # allow 'Well_description' column to pass through to obs.
-        obs = make_sample_sheet(self.md_ampl,
-                                table2,
-                                'HiSeq4000',
-                                [5, 7],
-                                strict=False)
+        # That is, add a dummy 'Well_description' column and confirm column in
+        # sheet is overwritten with standard form description.
+        tmp = deepcopy(self.plate_data1)
+        tmp['Well_description'] = ['Row A', 'Row B', 'Row C', 'Row D', 'Row E']
+        obs = make_sample_sheet(self.metadata1, tmp, 'HiSeq4000', 1)
 
         self.assertIsNotNone(obs, msg="make_sample_sheet() failed")
-        self.assertIsInstance(obs, AmpliconSampleSheet)
+        self.assertIsInstance(obs, MetagenomicSampleSheetv100)
 
-        data = (
-            [5, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
-             'AGCCTTCGTCGC', '', '', 'Koening_ITS_101',
-             'THDMI_10317_PUK2.X00180471.A1'],
-            [5, 'X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1',
-             '515rcbc12', 'CGTATAAATGCG', '', '', 'Yanomani_2008_10052',
-             'THDMI_10317_PUK2.X00180199.C1'],
-            [5, 'X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1',
-             '515rcbc24', 'TGACTAATGGCC', '', '', 'Yanomani_2008_10052',
-             'THDMI_10317_PUK2.X00179789.E1'],
-            [7, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
-             'AGCCTTCGTCGC', '', '', 'Koening_ITS_101',
-             'THDMI_10317_PUK2.X00180471.A1'],
-            [7, 'X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1',
-             '515rcbc12', 'CGTATAAATGCG', '', '', 'Yanomani_2008_10052',
-             'THDMI_10317_PUK2.X00180199.C1'],
-            [7, 'X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1',
-             '515rcbc24', 'TGACTAATGGCC', '', '', 'Yanomani_2008_10052',
-             'THDMI_10317_PUK2.X00179789.E1'],
-        )
-        keys = ['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
-                'Sample_Well', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
-                'Sample_Project', 'Well_description']
+        exp = ['Example Plate 1.33-A1.A1',
+               'Example Plate 1.820029517-3.E1',
+               'Example Plate 1.820049719-1.I1',
+               'Example Plate 1.820072905-2.C1',
+               'Example Plate 1.820073753-4.G1']
+        obs = sorted([x['Well_description'] for x in obs.samples])
 
-        for sample, row in zip(obs.samples, data):
-            exp = sample_sheet.Sample(dict(zip(keys, row)))
-            self.assertEqual(dict(sample), dict(exp))
-
-        # Try making sample-sheet w/an alternate column name and confirm that
-        # the results continue to be as expected.
-        table2.rename({'Well_description': 'well_description'},
-                      axis=1, inplace=True)
-
-        obs = make_sample_sheet(self.md_ampl,
-                                table2,
-                                'HiSeq4000',
-                                [5, 7],
-                                strict=False)
-
-        for sample, row in zip(obs.samples, data):
-            exp = sample_sheet.Sample(dict(zip(keys, row)))
-            self.assertEqual(dict(sample), dict(exp))
-
-        # Try w/another alternate column name
-        table2.rename({'well_description': 'description'},
-                      axis=1, inplace=True)
-
-        obs = make_sample_sheet(self.md_ampl,
-                                table2,
-                                'HiSeq4000',
-                                [5, 7],
-                                strict=False)
-
-        for sample, row in zip(obs.samples, data):
-            exp = sample_sheet.Sample(dict(zip(keys, row)))
-            self.assertEqual(dict(sample), dict(exp))
+        self.assertEqual(obs, exp)
 
     def test_remap_table_amplicon(self):
         columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'Sample_Well',
@@ -904,13 +897,34 @@ class SampleSheetWorkflow(BaseTests):
             # to _remap_table()'s caller, _add_data_to_sheet(). Hence, call
             # this method to ensure that the observed table remains as
             # expected.
+
+            # _add_data_to_sheet() doesn't return a table anymore.
+
             obs = sheet._add_data_to_sheet(self.table, 'HiSeq4000', [1],
-                                           'TruSeq HT', strict=False)
+                                           'TruSeq HT')
             self.assertEqual(len(obs), 3)
             pd.testing.assert_frame_equal(obs, exp, check_like=True)
 
     def test_remap_table_metagenomics(self):
-        data = [
+        exp_columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate',
+                       'well_id_384', 'I7_Index_ID', 'index',
+                       'I5_Index_ID', 'index2', 'Sample_Project',
+                       'Well_description']
+
+        exp_data = [
+            ['33-A1', '33-A1', 'The_plate', 'A1', 'iTru7_109_01',
+             'CTCGTCTT', 'iTru5_19_A', 'AACGCACA', 'Tst_project_1234',
+             'The_plate.33-A1.A1'],
+            ['820072905-2', '820072905-2', 'The_plate', 'C1', 'iTru7_109_02',
+             'CGAACTGT', 'iTru5_19_B', 'ATGCCTAG', 'Tst_project_1234',
+             'The_plate.820072905-2.C1'],
+            ['820029517-3', '820029517-3', 'The_plate', 'E1', 'iTru7_109_03',
+             'CATTCGGT', 'iTru5_19_C', 'CATACGGA', 'Tst_project_1234',
+             'The_plate.820029517-3.E1']]
+
+        exp = pd.DataFrame(columns=exp_columns, data=exp_data)
+
+        obs_data = [
             ['33-A1', 'A', 1, True, 'A1', 0, 0, 'AACGCACACTCGTCTT',
              'iTru5_19_A', 'AACGCACA', 'A1', 'iTru5_plate', 'iTru7_109_01',
              'CTCGTCTT', 'A22', 'iTru7_plate', '33-A1', 'pool1',
@@ -924,35 +938,21 @@ class SampleSheetWorkflow(BaseTests):
              'CATTCGGT', 'C22', 'iTru7_plate', '820029517-3',
              'pool1', 'The_plate.820029517-3.E1']
         ]
-        columns = ['Sample', 'Row', 'Col', 'Blank', 'Well', 'index',
-                   'index combo', 'index combo seq', 'i5 name', 'i5 sequence',
-                   'i5 well', 'i5 plate', 'i7 name', 'i7 sequence', 'i7 well',
-                   'i7 plate', 'sample sheet Sample_ID', 'syndna_pool_number',
-                   'Well_description']
-        self.table = pd.DataFrame(data=data, columns=columns)
-        self.table['Project Name'] = 'Tst_project_1234'
-        self.table['Project Plate'] = 'The_plate'
 
-        columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
-                   'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
-                   'Sample_Project', 'Well_description']
-        data = [
-            ['33-A1', '33-A1', 'The_plate', 'A1', 'iTru7_109_01',
-             'CTCGTCTT', 'iTru5_19_A', 'AACGCACA', 'Tst_project_1234',
-             'The_plate.33-A1.A1'],
-            ['820072905-2', '820072905-2', 'The_plate', 'C1', 'iTru7_109_02',
-             'CGAACTGT', 'iTru5_19_B', 'ATGCCTAG', 'Tst_project_1234',
-             'The_plate.820072905-2.C1'],
-            ['820029517-3', '820029517-3', 'The_plate', 'E1', 'iTru7_109_03',
-             'CATTCGGT', 'iTru5_19_C', 'CATACGGA', 'Tst_project_1234',
-             'The_plate.820029517-3.E1'],
-        ]
+        obs_columns = ['Sample', 'Row', 'Col', 'Blank', 'Well', 'index',
+                       'index combo', 'index combo seq', 'i5 name',
+                       'i5 sequence', 'i5 well', 'i5 plate', 'i7 name',
+                       'i7 sequence', 'i7 well', 'i7 plate',
+                       'sample sheet Sample_ID', 'syndna_pool_number',
+                       'Well_description']
 
-        exp = pd.DataFrame(columns=columns, data=data)
+        obs_df = pd.DataFrame(columns=obs_columns, data=obs_data)
+        obs_df['Project Name'] = 'Tst_project_1234'
+        obs_df['Project Plate'] = 'The_plate'
 
         sheet = MetagenomicSampleSheetv100()
 
-        obs = sheet._remap_table(self.table, strict=False)
+        obs = sheet._remap_table(obs_df)
 
         self.assertEqual(len(obs), 3)
 
@@ -979,6 +979,7 @@ class SampleSheetWorkflow(BaseTests):
                    'i5 well', 'i5 plate', 'i7 name', 'i7 sequence', 'i7 well',
                    'i7 plate', 'sample sheet Sample_ID',
                    'Well_description']
+
         self.table = pd.DataFrame(data=data, columns=columns)
         self.table['Project Name'] = 'Tst_project_1234'
         self.table['Project Plate'] = 'The_plate'
@@ -1002,7 +1003,7 @@ class SampleSheetWorkflow(BaseTests):
 
         sheet = MetatranscriptomicSampleSheetv0()
 
-        obs = sheet._remap_table(self.table, strict=False)
+        obs = sheet._remap_table(self.table)
         obs = obs[['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
                    'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
                    'Sample_Project', 'Well_description']]
@@ -1027,73 +1028,88 @@ class SampleSheetWorkflow(BaseTests):
              'CATTCGGT', 'C22', 'iTru7_plate', '820029517-3',
              'The_plate.820029517-3.E1', '1.6', '1.5']
         ]
+
         columns = ['Sample', 'Row', 'Col', 'Blank', 'Well', 'index',
                    'index combo', 'index combo seq', 'i5 name', 'i5 sequence',
                    'i5 well', 'i5 plate', 'i7 name', 'i7 sequence', 'i7 well',
                    'i7 plate', 'sample sheet Sample_ID', 'Well_description',
                    'vol_extracted_elution_ul', 'total_rna_concentration_ng_ul']
-        self.table = pd.DataFrame(data=data, columns=columns)
-        self.table['Project Name'] = 'Tst_project_1234'
-        self.table['Project Plate'] = 'The_plate'
 
-        columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
-                   'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
-                   'Sample_Project', 'total_rna_concentration_ng_ul',
-                   'vol_extracted_elution_ul', 'Well_description']
-        data = [
-            ['33-A1', '33-A1', 'The_plate', 'A1', 'iTru7_109_01', 'CTCGTCTT',
-             'iTru5_19_A', 'AACGCACA', 'Tst_project_1234', '1.1', '1.2',
-             'The_plate.33-A1.A1'],
-            ['820072905-2', '820072905-2', 'The_plate', 'C1', 'iTru7_109_02',
-             'CGAACTGT', 'iTru5_19_B', 'ATGCCTAG', 'Tst_project_1234', '1.3',
-             '1.4', 'The_plate.820072905-2.C1'],
-            ['820029517-3', '820029517-3', 'The_plate', 'E1', 'iTru7_109_03',
-             'CATTCGGT', 'iTru5_19_C', 'CATACGGA', 'Tst_project_1234', '1.5',
-             '1.6', 'The_plate.820029517-3.E1'],
-        ]
-
-        exp = pd.DataFrame(columns=columns, data=data)
-
+        obs = pd.DataFrame(data=data, columns=columns)
+        obs['Project Name'] = 'Tst_project_1234'
+        obs['Project Plate'] = 'The_plate'
         sheet = MetatranscriptomicSampleSheetv10()
-
-        obs = sheet._remap_table(self.table, strict=False)
+        obs = sheet._remap_table(obs)
         obs = obs[['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
                    'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
                    'Sample_Project', 'total_rna_concentration_ng_ul',
                    'vol_extracted_elution_ul', 'Well_description']]
 
         self.assertEqual(len(obs), 3)
+
+        exp = self.metatranscriptomics1
+
         pd.testing.assert_frame_equal(obs, exp, check_like=True)
 
     def test_add_data_to_sheet(self):
-        # for amplicon we expect the following three columns to not be there
-        message = (r'The column (I5_Index_ID|index2|Well_description) '
-                   r'in the sample sheet is empty')
+        sheet = MetagenomicSampleSheetv100()
+        sheet._add_metadata_to_sheet(self.metadata1, 'HiSeq4000')
 
-        with self.assertWarnsRegex(UserWarning, message):
-            self.sheet._add_data_to_sheet(self.table, 'HiSeq4000', [1],
-                                          'TruSeq HT', strict=False)
+        # confirm sequencer values are being checked.
+        with self.assertRaisesRegex(ValueError, 'Your indicated sequencer '
+                                                "\\[NotASequencer\\] is not "
+                                                'recognized'):
+            sheet._add_data_to_sheet(self.plate_data1, 'NotASequencer',
+                                     1, False)
 
-        self.assertEqual(len(self.sheet), 3)
+        # add data to the sheet. confirm a lane value that isn't 1.
+        self.plate_data1['Well_description'] = 'some_value'
+        sheet._add_data_to_sheet(self.plate_data1, 'HiSeq4000', 4, False)
 
-        data = (
-            [1, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
-             'AGCCTTCGTCGC', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00180471.A1'],
-            [1, 'X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1',
-             '515rcbc12', 'CGTATAAATGCG', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00180199.C1'],
-            [1, 'X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1',
-             '515rcbc24', 'TGACTAATGGCC', '', '', 'THDMI_10317',
-             'THDMI_10317_PUK2.X00179789.E1'],
-        )
-        keys = ['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
-                'Sample_Well', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
-                'Sample_Project', 'Well_description']
+        # assert number of samples is correct.
+        self.assertEqual(len(sheet), 5)
 
-        for sample, row in zip(self.sheet.samples, data):
-            exp = sample_sheet.Sample(dict(zip(keys, row)))
-            self.assertEqual(dict(sample), dict(exp))
+        # assert sample-sheet is valid.
+        self.assertTrue(sheet.validate_and_scrub_sample_sheet())
+
+        # note that _add_data_to_sheet() passively renames whatever columns
+        # are present from plate-map names to their sample-sheet counterparts.
+        # it doesn't test for the presence or absense of columns. This should
+        # be properly tested in test_validate_and_scrub_sample_sheet().
+
+        obs = sheet.all_sample_keys
+
+        exp = ['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
+               'well_id_384', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+               'Sample_Project', 'Well_description']
+
+        # confirm columns are NOT those found in a plate-map table e.g.:
+        # 'Sample', 'Well', etc.
+        # confirm 'Lane' and 'Well_description' exist.
+        # confirm _add_data_to_sheet() reordered the columns properly.
+        self.assertEqual(set(obs), set(exp))
+
+        # pick a sample
+        sample = sheet.samples[0]
+
+        # confirm Well_description column exists, is not 'some_value', and is
+        # instead the expected value.
+        self.assertEqual(sample['Well_description'],
+                         'Example Plate 1.33-A1.A1')
+
+        # confirm Lane column exists and is the expected value.
+        self.assertEqual(sample['Lane'], 4)
+
+        # confirm BarcodesAreRC is set correctly for 'HiSeq4000'.
+        self.assertEqual(list(sheet.Bioinformatics['BarcodesAreRC']),
+                         ['True'])
+
+        # confirm BarcodesAreRC is set correctly for 'MiSeq'.
+        another_sheet = MetagenomicSampleSheetv100()
+        another_sheet._add_metadata_to_sheet(self.metadata1, 'MiSeq')
+        another_sheet._add_data_to_sheet(self.plate_data1, 'MiSeq', 4, False)
+        self.assertEqual(list(another_sheet.Bioinformatics['BarcodesAreRC']),
+                         ['False'])
 
     def test_add_metadata_to_sheet_all_defaults_amplicon(self):
         sheet = AmpliconSampleSheet()
@@ -2068,8 +2084,7 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
 
     def test_katharoseq_make_sample_sheet(self):
         table = pd.DataFrame(columns=self.input_columns, data=self.data)
-        sheet = make_sample_sheet(self.metadata, table, 'iSeq', [1],
-                                  strict=False)
+        sheet = make_sample_sheet(self.metadata, table, 'iSeq', 1)
 
         # confirm that we get a sample-sheet w/out katharoseq-control-related
         # columns.
@@ -2081,6 +2096,7 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
                        'well_id_384', 'I7_Index_ID', 'index', 'I5_Index_ID',
                        'index2', 'Sample_Project', 'Well_description',
                        'Lane'}
+
         self.assertEqual(obs_columns, exp_columns)
 
     def test_katharoseq_make_sample_sheet_one_optional_column_ok(self):
@@ -2090,8 +2106,7 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
 
         # sheet will be created but extended columns will not be present
         # and no error is raised. Kathseq_RackID is silently dropped.
-        sheet = make_sample_sheet(self.metadata, table, 'iSeq', [1],
-                                  strict=False)
+        sheet = make_sample_sheet(self.metadata, table, 'iSeq', 1)
 
         self.assertIsNotNone(sheet)
         self.assertIsInstance(sheet, MetagenomicSampleSheetv101)
@@ -2124,8 +2139,7 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
                "Message: The well_id_96 column in the Data section is missing")
 
         with self.assertRaisesRegex(ValueError, exp):
-            make_sample_sheet(self.metadata, table, 'iSeq', [1],
-                              strict=False)
+            make_sample_sheet(self.metadata, table, 'iSeq', 1)
 
     def test_katharoseq_make_sample_sheet_all_optional_columns(self):
         # test make_sample_sheet() w/katharoseq data. To do this, change the
@@ -2144,8 +2158,7 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
 
         table = pd.DataFrame(columns=self.input_columns, data=self.data)
 
-        sheet = make_sample_sheet(self.metadata, table, 'iSeq', [1],
-                                  strict=False)
+        sheet = make_sample_sheet(self.metadata, table, 'iSeq', 1)
 
         # confirm that a sheet was created w/all the extended columns
         # required for katharoseq-controls.
