@@ -75,11 +75,6 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                     'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
                     'Sample_Project', 'Well_description')
 
-    column_alts = {'well_description': 'Well_description',
-                   'description': 'Well_description',
-                   'Description': 'Well_description',
-                   'sample_plate': 'Sample_Plate'}
-
     CARRIED_PREP_COLUMNS = ['experiment_design_description', 'i5_index_id',
                             'i7_index_id', 'index', 'index2',
                             'library_construction_protocol', 'sample_name',
@@ -134,6 +129,9 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         # don't pass the path argument to avoid the superclass from parsing
         # the data.
         super().__init__()
+
+        # self.remapper is a mapping of plate-map file column names to
+        # sample-sheet column names.
         self.remapper = None
 
         self.Bioinformatics = None
@@ -223,7 +221,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                             f'have empty fields: {line}'
                         )
                     else:
-                        section_header = self._process_section_header(line)
+                        section_header = line
                     continue
 
                 elif section_name in {'Bioinformatics', 'Contact'}:
@@ -248,13 +246,6 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                     section = getattr(self, section_name)
                     section[key] = value
                     continue
-
-    def _process_section_header(self, columns):
-        for i in range(0, len(columns)):
-            if columns[i] in KLSampleSheet.column_alts:
-                # overwrite existing alternate name w/internal representation.
-                columns[i] = KLSampleSheet.column_alts[columns[i]]
-        return columns
 
     def write(self, handle, blank_lines=1) -> None:
         """Write to a file-like object.
@@ -389,8 +380,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         if 'index' in set(result.columns):
             result.drop(columns=['index'], inplace=True)
 
-        remapper = KLSampleSheet.column_alts | self.remapper
-        result.rename(remapper, axis=1, inplace=True)
+        result.rename(self.remapper, axis=1, inplace=True)
 
         # result may contain additional columns that aren't allowed in the
         # [Data] section of a sample-sheet e.g.: 'Extraction Kit Lot'.
@@ -758,11 +748,11 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
             for i, project in enumerate(metadata[section_name]):
                 obs_col = list(project.keys())
-                missing_col = set(exp_col) != set(obs_col)
+                missing_col = set(exp_col) - set(obs_col)
                 if missing_col:
                     msgs.append(ErrorMessage(f"{section_name} section is "
                                              "missing the following columns:"
-                                             f" {missing_col}"))
+                                             f" {', '.join(missing_col)}"))
                     # we don't need to process the other projects, if any;
                     # they're all missing the column.
                     break

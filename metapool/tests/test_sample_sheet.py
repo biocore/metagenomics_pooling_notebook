@@ -559,39 +559,16 @@ class KLSampleSheetTests(BaseTests):
         del self.md_ampl['Bioinformatics']
 
         obs = sheet._validate_addl_metadata(self.md_ampl)
-        exp = [ErrorMessage('Bioinformatics is a required attribute')]
-        self.assertEqual(obs, exp)
+        self.assertEqual(obs[0].message, "'Bioinformatics' is "
+                                         "not defined in metadata")
 
     def test_validate_missing_column_in_bioinformatics(self):
         sheet = AmpliconSampleSheet()
         del self.md_ampl['Bioinformatics'][0]['Sample_Project']
-        exp = [ErrorMessage('In the Bioinformatics section Project #1 does not'
-                            ' have exactly these keys BarcodesAreRC, '
-                            'ForwardAdapter, HumanFiltering, QiitaID, '
-                            'ReverseAdapter, Sample_Project, '
-                            'experiment_design_description, '
-                            'library_construction_protocol')]
+        exp = [ErrorMessage("Bioinformatics section is missing "
+                            "the following columns: Sample_Project")]
         obs = sheet._validate_addl_metadata(self.md_ampl)
         self.assertEqual(str(obs[0]), str(exp[0]))
-
-    def test_alt_sample_sheet(self):
-        # testing with all the sheets we have access to
-        obs = MetagenomicSampleSheetv90(self.alt_ss).all_sample_keys
-
-        exp = ['Lane',
-               'Sample_ID',
-               'Sample_Name',
-               'Sample_Plate',
-               'well_id_384',
-               'I7_Index_ID',
-               'index',
-               'I5_Index_ID',
-               'index2',
-               'Sample_Project',
-               'syndna_pool_number',
-               'Well_description']
-
-        self.assertEqual(set(obs), set(exp))
 
 
 class SampleSheetWorkflow(BaseTests):
@@ -687,9 +664,8 @@ class SampleSheetWorkflow(BaseTests):
         messages = sheet._validate_addl_metadata({})
 
         exp = [
-            ErrorMessage('Assay is a required attribute'),
-            ErrorMessage('Bioinformatics is a required attribute'),
-            ErrorMessage('Contact is a required attribute'),
+            ErrorMessage("'Bioinformatics' is not defined in metadata"),
+            ErrorMessage("'Contact' is not defined in metadata")
         ]
 
         self.assertEqual(messages, exp)
@@ -719,19 +695,10 @@ class SampleSheetWorkflow(BaseTests):
         sheet = MetagenomicSampleSheetv100()
         msgs = sheet._validate_addl_metadata(self.md_metag)
 
-        exp_msgs = ['In the Bioinformatics section Project #1 does not have '
-                    'exactly these keys BarcodesAreRC, ForwardAdapter, Human'
-                    'Filtering, QiitaID, ReverseAdapter, Sample_Project, '
-                    'contains_replicates, experiment_design_description, '
-                    'library_construction_protocol',
-                    'In the Bioinformatics section Project #2 does not have '
-                    'exactly these keys BarcodesAreRC, ForwardAdapter, Human'
-                    'Filtering, QiitaID, ReverseAdapter, Sample_Project, '
-                    'contains_replicates, experiment_design_description, '
-                    'library_construction_protocol']
-
-        self.assertEqual(msgs[0].message, exp_msgs[0])
-        self.assertEqual(msgs[1].message, exp_msgs[1])
+        self.assertEqual(len(msgs), 1)
+        self.assertEqual(msgs[0].message, "Bioinformatics section is missing "
+                                          "the following columns: contains_"
+                                          "replicates")
 
     def test_validate_sample_sheet_metadata_bad_assay_types(self):
         sheet = AmpliconSampleSheet()
@@ -868,71 +835,35 @@ class SampleSheetWorkflow(BaseTests):
 
         self.assertTrue(sheet.validate_and_scrub_sample_sheet())
 
-    def test_column_alternatives(self):
+    def test_well_description_generation(self):
+        # this test was formerly named test_column_alternatives() and tested
+        # that alternatives to common column names such as 'description' and
+        # 'well_description' would be silently renamed to 'Well_description'
+        # when reading sample-sheets from disk and when generating sample-
+        # sheets from plate-maps. This functionality has been removed as
+        # we now have different versions of sample-sheets with unique
+        # properties, and we want to ensure sample-sheets and plate-maps on
+        # file are valid w/out interpretation.
+
         # confirm standard 'Well_description' column name behaved as intended.
-        table2 = self.table.copy(deep=True)
-
-        table2['Well_description'] = ['Row A', 'Row B', 'Row C']
-
-        table2['Project Name'] = ['Koening_ITS_101', 'Yanomani_2008_10052',
-                                  'Yanomani_2008_10052']
-
-        # allow 'Well_description' column to pass through to obs.
-        obs = make_sample_sheet(self.md_ampl, table2, 'HiSeq4000', 5)
+        # That is, add a dummy 'Well_description' column and confirm column in
+        # sheet is overwritten with standard form description.
+        tmp = deepcopy(self.plate_data1)
+        tmp['Well_description'] = ['Row A', 'Row B', 'Row C', 'Row D', 'Row E']
+        obs = make_sample_sheet(self.metadata1, tmp, 'HiSeq4000', 1)
 
         self.assertIsNotNone(obs, msg="make_sample_sheet() failed")
-        self.assertIsInstance(obs, AmpliconSampleSheet)
+        self.assertIsInstance(obs, MetagenomicSampleSheetv100)
 
-        data = (
-            [5, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
-             'AGCCTTCGTCGC', '', '', 'Koening_ITS_101',
-             'THDMI_10317_PUK2.X00180471.A1'],
-            [5, 'X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1',
-             '515rcbc12', 'CGTATAAATGCG', '', '', 'Yanomani_2008_10052',
-             'THDMI_10317_PUK2.X00180199.C1'],
-            [5, 'X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1',
-             '515rcbc24', 'TGACTAATGGCC', '', '', 'Yanomani_2008_10052',
-             'THDMI_10317_PUK2.X00179789.E1'],
-            [7, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
-             'AGCCTTCGTCGC', '', '', 'Koening_ITS_101',
-             'THDMI_10317_PUK2.X00180471.A1'],
-            [7, 'X00180199', 'X00180199', 'THDMI_10317_PUK2', 'C1',
-             '515rcbc12', 'CGTATAAATGCG', '', '', 'Yanomani_2008_10052',
-             'THDMI_10317_PUK2.X00180199.C1'],
-            [7, 'X00179789', 'X00179789', 'THDMI_10317_PUK2', 'E1',
-             '515rcbc24', 'TGACTAATGGCC', '', '', 'Yanomani_2008_10052',
-             'THDMI_10317_PUK2.X00179789.E1'],
-        )
-        keys = ['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
-                'Sample_Well', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
-                'Sample_Project', 'Well_description']
+        exp = ['Example Plate 1.33-A1.A1',
+               'Example Plate 1.820029517-3.E1',
+               'Example Plate 1.820049719-1.I1',
+               'Example Plate 1.820072905-2.C1',
+               'Example Plate 1.820073753-4.G1']
+        obs = sorted([x['Well_description'] for x in obs.samples])
 
-        for sample, row in zip(obs.samples, data):
-            exp = sample_sheet.Sample(dict(zip(keys, row)))
-            self.assertEqual(dict(sample), dict(exp))
+        self.assertEqual(obs, exp)
 
-        # Try making sample-sheet w/an alternate column name and confirm that
-        # the results continue to be as expected.
-        table2.rename({'Well_description': 'well_description'},
-                      axis=1, inplace=True)
-
-        obs = make_sample_sheet(self.md_ampl, table2, 'HiSeq4000', 5)
-
-        for sample, row in zip(obs.samples, data):
-            exp = sample_sheet.Sample(dict(zip(keys, row)))
-            self.assertEqual(dict(sample), dict(exp))
-
-        # Try w/another alternate column name
-        table2.rename({'well_description': 'description'},
-                      axis=1, inplace=True)
-
-        obs = make_sample_sheet(self.md_ampl, table2, 'HiSeq4000', 5)
-
-        for sample, row in zip(obs.samples, data):
-            exp = sample_sheet.Sample(dict(zip(keys, row)))
-            self.assertEqual(dict(sample), dict(exp))
-
-    '''
     def test_remap_table_amplicon(self):
         columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'Sample_Well',
                    'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
@@ -973,7 +904,6 @@ class SampleSheetWorkflow(BaseTests):
                                            'TruSeq HT')
             self.assertEqual(len(obs), 3)
             pd.testing.assert_frame_equal(obs, exp, check_like=True)
-    '''
 
     def test_remap_table_metagenomics(self):
         exp_columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate',
