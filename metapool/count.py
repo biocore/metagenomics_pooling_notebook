@@ -16,11 +16,6 @@ import metapool
 
 SAMPLE_PATTERN = re.compile(r'(.*)_(S\d{1,4})_(L\d{1,3})_([RI][12]).*')
 
-# first group is the number of sequences written to fwd and reverse files
-# Here's a few examples for this regular expression: tinyurl.com/samtoolspatt
-SAMTOOLS_PATTERN = re.compile(r'\[.*\] processed (\d+) reads',
-                              flags=re.MULTILINE)
-
 
 def _extract_name_and_lane(filename):
     search = re.match(SAMPLE_PATTERN, filename)
@@ -46,18 +41,6 @@ def _parse_fastp_counts(path):
             raise ValueError(f'The fastp log for {path} is malformed')
 
         return int(stats['summary']['after_filtering']['total_reads'])
-
-
-def _parse_samtools_counts(path):
-    with open(path, 'r') as f:
-        matches = re.match(SAMTOOLS_PATTERN, f.read())
-
-        if matches is None:
-            raise ValueError(f'The samtools log for {path} is malformed')
-
-        # divided by 2 because samtools outputs the number of records found
-        # in the forward and reverse files
-        return int(matches.groups()[0]) / 2.0
 
 
 def _parsefier(run_dir, metadata, subdir, suffix, name, funk):
@@ -132,8 +115,8 @@ def _parsefier(run_dir, metadata, subdir, suffix, name, funk):
         warnings.warn(f'No {name} log found for these samples: %s' %
                       ', '.join(expected - found))
 
-    # quality_filtered_reads, non_host_reads, and the like are added as
-    # columns to the output dataframe here.
+    # quality_filtered_reads and the like are added as columns to the output
+    # dataframe here.
     out[name] = out.path.apply(funk).astype('float64')
 
     # drop columns that are no longer needed from the output.
@@ -226,11 +209,6 @@ def fastp_counts(run_dir, metadata):
                       _parse_fastp_counts)
 
 
-def minimap2_counts(run_dir, metadata):
-    return _parsefier(run_dir, metadata, 'samtools', '.log',
-                      'non_host_reads', _parse_samtools_counts)
-
-
 def direct_sequence_counts(run_dir, metadata):
     if isinstance(metadata, metapool.KLSampleSheet):
         projects = {(s.Sample_Project, s.Lane) for s in metadata}
@@ -316,14 +294,12 @@ def run_counts(run_dir, metadata):
     :return: pandas.DataFrame
     '''
     out = bcl2fastq_counts(run_dir, metadata).join(
-        [fastp_counts(run_dir, metadata), minimap2_counts(run_dir, metadata),
+        [fastp_counts(run_dir, metadata),
          direct_sequence_counts(run_dir, metadata)])
 
     # convenience columns to assess sample quality
     ratio = out['quality_filtered_reads_r1r2'] / out['raw_reads_r1r2']
     out['fraction_passing_quality_filter'] = ratio
-    out['fraction_non_human'] = (out['non_host_reads'] /
-                                 out['quality_filtered_reads_r1r2'])
 
     out.fillna(value='NA', inplace=True)
 
