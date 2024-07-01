@@ -186,7 +186,7 @@ class SeqproTests(unittest.TestCase):
                         "quality_filtered_reads_r1r2": 16.0,
                         "total_biological_reads_r1r2": 18374.0,
                         "non_host_reads": 1277.0,
-                        "fraction_passing_quality_filter": \
+                        "fraction_passing_quality_filter":
                         0.000006956521739130435,
                         "fraction_non_human": 79.8125,
                     },
@@ -218,7 +218,7 @@ class SeqproTests(unittest.TestCase):
                         "quality_filtered_reads_r1r2": 16.0,
                         "total_biological_reads_r1r2": 4692.0,
                         "non_host_reads": 33162.0,
-                        "fraction_passing_quality_filter": \
+                        "fraction_passing_quality_filter":
                         0.00005333333333333333,
                         "fraction_non_human": 2072.625,
                     },
@@ -277,7 +277,7 @@ class SeqproTests(unittest.TestCase):
                         "quality_filtered_reads_r1r2": 16.0,
                         "total_biological_reads_r1r2": 30846196.0,
                         "non_host_reads": 4337654.0,
-                        "fraction_passing_quality_filter": \
+                        "fraction_passing_quality_filter":
                         0.000028218694885361552,
                         "fraction_non_human": 271103.375,
                     },

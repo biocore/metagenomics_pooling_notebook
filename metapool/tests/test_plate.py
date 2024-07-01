@@ -239,7 +239,7 @@ class PlateValidationTests(TestCase):
                 'Plate Position': '2',
                 'Primer Plate #': '2',
                 'Plate elution volume': '70',
-                'Plate map file': \
+                'Plate map file':
                     './data/2022_summer_Celeste_Adaptation_17_plate_map.tsv',
                 'Project Abbreviation': 'ADAPT',
                 'Plating': 'AS',
@@ -266,7 +266,7 @@ class PlateValidationTests(TestCase):
                 'Plate Position': '3',
                 'Primer Plate #': '3',
                 'Plate elution volume': '70',
-                'Plate map file': \
+                'Plate map file':
                     './data/2022_summer_Celeste_Adaptation_18_plate_map.tsv',
                 'Project Abbreviation': 'ADAPT',
                 'Plating': 'MB_SF',
@@ -293,7 +293,7 @@ class PlateValidationTests(TestCase):
                 'Plate Position': '4',
                 'Primer Plate #': '4',
                 'Plate elution volume': '70',
-                'Plate map file': \
+                'Plate map file':
                     './data/2022_summer_Celeste_Adaptation_21_plate_map.tsv',
                 'Project Abbreviation': 'ADAPT',
                 'Plating': 'AS',
