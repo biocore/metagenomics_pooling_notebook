@@ -88,13 +88,7 @@ class SeqproTests(unittest.TestCase):
                         "raw_reads_r1r2": 10000,
                         "quality_filtered_reads_r1r2": 16.0,
                         "total_biological_reads_r1r2": 10800.0,
-                        "non_host_reads": 111172.0,
-                        "fraction_passing_quality_filter": 0.0016,
-                        # although the below value appears non-sensical, it is
-                        # expected due to the value of non-host reads found in
-                        # the sample samtools log files and the actual number
-                        # of sequences found in the test fastq files.
-                        "fraction_non_human": 6948.25,
+                        "fraction_passing_quality_filter": 0.0016
                     },
                     1: {
                         "experiment_design_description": "Eqiiperiment",
@@ -121,13 +115,7 @@ class SeqproTests(unittest.TestCase):
                         "raw_reads_r1r2": 100000,
                         "quality_filtered_reads_r1r2": 16.0,
                         "total_biological_reads_r1r2": 61404.0,
-                        "non_host_reads": 277611.0,
-                        "fraction_passing_quality_filter": 0.00016,
-                        # although the below value appears non-sensical, it is
-                        # expected due to the value of non-host reads found in
-                        # the sample samtools log files and the actual number
-                        # of sequences found in the test fastq files.
-                        "fraction_non_human": 17350.6875,
+                        "fraction_passing_quality_filter": 0.00016
                     },
                 },
                 "200318_A00953_0082_AH5TWYDSXY.Project_1111.3.tsv": {
@@ -156,9 +144,7 @@ class SeqproTests(unittest.TestCase):
                         "raw_reads_r1r2": 100000,
                         "quality_filtered_reads_r1r2": 16.0,
                         "total_biological_reads_r1r2": 335996.0,
-                        "non_host_reads": 1168275.0,
-                        "fraction_passing_quality_filter": 0.00016,
-                        "fraction_non_human": 73017.1875,
+                        "fraction_passing_quality_filter": 0.00016
                     },
                     1: {
                         "experiment_design_description": "Eqiiperiment",
@@ -185,10 +171,8 @@ class SeqproTests(unittest.TestCase):
                         "raw_reads_r1r2": 2300000,
                         "quality_filtered_reads_r1r2": 16.0,
                         "total_biological_reads_r1r2": 18374.0,
-                        "non_host_reads": 1277.0,
                         "fraction_passing_quality_filter":
-                        0.000006956521739130435,
-                        "fraction_non_human": 79.8125,
+                            0.000006956521739130435
                     },
                 },
                 "200318_A00953_0082_AH5TWYDSXY.Trojecp_666.3.tsv": {
@@ -217,10 +201,8 @@ class SeqproTests(unittest.TestCase):
                         "raw_reads_r1r2": 300000,
                         "quality_filtered_reads_r1r2": 16.0,
                         "total_biological_reads_r1r2": 4692.0,
-                        "non_host_reads": 33162.0,
                         "fraction_passing_quality_filter":
-                        0.00005333333333333333,
-                        "fraction_non_human": 2072.625,
+                        0.00005333333333333333
                     },
                     1: {
                         "experiment_design_description": "SomethingWitty",
@@ -247,9 +229,7 @@ class SeqproTests(unittest.TestCase):
                         "raw_reads_r1r2": 400000,
                         "quality_filtered_reads_r1r2": 16.0,
                         "total_biological_reads_r1r2": 960.0,
-                        "non_host_reads": 2777.0,
-                        "fraction_passing_quality_filter": 0.00004,
-                        "fraction_non_human": 173.5625,
+                        "fraction_passing_quality_filter": 0.00004
                     },
                     2: {
                         "experiment_design_description": "SomethingWitty",
@@ -276,10 +256,8 @@ class SeqproTests(unittest.TestCase):
                         "raw_reads_r1r2": 567000,
                         "quality_filtered_reads_r1r2": 16.0,
                         "total_biological_reads_r1r2": 30846196.0,
-                        "non_host_reads": 4337654.0,
                         "fraction_passing_quality_filter":
-                        0.000028218694885361552,
-                        "fraction_non_human": 271103.375,
+                        0.000028218694885361552
                     },
                 },
             }
@@ -513,18 +491,13 @@ class MetricsTest(unittest.TestCase):
             # values below should reflect values extracted from fastp-
             # generated json files.
             "total_biological_reads_r1r2": {0: 55785054.0, 1: 41738784.0},
-            # non_host_reads currently not supported by codebase.
-            "non_host_reads": {0: None, 1: None},
             # values below should reflect # of sequences found in a fastq file
             # by seqtk.
             "quality_filtered_reads_r1r2": {0: 4.0, 1: 4.0},
             "fraction_passing_quality_filter": {
                 0: 6.699090936709433e-08,
                 1: 8.531847745252336e-08,
-            },
-            # fraction_non_human currently not supported by codebase as it's
-            # dependant on non_host_reads values.
-            "fraction_non_human": {0: None, 1: None},
+            }
         }
 
         exp = pd.DataFrame(exp, dtype=str)
