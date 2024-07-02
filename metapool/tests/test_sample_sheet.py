@@ -34,6 +34,8 @@ class BaseTests(unittest.TestCase):
         self.with_comments = join(data_dir, 'good-sample-sheet-but-'
                                             'with-comments.csv')
 
+        self.good_w_bools = join(data_dir, 'good-sheet-w-odd-bools.csv')
+
         fp = 'good-sample-sheet-with-comments-and-new-lines.csv'
         self.with_comments_and_new_lines = join(data_dir, fp)
 
@@ -1429,6 +1431,21 @@ class ValidateSampleSheetTests(BaseTests):
         exp = pd.DataFrame(index=index, data=DF_DATA, columns=columns)
         exp.index.name = 'sample_id'
         pd.testing.assert_frame_equal(obs, exp)
+
+    def test_bi_boolean_column_handling(self):
+        sheet = MetagenomicSampleSheetv100(self.good_w_bools)
+
+        # self.good_w_bools contains a [Bioinformatics] section w/multiple
+        # projects and values for BarcodesAreRC and HumanFiltering columns that
+        # are strings of mixed-case. Demonstrate that no matter the case, the
+        # values are properly converted to bools, False for the former and
+        # True for the latter.
+
+        obs = set(sheet.Bioinformatics['BarcodesAreRC'])
+        self.assertEqual(obs, {False})
+
+        obs = set(sheet.Bioinformatics['HumanFiltering'])
+        self.assertEqual(obs, {True})
 
 
 class ProfileTests(BaseTests):

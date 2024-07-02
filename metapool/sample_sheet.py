@@ -816,9 +816,6 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 ErrorMessage('These metadata keys are not supported: %s'
                              % ', '.join(extra)))
 
-        if self.Bioinformatics is not None:
-            msgs += self._normalize_bi_booleans()
-
         return msgs
 
 
