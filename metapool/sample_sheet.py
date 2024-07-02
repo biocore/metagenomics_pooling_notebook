@@ -749,7 +749,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 # strings should be converted to bool if possible.
                 if x.strip().lower() == 'true':
                     return True
-                elif x.lower() == 'false':
+                elif x.strip().lower() == 'false':
                     return False
 
             # if value isn't recognizably True or False, leave it
