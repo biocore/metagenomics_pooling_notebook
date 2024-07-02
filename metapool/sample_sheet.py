@@ -39,6 +39,8 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         'experiment_design_description'
     })
 
+    _BIOINFORMATICS_BOOLEANS = frozenset({'BarcodesAreRC', 'HumanFiltering'})
+
     _HEADER = {
         'IEMFileVersion': '4',
         'SheetType': None,
@@ -141,6 +143,13 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
         if self.path:
             self._parse(self.path)
+
+            # if self.Bioinformatics is successfully populated after parsing
+            # file, then convert the boolean parameters from strings to
+            # booleans. Ignore any messages returned _normalize_bi_booleans()
+            # becasue we are not validating, just converting datatypes.
+            if self.Bioinformatics is not None:
+                self._normalize_bi_booleans()
 
     def _parse(self, path):
         section_name = ''
@@ -721,7 +730,37 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                               ' to be included in the Contact section.') %
                              ', '.join(sorted(contact - projects))))
 
+        # silently convert boolean values to either True or False and generate
+        # messages for all unrecognizable values.
+        if self.Bioinformatics is not None:
+            msgs += self._normalize_bi_booleans()
+
         # return all collected Messages, even if it's an empty list.
+        return msgs
+
+    def _normalize_bi_booleans(self):
+        msgs = []
+
+        def func(x):
+            if type(x) is bool:
+                # column type is already correct.
+                return x
+            elif type(x) is str:
+                # strings should be converted to bool if possible.
+                if x.strip().lower() == 'true':
+                    return True
+                elif x.strip().lower() == 'false':
+                    return False
+
+            # if value isn't recognizably True or False, leave it
+            # unchanged and leave a message for the user.
+            msgs.append(f"'{x}' is not 'True' or 'False'")
+            return x
+
+        for col in self._BIOINFORMATICS_BOOLEANS:
+            if col in self.Bioinformatics:
+                self.Bioinformatics[col] = self.Bioinformatics[col].apply(func)
+
         return msgs
 
     def _validate_sample_sheet_metadata(self, metadata):
@@ -853,6 +892,9 @@ class MetagenomicSampleSheetv101(KLSampleSheet):
                                'library_construction_protocol',
                                'experiment_design_description'}
 
+    _BIOINFORMATICS_BOOLEANS = frozenset({'BarcodesAreRC', 'HumanFiltering',
+                                          'contains_replicates'})
+
     CARRIED_PREP_COLUMNS = ['experiment_design_description', 'i5_index_id',
                             'i7_index_id', 'index', 'index2',
                             'library_construction_protocol', 'sample_name',
@@ -945,6 +987,9 @@ class MetagenomicSampleSheetv100(KLSampleSheet):
                                'HumanFiltering', 'contains_replicates',
                                'library_construction_protocol',
                                'experiment_design_description'}
+
+    _BIOINFORMATICS_BOOLEANS = frozenset({'BarcodesAreRC', 'HumanFiltering',
+                                          'contains_replicates'})
 
     CARRIED_PREP_COLUMNS = ['experiment_design_description', 'i5_index_id',
                             'i7_index_id', 'index', 'index2',
@@ -1039,6 +1084,9 @@ class AbsQuantSampleSheetv10(KLSampleSheet):
         'experiment_design_description', 'contains_replicates'
     })
 
+    _BIOINFORMATICS_BOOLEANS = frozenset({'BarcodesAreRC', 'HumanFiltering',
+                                          'contains_replicates'})
+
     CARRIED_PREP_COLUMNS = ['experiment_design_description',
                             'extracted_gdna_concentration_ng_ul',
                             'i5_index_id', 'i7_index_id', 'index', 'index2',
@@ -1095,6 +1143,9 @@ class MetatranscriptomicSampleSheetv0(KLSampleSheet):
                                          'library_construction_protocol',
                                          'experiment_design_description'})
 
+    _BIOINFORMATICS_BOOLEANS = frozenset({'BarcodesAreRC', 'HumanFiltering',
+                                          'contains_replicates'})
+
     CARRIED_PREP_COLUMNS = ['experiment_design_description', 'i5_index_id',
                             'i7_index_id', 'index', 'index2',
                             'library_construction_protocol', 'sample_name',
@@ -1148,6 +1199,9 @@ class MetatranscriptomicSampleSheetv10(KLSampleSheet):
                                          'library_construction_protocol',
                                          'experiment_design_description',
                                          'contains_replicates'})
+
+    _BIOINFORMATICS_BOOLEANS = frozenset({'BarcodesAreRC', 'HumanFiltering',
+                                          'contains_replicates'})
 
     CARRIED_PREP_COLUMNS = ['experiment_design_description', 'i5_index_id',
                             'i7_index_id', 'index', 'index2',
@@ -1407,8 +1461,9 @@ def sheet_needs_demuxing(sheet):
         True if sample-sheet needs to be demultiplexed.
     """
     if 'contains_replicates' in sheet.Bioinformatics.columns:
-        contains_replicates = sheet.Bioinformatics.contains_replicates.apply(
-            lambda x: x.lower() == 'true').unique()
+        contains_replicates = sheet.Bioinformatics[
+            'contains_replicates'].unique().tolist()
+
         if len(contains_replicates) > 1:
             raise ValueError("all projects in Bioinformatics section must "
                              "either contain replicates or not.")
@@ -1478,16 +1533,16 @@ def demux_sample_sheet(sheet):
     # by convention, all projects in the sample-sheet are either going
     # to be True or False. If some projects are True while others are
     # False, we should raise an Error.
-    contains_replicates = sheet.Bioinformatics.contains_replicates.apply(
-        lambda x: x.lower() == 'true').unique()
-    if len(contains_replicates) > 1:
+    contains_repl = sheet.Bioinformatics.contains_replicates.unique().tolist()
+
+    if len(contains_repl) > 1:
         raise ValueError("all projects in Bioinformatics section must "
                          "either contain replicates or not.")
 
     # contains_replicates[0] is of type 'np.bool_' rather than 'bool'. Hence,
     # the syntax below reflects what appears to be common practice for such
     # types.
-    if not contains_replicates[0]:
+    if not contains_repl[0]:
         raise ValueError("all projects in Bioinformatics section do not "
                          "contain replicates")
 
