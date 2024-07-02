@@ -747,7 +747,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 return x
             elif type(x) is str:
                 # strings should be converted to bool if possible.
-                if x.lower() == 'true':
+                if x.strip().lower() == 'true':
                     return True
                 elif x.lower() == 'false':
                     return False
