@@ -1543,7 +1543,6 @@ def demux_sample_sheet(sheet):
     # the syntax below reflects what appears to be common practice for such
     # types.
     if not contains_repl[0]:
-        # TODO: Still true?
         raise ValueError("all projects in Bioinformatics section do not "
                          "contain replicates")
 
