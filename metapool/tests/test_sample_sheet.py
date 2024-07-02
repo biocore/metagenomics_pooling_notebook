@@ -34,6 +34,8 @@ class BaseTests(unittest.TestCase):
         self.with_comments = join(data_dir, 'good-sample-sheet-but-'
                                             'with-comments.csv')
 
+        self.good_w_bools = join(data_dir, 'good-sheet-w-odd-bools.csv')
+
         fp = 'good-sample-sheet-with-comments-and-new-lines.csv'
         self.with_comments_and_new_lines = join(data_dir, fp)
 
@@ -54,20 +56,20 @@ class BaseTests(unittest.TestCase):
             {
              'Sample_Project': 'Koening_ITS_101',
              'QiitaID': '101',
-             'BarcodesAreRC': 'False',
+             'BarcodesAreRC': False,
              'ForwardAdapter': 'GATACA',
              'ReverseAdapter': 'CATCAT',
-             'HumanFiltering': 'False',
+             'HumanFiltering': False,
              'library_construction_protocol': 'Knight Lab Kapa HP',
              'experiment_design_description': 'Eqiiperiment'
             },
             {
              'Sample_Project': 'Yanomani_2008_10052',
              'QiitaID': '10052',
-             'BarcodesAreRC': 'False',
+             'BarcodesAreRC': False,
              'ForwardAdapter': 'GATACA',
              'ReverseAdapter': 'CATCAT',
-             'HumanFiltering': 'False',
+             'HumanFiltering': False,
              'library_construction_protocol': 'Knight Lab Kapa HP',
              'experiment_design_description': 'Eqiiperiment'
             }
@@ -146,7 +148,6 @@ class KLSampleSheetTests(BaseTests):
                 with open(expected) as f:
                     # if the assertion fails, metapool is not processing
                     # filename as intended.
-                    print({filename})
                     self.assertEqual(observed.split(),
                                      f.read().split(),
                                      f'Problem found with {filename}')
@@ -206,7 +207,7 @@ class KLSampleSheetTests(BaseTests):
             self.assertIsNone(sheet.Contact)
 
     def test_parse(self):
-        sheet = MetagenomicSampleSheetv90(self.ss)
+        sheet = MetagenomicSampleSheetv100(self.ss)
 
         exp = {
             'IEMFileVersion': '4',
@@ -269,10 +270,10 @@ class KLSampleSheetTests(BaseTests):
                      'library_construction_protocol',
                      'experiment_design_description', 'contains_replicates'],
             data=[
-                ['Baz_12345', '100', 'False', 'AACC', 'GGTT', 'False',
-                 'Knight Lab Kapa HP', 'Eqiiperiment', 'False'],
-                ['FooBar_666', '666', 'False', 'AACC', 'GGTT', 'False',
-                 'Knight Lab Kapa HP', 'SomethingWitty', 'False']
+                ['Baz_12345', '100', False, 'AACC', 'GGTT', False,
+                 'Knight Lab Kapa HP', 'Eqiiperiment', False],
+                ['FooBar_666', '666', False, 'AACC', 'GGTT', False,
+                 'Knight Lab Kapa HP', 'SomethingWitty', False]
             ]
         )
 
@@ -453,14 +454,14 @@ class KLSampleSheetTests(BaseTests):
                      'library_construction_protocol',
                      'experiment_design_description'],
             data=[
-                ['Koening_ITS_101', '101', 'False', 'GATACA', 'CATCAT',
-                 'False', 'Knight Lab Kapa HP', 'Eqiiperiment'],
-                ['Yanomani_2008_10052', '10052', 'False', 'GATACA', 'CATCAT',
-                 'False', 'Knight Lab Kapa HP', 'Eqiiperiment'],
-                ['paco_Koening_ITS_101', '101', 'False', 'GATACA', 'CATCAT',
-                 'False', 'Knight Lab Kapa HP', 'Eqiiperiment'],
-                ['paco_Yanomani_2008_10052', '10052', 'False', 'GATACA',
-                 'CATCAT', 'False', 'Knight Lab Kapa HP', 'Eqiiperiment']
+                ['Koening_ITS_101', '101', False, 'GATACA', 'CATCAT',
+                 False, 'Knight Lab Kapa HP', 'Eqiiperiment'],
+                ['Yanomani_2008_10052', '10052', False, 'GATACA', 'CATCAT',
+                 False, 'Knight Lab Kapa HP', 'Eqiiperiment'],
+                ['paco_Koening_ITS_101', '101', False, 'GATACA', 'CATCAT',
+                 False, 'Knight Lab Kapa HP', 'Eqiiperiment'],
+                ['paco_Yanomani_2008_10052', '10052', False, 'GATACA',
+                 'CATCAT', False, 'Knight Lab Kapa HP', 'Eqiiperiment']
             ]
         )
 
@@ -718,6 +719,9 @@ class SampleSheetWorkflow(BaseTests):
 
     def test_make_sample_sheet(self):
         exp_bfx = pd.DataFrame(self.md_ampl['Bioinformatics'])
+        exp_bfx['BarcodesAreRC'] = exp_bfx['BarcodesAreRC'].astype('bool')
+        exp_bfx['HumanFiltering'] = exp_bfx['HumanFiltering'].astype('bool')
+
         exp_contact = pd.DataFrame(self.md_ampl['Contact'])
 
         # for amplicon we expect the following three columns to not be there
@@ -1427,6 +1431,21 @@ class ValidateSampleSheetTests(BaseTests):
         exp = pd.DataFrame(index=index, data=DF_DATA, columns=columns)
         exp.index.name = 'sample_id'
         pd.testing.assert_frame_equal(obs, exp)
+
+    def test_bi_boolean_column_handling(self):
+        sheet = MetagenomicSampleSheetv100(self.good_w_bools)
+
+        # self.good_w_bools contains a [Bioinformatics] section w/multiple
+        # projects and values for BarcodesAreRC and HumanFiltering columns that
+        # are strings of mixed-case. Demonstrate that no matter the case, the
+        # values are properly converted to bools, False for the former and
+        # True for the latter.
+
+        obs = set(sheet.Bioinformatics['BarcodesAreRC'])
+        self.assertEqual(obs, {False})
+
+        obs = set(sheet.Bioinformatics['HumanFiltering'])
+        self.assertEqual(obs, {True})
 
 
 class ProfileTests(BaseTests):

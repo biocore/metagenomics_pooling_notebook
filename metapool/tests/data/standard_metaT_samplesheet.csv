@@ -215,7 +215,7 @@ BLANK2_NPH_11_C,BLANK2.NPH.11.C,NPH_15288_P1.2,F21,iTru7_103_05,GCATGTCT,iTru5_2
 ,,,,,,,,,,,,
 [Bioinformatics],,,,,,,,,,,,
 Sample_Project,QiitaID,BarcodesAreRC,ForwardAdapter,ReverseAdapter,HumanFiltering,library_construction_protocol,experiment_design_description,contains_replicates,,,,
-NPH_15288,15288,TRUE,GATCGGAAGAGCACACGTCTGAACTCCAGTCAC,GATCGGAAGAGCGTCGTGTAGGGAAAGGAGTGT,TRUE,Knight Lab Kapa HyperPlus,shotgun sequencing,FALSE,,,,
+NPH_15288,15288,True,GATCGGAAGAGCACACGTCTGAACTCCAGTCAC,GATCGGAAGAGCGTCGTGTAGGGAAAGGAGTGT,True,Knight Lab Kapa HyperPlus,shotgun sequencing,False,,,,
 ,,,,,,,,,,,,
 [Contact],,,,,,,,,,,,
 Sample_Project,Email,,,,,,,,,,,

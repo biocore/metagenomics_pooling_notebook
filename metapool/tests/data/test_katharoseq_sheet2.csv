@@ -33,7 +33,7 @@ Lane,Sample_ID,Sample_Name,Sample_Plate,well_id_384,I7_Index_ID,index,I5_Index_I
 ,,,,,,,,,,,,,,,,,,
 [Bioinformatics],,,,,,,,,,,,,,,,,,
 Sample_Project,QiitaID,BarcodesAreRC,ForwardAdapter,ReverseAdapter,HumanFiltering,library_construction_protocol,experiment_design_description,,,,,,,,,,,
-MyProject_99999,11661,FALSE,AACC,GGTT,FALSE,Knight Lab Kapa HP,description1,,,,,,,,,,,
+MyProject_99999,11661,False,AACC,GGTT,False,Knight Lab Kapa HP,description1,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,
 [Contact],,,,,,,,,,,,,,,,,,
 Email,Sample_Project,,,,,,,,,,,,,,,,,
