@@ -6,6 +6,7 @@ from os.path import join, dirname
 
 import pandas as pd
 import sample_sheet
+from json import loads
 
 from metapool.sample_sheet import (KLSampleSheet, AmpliconSampleSheet,
                                    MetagenomicSampleSheetv101,
@@ -1552,6 +1553,7 @@ class DemuxReplicatesTests(BaseTests):
         # assert that each sample-sheet appears in the correct order and
         # matches known results.
         for replicate_output_path in self.replicate_output_paths:
+            print("FILE: %s" % replicate_output_path)
             exp = MetagenomicSampleSheetv100(replicate_output_path)
             obs = results.pop(0)
             self.assertEqual(obs.Header, exp.Header)
@@ -1559,8 +1561,24 @@ class DemuxReplicatesTests(BaseTests):
             self.assertEqual(obs.Settings, exp.Settings)
             self.assertTrue(obs.Bioinformatics.equals(exp.Bioinformatics))
             self.assertTrue(obs.Contact.equals(exp.Contact))
-            for o_sample, e_sample in zip(obs.samples, exp.samples):
-                self.assertEqual(o_sample, e_sample)
+
+            # since samples are stored an internal data-structure of the
+            # third-party sample_sheet library, convert the sample metadata
+            # to JSON before comparing them.
+            j_obs = loads(obs.to_json())['Data']
+            j_exp = loads(exp.to_json())['Data']
+
+            # confirm that 'orig_name' is not in the output replicate csvs,
+            # indicating it has become the 'sample_name' column for that
+            # replicate sample-sheet.
+            self.assertFalse('orig_name' in j_obs)
+
+            # confirm that the set of sample-names in each replicate
+            # sample-sheet is all of and only the samples assigned to each
+            # replicate.
+
+            self.assertEqual(set([x['Sample_Name'] for x in j_obs]),
+                             set([x['sample_name'] for x in j_exp]))
 
 
 class AdditionalSampleSheetCreationTests(BaseTests):
