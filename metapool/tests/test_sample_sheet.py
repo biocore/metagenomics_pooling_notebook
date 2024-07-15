@@ -1553,7 +1553,6 @@ class DemuxReplicatesTests(BaseTests):
         # assert that each sample-sheet appears in the correct order and
         # matches known results.
         for replicate_output_path in self.replicate_output_paths:
-            print("FILE: %s" % replicate_output_path)
             exp = MetagenomicSampleSheetv100(replicate_output_path)
             obs = results.pop(0)
             self.assertEqual(obs.Header, exp.Header)

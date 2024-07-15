@@ -1593,8 +1593,4 @@ def demux_sample_sheet(sheet):
 
         demuxed_sheets.append(new_sheet)
 
-    for i, sheet in enumerate(demuxed_sheets):
-        with open('%s.csv' % i, 'w') as f:
-            sheet.write(f)
-
     return demuxed_sheets
