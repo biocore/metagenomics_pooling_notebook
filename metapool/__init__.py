@@ -16,6 +16,7 @@ from .igm import IGMManifest
 from .count import run_counts
 from .metapool import (extract_stats_metadata, sum_lanes,
                        compress_plates, add_controls)
+from .util import generate_prep_from_sample_sheet, generate_prep_from_pre_prep
 
 
 __credits__ = ("https://github.com/biocore/metagenomics_pooling_notebook/"
@@ -34,7 +35,8 @@ __all__ = ['IGMManifest', 'add_controls', 'assign_emp_index', 'autopool',
            'MetatranscriptomicSampleSheetv0',
            'MetatranscriptomicSampleSheetv10', 'AbsQuantSampleSheetv10',
            # KLSampleSheet is needed for instance() calls.
-           'KLSampleSheet', 'load_sample_sheet']
+           'KLSampleSheet', 'load_sample_sheet', 'generate_prep_from_pre_prep',
+           'generate_prep_from_sample_sheet']
 
 from . import _version
 
