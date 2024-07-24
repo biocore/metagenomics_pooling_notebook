@@ -1,10 +1,11 @@
-import os
-import unittest
-from shutil import copy, copytree, rmtree
+from metapool.util import (generate_prep_from_sample_sheet,
+                           generate_prep_from_pre_prep)
 from os.path import join, exists, split
+from shutil import copy, copytree, rmtree
+import os
 import pandas as pd
-
-from metapool.util import generate_prep_from_sample_sheet
+import re
+import unittest
 
 
 class SeqproTests(unittest.TestCase):
@@ -632,3 +633,86 @@ class MetricsTest(unittest.TestCase):
         exp = pd.DataFrame(exp, dtype=str)
 
         self.assertTrue(obs.equals(exp))
+
+
+class SeqproAmpliconTests(unittest.TestCase):
+    def setUp(self):
+        # we need to get the test data directory in the parent directory
+        # important to use abspath because we use CliRunner.isolated_filesystem
+        tests_dir = os.path.abspath(os.path.dirname(__file__))
+        tests_dir = os.path.dirname(os.path.dirname(tests_dir))
+        self.test_dir = os.path.join(tests_dir, 'metapool', 'tests')
+        self.data_dir = os.path.join(self.test_dir, 'data')
+        self.vf_test_dir = os.path.join(self.test_dir, 'VFTEST')
+
+        self.fastp_run = os.path.join(self.data_dir, 'runs',
+                                      '230207_M05314_0346_000000000-KVMGL')
+        self.fastp_sheet = os.path.join(self.fastp_run,
+                                        'sample_mapping_file.tsv')
+
+        # before continuing, create a copy of
+        # 230207_M05314_0346_000000000-KVMGL and replace Stats sub-dir with
+        # Reports.
+        self.temp_copy = self.fastp_run.replace('230207', '240207')
+        copytree(self.fastp_run, self.temp_copy)
+        rmtree(join(self.temp_copy, 'Stats'))
+        os.makedirs(join(self.temp_copy, 'Reports'))
+        copy(join(self.data_dir, 'Demultiplex_Stats.csv'),
+             join(self.temp_copy, 'Reports', 'Demultiplex_Stats.csv'))
+
+    def tearDown(self):
+        rmtree(self.temp_copy)
+        # this output-path isn't created for all tests. ignore error if it
+        # does not exist.
+        rmtree(self.vf_test_dir, ignore_errors=True)
+
+    def test_run(self):
+        obs = generate_prep_from_pre_prep(self.temp_copy,
+                                          join(self.temp_copy,
+                                               'sample_mapping_file.tsv'),
+                                          "./")
+
+        # confirm that the expected qiita is passed back in the first result
+        # from generate_prep_from_pre_prep().
+        obs_fp = obs[0][1]
+        self.assertEqual('11052', obs[0][0])
+
+        # confirm that a file was created with the expected filename in the
+        # expected relative location.
+        self.assertIn("metagenomics_pooling_notebook/230207_M05314_0346_"
+                      "000000000-KVMGL.ABTX_20230208_ABTX_11052.1.tsv",
+                      obs_fp)
+
+        # assert prep-info-file output exists
+        self.assertTrue(exists(obs_fp))
+
+        obs_df = pd.read_csv(obs_fp, delimiter='\t')
+
+        # assert sample_name does not contain any '_' characters
+        names = list(obs_df['sample_name'])
+
+        # generate a list of sample-names that contain characters other
+        # than alphanumerics + '.'
+        names = [x for x in names if not bool(re.match(r"^[\w\d.]*$", x))]
+
+        # assert that all sample-names were of the proper form.
+        self.assertEqual(names, [])
+
+        # confirm correct header columns exist
+        self.assertEqual({'sample_name', 'center_name',
+                          'center_project_name',
+                          'experiment_design_description',
+                          'instrument_model', 'lane',
+                          'library_construction_protocol', 'platform',
+                          'run_center', 'run_date', 'run_prefix', 'runid',
+                          'sample_plate', 'sequencing_meth', 'barcode',
+                          'linker', 'primer', 'extraction_robot',
+                          'extractionkit_lot', 'mastermix_lot',
+                          'orig_name', 'pcr_primers', 'plating',
+                          'primer_date', 'primer_plate',
+                          'processing_robot', 'project_name',
+                          'target_gene', 'target_subfragment',
+                          'tm1000_8_tool', 'tm300_8_tool', 'tm50_8_tool',
+                          'tm10_8_tool', 'well_id_96', 'water_lot',
+                          'well_description', 'well_id_384'},
+                         set(obs_df.columns))
