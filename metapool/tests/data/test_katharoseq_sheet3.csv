@@ -1,0 +1,40 @@
+[Header],,,,,,,,,,,,,,,,,,
+IEMFileVersion,4,,,,,,,,,,,,,,,,,
+SheetType,standard_metag,,,,,,,,,,,,,,,,,
+SheetVersion,101,,,,,,,,,,,,,,,,,
+Investigator Name,Knight,,,,,,,,,,,,,,,,,
+Experiment Name,RKL0042,,,,,,,,,,,,,,,,,
+Date,2/26/24,,,,,,,,,,,,,,,,,
+Workflow,GenerateFASTQ,,,,,,,,,,,,,,,,,
+Application,FASTQ Only,,,,,,,,,,,,,,,,,
+Assay,Metagenomic,,,,,,,,,,,,,,,,,
+Description,,,,,,,,,,,,,,,,,,
+Chemistry,Default,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,
+[Reads],,,,,,,,,,,,,,,,,,
+150,,,,,,,,,,,,,,,,,,
+150,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,
+[Settings],,,,,,,,,,,,,,,,,,
+ReverseComplement,0,,,,,,,,,,,,,,,,,
+MaskShortReads,1,,,,,,,,,,,,,,,,,
+OverrideCycles,Y151;I8N2;I8N2;Y151,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,
+[Data],,,,,,,,,,,,,,,,,,
+Lane,Sample_ID,Sample_Name,Sample_Plate,well_id_384,I7_Index_ID,index,I5_Index_ID,index2,Sample_Project,Kathseq_RackID,TubeCode,katharo_description,number_of_sells,platemap_generation_date,project_abbreviation,vol_extracted_elution_ul,well_id_96,Well_description
+1,SAMPLE_1,SAMPLE-1,MyProject_99999_P40,A1,iTru7_107_07,CCGACTAT,iTru5_01_A,ACCGACAA,MyProject_99999,,,,,,,,,this is a description
+1,SAMPLE_2,SAMPLE-2,MyProject_99999_P40,C1,iTru7_107_08,CCGACTAT,iTru5_02_A,CTTCGCAA,MyProject_99999,,,,,,,,,this is a description
+1,SAMPLE_3,SAMPLE-3,MyProject_99999_P40,E1,iTru7_107_09,GCCTTGTT,iTru5_03_A,AACACCAC,MyProject_99999,,,,,,,,,this is a description
+1,SAMPLE_4,SAMPLE-4,MyProject_99999_P40,G1,iTru7_107_10,AACTTGCC,iTru5_04_A,CGTATCTC,MyProject_99999,,,,,,,,,this is a description
+1,SAMPLE_5,SAMPLE-5,MyProject_99999_P40,I1,iTru7_107_11,CAATGTGG,iTru5_05_A,GGTACGAA,MyProject_99999,,,,,,,,,this is a description
+1,katharo_18000_0_E11,katharo.18000.0.E11,MyProject_99999_P40,A2,iTru7_107_12,CAATGTGA,iTru5_05_A,GGTACGAT,MyProject_99999,1,1,positive_control,98765432,2/10/24,ADAPT,115,F1,this is a description
+1,katharo_4800_0_E12,katharo.4800.0.E12,MyProject_99999_P40,C2,iTru7_107_13,AATGTACC,iTru5_05_A,AAATTTTA,MyProject_99999,2,2,positive_control,98765432,2/10/24,ADAPT,192,F2,this is a description
+1,katharo_960_0_F1,katharo.960.0.F1,MyProject_99999_P40,E2,iTru7_107_14,GCTATGCA,iTru5_05_A,CCGGTTAA,MyProject_99999,3,3,positive_control,98765432,2/10/24,ADAPT,38,F3,this is a description
+,,,,,,,,,,,,,,,,,,
+[Bioinformatics],,,,,,,,,,,,,,,,,,
+Sample_Project,QiitaID,BarcodesAreRC,ForwardAdapter,ReverseAdapter,HumanFiltering,library_construction_protocol,experiment_design_description,,,,,,,,,,,
+MyProject_99999,11661,False,AACC,GGTT,False,Knight Lab Kapa HP,description1,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,
+[Contact],,,,,,,,,,,,,,,,,,
+Email,Sample_Project,,,,,,,,,,,,,,,,,
+foo@bar.com,MyProject_99999,,,,,,,,,,,,,,,,,

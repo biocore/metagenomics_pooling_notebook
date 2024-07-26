@@ -3,8 +3,8 @@ import pandas as pd
 import warnings
 from os.path import join, abspath, basename, exists
 from glob import glob
+from subprocess import Popen, PIPE
 from json import load
-from skbio.io import read as skb_read
 
 
 # first group is the sample name from the sample sheet, second group is the
@@ -15,11 +15,6 @@ from skbio.io import read as skb_read
 import metapool
 
 SAMPLE_PATTERN = re.compile(r'(.*)_(S\d{1,4})_(L\d{1,3})_([RI][12]).*')
-
-# first group is the number of sequences written to fwd and reverse files
-# Here's a few examples for this regular expression: tinyurl.com/samtoolspatt
-SAMTOOLS_PATTERN = re.compile(r'\[.*\] processed (\d+) reads',
-                              flags=re.MULTILINE)
 
 
 def _extract_name_and_lane(filename):
@@ -46,18 +41,6 @@ def _parse_fastp_counts(path):
             raise ValueError(f'The fastp log for {path} is malformed')
 
         return int(stats['summary']['after_filtering']['total_reads'])
-
-
-def _parse_samtools_counts(path):
-    with open(path, 'r') as f:
-        matches = re.match(SAMTOOLS_PATTERN, f.read())
-
-        if matches is None:
-            raise ValueError(f'The samtools log for {path} is malformed')
-
-        # divided by 2 because samtools outputs the number of records found
-        # in the forward and reverse files
-        return int(matches.groups()[0]) / 2.0
 
 
 def _parsefier(run_dir, metadata, subdir, suffix, name, funk):
@@ -132,8 +115,8 @@ def _parsefier(run_dir, metadata, subdir, suffix, name, funk):
         warnings.warn(f'No {name} log found for these samples: %s' %
                       ', '.join(expected - found))
 
-    # quality_filtered_reads, non_host_reads, and the like are added as
-    # columns to the output dataframe here.
+    # quality_filtered_reads and the like are added as columns to the output
+    # dataframe here.
     out[name] = out.path.apply(funk).astype('float64')
 
     # drop columns that are no longer needed from the output.
@@ -197,6 +180,10 @@ def _bclconvert_counts(path):
     # subselect only the columns we're concerned with
     df = df[["SampleID", "Lane", "# Reads"]]
 
+    # drop rows that have '# Reads' equal to zero. These correspond
+    # to samples w/zero-length files.
+    df = df[df['# Reads'] != 0]
+
     # double # Reads to represent forward and reverse reads.
     df['raw_reads_r1r2'] = df['# Reads'] * 2
     df.drop('# Reads', axis=1, inplace=True)
@@ -222,36 +209,9 @@ def fastp_counts(run_dir, metadata):
                       _parse_fastp_counts)
 
 
-def minimap2_counts(run_dir, metadata):
-    return _parsefier(run_dir, metadata, 'samtools', '.log',
-                      'non_host_reads', _parse_samtools_counts)
-
-
-def count_sequences_in_fastq(file_path):
-    variants = ['illumina1.8', 'illumina1.3', 'sanger']
-
-    for variant in variants:
-        try:
-            # see https://scikit.bio/docs/latest/generated/skbio.io.format.
-            # fastq.html#quality-score-variants for more information on
-            # variants. Variant is needed to correctly interpret a sequence's
-            # quality range. We don't explicitly need quality-ranges for this
-            # application but we unfortunately we cannot omit it.
-            sequences = skb_read(file_path, format='fastq',
-                                 variant=variant)
-            return sum(1 for sequence in sequences)
-        except ValueError:
-            # assume ValueError is because the correct variant wasn't
-            # specified.
-            pass
-
-    raise ValueError(f"'{file_path} could not be opened")
-
-
 def direct_sequence_counts(run_dir, metadata):
     if isinstance(metadata, metapool.KLSampleSheet):
         projects = {(s.Sample_Project, s.Lane) for s in metadata}
-        expected = {s.Sample_ID for s in metadata}
     else:
         raise ValueError("counts not implemented for amplicon")
 
@@ -260,6 +220,7 @@ def direct_sequence_counts(run_dir, metadata):
     counts = []
 
     for project, lane in projects:
+        samples = {}
         if join(run_dir, 'filtered_sequences'):
             subdir = join(run_dir, project, 'filtered_sequences')
         elif join(run_dir, 'trimmed_sequences'):
@@ -270,35 +231,50 @@ def direct_sequence_counts(run_dir, metadata):
 
         fp = join(subdir, '*_L%s_R?_001.trimmed.fastq.gz' % lane.zfill(3))
 
-        # glob is going to return both _R1_ and _R2_ fastqs. sorted() will
-        # pair them such that we can iterate through them as a pair.
-        fp_iter = iter(sorted(glob(fp)))
-        for r1, r2 in zip(fp_iter, fp_iter):
-            reg = r"^(.*)_S\d+_L\d\d\d_R\d_\d\d\d.trimmed.fastq.gz$"
+        for item in glob(fp):
+            cmd = ['seqtk', 'size', item]
 
-            m_r1 = re.match(reg, basename(r1))
-            m_r2 = re.match(reg, basename(r2))
+            proc = Popen(' '.join(cmd), universal_newlines=True,
+                         shell=True,
+                         stdout=PIPE, stderr=PIPE)
 
-            if m_r1 is None or m_r2 is None:
-                raise ValueError(f"a sample-id could not be extracted from "
-                                 f"{r1} or {r2}")
+            stdout, stderr = proc.communicate()
+            return_code = proc.returncode
 
-            if m_r1[1] != m_r2[1]:
-                raise ValueError("a matching sample-id could not be "
-                                 f"extracted from {r1} and {r2}")
+            if return_code != 0:
+                msg = "seqtk error: %s\n%s" % (stdout, stderr)
+                raise ValueError("could not read %s: %s" % (item, msg))
 
-            sample_id = m_r1[1]
+            # split output and extract first value from results like:
+            # 17088755    2516404944
+            line_count = int(stdout.split('\t')[0])
 
-            if sample_id not in expected:
-                raise ValueError(f"'{sample_id}' does not match any sample-id"
-                                 "in sample-sheet")
+            m = re.match(r"^(.*)_S\d+_L\d\d\d_(R\d)_\d\d\d.trimmed.fastq.gz$",
+                         basename(item))
 
-            r1_counts = count_sequences_in_fastq(r1)
-            r2_counts = count_sequences_in_fastq(r2)
+            if m is None:
+                raise ValueError(f"{item} doesn't match")
 
-            sample_ids.append(sample_id)
-            lanes.append(lane)
-            counts.append(float(r1_counts + r2_counts))
+            if m[1] not in samples:
+                # if this is the first read for this sample, create a dict
+                # to record the relevant information.
+                samples[m[1]] = {'R1': 0, 'R2': 0, 'name': m[1], 'lane': lane}
+
+            if m[2] not in ['R1', 'R2']:
+                raise ValueError("could not parse '%s'" % basename(item))
+
+            samples[m[1]][m[2]] = line_count
+
+        # convert samples into a set of lists for easy conversion into a
+        # dataframe.
+        for sample in samples:
+            smpl = samples[sample]
+            if smpl['R1'] == 0 or smpl['R2'] == 0:
+                raise ValueError(f"{smpl['name']} has bad counts")
+
+            sample_ids.append(smpl['name'])
+            lanes.append(smpl['lane'])
+            counts.append(float(smpl['R1'] + smpl['R2']))
 
     df = pd.DataFrame(list(zip(sample_ids, lanes, counts)),
                       columns=['Sample_ID', 'Lane',
@@ -318,14 +294,12 @@ def run_counts(run_dir, metadata):
     :return: pandas.DataFrame
     '''
     out = bcl2fastq_counts(run_dir, metadata).join(
-        [fastp_counts(run_dir, metadata), minimap2_counts(run_dir, metadata),
+        [fastp_counts(run_dir, metadata),
          direct_sequence_counts(run_dir, metadata)])
 
     # convenience columns to assess sample quality
     ratio = out['quality_filtered_reads_r1r2'] / out['raw_reads_r1r2']
     out['fraction_passing_quality_filter'] = ratio
-    out['fraction_non_human'] = (out['non_host_reads'] /
-                                 out['quality_filtered_reads_r1r2'])
 
     out.fillna(value='NA', inplace=True)
 

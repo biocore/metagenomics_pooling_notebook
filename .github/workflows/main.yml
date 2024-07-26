@@ -123,7 +123,8 @@ jobs:
       - name: Install metapool
         shell: bash -l {0}
         run: |
-          conda create -q --yes -n metapool python=${{ matrix.python-version }} scikit-learn pandas numpy nose pep8 flake8 matplotlib jupyter notebook 'seaborn>=0.7.1' pip openpyxl
+          conda config --add channels bioconda
+          conda create --yes -n metapool python=${{ matrix.python-version }} scikit-learn pandas numpy nose pep8 flake8 matplotlib jupyter notebook 'seaborn>=0.7.1' pip openpyxl seqtk
           conda activate metapool
           pip install coveralls flake8
           pip install -e ".[all]"
@@ -136,7 +137,9 @@ jobs:
         run: |
           conda activate metapool
           nosetests --with-coverage --cover-inclusive --cover-package metapool
-          coverage report
+          # -i switch introduced to ignore errors when reading source files.
+          # See: https://stackoverflow.com/questions/2386975/no-source-for-code-message-in-coverage-py
+          coverage report -i
 
       - name: Python linter
         shell: bash -l {0}

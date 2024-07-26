@@ -125,10 +125,8 @@ class Tests(TestCase):
              'Plate elution volume': 70}
         ]
 
-        plate_df_obs = compress_plates(
-            compression,
-            self.sa_df,
-            well_col='Well')
+        plate_df_obs = compress_plates(compression, self.sa_df,
+                                       well_col='Well')
         plate_df_exp = pd.read_csv(self.comp_plate_exp_fp,
                                    dtype={'TubeCode': str}, sep='\t')
 

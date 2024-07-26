@@ -16,13 +16,9 @@ from metapool import (preparations_for_run, load_sample_sheet,
 @click.argument('sample_sheet', type=click.Path(exists=True, dir_okay=False,
                                                 file_okay=True))
 @click.argument('output_dir', type=click.Path(writable=True))
-@click.option('--pipeline', help='Which pipeline generated the data',
-              show_default=True, default='fastp-and-minimap2',
-              type=click.Choice(['atropos-and-bowtie2', 'fastp-and-minimap2']))
 @click.option('--verbose', help='list prep-file output paths, study_ids',
               is_flag=True)
-def format_preparation_files(run_dir, sample_sheet, output_dir, pipeline,
-                             verbose):
+def format_preparation_files(run_dir, sample_sheet, output_dir, verbose):
     """Generate the preparation files for the projects in a run
 
     RUN_DIR: should be the directory where the results of running bcl2fastq are
@@ -41,32 +37,30 @@ def format_preparation_files(run_dir, sample_sheet, output_dir, pipeline,
     sample_sheet = load_sample_sheet(sample_sheet)
     df_sheet = sample_sheet_to_dataframe(sample_sheet)
 
-    if pipeline == 'fastp-and-minimap2':
-        stats = run_counts(run_dir, sample_sheet)
-        stats['sample_name'] = \
-            df_sheet.set_index('lane', append=True)['sample_name']
-    else:
-        click.echo('Stats collection is not supported for pipeline '
-                   'atropos-and-bowtie2')
+    stats = run_counts(run_dir, sample_sheet)
+    stats['sample_name'] = \
+        df_sheet.set_index('lane', append=True)['sample_name']
 
+    # sample_sheet_to_dataframe() automatically lowercases the column names
+    # before returning df_sheet. Hence, sample_sheet.CARRIED_PREP_COLUMNS also
+    # needs to be lowercased for the purposes of tests in
+    # preparation_for_run().
+    c_prep_columns = [x.lower() for x in sample_sheet.CARRIED_PREP_COLUMNS]
     # returns a map of (run, project_name, lane) -> preparation frame
     preps = preparations_for_run(run_dir,
                                  df_sheet,
                                  sample_sheet.GENERATED_PREP_COLUMNS,
-                                 sample_sheet.CARRIED_PREP_COLUMNS,
-                                 pipeline=pipeline)
+                                 c_prep_columns)
 
     os.makedirs(output_dir, exist_ok=True)
 
     for (run, project, lane), df in preps.items():
         fp = os.path.join(output_dir, f'{run}.{project}.{lane}.tsv')
 
-        if pipeline == 'fastp-and-minimap2':
-            # stats are indexed by sample name and lane, lane is the first
-            # level index. When merging, make sure to select the lane subset
-            # that we care about, otherwise we'll end up with repeated rows
-            df = df.merge(stats.xs(lane, level=1), how='left',
-                          on='sample_name')
+        # stats are indexed by sample name and lane, lane is the first
+        # level index. When merging, make sure to select the lane subset
+        # that we care about, otherwise we'll end up with repeated rows
+        df = df.merge(stats.xs(lane, level=1), how='left', on='sample_name')
 
         # strip qiita_id from project names in sample_project column
         df['sample_project'] = df['sample_project'].map(

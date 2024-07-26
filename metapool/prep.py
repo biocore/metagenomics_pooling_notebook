@@ -8,6 +8,7 @@ from glob import glob
 from datetime import datetime
 from string import ascii_letters, digits
 from metapool.plate import PlateReplication
+from collections import Counter
 
 
 REQUIRED_MF_COLUMNS = {'sample_name', 'barcode', 'primer', 'primer_plate',
@@ -70,6 +71,8 @@ INSTRUMENT_LOOKUP = pd.DataFrame({
                'Machine type': 'HiSeq', 'run_center': 'IGM'},
     'D00611': {'machine prefix': 'D', 'Vocab': 'Illumina HiSeq 2500',
                'Machine type': 'HiSeq/RR', 'run_center': 'IGM'},
+    'LH00444': {'machine prefix': 'LH', 'Vocab': 'Illumina NovaSeq X',
+                'Machine type': 'NovaSeq', 'run_center': 'IGM'},
     'MN01225': {'machine prefix': 'MN', 'Vocab': 'Illumina MiniSeq',
                 'Machine type': 'MiniSeq', 'run_center': 'CMI'}}).T
 
@@ -154,7 +157,7 @@ def remove_qiita_id(project_name):
         return matches[1]
 
 
-def get_run_prefix(run_path, project, sample_id, lane, pipeline):
+def get_run_prefix(run_path, project, sample_id, lane):
     """For a sample find the run prefix
 
     Parameters
@@ -167,9 +170,6 @@ def get_run_prefix(run_path, project, sample_id, lane, pipeline):
         Sample ID (was sample_name). Changed to reflect name used for files.
     lane: str
         Lane number
-    pipeline: str
-        The pipeline used to generate the data. Should be one of
-        `atropos-and-bowtie2` or `fastp-and-minimap2`.
 
     Returns
     -------
@@ -180,32 +180,17 @@ def get_run_prefix(run_path, project, sample_id, lane, pipeline):
     base = os.path.join(run_path, project)
     path = base
 
-    # each pipeline sets up a slightly different directory structure,
-    # importantly fastp-and-minimap2 won't save intermediate files
-    if pipeline == 'atropos-and-bowtie2':
-        qc = os.path.join(base, 'atropos_qc')
-        hf = os.path.join(base, 'filtered_sequences')
+    qc = os.path.join(base, 'trimmed_sequences')
+    hf = os.path.join(base, 'filtered_sequences')
 
-        # If both folders exist and have sequence files always prefer the
-        # human-filtered sequences
-        if _exists_and_has_files(qc):
-            path = qc
-            if _exists_and_has_files(hf):
-                path = hf
-    elif pipeline == 'fastp-and-minimap2':
-        qc = os.path.join(base, 'trimmed_sequences')
-        hf = os.path.join(base, 'filtered_sequences')
-
-        if _exists_and_has_files(qc) and _exists_and_has_files(hf):
-            path = hf
-        elif _exists_and_has_files(qc):
-            path = qc
-        elif _exists_and_has_files(hf):
-            path = hf
-        else:
-            path = base
+    if _exists_and_has_files(qc) and _exists_and_has_files(hf):
+        path = hf
+    elif _exists_and_has_files(qc):
+        path = qc
+    elif _exists_and_has_files(hf):
+        path = hf
     else:
-        raise ValueError('Invalid pipeline "%s"' % pipeline)
+        path = base
 
     search_me = '%s_S*_L*%s_R*.fastq.gz' % (sample_id, lane)
 
@@ -418,10 +403,11 @@ def process_sample(sample, prep_columns, run_center, run_date, run_prefix,
     additional_columns = ['syndna_pool_number', 'mass_syndna_input_ng',
                           'extracted_gdna_concentration_ng_ul',
                           'vol_extracted_elution_ul',
+                          'total_rna_concentration_ng_ul',
                           "sample_name", "experiment_design_description",
                           "library_construction_protocol", "sample_plate",
                           "i7_index_id", "index", "i5_index_id", "index2",
-                          "sample_project", 'well_id_384', 'Sample_Well'
+                          "sample_project", 'well_id_384', 'sample_well'
                           ]
 
     for attribute in additional_columns:
@@ -429,16 +415,17 @@ def process_sample(sample, prep_columns, run_center, run_date, run_prefix,
             result[attribute] = sample[attribute]
 
     # sanity-checks
-    if 'well_id_384' in sample and 'Sample_Well' in sample:
+    if 'well_id_384' in sample and 'sample_well' in sample:
+        # sample_well will be 'Sample_Well' to the user.
         raise ValueError("'well_id_384' and 'Sample_Well' are both defined"
                          "in sample.")
 
-    if 'well_id_384' not in sample and 'Sample_Well' not in sample:
+    if 'well_id_384' not in sample and 'sample_well' not in sample:
         raise ValueError("'well_id_384' and 'Sample_Well' are both undefined"
                          "in sample.")
 
     well_id = result['well_id_384'] if 'well_id_384' in sample else result[
-        'Sample_Well']
+        'sample_well']
 
     result["well_description"] = '%s.%s.%s' % (sample.sample_plate,
                                                sample.sample_name,
@@ -449,7 +436,7 @@ def process_sample(sample, prep_columns, run_center, run_date, run_prefix,
 
 
 def preparations_for_run(run_path, sheet, generated_prep_columns,
-                         carried_prep_columns, pipeline='fastp-and-minimap2'):
+                         carried_prep_columns):
     """Given a run's path and sample sheet generates preparation files
 
     Parameters
@@ -465,11 +452,6 @@ def preparations_for_run(run_path, sheet, generated_prep_columns,
     carried_prep_columns: list
         List of required columns for output that are expected in KLSampleSheet.
         Varies w/different versions of KLSampleSheet.
-    pipeline: str, optional
-        Which pipeline generated the data. The important difference is that
-        `atropos-and-bowtie2` saves intermediate files, whereas
-        `fastp-and-minimap2` doesn't. Default is `fastp-and-minimap2`, the
-        latest version of the sequence processing pipeline.
 
     Returns
     -------
@@ -529,8 +511,7 @@ def preparations_for_run(run_path, sheet, generated_prep_columns,
                 else:
                     sample_id = sample.sample_id
 
-                run_prefix = get_run_prefix(run_path, project, sample_id, lane,
-                                            pipeline)
+                run_prefix = get_run_prefix(run_path, project, sample_id, lane)
 
                 # ignore the sample if there's no file
                 if run_prefix is not None:
@@ -662,8 +643,8 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
                 row['primer_plate'] = sample.primer_plate
                 if 'well_id_384' in sample:
                     row["well_id_384"] = sample.well_id_384
-                elif 'Sample_Well' in sample:
-                    row["Sample_Well"] = sample.Sample_Well
+                elif 'sample_well' in sample:
+                    row["sample_well"] = sample.sample_well
                 row['well_id_96'] = sample.well_id_96
                 row['plating'] = sample.plating
                 row['extractionkit_lot'] = sample.extractionkit_lot
@@ -748,6 +729,7 @@ def generate_qiita_prep_file(platedf, seqtype):
             'Golay Barcode': 'barcode',
             '515FB Forward Primer (Parada)': 'primer',
             'Project Name': 'project_name',
+            'Project_Name': 'project_name',
             'Well': 'well_id_384',
             'Primer Plate #': 'primer_plate',
             'Plating': 'plating',
@@ -763,6 +745,8 @@ def generate_qiita_prep_file(platedf, seqtype):
             'Processing Robot': 'processing_robot',
             'Sample Plate': 'sample_plate',
             'Forward Primer Linker': 'linker',
+            'Date': 'platemap_generation_date',
+            'Project Abbreviation': 'project_abbreviation'
         }
     else:
         column_renamer = {
@@ -770,6 +754,7 @@ def generate_qiita_prep_file(platedf, seqtype):
             'Golay Barcode': 'barcode',
             'Reverse complement of 3prime Illumina Adapter': 'primer',
             'Project Name': 'project_name',
+            'Project_Name': 'project_name',
             'Well': 'well_id_384',
             'Primer Plate #': 'primer_plate',
             'Plating': 'plating',
@@ -784,7 +769,9 @@ def generate_qiita_prep_file(platedf, seqtype):
             'Water Lot': 'water_lot',
             'Processing Robot': 'processing_robot',
             'Sample Plate': 'sample_plate',
-            'Reverse Primer Linker': 'linker'
+            'Reverse Primer Linker': 'linker',
+            'Date': 'platemap_generation_date',
+            'Project Abbreviation': 'project_abbreviation'
         }
 
     prep = platedf.copy()
@@ -834,6 +821,14 @@ def generate_qiita_prep_file(platedf, seqtype):
         if c not in prep.columns:
             prep[c] = ''
 
+    if not prep.columns.is_unique:
+        column_names = Counter(list(prep.columns))
+        duplicates = [x for x in column_names if column_names[x] > 1]
+        raise ValueError(
+            "One or more columns in DataFrame resolve to the same"
+            " column name(s): %s" % ", ".join(duplicates)
+        )
+
     # the approved order of columns in the prep-file.
     column_order = ['sample_name', 'barcode', 'primer', 'primer_plate',
                     'well_id_384', 'plating', 'extractionkit_lot',
@@ -855,7 +850,9 @@ def generate_qiita_prep_file(platedf, seqtype):
     remove_these = {'Blank', 'Col', 'Compressed Plate Name', 'Plate Position',
                     'EMP Primer Plate Well', 'Forward Primer Pad', 'Name',
                     'Illumina 5prime Adapter', 'Original Name', 'Plate', 'Row',
-                    'Primer For PCR', 'Project Plate', 'index', 'Project_Name'}
+                    'Primer For PCR', 'Project Plate', 'index',
+                    'Plate elution volume', 'Plate map file', 'Time',
+                    'RackID'}
 
     # only remove the columns from the above set that are actually present in
     # the prep dataframe to avoid possible errors.

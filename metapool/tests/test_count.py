@@ -6,9 +6,8 @@ import pandas as pd
 from sample_sheet import Sample
 from unittest import main, TestCase
 from metapool.sample_sheet import MetagenomicSampleSheetv90
-from metapool.count import (_extract_name_and_lane, _parse_samtools_counts,
-                            _parse_fastp_counts, bcl2fastq_counts,
-                            fastp_counts, minimap2_counts, run_counts,
+from metapool.count import (_extract_name_and_lane, _parse_fastp_counts,
+                            bcl2fastq_counts, fastp_counts, run_counts,
                             _parsefier)
 
 
@@ -123,23 +122,6 @@ class TestCount(TestCase):
 
         self.assertEqual(obs, 4692)
 
-    def test_parse_samtools_malformed(self):
-        with tempfile.NamedTemporaryFile('w+') as tmp:
-            tmp.write('[hey] we processed like 42 reads\n')
-            tmp.seek(0)
-
-            with self.assertRaisesRegex(ValueError, 'The samtools log for '
-                                                    f'{tmp.name} is'
-                                                    ' malformed'):
-                _parse_samtools_counts(tmp.name)
-
-    def test_parse_samtools_counts(self):
-        obs = _parse_samtools_counts(
-            os.path.join(self.run_dir, 'Trojecp_666', 'samtools',
-                         'sample4_S369_L003_R1_001.log'))
-
-        self.assertEqual(obs, 2777)
-
     def test_bcl2fastq_no_stats_file(self):
         bad_dir = os.path.join(os.path.abspath(self.run_dir), 'Trojecp_666')
         with self.assertRaisesRegex(IOError, "Cannot find Stats.json '"
@@ -198,11 +180,6 @@ class TestCount(TestCase):
         exp = self.stats[['total_biological_reads_r1r2']]
         pd.testing.assert_frame_equal(obs.sort_index(), exp)
 
-    def test_minimap2_counts(self):
-        obs = minimap2_counts(self.run_dir, self.ss)
-        pd.testing.assert_frame_equal(obs.sort_index(),
-                                      self.stats[['non_host_reads']])
-
     def test_count_collector(self):
         obs = run_counts(self.run_dir, self.ss)
         pd.testing.assert_frame_equal(obs.sort_index(), self.stats)
@@ -220,10 +197,6 @@ RUN_STATS = {
                                     ('sample3', '3'): 4692.0,
                                     ('sample4', '3'): 960.0,
                                     ('sample5', '3'): 30846196.0},
-    'non_host_reads': {('sample1', '1'): 111172.0, ('sample2', '1'): 277611.0,
-                       ('sample1', '3'): 1168275.0, ('sample2', '3'): 1277.0,
-                       ('sample3', '3'): 33162.0, ('sample4', '3'): 2777.0,
-                       ('sample5', '3'): 4337654.0},
     'quality_filtered_reads_r1r2': {('sample1', '1'): 16.0,
                                     ('sample2', '1'): 16.0,
                                     ('sample1', '3'): 16.0,
@@ -237,14 +210,7 @@ RUN_STATS = {
                                         ('sample2', '3'): 0.00000695652,
                                         ('sample3', '3'): 0.00005333333,
                                         ('sample4', '3'): 0.00004,
-                                        ('sample5', '3'): 0.00002821869},
-    'fraction_non_human': {('sample1', '1'): 6948.25,
-                           ('sample2', '1'): 17350.6875,
-                           ('sample1', '3'): 73017.1875,
-                           ('sample2', '3'): 79.8125,
-                           ('sample3', '3'): 2072.625,
-                           ('sample4', '3'): 173.5625,
-                           ('sample5', '3'): 271103.375}}
+                                        ('sample5', '3'): 0.00002821869}}
 
 
 class TestBCLConvertCount(TestCase):

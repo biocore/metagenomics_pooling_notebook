@@ -210,11 +210,15 @@ class PlateValidationTests(TestCase):
         self.metadata = [
             {
                 'Plate Position': '1',
+                'Project Abbreviation': 'ADAPT',
+                'Plate map file':
+                    './data/2022_summer_Celeste_Adaptation_16_plate_map.tsv',
                 'Primer Plate #': '1',
                 'Plating': 'SF',
                 'Extraction Kit Lot': '166032128',
                 'Extraction Robot': 'Carmen_HOWE_KF3',
                 'TM1000 8 Tool': '109379Z',
+                'Plate elution volume': '70',
                 'TM300 8 Tool': 'NA',
                 'TM50 8 Tool': 'NA',
                 'Primer Date': '2021-08-17',
@@ -222,7 +226,7 @@ class PlateValidationTests(TestCase):
                 'Water Lot': 'RNBJ0628',
                 'Processing Robot': 'Echo550',
                 'Sample Plate': 'THDMI_UK_Plate_2',
-                'Project_Name': 'THDMI UK',
+                'Project Name': 'THDMI UK',
                 'Original Name': '',    # leave empty
                 'TM10 8 Tool': '865HS8',
                 'run_date': '2023-03-02',
@@ -234,6 +238,10 @@ class PlateValidationTests(TestCase):
             {
                 'Plate Position': '2',
                 'Primer Plate #': '2',
+                'Plate elution volume': '70',
+                'Plate map file':
+                    './data/2022_summer_Celeste_Adaptation_17_plate_map.tsv',
+                'Project Abbreviation': 'ADAPT',
                 'Plating': 'AS',
                 'Extraction Kit Lot': '166032128',
                 'Extraction Robot': 'Carmen_HOWE_KF4',
@@ -245,7 +253,7 @@ class PlateValidationTests(TestCase):
                 'Water Lot': 'RNBJ0628',
                 'Processing Robot': 'Echo550',
                 'Sample Plate': 'THDMI_UK_Plate_3',
-                'Project_Name': 'THDMI UK',
+                'Project Name': 'THDMI UK',
                 'Original Name': '',
                 'TM10 8 Tool': '865HS8',
                 'run_date': '2023-03-02',
@@ -257,6 +265,10 @@ class PlateValidationTests(TestCase):
             {
                 'Plate Position': '3',
                 'Primer Plate #': '3',
+                'Plate elution volume': '70',
+                'Plate map file':
+                    './data/2022_summer_Celeste_Adaptation_18_plate_map.tsv',
+                'Project Abbreviation': 'ADAPT',
                 'Plating': 'MB_SF',
                 'Extraction Kit Lot': '166032128',
                 'Extraction Robot': 'Carmen_HOWE_KF3',
@@ -268,7 +280,7 @@ class PlateValidationTests(TestCase):
                 'Water Lot': 'RNBJ0628',
                 'Processing Robot': 'Echo550',
                 'Sample Plate': 'THDMI_UK_Plate_4',
-                'Project_Name': 'THDMI UK',
+                'Project Name': 'THDMI UK',
                 'Original Name': '',
                 'TM10 8 Tool': '865HS8',
                 'run_date': '2023-03-02',
@@ -280,6 +292,10 @@ class PlateValidationTests(TestCase):
             {
                 'Plate Position': '4',
                 'Primer Plate #': '4',
+                'Plate elution volume': '70',
+                'Plate map file':
+                    './data/2022_summer_Celeste_Adaptation_21_plate_map.tsv',
+                'Project Abbreviation': 'ADAPT',
                 'Plating': 'AS',
                 'Extraction Kit Lot': '166032128',
                 'Extraction Robot': 'Carmen_HOWE_KF4',
@@ -291,7 +307,7 @@ class PlateValidationTests(TestCase):
                 'Water Lot': 'RNBJ0628',
                 'Processing Robot': 'Echo550',
                 'Sample Plate': 'THDMI_US_Plate_6',
-                'Project_Name': 'THDMI US',
+                'Project Name': 'THDMI US',
                 'Original Name': '',
                 'TM10 8 Tool': '865HS8',
                 'run_date': '2023-03-02',
