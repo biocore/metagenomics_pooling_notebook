@@ -1223,6 +1223,8 @@ class MetatranscriptomicSampleSheetv10(KLSampleSheet):
             'i5 name': 'I5_Index_ID',
             'i5 sequence': 'index2',
             'Project Name': 'Sample_Project',
+            'Sample RNA Concentration': 'total_rna_concentration_ng_ul',
+            'vol_extracted_elution_ul': 'vol_extracted_elution_ul'
         }
 
 
