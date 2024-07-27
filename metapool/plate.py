@@ -330,7 +330,7 @@ def find_threshold(concentrations, labels):
 
 
 def autopool(plate_df, method='norm', pool_failures='low', automate=True,
-             offset=0.01, min_pool=100, total_vol=100, floor_conc=10,
+             offset=0.01, min_pool=100, total_vol=190, floor_conc=10,
              min_conc=0, total_nmol=0.0040):
     """
     reads a plate_df and calculates pooling volumes based on parameters.
@@ -344,7 +344,7 @@ def autopool(plate_df, method='norm', pool_failures='low', automate=True,
                      Relies on manually supplied params if Fase.
     :param offset:
     :param min_pool:
-    :param total_vol:
+    :param total_vol: (default = 190µL)
     :param floor_conc: lowest conc. for which sample will be accurately pooled.
     :param min_conc: min conc. for a sample to be considered for pooling.
                      Set to 0 to pool all samples regardless.

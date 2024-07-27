@@ -1223,6 +1223,8 @@ class MetatranscriptomicSampleSheetv10(KLSampleSheet):
             'i5 name': 'I5_Index_ID',
             'i5 sequence': 'index2',
             'Project Name': 'Sample_Project',
+            'Sample RNA Concentration': 'total_rna_concentration_ng_ul',
+            'vol_extracted_elution_ul': 'vol_extracted_elution_ul'
         }
 
 
@@ -1579,7 +1581,12 @@ def demux_sample_sheet(sheet):
         # for _demux_sample_sheet to return a dataframe with sample_id as
         # the index, such as seqpro.
         df['Sample_ID'] = df.index
-        df.rename(columns={'sample_name': 'Sample_Name',
+
+        # remove the existing sample_name column that includes appended
+        # well-ids. Replace further down w/orig_name column.
+        df = df.drop('sample_name', axis=1)
+
+        df.rename(columns={'orig_name': 'Sample_Name',
                            'i7_index_id': 'I7_Index_ID',
                            'i5_index_id': 'I5_Index_ID',
                            'sample_project': 'Sample_Project'}, inplace=True)
