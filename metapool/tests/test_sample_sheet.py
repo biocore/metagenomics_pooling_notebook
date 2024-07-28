@@ -9,6 +9,7 @@ import sample_sheet
 from json import loads
 
 from metapool.sample_sheet import (KLSampleSheet, AmpliconSampleSheet,
+                                   MetagenomicSampleSheetv102,
                                    MetagenomicSampleSheetv101,
                                    MetagenomicSampleSheetv100,
                                    MetagenomicSampleSheetv90,
@@ -19,6 +20,18 @@ from metapool.sample_sheet import (KLSampleSheet, AmpliconSampleSheet,
                                    make_sample_sheet, load_sample_sheet,
                                    demux_sample_sheet, sheet_needs_demuxing)
 from metapool.plate import ErrorMessage, WarningMessage
+
+
+# Default KLSampleSheet objects don't have a `contains_replicates`
+# key in the Bioinformatics section, but metag v100 and later sheets do, so
+# sometimes we need to expand the base dummy info
+def _add_contains_replicates(source_bfx_list):
+    out_bfx_list = []
+    for x in source_bfx_list:
+        curr_dict = x.copy()
+        curr_dict['contains_replicates'] = False
+        out_bfx_list.append(curr_dict)
+    return out_bfx_list
 
 
 # The classes below share the same filepaths, so we use this dummy class
@@ -656,6 +669,19 @@ class SampleSheetWorkflow(BaseTests):
             data=data
         )
 
+    # Default KLSampleSheet objects don't have a `contains_replicates`
+    # key in the Bioinformatics section, but metag v100 sheets do, and
+    # several tests here use v100, so they need to have a `contains_replicates`
+    # entry added to the base metadata in order to pass
+    def _add_replicates_to_md_metag(self):
+        input_dict = {}
+        for key, value in self.md_metag.items():
+            mod_value = value
+            if key == 'Bioinformatics':
+                mod_value = _add_contains_replicates(value)
+            input_dict[key] = mod_value
+        return input_dict
+
     def test_validate_sample_sheet_metadata_empty(self):
         sheet = AmpliconSampleSheet()
         messages = sheet._validate_sample_sheet_metadata({})
@@ -1136,10 +1162,14 @@ class SampleSheetWorkflow(BaseTests):
 
     def test_add_metadata_to_sheet_most_defaults(self):
         sheet = MetagenomicSampleSheetv100()
-        exp_bfx = pd.DataFrame(self.md_metag['Bioinformatics'])
+        md_metag_w_contains_reps = self._add_replicates_to_md_metag()
+
+        exp_bfx_list = _add_contains_replicates(
+            self.md_metag['Bioinformatics'])
+        exp_bfx = pd.DataFrame(exp_bfx_list)
         exp_contact = pd.DataFrame(self.md_metag['Contact'])
 
-        obs = sheet._add_metadata_to_sheet(self.md_metag,
+        obs = sheet._add_metadata_to_sheet(md_metag_w_contains_reps,
                                            'HiSeq4000')
 
         self.assertEqual(obs.Reads, [151, 151])
@@ -1181,12 +1211,14 @@ class SampleSheetWorkflow(BaseTests):
             'index': 'CCGACTAT',
             'index2': 'ACCGACCA',
         }))
+        md_metag_w_contains_reps = self._add_replicates_to_md_metag()
+        md_metag_w_contains_reps['Date'] = '1970-01-01'
 
-        exp_bfx = pd.DataFrame(self.md_metag['Bioinformatics'])
+        exp_bfx = pd.DataFrame(_add_contains_replicates(
+            self.md_metag['Bioinformatics']))
         exp_contact = pd.DataFrame(self.md_metag['Contact'])
-        self.md_metag['Date'] = '1970-01-01'
 
-        obs = sheet._add_metadata_to_sheet(self.md_metag, 'HiSeq4000')
+        obs = sheet._add_metadata_to_sheet(md_metag_w_contains_reps, 'HiSeq4000')
 
         self.assertEqual(obs.Reads, [151, 151])
         self.assertDictEqual(dict(obs.Settings),
@@ -1217,7 +1249,8 @@ class SampleSheetWorkflow(BaseTests):
     def test_remove_options_for_iseq(self):
         sheet = MetagenomicSampleSheetv100()
         self.md_metag['Assay'] = 'Metagenomic'
-        obs = sheet._add_metadata_to_sheet(self.md_metag, 'iSeq')
+        md_metag_w_contains_reps = self._add_replicates_to_md_metag()
+        obs = sheet._add_metadata_to_sheet(md_metag_w_contains_reps, 'iSeq')
 
         settings = {
             'ReverseComplement': '0'
@@ -1581,7 +1614,58 @@ class DemuxReplicatesTests(BaseTests):
 
 
 class AdditionalSampleSheetCreationTests(BaseTests):
+    def _fill_test_metagenomic_sheet(self, sheet):
+        sheet.Header['IEMFileVersion'] = 4
+        sheet.Header['SheetType'] = 'standard_metag'
+        sheet.Header['SheetVersion'] = '100'
+        sheet.Header['Investigator Name'] = 'Knight'
+        sheet.Header['Experiment Name'] = 'RKO_experiment'
+        sheet.Header['Date'] = '2021-08-17'
+        sheet.Header['Workflow'] = 'GenerateFASTQ'
+        sheet.Header['Application'] = 'FASTQ Only'
+        sheet.Header['Assay'] = 'Metagenomic'
+        sheet.Header['Description'] = ''
+        sheet.Header['Chemistry'] = 'Default'
+        sheet.Reads = [151, 151]
+        sheet.Settings['ReverseComplement'] = 0
+
+        data = [
+            ['Project1_99999', '99999', 'False', 'AACC', 'GGTT', 'False',
+             'False', 'protocol_1', 'a designed experiment']
+        ]
+
+        sheet.Bioinformatics = pd.DataFrame(
+            columns=['Sample_Project', 'QiitaID', 'BarcodesAreRC',
+                     'ForwardAdapter', 'ReverseAdapter', 'HumanFiltering',
+                     'contains_replicates', 'library_construction_protocol',
+                     'experiment_design_description'], data=data)
+
+        sheet.Contact = pd.DataFrame(columns=['Email', 'Sample_Project'],
+                                     data=[['c2cowart@ucsd.edu',
+                                            'Project1_99999'],])
+
+        header = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
+                  'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                  'Sample_Project', 'Well_description']
+
+        data = [
+            ['sample_1', 'sample.1', 'sample_plate_1', 'A1', 'iTru7_107_07',
+             'CCGACTAT', 'iTru5_01_A', 'ACCGACAA', 'Project1_99999', 'desc'],
+            ['sample_2', 'sample.2', 'sample_plate_1', 'A2', 'iTru7_107_07',
+             'CCGACTAC', 'iTru5_01_A', 'ACCGACAT', 'Project1_99999', 'desc'],
+            ['sample_3', 'sample.3', 'sample_plate_1', 'A3', 'iTru7_107_07',
+             'CCGACTAG', 'iTru5_01_A', 'ACCGACAG', 'Project1_99999', 'desc'],
+        ]
+
+        for row in data:
+            # Add each row as a Sample() object. Each Sample() object takes
+            # a dict as its initializer.
+            sheet.add_sample(sample_sheet.Sample(dict(zip(header, row))))
+
+        return sheet
+
     def setUp(self):
+        self.data_dir  = join(dirname(__file__), 'data')
         self.metat_fp = join('metapool', 'tests', 'data',
                              'standard_metaT_samplesheet.csv')
 
@@ -1711,52 +1795,8 @@ class AdditionalSampleSheetCreationTests(BaseTests):
         # create a Metagenomic-type sample-sheet from scratch and manually
         # populate the required fields.
         sheet = MetagenomicSampleSheetv100()
-        sheet.Header['IEMFileVersion'] = 4
-        sheet.Header['SheetType'] = 'standard_metag'
+        sheet = self._fill_test_metagenomic_sheet(sheet)
         sheet.Header['SheetVersion'] = '100'
-        sheet.Header['Investigator Name'] = 'Knight'
-        sheet.Header['Experiment Name'] = 'RKO_experiment'
-        sheet.Header['Date'] = '2021-08-17'
-        sheet.Header['Workflow'] = 'GenerateFASTQ'
-        sheet.Header['Application'] = 'FASTQ Only'
-        sheet.Header['Assay'] = 'Metagenomic'
-        sheet.Header['Description'] = ''
-        sheet.Header['Chemistry'] = 'Default'
-        sheet.Reads = [151, 151]
-        sheet.Settings['ReverseComplement'] = 0
-
-        data = [
-            ['Project1_99999', '99999', 'False', 'AACC', 'GGTT', 'False',
-             'False', 'protocol_1', 'a designed experiment']
-        ]
-
-        sheet.Bioinformatics = pd.DataFrame(
-            columns=['Sample_Project', 'QiitaID', 'BarcodesAreRC',
-                     'ForwardAdapter', 'ReverseAdapter', 'HumanFiltering',
-                     'contains_replicates', 'library_construction_protocol',
-                     'experiment_design_description'], data=data)
-
-        sheet.Contact = pd.DataFrame(columns=['Email', 'Sample_Project'],
-                                     data=[['c2cowart@ucsd.edu',
-                                            'Project1_99999'],])
-
-        header = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
-                  'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
-                  'Sample_Project', 'Well_description']
-
-        data = [
-            ['sample_1', 'sample.1', 'sample_plate_1', 'A1', 'iTru7_107_07',
-             'CCGACTAT', 'iTru5_01_A', 'ACCGACAA', 'Project1_99999', 'desc'],
-            ['sample_2', 'sample.2', 'sample_plate_1', 'A2', 'iTru7_107_07',
-             'CCGACTAC', 'iTru5_01_A', 'ACCGACAT', 'Project1_99999', 'desc'],
-            ['sample_3', 'sample.3', 'sample_plate_1', 'A3', 'iTru7_107_07',
-             'CCGACTAG', 'iTru5_01_A', 'ACCGACAG', 'Project1_99999', 'desc'],
-        ]
-
-        for row in data:
-            # Add each row as a Sample() object. Each Sample() object takes
-            # a dict as its initializer.
-            sheet.add_sample(sample_sheet.Sample(dict(zip(header, row))))
 
         # Once sheet has been manually populated, validate it.
         self.assertTrue(sheet.validate_and_scrub_sample_sheet())
@@ -1776,6 +1816,59 @@ class AdditionalSampleSheetCreationTests(BaseTests):
                "ErrorMessage: 'Assay' value is not 'Metagenomic'"}
 
         self.assertEqual(obs, exp)
+
+    def test_metagenomic_sheet_w_context_creation(self):
+        # create a Metagenomic-type sample sheet that contains a
+        # SampleContext section from scratch and manually
+        # populate the required fields.
+        sheet = MetagenomicSampleSheetv102()
+        sheet = self._fill_test_metagenomic_sheet(sheet)
+        sheet.Header['SheetVersion'] = '102'
+
+        sample_context = [['BLANK.CHILD.1000.G4','control blank',
+                           '15510', '14577;10317'],
+                          ['BLANK.TMI.10.A4','control blank',
+                           '10317', "14577"],
+                          ['BLANK.TMI.12.A4', 'control blank',
+                           '10317', ""],
+                          ]
+
+        sheet.SampleContext = pd.DataFrame(
+            columns=['Sample_Name', 'Sample_Type',
+                     'Primary Qiita Study', 'Secondary Qiita Studies'],
+            data=sample_context)
+
+        # Once sheet has been manually populated, validate it.
+        self.assertTrue(sheet.validate_and_scrub_sample_sheet())
+
+        # Insert a few errors into the sample-sheet to ensure it fails
+        # validation.
+        del (sheet.Header['Workflow'])
+        sheet.Header['Assay'] = 'NotMetagenomic'
+
+        obs = sheet.quiet_validate_and_scrub_sample_sheet()
+
+        # convert ErrorMessages and WarningMessages into text strings for
+        # testing.
+        obs = set([str(msg) for msg in obs])
+
+        exp = {"ErrorMessage: 'Workflow' is not declared in Header section",
+               "ErrorMessage: 'Assay' value is not 'Metagenomic'"}
+
+        self.assertEqual(obs, exp)
+
+    def test_metagenomic_sheet_w_context_load(self):
+        metag_w_sample_context_fp = join(
+            self.data_dir, "good-sample-sheet_w_sample_context.csv")
+
+        # confirm manual loading is w/out error.
+        sheet = MetagenomicSampleSheetv102(metag_w_sample_context_fp)
+        self.assertTrue(sheet.validate_and_scrub_sample_sheet())
+
+        # confirm load_sample_sheet() returns the correct child class of
+        # KLSampleSheet.
+        sheet = load_sample_sheet(metag_w_sample_context_fp)
+        self.assertIsInstance(sheet, MetagenomicSampleSheetv102)
 
 
 class KarathoseqEnabledSheetCreationTests(BaseTests):
