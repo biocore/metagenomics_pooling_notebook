@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # ----------------------------------------------------------------------------
-# Copyright (c) 2015--, metapool development team.
+# Copyright (c) 2015--, Metapool development team.
 #
 # Distributed under the terms of the Modified BSD License.
 #
@@ -14,8 +14,9 @@ from os.path import dirname
 
 import versioneer
 
+
 classifiers = [
-    'Development Status :: 2 - Pre-Alpha',
+    'Development Status :: 5 - Production/Stable',
     'License :: OSI Approved :: MIT License',
     'Environment :: Console',
     'Topic :: Software Development :: Libraries :: Application Frameworks',
@@ -57,9 +58,9 @@ setup(name='metapool',
       long_description=long_description,
       keywords=keywords,
       classifiers=classifiers,
-      author="Jon Sanders",
-      maintainer="Jon Sanders",
-      url='https://github.com/tanaes/metagenomics_pooling_notebook',
+      author="Metapool development team.",
+      maintainer="Metapool development team.",
+      url='https://github.com/biocore/metagenomics_pooling_notebook',
       test_suite='nose.collector',
       packages=find_packages(),
       package_data={
@@ -69,12 +70,5 @@ setup(name='metapool',
       install_requires=base,
       extras_require={'test': test,
                       'coverage': coverage,
-                      'all': all_deps},
-      entry_points={
-          'console_scripts': [
-              'seqpro=metapool.scripts.seqpro:format_preparation_files',
-              ('seqpro_mf=metapool.scripts.seqpro_mf:format_preparation_'
-               'files_mf'),
-          ],
-
-      })
+                      'all': all_deps}
+      )
