@@ -949,7 +949,7 @@ def format_pooling_echo_pick_list(
         Maximum destination well volume, in nL
     """
     if dest_plate_shape is None:
-        dest_plate_shape = [16, 24]
+        dest_plate_shape = (16, 24)
 
     contents = [
         "Source Plate Name,Source Plate Type,Source Well,"

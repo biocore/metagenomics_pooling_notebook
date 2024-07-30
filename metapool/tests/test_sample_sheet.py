@@ -756,7 +756,7 @@ class SampleSheetWorkflow(BaseTests):
                    r'in the sample sheet is empty')
 
         message2 = (r"ErrorMessage: The following projects need to be in the "
-                    "Data and Bioinformatics sections Koening_ITS_101, "
+                    "Data and Bioinformatics sections: Koening_ITS_101, "
                     "THDMI_10317, Yanomani_2008_10052")
 
         with self.assertWarnsRegex(UserWarning, message):
@@ -1260,6 +1260,8 @@ class SampleSheetWorkflow(BaseTests):
 
 
 class ValidateSampleSheetTests(BaseTests):
+    maxDiff = None
+
     def assertStdOutEqual(self, expected):
         # testing stdout: https://stackoverflow.com/a/12683001
         observed = sys.stdout.getvalue().strip()
@@ -1405,7 +1407,7 @@ class ValidateSampleSheetTests(BaseTests):
         message = (
             'WarningMessage: The following project names were scrubbed for '
             'bcl2fastq compatibility. If the same invalid characters are also '
-            'found in the Bioinformatics and Contacts sections those will be '
+            'found in the Bioinformatics and Contact sections, those will be '
             'automatically scrubbed too:\n'
             "NYU's Tisch Art Microbiome 13059, The x.x microbiome project 1337"
         )
@@ -1466,7 +1468,7 @@ class ValidateSampleSheetTests(BaseTests):
         exp.index.name = 'sample_id'
         pd.testing.assert_frame_equal(obs, exp)
 
-    def test_bi_boolean_column_handling(self):
+    def test_boolean_column_handling(self):
         sheet = MetagenomicSampleSheetv100(self.good_w_bools)
 
         # self.good_w_bools contains a [Bioinformatics] section w/multiple
@@ -1496,7 +1498,7 @@ class ProfileTests(BaseTests):
 
 class DemuxReplicatesTests(BaseTests):
     def setUp(self):
-        self.data_dir = join('metapool', 'tests', 'data')
+        self.data_dir = join(dirname(__file__), 'data')
         self.sheet_w_replicates_path = join(self.data_dir,
                                             'good_sheet_w_replicates.csv')
 
@@ -1527,7 +1529,7 @@ class DemuxReplicatesTests(BaseTests):
 
         # confirm bad sample-sheet raises a ValueError for containing projects
         # that contain replicates and those that don't.
-        with self.assertRaisesRegex(ValueError, "all projects in "
+        with self.assertRaisesRegex(ValueError, "All projects in "
                                                 "Bioinformatics section must "
                                                 "either contain replicates or "
                                                 "not."):
@@ -1556,19 +1558,19 @@ class DemuxReplicatesTests(BaseTests):
         # them will not. Hence, a sample-sheet with both True and False in
         # the contains_replicates column in the [Bioinformatics] section should
         # raise an error.
-        with self.assertRaisesRegex(ValueError, "all projects in Bioinfor"
+        with self.assertRaisesRegex(ValueError, "All projects in Bioinfor"
                                                 "matics section must either "
                                                 "contain replicates or not."):
             sheet = MetagenomicSampleSheetv100(self.bad_sht_w_replicates_path)
             demux_sample_sheet(sheet)
 
         # as mentioned above, sheet_needs_demuxing() should be used to
-        # determine if demux_sample_sheet() should be called. If a sample-
+        # determine if demux_sample_sheet() should be called. If a sample
         # sheet is passed to demux_sample_sheet() and all projects are False,
         # an Error should be raised to alert the user of an unexpected
         # condition, rather than silently allow as a degenerative case.
-        with self.assertRaisesRegex(ValueError, "all projects in Bioinfor"
-                                                "matics section do not contain"
+        with self.assertRaisesRegex(ValueError, "No projects in Bioinfor"
+                                                "matics section contain"
                                                 " replicates"):
             sheet = MetagenomicSampleSheetv100(self.sheet_wo_replicates_path)
             demux_sample_sheet(sheet)
@@ -1665,7 +1667,7 @@ class AdditionalSampleSheetCreationTests(BaseTests):
         return sheet
 
     def setUp(self):
-        self.data_dir  = join(dirname(__file__), 'data')
+        self.data_dir = join(dirname(__file__), 'data')
         self.metat_fp = join('metapool', 'tests', 'data',
                              'standard_metaT_samplesheet.csv')
 
@@ -1825,9 +1827,9 @@ class AdditionalSampleSheetCreationTests(BaseTests):
         sheet = self._fill_test_metagenomic_sheet(sheet)
         sheet.Header['SheetVersion'] = '102'
 
-        sample_context = [['BLANK.CHILD.1000.G4','control blank',
+        sample_context = [['BLANK.CHILD.1000.G4', 'control blank',
                            '15510', '14577;10317'],
-                          ['BLANK.TMI.10.A4','control blank',
+                          ['BLANK.TMI.10.A4', 'control blank',
                            '10317', "14577"],
                           ['BLANK.TMI.12.A4', 'control blank',
                            '10317', ""],
