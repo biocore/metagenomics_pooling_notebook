@@ -13,6 +13,7 @@ from .prep import remove_qiita_id
 from .plate import _validate_well_id_96, PlateReplication
 from string import ascii_letters, digits
 import glob
+from .controls import BLANK_ROOT
 
 
 REVCOMP_SEQUENCERS = ['HiSeq4000', 'MiniSeq', 'NextSeq', 'HiSeq3000',
@@ -27,6 +28,7 @@ NORMALIZED_DNA_VOL_KEY = "Normalized DNA volume"
 INPUT_DNA_KEY = "Input DNA"
 SYNDNA_VOL_KEY = "synDNA volume"
 SYNDNA_POOL_MASS_NG_KEY = "mass_syndna_input_ng"
+BLANK_KEY = "Blank"
 
 
 def extract_stats_metadata(stats_json_fp, lane_numbers):
@@ -358,8 +360,8 @@ def read_plate_map_csv(f, sep="\t", qiita_oauth2_conf_fp=None):
             qiita_id = project.replace(f"{project_name}_", "")
             qurl = f"/api/v1/study/{qiita_id}/samples"
 
-            plate_map_samples = {s for s in _df["Sample"]
-                                 if not s.startswith("BLANK")}
+            not_blank_samples = ~_df[BLANK_KEY]
+            plate_map_samples = {s for s in _df.loc[not_blank_samples, "Sample"]}
             qsamples = {s.replace(f"{qiita_id}.", "")
                         for s in qclient.get(qurl)}
             sample_name_diff = plate_map_samples - set(qsamples)
@@ -1426,7 +1428,7 @@ def calculate_iseqnorm_pooling_volumes(
         plate_df["LoadingFactor"] = (
             plate_df["proportion"].max() / plate_df["proportion"]
         )
-        nblanks = plate_df.loc[plate_df["Blank"]].shape[0]
+        nblanks = plate_df.loc[plate_df[BLANK_KEY]].shape[0]
         if nblanks == 0:
             warnings.warn("There are no BLANKS in this plate")
         # May 5 2023 meeting about blanks agreed to treat them
@@ -1458,12 +1460,12 @@ def calculate_iseqnorm_pooling_volumes(
                                            output_max=max_pool_vol)
 
     # Underpooling BLANKS
-    nblanks = plate_df.loc[plate_df["Blank"]].shape[0]
+    nblanks = plate_df.loc[plate_df[BLANK_KEY]].shape[0]
     if nblanks == 0:
         warnings.warn("There are no BLANKS in this plate")
     else:
-        plate_df.loc[plate_df["Blank"], "iSeq normpool volume"] = (
-            plate_df.loc[plate_df["Blank"], "iSeq normpool volume"] / 5
+        plate_df.loc[plate_df[BLANK_KEY], "iSeq normpool volume"] = (
+            plate_df.loc[plate_df[BLANK_KEY], "iSeq normpool volume"] / 5
         )
 
     # Plotting
@@ -1474,7 +1476,7 @@ def calculate_iseqnorm_pooling_volumes(
     sns.scatterplot(
         x=normalization_column,
         y="iSeq normpool volume",
-        hue="Blank",
+        hue=BLANK_KEY,
         data=plate_df,
         alpha=0.5,
         ax=ax1
@@ -1787,7 +1789,7 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None):
     pandas DataFrame object with control data assigned to tubes in this prep
     """
     # Check whether controls have already been added
-    if "Blank" in plate_df.columns:
+    if BLANK_KEY in plate_df.columns:
         warnings.warn("Plate dataframe input already had controls. "
                       "Returning unmodified input")
         return plate_df
@@ -1891,27 +1893,28 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None):
         # Merge plate_df with controls table
         plate_df = pd.merge(plate_df, blanks, on="TubeCode", how="left")
 
+    # identify the blanks based on their lack of a name and the presence of
+    # the "negative_control" description somewhere in their record
+    # TODO: why look anywhere, rather than in description col, where we put it?
+    blanks_mask = plate_df["Sample"].isna() & \
+                  (plate_df == "negative_control").any(axis=1)
     # Assign sample_names ('Sample') to BLANKS controls
-    plate_df["Sample"] = np.where(
-        (plate_df["Sample"].isna()) &
-        (plate_df == "negative_control").any(axis=1),
-        "BLANK"
+    plate_df.loc[blanks_mask, "Sample"] = (
+        BLANK_ROOT
         + "."
         + plate_df["Project Abbreviation"]
         + "."
         + plate_df["Project Plate"].str.split("_").str.get(-1)
         + "."
         + plate_df["Row"]
-        + plate_df["Col"].astype(str),
-        plate_df["Sample"]
-    )
+        + plate_df["Col"].astype(str))
 
-    # Assign BLANK column
-    plate_df["Blank"] = np.where(plate_df["Sample"].str.contains("BLANK"),
-                                 True, False)
+    # Set BLANK_KEY to True for all blanks, False for all other samples
+    plate_df[BLANK_KEY] = False
+    plate_df.loc[blanks_mask, BLANK_KEY] = True
 
     warnings.warn("Controls added")
-    n_blanks = plate_df["Blank"].sum()
+    n_blanks = plate_df[BLANK_KEY].sum()
     if n_blanks < 6:
         warnings.warn(
             f"There are only {n_blanks} in this prep. The"

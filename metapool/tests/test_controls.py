@@ -2,7 +2,7 @@ import pandas as pd
 import os
 
 from unittest import TestCase
-from metapool.controls import SAMPLE_NAME_KEY, SAMPLE_TYPE_KEY, \
+from metapool.controls import QIITA_SAMPLE_NAME_KEY, SAMPLE_TYPE_KEY, \
     PRIMARY_STUDY_KEY, SECONDARY_STUDIES_KEY, \
     is_blank, get_all_projects_in_context
 
@@ -14,7 +14,7 @@ class ControlsTests(TestCase):
 
     def test_is_blank_w_context(self):
         sample_context = pd.DataFrame({
-            SAMPLE_NAME_KEY: ["sample1", "BLANK.2", "BLANK.3", "blank4"],
+            QIITA_SAMPLE_NAME_KEY: ["sample1", "BLANK.2", "BLANK.3", "blank4"],
             SAMPLE_TYPE_KEY: ["control blank", "positive control",
                               "control blank", "positive control"],
             PRIMARY_STUDY_KEY: ["1", "2", "3", "10"],
@@ -35,7 +35,7 @@ class ControlsTests(TestCase):
 
     def test_is_blank_w_context_err(self):
         sample_context = pd.DataFrame({
-            SAMPLE_NAME_KEY: ["sample1", "BLANK.2", "BLANK.3", "sample1"],
+            QIITA_SAMPLE_NAME_KEY: ["sample1", "BLANK.2", "BLANK.3", "sample1"],
             SAMPLE_TYPE_KEY: ["control blank", "positive control",
                               "control blank", "positive control"],
             PRIMARY_STUDY_KEY: ["1", "2", "3", "10"],
@@ -60,7 +60,7 @@ class ControlsTests(TestCase):
 
     def test_get_all_projects_in_context(self):
         sample_context = pd.DataFrame({
-            SAMPLE_NAME_KEY: ["sample1", "BLANK.2", "BLANK.3", "blank4"],
+            QIITA_SAMPLE_NAME_KEY: ["sample1", "BLANK.2", "BLANK.3", "blank4"],
             SAMPLE_TYPE_KEY: ["control blank", "positive control",
                               "control blank", "positive control"],
             PRIMARY_STUDY_KEY: ["1", "2", "3", "10"],

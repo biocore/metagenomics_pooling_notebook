@@ -20,7 +20,7 @@ from metapool.sample_sheet import (KLSampleSheet, AmpliconSampleSheet,
                                    make_sample_sheet, load_sample_sheet,
                                    demux_sample_sheet, sheet_needs_demuxing)
 from metapool.plate import ErrorMessage, WarningMessage
-from metapool.controls import SAMPLE_NAME_KEY, SAMPLE_TYPE_KEY, \
+from metapool.controls import QIITA_SAMPLE_NAME_KEY, SAMPLE_TYPE_KEY, \
     PRIMARY_STUDY_KEY, SECONDARY_STUDIES_KEY
 
 
@@ -593,6 +593,36 @@ class KLSampleSheetTests(BaseTests):
                'Well_description']
 
         self.assertEqual(set(obs), set(exp))
+
+    def test_sample_is_a_blank_wo_context(self):
+        sheet = MetagenomicSampleSheetv100(self.good_ss)
+        # NB: the sample names and sample ids in the test spreadsheet are the
+        # same.  FWIW, the intention is to use the sample names here.
+        self.assertFalse(sheet.sample_is_a_blank(
+            'CDPH-SAL_Salmonella_Typhi_MDL-143'))
+        self.assertTrue(sheet.sample_is_a_blank('BLANK_40_12G'))
+
+        # sending in a sample name that doesn't exist in the Data section
+        # raises an error
+        with self.assertRaisesRegex(
+                ValueError,
+                "Sample 'blank_40_12g' not found in the Data section"):
+            sheet.sample_is_a_blank('blank_40_12g')
+
+    def test_sample_is_a_blank_w_context(self):
+        sheet = MetagenomicSampleSheetv102(self.good_metag_ss_w_context)
+        # NB: the sample names and sample ids in the test spreadsheet are the
+        # same.  FWIW, the intention is to use the sample names here.
+        self.assertFalse(sheet.sample_is_a_blank(
+            'CDPH-SAL_Salmonella_Typhi_MDL-143'))
+        self.assertTrue(sheet.sample_is_a_blank('BLANK_40_12G'))
+
+        # sending in a sample name that doesn't exist in the Data section
+        # raises an error
+        with self.assertRaisesRegex(
+                ValueError,
+                "Sample 'blank_40_12g' not found in the Data section"):
+            sheet.sample_is_a_blank('blank_40_12g')
 
 
 class SampleSheetWorkflow(BaseTests):
@@ -1469,7 +1499,7 @@ class ValidateSampleSheetTests(BaseTests):
         sheet = MetagenomicSampleSheetv102(self.good_metag_ss_w_context)
         # pick a random entry in the sample context section and set its
         # qiita study id to something that doesn't exist in the other metadata
-        a_blank_mask = sheet.SampleContext[SAMPLE_NAME_KEY] == "BLANK1_1A"
+        a_blank_mask = sheet.SampleContext[QIITA_SAMPLE_NAME_KEY] == "BLANK1_1A"
         sheet.SampleContext.loc[a_blank_mask, PRIMARY_STUDY_KEY] = "123456"
 
         self.assertFalse(sheet.validate_and_scrub_sample_sheet())
@@ -1937,7 +1967,7 @@ class AdditionalSampleSheetCreationTests(BaseTests):
         sheet = self._fill_test_metagenomic_sheet(sheet, bfx=bfx, data=data)
         sheet.Header['SheetVersion'] = '102'
         sheet.SampleContext = pd.DataFrame(
-            columns=[SAMPLE_NAME_KEY, SAMPLE_TYPE_KEY,
+            columns=[QIITA_SAMPLE_NAME_KEY, SAMPLE_TYPE_KEY,
                      PRIMARY_STUDY_KEY, SECONDARY_STUDIES_KEY],
             data=sample_context)
 
