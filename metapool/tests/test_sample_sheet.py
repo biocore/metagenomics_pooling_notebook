@@ -1223,7 +1223,8 @@ class SampleSheetWorkflow(BaseTests):
             self.md_metag['Bioinformatics']))
         exp_contact = pd.DataFrame(self.md_metag['Contact'])
 
-        obs = sheet._add_metadata_to_sheet(md_metag_w_contains_reps, 'HiSeq4000')
+        obs = sheet._add_metadata_to_sheet(
+            md_metag_w_contains_reps, 'HiSeq4000')
 
         self.assertEqual(obs.Reads, [151, 151])
         self.assertDictEqual(dict(obs.Settings),

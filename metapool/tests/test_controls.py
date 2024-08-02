@@ -1,9 +1,7 @@
-import sys
 import pandas as pd
-from pandas.testing import assert_frame_equal
 import os
 
-from unittest import TestCase, main
+from unittest import TestCase
 from metapool.controls import SAMPLE_NAME_KEY, SAMPLE_TYPE_KEY, \
     PRIMARY_STUDY_KEY, SECONDARY_STUDIES_KEY, \
     is_blank, get_all_projects_in_context

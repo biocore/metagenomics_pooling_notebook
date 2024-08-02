@@ -54,7 +54,7 @@ def get_all_projects_in_context(sample_context):
 
 
 def _get_blanks_mask_by_name_format(a_df):
-    return a_df[SAMPLE_NAME_KEY].str.startswith(BLANK_ROOT) == True
+    return a_df[SAMPLE_NAME_KEY].str.startswith(BLANK_ROOT)
 
 
 def _is_blank_by_name(sample_name):
