@@ -117,8 +117,8 @@ Lane,Sample_ID,Sample_Name,Sample_Plate,well_id_384,I7_Index_ID,index,I5_Index_I
 1,3A,3A,Gerwick_tubes,I23,iTru7_201_03,GATAGGCT,iTru5_09_H,AGAAGGAC,Gerwick_6123,Desc_for_3A
 1,4A,4A,Gerwick_tubes,K23,iTru7_201_04,TTGACAGG,iTru5_10_H,TGACCGTT,Gerwick_6123,Desc_for_4A
 1,BLANK_40_12G,BLANK_40_12G,Feist_11661_P40,M23,iTru7_201_05,AGAATGCC,iTru5_11_H,GCGTTAGA,Feist_11661,Desc_for_BLANK.40.12G
-1,BLANK_40_12H,BLANK_40_12H,Feist_11661_P40,O23,iTru7_201_06,CTACATCC,iTru5_12_H,TCTAGGAG,Feist_11661,Desc_for_BLANK.40.12H
-1,TMI_test_1,TMI.test.1,Feist_11661_P41,A2,iTru7_201_07,TCATGGTG,iTru5_13_A,GGTATAGG,Feist_11661,Desc_for_TMI_test_1
+1,BLANK_40_12H,BLANK_40_12H,Feist_11661_P40,O23,iTru7_201_06,CTACATCC,iTru5_12_H,TCTAGGAG,TMI_10317,Desc_for_BLANK.40.12H
+1,TMI_test_1,TMI.test.1,Feist_11661_P41,A2,iTru7_201_07,TCATGGTG,iTru5_13_A,GGTATAGG,Other_11223,Desc_for_TMI_test_1
 1,Other_test_2,Other.test.2,Feist_11661_P41,C2,iTru7_201_08,TACACGCT,iTru5_14_A,TCCGATCA,Feist_11661,Desc_for_Other_test_2
 1,Pputida_JBEI__HGL_Pputida_109_BP8,Pputida_JBEI__HGL_Pputida_109_BP8,Feist_11661_P41,E2,iTru7_201_09,TACGGTTG,iTru5_15_A,CGACCTAA,Feist_11661,Desc_for_Pputida_JBEI__HGL_Pputida_109_BP8
 1,Pputida_JBEI__HGL_Pputida_110_M2,Pputida_JBEI__HGL_Pputida_110_M2,Feist_11661_P41,G2,iTru7_201_10,GGATACCA,iTru5_16_A,GACATCTC,Feist_11661,Desc_for_Pputida_JBEI__HGL_Pputida_110_M2
@@ -811,13 +811,15 @@ Sample_Project,QiitaID,BarcodesAreRC,ForwardAdapter,ReverseAdapter,HumanFilterin
 NYU_BMS_Melanoma_13059,13059,FALSE,AACC,GGTT,FALSE,Knight Lab Kapa HP,Eqiiperiment,,,
 Feist_11661,11661,FALSE,AACC,GGTT,FALSE,Knight Lab Kapa HP,Eqiiperiment,,,
 Gerwick_6123,6123,FALSE,AACC,GGTT,FALSE,Knight Lab Kapa HP,Eqiiperiment,,,
+TMI_10317,10317,FALSE,AACC,GGTT,FALSE,Knight Lab Kapa HP,Eqiiperiment,TRUE,,
+Other_11223,11223,FALSE,AACC,GGTT,FALSE,Knight Lab Kapa HP,Eqiiperiment,TRUE,,
 ,,,,,,,,,,
 [Contact],,,,,,,,,,
 Email,Sample_Project,,,,,,,,,
 test@lol.com,Feist_11661,,,,,,,,,
 ,,,,,,,,,,
 [SampleContext],,,,,,,,,,
-Sample_Name,Sample_Type,Primary Qiita Study,Secondary Qiita Studies,,,,,,,
+sample_name,sample_type,primary_qiita_study,secondary_qiita_studies,,,,,,,
 BLANK_40_12G,control_blank,11661,,,,,,,,
 BLANK_40_12H,control_blank,11661,,,,,,,,
 BLANK_41_12G,control_blank,11661,10317;11223,,,,,,,

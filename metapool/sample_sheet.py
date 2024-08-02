@@ -10,14 +10,12 @@ from types import MappingProxyType
 from metapool.metapool import (bcl_scrub_name, sequencer_i5_index,
                                REVCOMP_SEQUENCERS)
 from metapool.plate import ErrorMessage, WarningMessage, PlateReplication
+from metapool.controls import SAMPLE_NAME_KEY, SAMPLE_CONTEXT_COLS, \
+    get_all_projects_in_context
 
 BIOINFORMATICS_KEY = 'Bioinformatics'
 CONTACT_KEY = 'Contact'
 SAMPLE_CONTEXT_KEY = 'SampleContext'
-SAMPLE_NAME_KEY = "sample_name"
-SAMPLE_TYPE_KEY = "sample_type"
-PRIMARY_STUDY_KEY = "primary_qiita_study"
-SECONDARY_STUDIES_KEY = "secondary_qiita_studies"
 
 _AMPLICON = 'TruSeq HT'
 _METAGENOMIC = 'Metagenomic'
@@ -54,11 +52,6 @@ _BIOINFORMATICS_COLS_W_REP_SUPPORT = MappingProxyType(
 _CONTACT_COLS = MappingProxyType({
     'Sample_Project': str,
     'Email': str})
-_SAMPLE_CONTEXT_COLS = MappingProxyType({
-    SAMPLE_NAME_KEY: str,
-    SAMPLE_TYPE_KEY: str,
-    PRIMARY_STUDY_KEY: str,
-    SECONDARY_STUDIES_KEY: str})
 
 
 class KLSampleSheet(sample_sheet.SampleSheet):
@@ -176,12 +169,9 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         if self.path:
             self._parse(self.path)
 
-            # # if self.Bioinformatics is successfully populated after parsing
-            # # file, then convert the boolean parameters from strings to
-            # # booleans. Ignore any messages returned _normalize_bi_booleans()
-            # # because we are not validating, just converting datatypes.
-            # if self.Bioinformatics is not None:
-            #     self._normalize_section_booleans(BIOINFORMATICS_KEY)
+            # Convert the boolean parameters from strings to booleans.
+            # Ignore any messages returned because we are not validating,
+            # just converting datatypes.
             self._normalize_df_sections_booleans()
 
     def _parse(self, path):
@@ -743,13 +733,13 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                     'The following projects are missing a Lane value: '
                     '%s' % ', '.join(sorted(empty_projects))))
 
-        projects = {s.Sample_Project for s in self.samples}
+        data_project_names = {s.Sample_Project for s in self.samples}
 
         # project identifiers are digit groups at the end of the project name
-        # preceded by an underscore CaporasoIllumina_550
+        # preceded by an underscore, as in: CaporasoIllumina_550
         qiita_id_re = re.compile(r'(.+)_(\d+)$')
         bad_projects = []
-        for project_name in projects:
+        for project_name in data_project_names:
             if re.search(qiita_id_re, project_name) is None:
                 bad_projects.append(project_name)
         if bad_projects:
@@ -759,39 +749,48 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                     'column are missing a Qiita study '
                     'identifier: %s' % ', '.join(sorted(bad_projects))))
 
-        # check Sample_project values match across sections
-        # (I don't think that we need to check whether all the projects occur
-        # in the SAMPLE_CONTEXT_KEY section; I don't think it is guaranteed
-        # that every project has blanks associated with it.)
-        bfx = set(self.Bioinformatics['Sample_Project'])
-        contact = set(self.Contact['Sample_Project'])
-        not_shared = projects ^ bfx
+        # check that the bioinformatics and data sections have the exact
+        # same list of projects in them
+        bfx_project_names = set(self.Bioinformatics['Sample_Project'])
+        not_shared = data_project_names ^ bfx_project_names
         if not_shared:
             msgs.append(
                 ErrorMessage(
                     f"The following projects need to be in the {DATA_KEY} and "
                     f"{BIOINFORMATICS_KEY} sections: "
                     f"{', '.join(sorted(not_shared))}"))
-        elif not contact.issubset(projects):
-            msgs.append(
-                ErrorMessage((f"The following projects were only found in the "
-                              f"{CONTACT_KEY} section: "
-                              f"{', '.join(sorted(contact - projects))} "
-                              f"projects need to be listed in the "
-                              f"{DATA_KEY} and {BIOINFORMATICS_KEY} section "
-                              f"in order to be included in the "
-                              f"{CONTACT_KEY} section.")))
 
+        # contact and sample context don't have to have every project in the
+        # bioinformatics section, but they can't have any project that ISN'T
+        # in the bioinformatics section!
+        # NB:below logic works even if there ISN'T a sample context section
+        contact_project_names = set(self.Contact['Sample_Project'])
+        sample_context_project_ids = get_all_projects_in_context(
+            getattr(self, SAMPLE_CONTEXT_KEY, None))
+
+        # for each section, the below lists the expected superset and the
+        # expected subset.  Note that contacts compares project names, while
+        # sample context compares qiita study ids.
+        subset_sections = {
+            CONTACT_KEY: (bfx_project_names, contact_project_names),
+            SAMPLE_CONTEXT_KEY: (set(self.Bioinformatics['QiitaID']),
+                                 set(sample_context_project_ids))}
+        for curr_section, curr_sets in subset_sections.items():
+            curr_missing_projects = curr_sets[1] - curr_sets[0]
+            if len(curr_missing_projects) > 0:
+                msgs.append(ErrorMessage((
+                    f"The following projects were only found in the "
+                    f"{curr_section} section: "
+                    f"{', '.join(sorted(curr_missing_projects))}. "
+                    f"Projects need to be listed in the {DATA_KEY} and "
+                    f"{BIOINFORMATICS_KEY} section in order to be included in "
+                    f"the {curr_section} section.")))
+            # end if there are missing projects for this section
+        # next section to check
+
+        # silently convert boolean values to either True or False and generate
+        # messages for all unrecognizable values.
         msgs += self._normalize_df_sections_booleans()
-
-        # # TODO: Hmm, we might need to check whether the qiita study ids
-        # #  in the SAMPLE_CONTEXT_KEY section all match up to projects in the
-        # #  Bioinformatics section ...
-        #
-        # # silently convert boolean values to either True or False and generate
-        # # messages for all unrecognizable values.
-        # if self.Bioinformatics is not None:
-        #     msgs += self._normalize_section_booleans(BIOINFORMATICS_KEY)
 
         # return all collected Messages, even if it's an empty list.
         return msgs
@@ -893,7 +892,7 @@ class KLSampleSheetWithSampleContext(KLSampleSheet):
     KL_ADDTL_DF_SECTIONS = {
         BIOINFORMATICS_KEY: _BASE_BIOINFORMATICS_COLS,
         CONTACT_KEY: _CONTACT_COLS,
-        SAMPLE_CONTEXT_KEY: _SAMPLE_CONTEXT_COLS
+        SAMPLE_CONTEXT_KEY: SAMPLE_CONTEXT_COLS
     }
 
     _ALL_METADATA = KLSampleSheet._ALL_METADATA.copy()
@@ -933,18 +932,6 @@ class KLSampleSheetWithSampleContext(KLSampleSheet):
         # it is defined here first.
         self.SampleContext = None
         super().__init__(path=path)
-
-        if self.path:
-            pass
-
-            # TODO: do we need to normalize booleans for SampleContext?
-            # # if self.Bioinformatics is successfully populated after parsing
-            # # file, then convert the boolean parameters from strings to
-            # # booleans. Ignore any messages returned _normalize_bi_booleans()
-            # # because we are not validating, just converting datatypes.
-            # if self.Bioinformatics is not None:
-            #     self._normalize_bi_booleans()
-            self._normalize_df_sections_booleans()
 
 
 class AmpliconSampleSheet(KLSampleSheet):
@@ -1708,13 +1695,24 @@ def demux_sample_sheet(sheet):
         new_sheet.Header = sheet.Header
         new_sheet.Reads = sheet.Reads
         new_sheet.Settings = sheet.Settings
-        projects = set(df.sample_project)
+
+        # Add the SampleContext section to the new sheet. This is per-sample.
+        if SAMPLE_CONTEXT_KEY in sheet.sections:
+            new_context_df = _get_demuxed_sample_context(sheet, df)
+            new_sheet.SampleContext = new_context_df
+            ctx_projects = \
+                _get_sample_context_project_names(sheet, new_context_df)
+        else:
+            ctx_projects = set()
+
+        projects = set(df.sample_project) | ctx_projects
 
         # Generate a list of projects associated with each set of samples.
         # Construct bioinformatics and contact sections for each set so that
         # projects not referenced in the sample-set are not included in the
         # Bioinformatics and Contact sections.
-
+        # NB: Don't handle SampleContext section here bc it is sample-, not
+        # project-specific, so needs to happen after we set the samples below.
         new_sheet.Bioinformatics = sheet.Bioinformatics.loc[
             sheet.Bioinformatics['Sample_Project'].isin(projects)].drop(
             ['contains_replicates'], axis=1).reset_index(drop=True)
@@ -1722,7 +1720,10 @@ def demux_sample_sheet(sheet):
             sheet.Contact['Sample_Project'].isin(projects)].reset_index(
             drop=True)
 
-        # TODO: How should the SAMPLE_CONTEXT_KEY section be handled for reps?
+        # Add the SampleContext section to the new sheet. This is per-sample.
+        if SAMPLE_CONTEXT_KEY in sheet.sections:
+            new_context_df = _get_demuxed_sample_context(sheet, df)
+            new_sheet.SampleContext = new_context_df
 
         # for our purposes here, we want to reindex df so that the index
         # becomes Sample_ID and a new numeric index is created before
@@ -1745,3 +1746,48 @@ def demux_sample_sheet(sheet):
         demuxed_sheets.append(new_sheet)
 
     return demuxed_sheets
+
+
+def _get_demuxed_sample_context(sheet, df):
+    # The SampleContext section is a per-sample table, so we want to
+    # leave out any samples that are in the ur-SampleContext but have
+    # sample_name values that don't match one of the samples that will go in
+    # sheet (note we have to match on the sample name that includes the well
+    # id, not the well-id-stripped value that becomes the sample name in the
+    # new sheet). Then we replace the sample_name column in the new
+    # SampleContext section with the well-id-stripped sample_name so it matches
+    # what goes in the revised Data section.
+    relevant_samples_mask = \
+        sheet.SampleContext[SAMPLE_NAME_KEY].isin(
+            df[SAMPLE_NAME_KEY])
+    temp_context_df = sheet.SampleContext.loc[
+        relevant_samples_mask].reset_index(drop=True)
+    expanded_temp_context_df = pd.merge(
+        temp_context_df, df[[SAMPLE_NAME_KEY, "orig_name"]],
+        how="left", on=SAMPLE_NAME_KEY)
+    expanded_temp_context_df[SAMPLE_NAME_KEY] = \
+        expanded_temp_context_df["orig_name"]
+    expanded_temp_context_df.drop(columns="orig_name", inplace=True)
+    return expanded_temp_context_df
+
+
+def _get_sample_context_project_names(sheet, external_context=None):
+    ctx_projects = set()
+    sample_context = external_context
+    if external_context is None:
+        if hasattr(sheet, SAMPLE_CONTEXT_KEY):
+            sample_context = getattr(sheet, SAMPLE_CONTEXT_KEY)
+
+    # The sample context section contains qiita study *ids*, not project
+    # names. We need to match these to their corresponding project names in the
+    # Bioinformatics section to get project name values useful for comparisons
+    # with other parts of the sample sheet.
+    ctx_project_ids = get_all_projects_in_context(sample_context)
+    if ctx_project_ids is not None:
+        bioinformatics = getattr(sheet, BIOINFORMATICS_KEY)
+        ctx_projects_mask = bioinformatics['QiitaID'].isin(ctx_project_ids)
+        ctx_projects = \
+            set(bioinformatics.loc[ctx_projects_mask, 'Sample_Project'])
+    # end if there are any projects in the sample context section
+
+    return ctx_projects
