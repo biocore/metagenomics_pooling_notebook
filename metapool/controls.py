@@ -3,13 +3,13 @@ from types import MappingProxyType
 BLANK_ROOT = "BLANK"
 BLANK_SAMPLE_TYPE = "control blank"
 STUDY_ID_DELIMITER = ";"
-QIITA_SAMPLE_NAME_KEY = "sample_name"
+SAMPLE_NAME_KEY = "sample_name"
 SAMPLE_TYPE_KEY = "sample_type"
 PRIMARY_STUDY_KEY = "primary_qiita_study"
 SECONDARY_STUDIES_KEY = "secondary_qiita_studies"
 
 SAMPLE_CONTEXT_COLS = MappingProxyType({
-    QIITA_SAMPLE_NAME_KEY: str,
+    SAMPLE_NAME_KEY: str,
     SAMPLE_TYPE_KEY: str,
     PRIMARY_STUDY_KEY: str,
     SECONDARY_STUDIES_KEY: str})
@@ -18,7 +18,7 @@ SAMPLE_CONTEXT_COLS = MappingProxyType({
 def is_blank(sample_name, sample_context=None):
     if sample_context is not None:
         sample_record_mask = \
-            sample_context[QIITA_SAMPLE_NAME_KEY] == sample_name
+            sample_context[SAMPLE_NAME_KEY] == sample_name
 
         # if the sample name IS in the context, check further
         if sample_record_mask.any():
@@ -67,9 +67,9 @@ def get_controls_details_from_context(sample_context):
     # convert the sample context dataframe to a list of dictionaries
     controls_dicts_list = sample_context.to_dict(orient="records")
     for curr_dict in controls_dicts_list:
-        curr_sample_name = curr_dict[QIITA_SAMPLE_NAME_KEY]
-        curr_dict[SECONDARY_STUDIES_KEY] = _split_secondary_studies(
-            curr_dict[SECONDARY_STUDIES_KEY])
+        curr_sample_name = curr_dict[SAMPLE_NAME_KEY]
+        curr_dict[SECONDARY_STUDIES_KEY] = sorted(_split_secondary_studies(
+            curr_dict[SECONDARY_STUDIES_KEY]))
         result[curr_sample_name] = curr_dict
     return result
 
@@ -84,7 +84,7 @@ def make_manual_control_details(sample_name, primary_study,
         secondary_studies = []
 
     details_dict = {
-        QIITA_SAMPLE_NAME_KEY: sample_name,
+        SAMPLE_NAME_KEY: sample_name,
         SAMPLE_TYPE_KEY: sample_type,
         PRIMARY_STUDY_KEY: primary_study,
         SECONDARY_STUDIES_KEY: secondary_studies
@@ -92,20 +92,8 @@ def make_manual_control_details(sample_name, primary_study,
     return details_dict
 
 
-# def copy_controls_between_projects(controls_info):
-#     for curr_control in controls_info:
-#         curr_sample_name = curr_control[QIITA_SAMPLE_NAME_KEY]
-#         curr_primary_qiita_study = curr_control[PRIMARY_STUDY_KEY]
-#         curr_secondary_qiita_studies = curr_control[SECONDARY_STUDIES_KEY]
-#         for curr_secondary_qiita_study in curr_secondary_qiita_studies:
-#             self.copy_sequences(curr_sample_name, curr_primary_qiita_study,
-#                                 curr_secondary_qiita_study)
-#         # next secondary study
-#     # next control
-
-
 def _get_blanks_mask_by_name_format(a_df):
-    return a_df[QIITA_SAMPLE_NAME_KEY].str.startswith(BLANK_ROOT)
+    return a_df[SAMPLE_NAME_KEY].str.startswith(BLANK_ROOT)
 
 
 def _is_blank_by_name(sample_name):

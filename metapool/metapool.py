@@ -361,7 +361,8 @@ def read_plate_map_csv(f, sep="\t", qiita_oauth2_conf_fp=None):
             qurl = f"/api/v1/study/{qiita_id}/samples"
 
             not_blank_samples = ~_df[BLANK_KEY]
-            plate_map_samples = {s for s in _df.loc[not_blank_samples, "Sample"]}
+            plate_map_samples = \
+                {s for s in _df.loc[not_blank_samples, "Sample"]}
             qsamples = {s.replace(f"{qiita_id}.", "")
                         for s in qclient.get(qurl)}
             sample_name_diff = plate_map_samples - set(qsamples)
@@ -1897,7 +1898,7 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None):
     # the "negative_control" description somewhere in their record
     # TODO: why look anywhere, rather than in description col, where we put it?
     blanks_mask = plate_df["Sample"].isna() & \
-                  (plate_df == "negative_control").any(axis=1)
+        (plate_df == "negative_control").any(axis=1)
     # Assign sample_names ('Sample') to BLANKS controls
     plate_df.loc[blanks_mask, "Sample"] = (
         BLANK_ROOT

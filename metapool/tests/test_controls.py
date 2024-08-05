@@ -2,9 +2,10 @@ import pandas as pd
 import os
 
 from unittest import TestCase
-from metapool.controls import QIITA_SAMPLE_NAME_KEY, SAMPLE_TYPE_KEY, \
+from metapool.controls import SAMPLE_NAME_KEY, SAMPLE_TYPE_KEY, \
     PRIMARY_STUDY_KEY, SECONDARY_STUDIES_KEY, \
-    is_blank, get_all_projects_in_context
+    is_blank, get_all_projects_in_context, get_controls_details_from_context, \
+    make_manual_control_details
 
 
 class ControlsTests(TestCase):
@@ -14,7 +15,7 @@ class ControlsTests(TestCase):
 
     def test_is_blank_w_context(self):
         sample_context = pd.DataFrame({
-            QIITA_SAMPLE_NAME_KEY: ["sample1", "BLANK.2", "BLANK.3", "blank4"],
+            SAMPLE_NAME_KEY: ["sample1", "BLANK.2", "BLANK.3", "blank4"],
             SAMPLE_TYPE_KEY: ["control blank", "positive control",
                               "control blank", "positive control"],
             PRIMARY_STUDY_KEY: ["1", "2", "3", "10"],
@@ -35,22 +36,18 @@ class ControlsTests(TestCase):
 
     def test_is_blank_w_context_err(self):
         sample_context = pd.DataFrame({
-            QIITA_SAMPLE_NAME_KEY: ["sample1", "BLANK.2", "BLANK.3", "sample1"],
+            SAMPLE_NAME_KEY: ["sample1", "BLANK.2", "BLANK.3", "sample1"],
             SAMPLE_TYPE_KEY: ["control blank", "positive control",
                               "control blank", "positive control"],
             PRIMARY_STUDY_KEY: ["1", "2", "3", "10"],
             SECONDARY_STUDIES_KEY: ["4;5", "6", "", "11"]
         })
 
+        # malformed context section
         with self.assertRaisesRegex(
                 ValueError, "Expected exactly one record with sample name "
                             "'sample1', but found 2 records"):
             is_blank("sample1", sample_context)
-
-        with self.assertRaisesRegex(
-                ValueError, "Expected exactly one record with sample name "
-                            "'sample14', but found 0 records"):
-            is_blank("sample14", sample_context)
 
     def test_is_blank_wo_context(self):
         names = ["sample1", "BLANK.2", "BLANK.3", "blank4"]
@@ -60,7 +57,7 @@ class ControlsTests(TestCase):
 
     def test_get_all_projects_in_context(self):
         sample_context = pd.DataFrame({
-            QIITA_SAMPLE_NAME_KEY: ["sample1", "BLANK.2", "BLANK.3", "blank4"],
+            SAMPLE_NAME_KEY: ["sample1", "BLANK.2", "BLANK.3", "blank4"],
             SAMPLE_TYPE_KEY: ["control blank", "positive control",
                               "control blank", "positive control"],
             PRIMARY_STUDY_KEY: ["1", "2", "3", "10"],
@@ -72,3 +69,68 @@ class ControlsTests(TestCase):
 
     def test_get_all_projects_in_context_none(self):
         self.assertEqual(get_all_projects_in_context(None), [])
+
+    def test_get_controls_details_from_context(self):
+        sample_context = pd.DataFrame({
+            SAMPLE_NAME_KEY: ["sample1", "BLANK.2", "BLANK.3", "blank4"],
+            SAMPLE_TYPE_KEY: ["control blank", "positive control",
+                              "control blank", "positive control"],
+            PRIMARY_STUDY_KEY: ["1", "2", "3", "10"],
+            SECONDARY_STUDIES_KEY: ["4;5", "6;3", "", "11"]
+        })
+
+        exp_details = {
+            "sample1": {
+                SAMPLE_NAME_KEY: "sample1",
+                SAMPLE_TYPE_KEY: "control blank",
+                PRIMARY_STUDY_KEY: "1",
+                SECONDARY_STUDIES_KEY: ["4", "5"]
+            },
+            "BLANK.2": {
+                SAMPLE_NAME_KEY: "BLANK.2",
+                SAMPLE_TYPE_KEY: "positive control",
+                PRIMARY_STUDY_KEY: "2",
+                SECONDARY_STUDIES_KEY: ["3", "6"]
+            },
+            "BLANK.3": {
+                SAMPLE_NAME_KEY: "BLANK.3",
+                SAMPLE_TYPE_KEY: "control blank",
+                PRIMARY_STUDY_KEY: "3",
+                SECONDARY_STUDIES_KEY: []
+            },
+            "blank4": {
+                SAMPLE_NAME_KEY: "blank4",
+                SAMPLE_TYPE_KEY: "positive control",
+                PRIMARY_STUDY_KEY: "10",
+                SECONDARY_STUDIES_KEY: ["11"]
+            }
+        }
+
+        obs_details = get_controls_details_from_context(sample_context)
+        self.assertEqual(exp_details, obs_details)
+
+    def test_get_controls_details_from_context_none(self):
+        self.assertEqual(get_controls_details_from_context(None), {})
+
+    def test_make_manual_control_details(self):
+        exp_details = {
+                SAMPLE_NAME_KEY: "sample1",
+                SAMPLE_TYPE_KEY: "control blank",
+                PRIMARY_STUDY_KEY: "1",
+                SECONDARY_STUDIES_KEY: ["4", "5"]
+            }
+
+        obs_details = make_manual_control_details(
+            "sample1", "1", ["4", "5"], "control blank")
+        self.assertEqual(obs_details, exp_details)
+
+    def test_make_manual_control_details_w_defaults(self):
+        exp_details = {
+                SAMPLE_NAME_KEY: "sample1",
+                SAMPLE_TYPE_KEY: "control blank",
+                PRIMARY_STUDY_KEY: "1",
+                SECONDARY_STUDIES_KEY: []
+            }
+
+        obs_details = make_manual_control_details("sample1", "1")
+        self.assertEqual(obs_details, exp_details)

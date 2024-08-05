@@ -18,9 +18,14 @@ from metapool.sample_sheet import (KLSampleSheet, AmpliconSampleSheet,
                                    AbsQuantSampleSheetv10,
                                    sample_sheet_to_dataframe,
                                    make_sample_sheet, load_sample_sheet,
-                                   demux_sample_sheet, sheet_needs_demuxing)
+                                   demux_sample_sheet, sheet_needs_demuxing,
+                                   QIITA_ID_KEY, PROJECT_SHORT_NAME_KEY,
+                                   PROJECT_FULL_NAME_KEY,
+                                   CONTAINS_REPLICATES_KEY, SAMPLES_KEY,
+                                   SAMPLE_PROJECT_KEY, SS_SAMPLE_ID_KEY,
+                                   ORIG_NAME_KEY)
 from metapool.plate import ErrorMessage, WarningMessage
-from metapool.controls import QIITA_SAMPLE_NAME_KEY, SAMPLE_TYPE_KEY, \
+from metapool.controls import SAMPLE_NAME_KEY, SAMPLE_TYPE_KEY, \
     PRIMARY_STUDY_KEY, SECONDARY_STUDIES_KEY
 
 
@@ -623,6 +628,137 @@ class KLSampleSheetTests(BaseTests):
                 ValueError,
                 "Sample 'blank_40_12g' not found in the Data section"):
             sheet.sample_is_a_blank('blank_40_12g')
+
+    def test_get_controls_details_w_context(self):
+        exp_blank_names = [
+            'BLANK_40_12G', 'BLANK_40_12H', 'BLANK_41_12G', 'BLANK_41_12H',
+            'BLANK_42_12G', 'BLANK_42_12H', 'BLANK_43_12G', 'BLANK_43_12H',
+            'BLANK1_1A', 'BLANK1_1B', 'BLANK1_1C', 'BLANK1_1D', 'BLANK1_1E',
+            'BLANK1_1F', 'BLANK1_1G', 'BLANK1_1H', 'BLANK2_2A', 'BLANK2_2B',
+            'BLANK2_2C', 'BLANK2_2D', 'BLANK2_2E', 'BLANK2_2F', 'BLANK2_2G',
+            'BLANK2_2H', 'BLANK3_3A', 'BLANK3_3B', 'BLANK3_3C', 'BLANK3_3D',
+            'BLANK3_3E', 'BLANK3_3F', 'BLANK3_3G', 'BLANK3_3H', 'BLANK4_4A',
+            'BLANK4_4B', 'BLANK4_4C', 'BLANK4_4D', 'BLANK4_4E', 'BLANK4_4F',
+            'BLANK4_4G', 'BLANK4_4H']
+        sheet = MetagenomicSampleSheetv102(self.good_metag_ss_w_context)
+        obs_details = sheet.get_controls_details()
+        self.assertEqual(len(exp_blank_names), len(obs_details))
+        for curr_blank_name in exp_blank_names:
+            self.assertTrue(curr_blank_name in obs_details)
+            curr_details = obs_details[curr_blank_name]
+            self.assertEqual(len(curr_details), 4)
+            self.assertEqual(curr_details[SAMPLE_NAME_KEY],
+                             curr_blank_name)
+            self.assertEqual(curr_details[SAMPLE_TYPE_KEY], 'control blank')
+
+            if curr_blank_name.startswith("BLANK_4"):
+                expected_qiita_id = "11661"
+            else:
+                expected_qiita_id = "13059"
+            self.assertEqual(curr_details[PRIMARY_STUDY_KEY],
+                             expected_qiita_id)
+
+            expected_secondary_studies = []
+            if curr_blank_name in ["BLANK_41_12G", "BLANK_41_12H"]:
+                expected_secondary_studies = ["10317", "11223"]
+            self.assertEqual(curr_details[SECONDARY_STUDIES_KEY],
+                             expected_secondary_studies)
+        # next expected blank name
+
+    def test_get_controls_details_wo_context(self):
+        exp_blank_names = [
+            'BLANK_40_12G', 'BLANK_40_12H', 'BLANK_41_12G', 'BLANK_41_12H',
+            'BLANK_42_12G', 'BLANK_42_12H', 'BLANK_43_12G', 'BLANK_43_12H',
+            'BLANK1_1A', 'BLANK1_1B', 'BLANK1_1C', 'BLANK1_1D', 'BLANK1_1E',
+            'BLANK1_1F', 'BLANK1_1G', 'BLANK1_1H', 'BLANK2_2A', 'BLANK2_2B',
+            'BLANK2_2C', 'BLANK2_2D', 'BLANK2_2E', 'BLANK2_2F', 'BLANK2_2G',
+            'BLANK2_2H', 'BLANK3_3A', 'BLANK3_3B', 'BLANK3_3C', 'BLANK3_3D',
+            'BLANK3_3E', 'BLANK3_3F', 'BLANK3_3G', 'BLANK3_3H', 'BLANK4_4A',
+            'BLANK4_4B', 'BLANK4_4C', 'BLANK4_4D', 'BLANK4_4E', 'BLANK4_4F',
+            'BLANK4_4G', 'BLANK4_4H']
+        sheet = MetagenomicSampleSheetv100(self.good_ss)
+        obs_details = sheet.get_controls_details()
+        self.assertEqual(len(exp_blank_names), len(obs_details))
+        for curr_blank_name in exp_blank_names:
+            self.assertTrue(curr_blank_name in obs_details)
+            curr_details = obs_details[curr_blank_name]
+            self.assertEqual(len(curr_details), 4)
+            self.assertEqual(curr_details[SAMPLE_NAME_KEY],
+                             curr_blank_name)
+            self.assertEqual(curr_details[SAMPLE_TYPE_KEY], 'control blank')
+
+            if curr_blank_name == "BLANK_41_12G":
+                expected_qiita_id = "6123"
+            elif curr_blank_name.startswith("BLANK_4"):
+                expected_qiita_id = "11661"
+            else:
+                expected_qiita_id = "13059"
+            self.assertEqual(curr_details[PRIMARY_STUDY_KEY],
+                             expected_qiita_id)
+            self.assertEqual(curr_details[SECONDARY_STUDIES_KEY], [])
+        # next expected blank name
+
+    def test_get_projects_details(self):
+        exp_details = {
+            'NYU_BMS_Melanoma_13059': {
+                QIITA_ID_KEY: '13059',
+                PROJECT_SHORT_NAME_KEY: 'NYU_BMS_Melanoma',
+                PROJECT_FULL_NAME_KEY: 'NYU_BMS_Melanoma_13059',
+                CONTAINS_REPLICATES_KEY: False,
+                SAMPLES_KEY: {
+                    'LP127890A01': {
+                        SAMPLE_NAME_KEY: 'LP127890A01',
+                        SAMPLE_PROJECT_KEY: 'NYU_BMS_Melanoma_13059',
+                        SS_SAMPLE_ID_KEY: 'LP127890A01'
+                    }
+                },
+            },
+            'Feist_11661': {
+                QIITA_ID_KEY: '11661',
+                PROJECT_SHORT_NAME_KEY: 'Feist',
+                PROJECT_FULL_NAME_KEY: 'Feist_11661',
+                CONTAINS_REPLICATES_KEY: False,
+                SAMPLES_KEY: {
+                    'CDPH-SAL_Salmonella_Typhi_MDL-143': {
+                        SAMPLE_NAME_KEY: 'CDPH-SAL_Salmonella_Typhi_MDL-143',
+                        SAMPLE_PROJECT_KEY: 'Feist_11661',
+                        SS_SAMPLE_ID_KEY: 'CDPH-SAL_Salmonella_Typhi_MDL-143'
+                    }
+                },
+            },
+            'Gerwick_6123': {
+                QIITA_ID_KEY: '6123',
+                PROJECT_SHORT_NAME_KEY: 'Gerwick',
+                PROJECT_FULL_NAME_KEY: 'Gerwick_6123',
+                CONTAINS_REPLICATES_KEY: False,
+                SAMPLES_KEY: {
+                    '3A': {
+                        SAMPLE_NAME_KEY: '3A',
+                        SAMPLE_PROJECT_KEY: 'Gerwick_6123',
+                        SS_SAMPLE_ID_KEY: '3A'
+                    }
+                }
+            }
+        }
+
+        sheet = MetagenomicSampleSheetv100(self.good_w_bools)
+        obs_details = sheet.get_projects_details()
+        self.assertEqual(exp_details, obs_details)
+
+    def test_get_projects_details_w_orig_name(self):
+        good_replicates_ss_fp = join(
+            self.data_dir, 'good_sheet_w_replicates.csv')
+        sheet = MetagenomicSampleSheetv100(good_replicates_ss_fp)
+
+        # not going to check the whole thing, just checking one sample to
+        # make sure the original name is being added correctly
+        obs_details = sheet.get_projects_details()
+        self.assertTrue("Feist_11661" in obs_details)
+        an_obs_samples = obs_details["Feist_11661"][SAMPLES_KEY]
+        self.assertTrue("BLANK.43.12G.A1" in an_obs_samples)
+        an_obs_sample = an_obs_samples["BLANK.43.12G.A1"]
+        self.assertTrue(ORIG_NAME_KEY in an_obs_sample)
+        self.assertEqual(an_obs_sample[ORIG_NAME_KEY], "BLANK.43.12G")
 
 
 class SampleSheetWorkflow(BaseTests):
@@ -1499,7 +1635,7 @@ class ValidateSampleSheetTests(BaseTests):
         sheet = MetagenomicSampleSheetv102(self.good_metag_ss_w_context)
         # pick a random entry in the sample context section and set its
         # qiita study id to something that doesn't exist in the other metadata
-        a_blank_mask = sheet.SampleContext[QIITA_SAMPLE_NAME_KEY] == "BLANK1_1A"
+        a_blank_mask = sheet.SampleContext[SAMPLE_NAME_KEY] == "BLANK1_1A"
         sheet.SampleContext.loc[a_blank_mask, PRIMARY_STUDY_KEY] = "123456"
 
         self.assertFalse(sheet.validate_and_scrub_sample_sheet())
@@ -1967,7 +2103,7 @@ class AdditionalSampleSheetCreationTests(BaseTests):
         sheet = self._fill_test_metagenomic_sheet(sheet, bfx=bfx, data=data)
         sheet.Header['SheetVersion'] = '102'
         sheet.SampleContext = pd.DataFrame(
-            columns=[QIITA_SAMPLE_NAME_KEY, SAMPLE_TYPE_KEY,
+            columns=[SAMPLE_NAME_KEY, SAMPLE_TYPE_KEY,
                      PRIMARY_STUDY_KEY, SECONDARY_STUDIES_KEY],
             data=sample_context)
 
@@ -2003,13 +2139,14 @@ class AdditionalSampleSheetCreationTests(BaseTests):
 
 class KarathoseqEnabledSheetCreationTests(BaseTests):
     def setUp(self):
-        self.katharoseq_1 = join('metapool', 'tests', 'data',
+        self.data_dir = join(dirname(__file__), 'data')
+        self.katharoseq_1 = join(self.data_dir,
                                  'test_katharoseq_sheet1.csv')
 
-        self.katharoseq_2 = join('metapool', 'tests', 'data',
+        self.katharoseq_2 = join(self.data_dir,
                                  'test_katharoseq_sheet2.csv')
 
-        self.katharoseq_3 = join('metapool', 'tests', 'data',
+        self.katharoseq_3 = join(self.data_dir,
                                  'test_katharoseq_sheet3.csv')
 
         self.input_columns = ['sample sheet Sample_ID',
