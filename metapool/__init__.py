@@ -2,7 +2,8 @@
 from .prep import (preparations_for_run, parse_prep, generate_qiita_prep_file,
                    preparations_for_run_mapping_file, remove_qiita_id,
                    demux_pre_prep, pre_prep_needs_demuxing)
-from .sample_sheet import (sample_sheet_to_dataframe, make_sample_sheet,
+from .sample_sheet import (SAMPLES_KEY, SS_SAMPLE_ID_KEY, ORIG_NAME_KEY,
+                           sample_sheet_to_dataframe, make_sample_sheet,
                            AmpliconSampleSheet, MetagenomicSampleSheetv90,
                            MetagenomicSampleSheetv100,
                            MetagenomicSampleSheetv101, AbsQuantSampleSheetv10,
@@ -16,6 +17,8 @@ from .igm import IGMManifest
 from .count import run_counts
 from .metapool import (extract_stats_metadata, sum_lanes,
                        compress_plates, add_controls)
+from .controls import (SAMPLE_NAME_KEY, PRIMARY_STUDY_KEY,
+                       SECONDARY_STUDIES_KEY)
 
 
 __credits__ = ("https://github.com/biocore/metagenomics_pooling_notebook/"
@@ -34,7 +37,9 @@ __all__ = ['IGMManifest', 'add_controls', 'assign_emp_index', 'autopool',
            'MetatranscriptomicSampleSheetv0',
            'MetatranscriptomicSampleSheetv10', 'AbsQuantSampleSheetv10',
            # KLSampleSheet is needed for instance() calls.
-           'KLSampleSheet', 'load_sample_sheet']
+           'KLSampleSheet', 'load_sample_sheet',
+           'SAMPLE_NAME_KEY', 'PRIMARY_STUDY_KEY', 'SECONDARY_STUDIES_KEY',
+           'SAMPLES_KEY', 'SS_SAMPLE_ID_KEY', 'ORIG_NAME_KEY']
 
 from . import _version
 
