@@ -7,7 +7,7 @@ import pandas as pd
 from glob import glob
 from datetime import datetime
 from string import ascii_letters, digits
-from metapool.plate import PlateReplication
+from metapool.plate import PlateReplication, get_short_name_and_id
 from collections import Counter
 
 
@@ -143,18 +143,7 @@ def is_nonempty_gz_file(name):
 
 
 def remove_qiita_id(project_name):
-    # project identifiers are digit groups at the end of the project name
-    # preceded by an underscore CaporasoIllumina_550
-    if project_name is None or project_name == '':
-        raise ValueError("project_name cannot be None or empty string")
-
-    # no matches
-    matches = re.search(r'(.+)_(\d+)$', str(project_name))
-    if matches is None:
-        return project_name
-    else:
-        # group 1 is the project name
-        return matches[1]
+    return get_short_name_and_id(project_name)[0]
 
 
 def get_run_prefix(run_path, project, sample_id, lane):
@@ -494,8 +483,7 @@ def preparations_for_run(run_path, sheet, generated_prep_columns,
     all_columns = sorted(carried_prep_columns + generated_prep_columns)
 
     for project, project_sheet in sheet.groupby('sample_project'):
-        project_name = remove_qiita_id(project)
-        qiita_id = project.replace(project_name + '_', '')
+        project_name, qiita_id = get_short_name_and_id(project)
 
         # if the Qiita ID is not found then make for an easy find/replace
         if qiita_id == project:
@@ -591,8 +579,7 @@ def preparations_for_run_mapping_file(run_path, mapping_file):
                          ', '.join(not_present))
 
     for project, project_sheet in mapping_file.groupby('project_name'):
-        project_name = remove_qiita_id(project)
-        qiita_id = project.replace(project_name + '_', '')
+        _, qiita_id = get_short_name_and_id(project)
 
         # if the Qiita ID is not found then notify the user.
         if qiita_id == project:

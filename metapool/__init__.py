@@ -11,7 +11,8 @@ from .sample_sheet import (SAMPLES_KEY, SS_SAMPLE_ID_KEY, ORIG_NAME_KEY,
                            sheet_needs_demuxing, KLSampleSheet,
                            load_sample_sheet, MetatranscriptomicSampleSheetv10)
 from .plate import (validate_plate_metadata, requires_dilution, dilute_gDNA,
-                    autopool, find_threshold)
+                    autopool, find_threshold, parse_project_name,
+                    get_short_name_and_id)
 from .amplipool import assign_emp_index
 from .igm import IGMManifest
 from .count import run_counts
@@ -30,6 +31,7 @@ __all__ = ['IGMManifest', 'add_controls', 'assign_emp_index', 'autopool',
            'generate_qiita_prep_file', 'make_sample_sheet', 'parse_prep',
            'pre_prep_needs_demuxing', 'preparations_for_run',
            'preparations_for_run_mapping_file', 'remove_qiita_id',
+           'parse_project_name', 'get_short_name_and_id',
            'requires_dilution', 'run_counts', 'sample_sheet_to_dataframe',
            'sheet_needs_demuxing', 'sum_lanes', 'validate_plate_metadata',
            'MetagenomicSampleSheetv90', 'MetagenomicSampleSheetv100',

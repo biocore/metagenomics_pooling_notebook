@@ -8,6 +8,7 @@ import pandas as pd
 import sample_sheet
 from json import loads
 
+from metapool.metapool import TUBECODE_KEY
 from metapool.sample_sheet import (KLSampleSheet, AmpliconSampleSheet,
                                    MetagenomicSampleSheetv102,
                                    MetagenomicSampleSheetv101,
@@ -2255,7 +2256,7 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
         exp = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
                'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
                'Sample_Project', 'Well_description', 'Kathseq_RackID',
-               'TubeCode', 'katharo_description', 'number_of_cells',
+               TUBECODE_KEY, 'katharo_description', 'number_of_cells',
                'platemap_generation_date', 'project_abbreviation',
                'vol_extracted_elution_ul', 'well_id_96']
         obs = sheet2._get_expected_columns()
@@ -2420,7 +2421,7 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
         header = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
                   'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
                   'Sample_Project', 'Well_description', 'Kathseq_RackID',
-                  'TubeCode', 'katharo_description', 'number_of_cells',
+                  TUBECODE_KEY, 'katharo_description', 'number_of_cells',
                   'platemap_generation_date', 'project_abbreviation',
                   'vol_extracted_elution_ul', 'well_id_96']
 
@@ -2529,7 +2530,7 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
         self.data[0][1] = 'katharo.01'  # changing sample_name
 
         # add missing columns to the data and populate them with 'junk value'.
-        optional_columns = ['Kathseq_RackID', 'TubeCode',
+        optional_columns = ['Kathseq_RackID', TUBECODE_KEY,
                             'katharo_description', 'number_of_cells',
                             'platemap_generation_date', 'project_abbreviation',
                             'vol_extracted_elution_ul', 'well_id_96']
@@ -2549,7 +2550,7 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
         self.assertIsInstance(sheet, MetagenomicSampleSheetv101)
         self.assertTrue(sheet.contains_katharoseq_samples())
         obs_columns = set(sheet.samples[0].to_json().keys())
-        exp_columns = {'Sample_Project', 'Sample_ID', 'TubeCode', 'index2',
+        exp_columns = {'Sample_Project', 'Sample_ID', TUBECODE_KEY, 'index2',
                        'index', 'Kathseq_RackID', 'well_id_384',
                        'katharo_description', 'Well_description',
                        'platemap_generation_date', 'Sample_Plate',

@@ -9,8 +9,9 @@ import sample_sheet
 import pandas as pd
 from types import MappingProxyType
 from metapool.metapool import (bcl_scrub_name, sequencer_i5_index,
-                               REVCOMP_SEQUENCERS)
-from metapool.plate import ErrorMessage, WarningMessage, PlateReplication
+                               REVCOMP_SEQUENCERS, TUBECODE_KEY)
+from metapool.plate import ErrorMessage, WarningMessage, PlateReplication, \
+    parse_project_name
 from metapool.controls import SAMPLE_NAME_KEY, SAMPLE_CONTEXT_COLS, \
     get_all_projects_in_context, is_blank, get_controls_details_from_context, \
     make_manual_control_details
@@ -879,16 +880,9 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
         bioinformatics = self.Bioinformatics
         for curr_project_record in bioinformatics.to_dict(orient='records'):
-            curr_qiita_id = curr_project_record[SS_QIITA_ID_KEY]
             curr_full_project_name = curr_project_record[SS_SAMPLE_PROJECT_KEY]
-            curr_short_project_name = re.sub(
-                f'_{curr_qiita_id}$', '', curr_full_project_name)
-
-            curr_proj_dict = {
-                QIITA_ID_KEY: curr_qiita_id,
-                PROJECT_SHORT_NAME_KEY: curr_short_project_name,
-                PROJECT_FULL_NAME_KEY: curr_full_project_name,
-                SAMPLES_KEY: {}}
+            curr_proj_dict = parse_project_name(curr_full_project_name)
+            curr_proj_dict[SAMPLES_KEY] = {}
 
             if CONTAINS_REPLICATES_KEY in curr_project_record:
                 curr_proj_dict[CONTAINS_REPLICATES_KEY] = \
@@ -1173,7 +1167,7 @@ class MetagenomicSampleSheetv101(KLSampleSheet):
 
     # columns present in a pre-prep file (amplicon) that included katharoseq
     # controls. Presumably we will need these same columns in a sample-sheet.
-    optional_katharoseq_columns = ['Kathseq_RackID', 'TubeCode',
+    optional_katharoseq_columns = ['Kathseq_RackID', TUBECODE_KEY,
                                    'katharo_description',
                                    'number_of_cells',
                                    'platemap_generation_date',
