@@ -8,6 +8,11 @@ import pandas as pd
 import sample_sheet
 from json import loads
 
+from metapool.literals import (QIITA_ID_KEY, PROJECT_SHORT_NAME_KEY,
+                               PROJECT_FULL_NAME_KEY, CONTAINS_REPLICATES_KEY,
+                               SAMPLES_KEY, SAMPLE_PROJECT_KEY, ORIG_NAME_KEY,
+                               SAMPLE_NAME_KEY, SAMPLE_TYPE_KEY,
+                               PRIMARY_STUDY_KEY, SECONDARY_STUDIES_KEY)
 from metapool.metapool import TUBECODE_KEY
 from metapool.sample_sheet import (KLSampleSheet, AmpliconSampleSheet,
                                    MetagenomicSampleSheetv102,
@@ -20,14 +25,8 @@ from metapool.sample_sheet import (KLSampleSheet, AmpliconSampleSheet,
                                    sample_sheet_to_dataframe,
                                    make_sample_sheet, load_sample_sheet,
                                    demux_sample_sheet, sheet_needs_demuxing,
-                                   QIITA_ID_KEY, PROJECT_SHORT_NAME_KEY,
-                                   PROJECT_FULL_NAME_KEY,
-                                   CONTAINS_REPLICATES_KEY, SAMPLES_KEY,
-                                   SAMPLE_PROJECT_KEY, SS_SAMPLE_ID_KEY,
-                                   ORIG_NAME_KEY)
+                                   SS_SAMPLE_ID_KEY)
 from metapool.plate import ErrorMessage, WarningMessage
-from metapool.controls import SAMPLE_NAME_KEY, SAMPLE_TYPE_KEY, \
-    PRIMARY_STUDY_KEY, SECONDARY_STUDIES_KEY
 
 
 # Default KLSampleSheet objects don't have a `contains_replicates`

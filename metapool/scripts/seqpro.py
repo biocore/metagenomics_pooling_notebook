@@ -7,7 +7,7 @@ from os.path import abspath
 
 from metapool import (preparations_for_run, load_sample_sheet,
                       sample_sheet_to_dataframe, run_counts,
-                      get_short_name_and_id)
+                      get_qiita_id_from_project_name)
 
 
 @click.command()
@@ -75,7 +75,7 @@ def format_preparation_files(run_dir, sample_sheet, output_dir, verbose):
         if verbose:
             # assume qiita_id is extractable and is an integer, given that
             # we have already passed error-checking.
-            _, qiita_id = get_short_name_and_id(project)
+            qiita_id = get_qiita_id_from_project_name(project)
             print("%s\t%s" % (qiita_id, abspath(fp)))
 
 

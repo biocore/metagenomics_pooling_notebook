@@ -8,88 +8,96 @@ from json import loads as json_loads
 import sample_sheet
 import pandas as pd
 from types import MappingProxyType
+from metapool.literals import parse_project_name, \
+    get_qiita_id_from_project_name, \
+    SAMPLES_KEY, SAMPLE_NAME_KEY, SAMPLE_PROJECT_KEY, \
+    CONTAINS_REPLICATES_KEY, ORIG_NAME_KEY, EXPT_DESIGN_DESC_KEY, \
+    PM_PROJECT_NAME_KEY, PM_PROJECT_PLATE_KEY, PM_BLANK_KEY
 from metapool.metapool import (bcl_scrub_name, sequencer_i5_index,
                                REVCOMP_SEQUENCERS, TUBECODE_KEY)
-from metapool.plate import ErrorMessage, WarningMessage, PlateReplication, \
-    parse_project_name
-from metapool.controls import SAMPLE_NAME_KEY, SAMPLE_CONTEXT_COLS, \
+from metapool.plate import ErrorMessage, WarningMessage, PlateReplication
+from metapool.controls import SAMPLE_CONTEXT_COLS, \
     get_all_projects_in_context, is_blank, get_controls_details_from_context, \
-    make_manual_control_details
+    make_manual_control_details, generate_sample_context
 
-BIOINFORMATICS_KEY = 'Bioinformatics'
-CONTACT_KEY = 'Contact'
-SAMPLE_CONTEXT_KEY = 'SampleContext'
+_BIOINFORMATICS_KEY = 'Bioinformatics'
+_CONTACT_KEY = 'Contact'
+_SAMPLE_CONTEXT_KEY = 'SampleContext'
+_HEADER_KEY = 'Header'
+_READS_KEY = 'Reads'
+_SETTINGS_KEY = 'Settings'
+_DATA_KEY = 'Data'
+_ASSAY_KEY = 'Assay'
+_SS_SAMPLE_PROJECT_KEY = 'Sample_Project'
+_SS_QIITA_ID_KEY = 'QiitaID'
+_SS_SAMPLE_NAME_KEY = 'Sample_Name'
+_EXPERIMENT_NAME_KEY = 'Experiment Name'
+_EMAIL_KEY = 'Email'
+_HUMAN_FILTERING_KEY = 'HumanFiltering'
+_SHEET_TYPE_KEY = 'SheetType'
+_SHEET_VERSION_KEY = 'SheetVersion'
 
 _AMPLICON = 'TruSeq HT'
-_METAGENOMIC = 'Metagenomic'
-_METATRANSCRIPTOMIC = 'Metatranscriptomic'
 _STANDARD_METAG_SHEET_TYPE = 'standard_metag'
 _STANDARD_METAT_SHEET_TYPE = 'standard_metat'
 _DUMMY_SHEET_TYPE = 'dummy_amp'
 _ABSQUANT_SHEET_TYPE = 'abs_quant_metag'
-SHEET_TYPES = (_STANDARD_METAG_SHEET_TYPE, _ABSQUANT_SHEET_TYPE,
-               _STANDARD_METAT_SHEET_TYPE)
+_PLACEHOLDER_EXPT_NAME = 'RKL_experiment'
 
-HEADER_KEY = 'Header'
-READS_KEY = 'Reads'
-SETTINGS_KEY = 'Settings'
-DATA_KEY = 'Data'
-ASSAY_KEY = 'Assay'
-SS_SAMPLE_PROJECT_KEY = 'Sample_Project'
-SS_QIITA_ID_KEY = 'QiitaID'
-SS_SAMPLE_NAME_KEY = 'Sample_Name'
+# NB: These two string literals are assigned to (totally independent) public
+# constants in the qp_klp Step module, and then used throughout qp_klp.  I
+# don't know if those literals and these come from the same place (in
+# which case they should share a single definition), or whether they just
+# happen coincidentally to be the same, in which case they probably shouldn't.
+_METAGENOMIC = 'Metagenomic'
+_METATRANSCRIPTOMIC = 'Metatranscriptomic'
+
 SS_SAMPLE_ID_KEY = 'Sample_ID'
-ORIG_NAME_KEY = 'orig_name'
-CONTAINS_REPLICATES_KEY = 'contains_replicates'
-SAMPLES_KEY = 'samples'
-PROJECT_SHORT_NAME_KEY = 'short_project_name'
-PROJECT_FULL_NAME_KEY = 'full_project_name'
-QIITA_ID_KEY = 'qiita_id'
-SAMPLE_PROJECT_KEY = 'sample_project'
+
 
 # MappingProxyType is used to make the dictionary immutable.
 # NOTE that key order is (a) important and (b) preserved; as of Python 3.7,
 # insertion order is preserved in dictionaries (cite:
 # https://mail.python.org/pipermail/python-dev/2017-December/151283.html ).
 _BASE_BIOINFORMATICS_COLS = MappingProxyType(
-    {SS_SAMPLE_PROJECT_KEY: str,
-     SS_QIITA_ID_KEY: str,
+    {_SS_SAMPLE_PROJECT_KEY: str,
+     _SS_QIITA_ID_KEY: str,
      'BarcodesAreRC': bool,
      'ForwardAdapter': str,
      'ReverseAdapter': str,
-     'HumanFiltering': bool,
+     _HUMAN_FILTERING_KEY: bool,
      'library_construction_protocol': str,
-     'experiment_design_description': str
+     EXPT_DESIGN_DESC_KEY: str
      })
 _BIOINFORMATICS_COLS_W_REP_SUPPORT = MappingProxyType(
     _BASE_BIOINFORMATICS_COLS.copy() | {CONTAINS_REPLICATES_KEY: bool})
 _CONTACT_COLS = MappingProxyType({
-    SS_SAMPLE_PROJECT_KEY: str,
-    'Email': str})
+    _SS_SAMPLE_PROJECT_KEY: str,
+    _EMAIL_KEY: str})
 
 
 class KLSampleSheet(sample_sheet.SampleSheet):
     _ASSAYS = frozenset({_AMPLICON, _METAGENOMIC, _METATRANSCRIPTOMIC})
     _BIOINFORMATICS_AND_CONTACT = {
-        BIOINFORMATICS_KEY: None,
-        CONTACT_KEY: None
+        _BIOINFORMATICS_KEY: None,
+        _CONTACT_KEY: None
     }
 
-    KL_ADDTL_DF_SECTIONS = {
-        BIOINFORMATICS_KEY: _BASE_BIOINFORMATICS_COLS,
-        CONTACT_KEY: _CONTACT_COLS,
+    _KL_ADDTL_DF_SECTIONS = {
+        _BIOINFORMATICS_KEY: _BASE_BIOINFORMATICS_COLS,
+        _CONTACT_KEY: _CONTACT_COLS,
     }
 
     _HEADER = {
         'IEMFileVersion': '4',
-        'SheetType': None,
-        'SheetVersion': None,
+        _SHEET_TYPE_KEY: None,
+        _SHEET_VERSION_KEY: None,
         'Investigator Name': 'Knight',
-        'Experiment Name': 'RKL_experiment',
+        _EXPERIMENT_NAME_KEY: _PLACEHOLDER_EXPT_NAME,
         'Date': None,
         'Workflow': 'GenerateFASTQ',
         'Application': 'FASTQ Only',
-        ASSAY_KEY: None,
+        _ASSAY_KEY: None,
         'Description': '',
         'Chemistry': 'Default',
     }
@@ -108,19 +116,19 @@ class KLSampleSheet(sample_sheet.SampleSheet):
     _ALL_METADATA = {**_HEADER, **_SETTINGS, **_READS,
                      **_BIOINFORMATICS_AND_CONTACT}
 
-    sections = (HEADER_KEY, READS_KEY, SETTINGS_KEY, DATA_KEY,
-                BIOINFORMATICS_KEY, CONTACT_KEY)
+    sections = (_HEADER_KEY, _READS_KEY, _SETTINGS_KEY, _DATA_KEY,
+                _BIOINFORMATICS_KEY, _CONTACT_KEY)
 
-    data_columns = (SS_SAMPLE_ID_KEY, SS_SAMPLE_NAME_KEY, 'Sample_Plate',
+    data_columns = (SS_SAMPLE_ID_KEY, _SS_SAMPLE_NAME_KEY, 'Sample_Plate',
                     'Sample_Well', 'I7_Index_ID', 'index', 'I5_Index_ID',
-                    'index2', SS_SAMPLE_PROJECT_KEY, 'Well_description')
+                    'index2', _SS_SAMPLE_PROJECT_KEY, 'Well_description')
 
     column_alts = {'well_description': 'Well_description',
                    'description': 'Well_description',
                    'Description': 'Well_description',
                    'sample_plate': 'Sample_Plate'}
 
-    CARRIED_PREP_COLUMNS = ['experiment_design_description', 'i5_index_id',
+    CARRIED_PREP_COLUMNS = [EXPT_DESIGN_DESC_KEY, 'i5_index_id',
                             'i7_index_id', 'index', 'index2',
                             'library_construction_protocol',
                             SAMPLE_NAME_KEY,
@@ -213,8 +221,8 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             if show_warning:
                 message = (f"Comments at the beginning of the sample sheet "
                            f"are no longer supported. This information will "
-                           f"be ignored. Please use the {CONTACT_KEY} section "
-                           f"instead")
+                           f"be ignored. Please use the {_CONTACT_KEY} "
+                           f"section instead")
                 warnings.warn(message)
 
             for i, line in enumerate(lines):
@@ -253,26 +261,26 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                     continue
 
                 # [Reads] - vertical list of integers.
-                if section_name == READS_KEY:
+                if section_name == _READS_KEY:
                     self.Reads.append(int(line[0]))
                     continue
 
                 # [Data] - delimited data with the first line a header.
-                elif section_name == DATA_KEY:
+                elif section_name == _DATA_KEY:
                     if section_header is not None:
                         self.add_sample(
                             sample_sheet.Sample(dict(zip(section_header,
                                                          line))))
                     elif any(key == '' for key in line):
                         raise ValueError(
-                            f'Header for [{DATA_KEY}] section is not allowed '
+                            f'Header for [{_DATA_KEY}] section is not allowed '
                             f'to have empty fields: {line}'
                         )
                     else:
                         section_header = self._process_section_header(line)
                     continue
 
-                elif section_name in self.KL_ADDTL_DF_SECTIONS:
+                elif section_name in self._KL_ADDTL_DF_SECTIONS:
                     if getattr(self, section_name) is not None:
                         # vals beyond the header are empty values so don't add
                         # them
@@ -321,7 +329,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 return 0
             return len(section_df.columns)
 
-        section_lens = list(map(_get_section_len, self.KL_ADDTL_DF_SECTIONS))
+        section_lens = list(map(_get_section_len, self._KL_ADDTL_DF_SECTIONS))
         # NB: the added [2] ensures the list always contains at least the value
         # 2, which is the default number of columns if all others are zero.
         all_lens = [len(self.all_sample_keys)] + section_lens + [2]
@@ -341,20 +349,20 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             writer.writerow(pad_iterable([f'[{title}]'], csv_width))
 
             # Data is not a section in this class
-            if title != DATA_KEY:
+            if title != _DATA_KEY:
                 section = getattr(self, title)
 
-            if title == READS_KEY:
+            if title == _READS_KEY:
                 for read in self.Reads:
                     writer.writerow(pad_iterable([read], csv_width))
-            elif title == DATA_KEY:
+            elif title == _DATA_KEY:
                 writer.writerow(pad_iterable(self.all_sample_keys, csv_width))
 
                 for sample in self.samples:
                     line = [getattr(sample, k) for k in self.all_sample_keys]
                     writer.writerow(pad_iterable(line, csv_width))
 
-            elif title in self.KL_ADDTL_DF_SECTIONS:
+            elif title in self._KL_ADDTL_DF_SECTIONS:
                 if section is not None:
                     # these sections are represented as DataFrame objects
                     writer.writerow(pad_iterable(section.columns.tolist(),
@@ -387,13 +395,13 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             merged sheets.
         """
         for number, sheet in enumerate(sheets):
-            for section in [HEADER_KEY, SETTINGS_KEY, READS_KEY]:
+            for section in [_HEADER_KEY, _SETTINGS_KEY, _READS_KEY]:
                 this, that = getattr(self, section), getattr(sheet, section)
 
                 # For the Header section we'll ignore the Date field since that
                 # is likely to be different but shouldn't be a condition to
                 # prevent merging two sheets.
-                if section == HEADER_KEY:
+                if section == _HEADER_KEY:
                     if this is not None:
                         this = {k: v for k, v in this.items() if k != 'Date'}
                     if that is not None:
@@ -407,7 +415,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 self.add_sample(sample)
 
             # these sections are data frames
-            for section in self.KL_ADDTL_DF_SECTIONS:
+            for section in self._KL_ADDTL_DF_SECTIONS:
                 this, that = getattr(self, section), getattr(sheet, section)
 
                 # if both frames are not None then we concatenate the rows.
@@ -469,7 +477,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         # Well_description column is now defined here as the concatenation
         # of the following columns. If the column existed previously it will
         # be overwritten, otherwise it will be created here.
-        well_description = table['Project Plate'].astype(str) + "." + \
+        well_description = table[PM_PROJECT_PLATE_KEY].astype(str) + "." + \
             table['Sample'].astype(str) + "." + table['Well'].astype(str)
 
         table = self._remap_table(table, strict)
@@ -523,11 +531,11 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                     self.Header[metadata_key] = \
                         metadata.get(metadata_key, self._HEADER[metadata_key])
 
-            elif metadata_key in self.KL_ADDTL_DF_SECTIONS:
+            elif metadata_key in self._KL_ADDTL_DF_SECTIONS:
                 # order the df columns to match the expected order
                 temp_df = pd.DataFrame(metadata[metadata_key])
                 col_order = \
-                    list(self.KL_ADDTL_DF_SECTIONS[metadata_key].keys())
+                    list(self._KL_ADDTL_DF_SECTIONS[metadata_key].keys())
                 if set(col_order) != set(temp_df.columns):
                     raise ErrorMessage(
                         f"Columns in {metadata_key} section do not match "
@@ -537,11 +545,11 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
         # Per MacKenzie's request for 16S don't include Investigator Name and
         # Experiment Name
-        if metadata[ASSAY_KEY] == _AMPLICON:
+        if metadata[_ASSAY_KEY] == _AMPLICON:
             if 'Investigator Name' in self.Header:
                 del self.Header['Investigator Name']
-            if 'Experiment Name' in self.Header:
-                del self.Header['Experiment Name']
+            if _EXPERIMENT_NAME_KEY in self.Header:
+                del self.Header[_EXPERIMENT_NAME_KEY]
 
             # these are only relevant for metagenomics because they are used in
             # bclconvert
@@ -640,17 +648,17 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         for column in self._get_expected_columns():
             if column not in self.all_sample_keys:
                 msgs.append(ErrorMessage(f'The {column} column in the '
-                                         f'{DATA_KEY} section is missing'))
+                                         f'{_DATA_KEY} section is missing'))
 
         # All children of sample_sheet.SampleSheet will have the following four
         # sections defined: ['Header', 'Reads', 'Settings', 'Data']. All
         # children of KLSampleSheet will have their columns defined in
         # child.sections. We will test only for the difference between these
         # two sets.
-        for section in set(type(self).sections).difference({HEADER_KEY,
-                                                            READS_KEY,
-                                                            SETTINGS_KEY,
-                                                            DATA_KEY}):
+        for section in set(type(self).sections).difference({_HEADER_KEY,
+                                                            _READS_KEY,
+                                                            _SETTINGS_KEY,
+                                                            _DATA_KEY}):
             if getattr(self, section) is None:
                 msgs.append(ErrorMessage(f'The {section} section cannot be '
                                          'empty'))
@@ -661,39 +669,39 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         for attribute in type(self)._HEADER:
             if attribute not in self.Header:
                 msgs.append(ErrorMessage(f"'{attribute}' is not declared in "
-                                         f"{HEADER_KEY} section"))
+                                         f"{_HEADER_KEY} section"))
 
         # Manually populated entries can be arbitrary. Ensure a minimal degree
         # of type consistency.
-        expected_assay_type = type(self)._HEADER[ASSAY_KEY]
-        if ASSAY_KEY in self.Header:
-            if self.Header[ASSAY_KEY] != expected_assay_type:
-                msgs.append(ErrorMessage(f"'{ASSAY_KEY}' value is not "
+        expected_assay_type = type(self)._HEADER[_ASSAY_KEY]
+        if _ASSAY_KEY in self.Header:
+            if self.Header[_ASSAY_KEY] != expected_assay_type:
+                msgs.append(ErrorMessage(f"'{_ASSAY_KEY}' value is not "
                                          f"'{expected_assay_type}'"))
 
         # For sheets that were created by loading in a sample-sheet file,
         # confirm that the SheetType in the file is what is expected from
         # the child class. This helps w/trial-and-error loads that use
         # validation to load a random sample-sheet into the correct class.
-        expected_sheet_type = type(self)._HEADER['SheetType']
-        if self.Header['SheetType'] != expected_sheet_type:
-            msgs.append(ErrorMessage("'SheetType' value is not "
+        expected_sheet_type = type(self)._HEADER[_SHEET_TYPE_KEY]
+        if self.Header[_SHEET_TYPE_KEY] != expected_sheet_type:
+            msgs.append(ErrorMessage(f"'{_SHEET_TYPE_KEY}' value is not "
                                      f"'{expected_sheet_type}'"))
 
-        expected_sheet_version = int(type(self)._HEADER['SheetVersion'])
+        expected_sheet_version = int(type(self)._HEADER[_SHEET_VERSION_KEY])
 
         # sanitize sample-sheet SheetVersion before attempting to convert to
         # int() type. Remove any additional enclosing quotes.
-        sheet_version = list(self.Header['SheetVersion'])
+        sheet_version = list(self.Header[_SHEET_VERSION_KEY])
         sheet_version = [c for c in sheet_version if c not in ['"', "'"]]
         try:
             sheet_version = int(''.join(sheet_version))
         except ValueError:
-            msgs.append(ErrorMessage(f"'{self.Header['SheetVersion']}' does"
-                                     "not look like a valid value"))
+            msgs.append(ErrorMessage(f"'{self.Header[_SHEET_VERSION_KEY]}' "
+                                     f"does not look like a valid value"))
 
         if sheet_version != expected_sheet_version:
-            msgs.append(ErrorMessage("'SheetVersion' value is not "
+            msgs.append(ErrorMessage(f"'{_SHEET_VERSION_KEY}' value is not "
                                      f"'{expected_sheet_version}'"))
 
         # if any errors are found up to this point then we can't continue with
@@ -703,7 +711,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
         # we track the updated projects as a dictionary so we can propagate
         # these changes to the Bioinformatics and Contact sections.
-        # I think it's not necessary to update the SAMPLE_CONTEXT_KEY section
+        # I think it's not necessary to update the _SAMPLE_CONTEXT_KEY section
         # because it uses qiita study ids, not project names, and qiita
         # study ids are not scrubbed.
         updated_samples, updated_projects = [], {}
@@ -716,7 +724,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 sample.Sample_ID = new_sample
             if new_project != sample.Sample_Project:
                 updated_projects[sample.Sample_Project] = new_project
-                sample[SS_SAMPLE_PROJECT_KEY] = new_project
+                sample[_SS_SAMPLE_PROJECT_KEY] = new_project
 
         if updated_samples:
             msgs.append(WarningMessage('The following sample names were '
@@ -726,7 +734,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             msgs.append(WarningMessage(
                 f"The following project names were scrubbed for bcl2fastq "
                 f"compatibility. If the same invalid characters are "
-                f"also found in the {BIOINFORMATICS_KEY} and {CONTACT_KEY} "
+                f"also found in the {_BIOINFORMATICS_KEY} and {_CONTACT_KEY} "
                 f"sections, those will be automatically scrubbed too:\n"
                 f"{', '.join(sorted(updated_projects))}"))
 
@@ -761,36 +769,36 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             msgs.append(
                 ErrorMessage(
                     f"The following project names in the "
-                    f"{SS_SAMPLE_PROJECT_KEY} column are missing a Qiita "
+                    f"{_SS_SAMPLE_PROJECT_KEY} column are missing a Qiita "
                     f"study identifier: "
                     f"{', '.join(sorted(bad_projects))}"))
 
         # check that the bioinformatics and data sections have the exact
         # same list of projects in them
-        bfx_project_names = set(self.Bioinformatics[SS_SAMPLE_PROJECT_KEY])
+        bfx_project_names = set(self.Bioinformatics[_SS_SAMPLE_PROJECT_KEY])
         not_shared = data_project_names ^ bfx_project_names
         if not_shared:
             msgs.append(
                 ErrorMessage(
-                    f"The following projects need to be in the {DATA_KEY} and "
-                    f"{BIOINFORMATICS_KEY} sections: "
+                    f"The following projects need to be in the {_DATA_KEY} "
+                    f"and {_BIOINFORMATICS_KEY} sections: "
                     f"{', '.join(sorted(not_shared))}"))
 
         # contact and sample context don't have to have every project in the
         # bioinformatics section, but they can't have any project that ISN'T
         # in the bioinformatics section!
         # NB:below logic works even if there ISN'T a sample context section
-        contact_project_names = set(self.Contact[SS_SAMPLE_PROJECT_KEY])
+        contact_project_names = set(self.Contact[_SS_SAMPLE_PROJECT_KEY])
         sample_context_project_ids = get_all_projects_in_context(
-            getattr(self, SAMPLE_CONTEXT_KEY, None))
+            getattr(self, _SAMPLE_CONTEXT_KEY, None))
 
         # for each section, the below lists the expected superset and the
         # expected subset.  Note that contacts compares project names, while
         # sample context compares qiita study ids.
         subset_sections = {
-            CONTACT_KEY: (bfx_project_names, contact_project_names),
-            SAMPLE_CONTEXT_KEY: (set(self.Bioinformatics[SS_QIITA_ID_KEY]),
-                                 set(sample_context_project_ids))}
+            _CONTACT_KEY: (bfx_project_names, contact_project_names),
+            _SAMPLE_CONTEXT_KEY: (set(self.Bioinformatics[_SS_QIITA_ID_KEY]),
+                                  set(sample_context_project_ids))}
         for curr_section, curr_sets in subset_sections.items():
             curr_missing_projects = curr_sets[1] - curr_sets[0]
             if len(curr_missing_projects) > 0:
@@ -798,9 +806,9 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                     f"The following projects were only found in the "
                     f"{curr_section} section: "
                     f"{', '.join(sorted(curr_missing_projects))}. "
-                    f"Projects need to be listed in the {DATA_KEY} and "
-                    f"{BIOINFORMATICS_KEY} section in order to be included in "
-                    f"the {curr_section} section.")))
+                    f"Projects need to be listed in the {_DATA_KEY} and "
+                    f"{_BIOINFORMATICS_KEY} section in order to be included "
+                    f"in the {curr_section} section.")))
             # end if there are missing projects for this section
         # next section to check
 
@@ -832,17 +840,17 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         samples_details = self._get_samples_details()
         if sample_name not in samples_details:
             raise ValueError(f"Sample '{sample_name}' not found in the "
-                             f"{DATA_KEY} section")
+                             f"{_DATA_KEY} section")
         # endif sample not found
 
-        sample_context = getattr(self, SAMPLE_CONTEXT_KEY, None)
+        sample_context = getattr(self, _SAMPLE_CONTEXT_KEY, None)
         # NB: this can be run with a null sample context, so no worries :)
         return is_blank(sample_name, sample_context)
 
     def get_controls_details(self):
         """Get the control details from the sample sheet."""
         controls_details = {}
-        sample_context = getattr(self, SAMPLE_CONTEXT_KEY, None)
+        sample_context = getattr(self, _SAMPLE_CONTEXT_KEY, None)
         if sample_context is not None:
             controls_details = \
                 get_controls_details_from_context(sample_context)
@@ -853,17 +861,17 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             # (e.g., MIDAS_10317:10317 and TMI_10317:10317 is acceptable, but
             # MIDAS_10317:10317 and MIDAS_10317:10318 is not).
             proj_name_to_qiita_id_df = self.Bioinformatics[
-                [SS_SAMPLE_PROJECT_KEY, SS_QIITA_ID_KEY]]
+                [_SS_SAMPLE_PROJECT_KEY, _SS_QIITA_ID_KEY]]
 
             # get the control info out of the Data section
             samples_details = self._get_samples_details()
             for curr_sample_name, curr_details in samples_details.items():
                 if self.sample_is_a_blank(curr_sample_name):
                     curr_name_mask = \
-                        proj_name_to_qiita_id_df[SS_SAMPLE_PROJECT_KEY] == \
+                        proj_name_to_qiita_id_df[_SS_SAMPLE_PROJECT_KEY] == \
                         curr_details[SAMPLE_PROJECT_KEY]
                     curr_qiita_id = proj_name_to_qiita_id_df.loc[
-                        curr_name_mask, SS_QIITA_ID_KEY].tolist()[0]
+                        curr_name_mask, _SS_QIITA_ID_KEY].tolist()[0]
                     new_control_details = make_manual_control_details(
                         curr_sample_name, curr_qiita_id)
                     controls_details[curr_sample_name] = new_control_details
@@ -880,7 +888,8 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
         bioinformatics = self.Bioinformatics
         for curr_project_record in bioinformatics.to_dict(orient='records'):
-            curr_full_project_name = curr_project_record[SS_SAMPLE_PROJECT_KEY]
+            curr_full_project_name = \
+                curr_project_record[_SS_SAMPLE_PROJECT_KEY]
             curr_proj_dict = parse_project_name(curr_full_project_name)
             curr_proj_dict[SAMPLES_KEY] = {}
 
@@ -906,12 +915,12 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         # Since the project-name is stored in an internal variable
         # in a third-party library, convert samples to JSON using the exposed
         # method first.
-        samples = json_loads(self.to_json())[DATA_KEY]
+        samples = json_loads(self.to_json())[_DATA_KEY]
         for curr_sample in samples:
-            curr_sample_name = curr_sample[SS_SAMPLE_NAME_KEY]
+            curr_sample_name = curr_sample[_SS_SAMPLE_NAME_KEY]
             curr_sample_dict = {
                 SAMPLE_NAME_KEY: curr_sample_name,
-                SAMPLE_PROJECT_KEY: curr_sample[SS_SAMPLE_PROJECT_KEY],
+                SAMPLE_PROJECT_KEY: curr_sample[_SS_SAMPLE_PROJECT_KEY],
                 SS_SAMPLE_ID_KEY: curr_sample[SS_SAMPLE_ID_KEY]}
 
             if ORIG_NAME_KEY in curr_sample:
@@ -924,7 +933,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
     def _normalize_df_sections_booleans(self):
         msgs = []
-        for curr_section_name in self.KL_ADDTL_DF_SECTIONS:
+        for curr_section_name in self._KL_ADDTL_DF_SECTIONS:
             if hasattr(self, curr_section_name) and \
                     getattr(self, curr_section_name) is not None:
                 msgs += self._normalize_section_booleans(curr_section_name)
@@ -950,7 +959,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             return x
 
         section = getattr(self, section_name)
-        col_info = self.KL_ADDTL_DF_SECTIONS[section_name]
+        col_info = self._KL_ADDTL_DF_SECTIONS[section_name]
         for col_name, col_type in col_info.items():
             if col_type is bool:
                 if col_name in section:
@@ -964,7 +973,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
         # Note: this method is used by all sample sheets, and not all
         # sample sheets include SampleContext, so it is not listed here.
-        for req in [ASSAY_KEY, BIOINFORMATICS_KEY, CONTACT_KEY]:
+        for req in [_ASSAY_KEY, _BIOINFORMATICS_KEY, _CONTACT_KEY]:
             if req not in metadata:
                 msgs.append(ErrorMessage('%s is a required attribute' % req))
 
@@ -972,8 +981,8 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         # extra dataframe sections are present; note that checks for the
         # contents (as opposed to mere presence) are done in the sample sheet
         # validation routine
-        if BIOINFORMATICS_KEY in metadata and CONTACT_KEY in metadata:
-            for section, cols_info in self.KL_ADDTL_DF_SECTIONS.items():
+        if _BIOINFORMATICS_KEY in metadata and _CONTACT_KEY in metadata:
+            for section, cols_info in self._KL_ADDTL_DF_SECTIONS.items():
                 columns = frozenset(cols_info.keys())
 
                 for i, project in enumerate(metadata[section]):
@@ -983,7 +992,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                                    (section, i + 1, ', '.join(sorted(columns)))
                                    )
                         msgs.append(ErrorMessage(message))
-                    if section == BIOINFORMATICS_KEY:
+                    if section == _BIOINFORMATICS_KEY:
                         if (project['library_construction_protocol'] is None or
                                 project[
                                     'library_construction_protocol'] == ''):
@@ -992,18 +1001,18 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                                         'protocol specified') %
                                        (section, i + 1))
                             msgs.append(ErrorMessage(message))
-                        if (project['experiment_design_description'] is None or
+                        if (project[EXPT_DESIGN_DESC_KEY] is None or
                                 project[
-                                    'experiment_design_description'] == ''):
+                                    EXPT_DESIGN_DESC_KEY] == ''):
                             message = (('In the %s section Project #%d does '
                                         'not have experiment_design_'
                                         'description specified') %
                                        (section, i + 1))
                             msgs.append(ErrorMessage(message))
-        if metadata.get(ASSAY_KEY) is not None and metadata[ASSAY_KEY] \
+        if metadata.get(_ASSAY_KEY) is not None and metadata[_ASSAY_KEY] \
                 not in self._ASSAYS:
-            msgs.append(ErrorMessage(f"{metadata[ASSAY_KEY]} is not a "
-                                     f"supported {ASSAY_KEY}"))
+            msgs.append(ErrorMessage(f"{metadata[_ASSAY_KEY]} is not a "
+                                     f"supported {_ASSAY_KEY}"))
 
         keys = set(metadata.keys())
         if not keys.issubset(self._ALL_METADATA):
@@ -1016,17 +1025,17 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
 
 class KLSampleSheetWithSampleContext(KLSampleSheet):
-    KL_ADDTL_DF_SECTIONS = {
-        BIOINFORMATICS_KEY: _BASE_BIOINFORMATICS_COLS,
-        CONTACT_KEY: _CONTACT_COLS,
-        SAMPLE_CONTEXT_KEY: SAMPLE_CONTEXT_COLS
+    _KL_ADDTL_DF_SECTIONS = {
+        _BIOINFORMATICS_KEY: _BASE_BIOINFORMATICS_COLS,
+        _CONTACT_KEY: _CONTACT_COLS,
+        _SAMPLE_CONTEXT_KEY: SAMPLE_CONTEXT_COLS
     }
 
     _ALL_METADATA = KLSampleSheet._ALL_METADATA.copy()
-    _ALL_METADATA[SAMPLE_CONTEXT_KEY] = None
+    _ALL_METADATA[_SAMPLE_CONTEXT_KEY] = None
 
-    sections = (HEADER_KEY, READS_KEY, SETTINGS_KEY, DATA_KEY,
-                BIOINFORMATICS_KEY, CONTACT_KEY, SAMPLE_CONTEXT_KEY)
+    sections = (_HEADER_KEY, _READS_KEY, _SETTINGS_KEY, _DATA_KEY,
+                _BIOINFORMATICS_KEY, _CONTACT_KEY, _SAMPLE_CONTEXT_KEY)
 
     def __new__(cls, path=None, *args, **kwargs):
         """
@@ -1064,20 +1073,20 @@ class KLSampleSheetWithSampleContext(KLSampleSheet):
 class AmpliconSampleSheet(KLSampleSheet):
     _HEADER = {
         'IEMFileVersion': '4',
-        'SheetType': _DUMMY_SHEET_TYPE,
-        'SheetVersion': '0',
+        _SHEET_TYPE_KEY: _DUMMY_SHEET_TYPE,
+        _SHEET_VERSION_KEY: '0',
         # Per MacKenzie's request, these are removed if found.
         # 'Investigator Name': 'Knight',
         # 'Experiment Name': 'RKL_experiment',
         'Date': None,
         'Workflow': 'GenerateFASTQ',
         'Application': 'FASTQ Only',
-        ASSAY_KEY: _AMPLICON,
+        _ASSAY_KEY: _AMPLICON,
         'Description': '',
         'Chemistry': 'Default',
     }
 
-    CARRIED_PREP_COLUMNS = ['experiment_design_description', 'i5_index_id',
+    CARRIED_PREP_COLUMNS = [EXPT_DESIGN_DESC_KEY, 'i5_index_id',
                             'i7_index_id', 'index', 'index2',
                             'library_construction_protocol',
                             SAMPLE_NAME_KEY,
@@ -1088,12 +1097,12 @@ class AmpliconSampleSheet(KLSampleSheet):
         super().__init__(path)
         self.remapper = {
             'sample sheet Sample_ID': SS_SAMPLE_ID_KEY,
-            'Sample': SS_SAMPLE_NAME_KEY,
-            'Project Plate': 'Sample_Plate',
+            'Sample': _SS_SAMPLE_NAME_KEY,
+            PM_PROJECT_PLATE_KEY: 'Sample_Plate',
             'Well': 'Sample_Well',
             'Name': 'I7_Index_ID',
             'Golay Barcode': 'index',
-            'Project Name': SS_SAMPLE_PROJECT_KEY,
+            PM_PROJECT_NAME_KEY: _SS_SAMPLE_PROJECT_KEY,
         }
 
 
@@ -1103,14 +1112,14 @@ class MetagenomicSampleSheetv102(KLSampleSheetWithSampleContext):
     # metagenomic sample sheet that includes the SampleContext section.
     _HEADER = {
         'IEMFileVersion': '4',
-        'SheetType': _STANDARD_METAG_SHEET_TYPE,
-        'SheetVersion': '102',
+        _SHEET_TYPE_KEY: _STANDARD_METAG_SHEET_TYPE,
+        _SHEET_VERSION_KEY: '102',
         'Investigator Name': 'Knight',
-        'Experiment Name': 'RKL_experiment',
+        _EXPERIMENT_NAME_KEY: _PLACEHOLDER_EXPT_NAME,
         'Date': None,
         'Workflow': 'GenerateFASTQ',
         'Application': 'FASTQ Only',
-        ASSAY_KEY: _METAGENOMIC,
+        _ASSAY_KEY: _METAGENOMIC,
         'Description': '',
         'Chemistry': 'Default',
     }
@@ -1118,11 +1127,11 @@ class MetagenomicSampleSheetv102(KLSampleSheetWithSampleContext):
     # Note that there doesn't appear to be a difference between 95, 99, and 100
     # beyond the value observed in 'Well_description' column. The real
     # difference is between standard_metag and abs_quant_metag.
-    data_columns = [SS_SAMPLE_ID_KEY, SS_SAMPLE_NAME_KEY, 'Sample_Plate',
+    data_columns = [SS_SAMPLE_ID_KEY, _SS_SAMPLE_NAME_KEY, 'Sample_Plate',
                     'well_id_384', 'I7_Index_ID', 'index', 'I5_Index_ID',
-                    'index2', SS_SAMPLE_PROJECT_KEY, 'Well_description']
+                    'index2', _SS_SAMPLE_PROJECT_KEY, 'Well_description']
 
-    CARRIED_PREP_COLUMNS = ['experiment_design_description', 'i5_index_id',
+    CARRIED_PREP_COLUMNS = [EXPT_DESIGN_DESC_KEY, 'i5_index_id',
                             'i7_index_id', 'index', 'index2',
                             'library_construction_protocol',
                             SAMPLE_NAME_KEY,
@@ -1133,14 +1142,14 @@ class MetagenomicSampleSheetv102(KLSampleSheetWithSampleContext):
         super().__init__(path=path)
         self.remapper = {
             'sample sheet Sample_ID': SS_SAMPLE_ID_KEY,
-            'Sample': SS_SAMPLE_NAME_KEY,
-            'Project Plate': 'Sample_Plate',
+            'Sample': _SS_SAMPLE_NAME_KEY,
+            PM_PROJECT_PLATE_KEY: 'Sample_Plate',
             'Well': 'well_id_384',
             'i7 name': 'I7_Index_ID',
             'i7 sequence': 'index',
             'i5 name': 'I5_Index_ID',
             'i5 sequence': 'index2',
-            'Project Name': SS_SAMPLE_PROJECT_KEY,
+            PM_PROJECT_NAME_KEY: _SS_SAMPLE_PROJECT_KEY,
         }
 
 
@@ -1149,21 +1158,21 @@ class MetagenomicSampleSheetv101(KLSampleSheet):
 
     _HEADER = {
         'IEMFileVersion': '4',
-        'SheetType': _STANDARD_METAG_SHEET_TYPE,
-        'SheetVersion': '101',
+        _SHEET_TYPE_KEY: _STANDARD_METAG_SHEET_TYPE,
+        _SHEET_VERSION_KEY: '101',
         'Investigator Name': 'Knight',
-        'Experiment Name': 'RKL_experiment',
+        _EXPERIMENT_NAME_KEY: _PLACEHOLDER_EXPT_NAME,
         'Date': None,
         'Workflow': 'GenerateFASTQ',
         'Application': 'FASTQ Only',
-        ASSAY_KEY: _METAGENOMIC,
+        _ASSAY_KEY: _METAGENOMIC,
         'Description': '',
         'Chemistry': 'Default',
     }
 
-    data_columns = [SS_SAMPLE_ID_KEY, SS_SAMPLE_NAME_KEY, 'Sample_Plate',
+    data_columns = [SS_SAMPLE_ID_KEY, _SS_SAMPLE_NAME_KEY, 'Sample_Plate',
                     'well_id_384', 'I7_Index_ID', 'index', 'I5_Index_ID',
-                    'index2', SS_SAMPLE_PROJECT_KEY, 'Well_description']
+                    'index2', _SS_SAMPLE_PROJECT_KEY, 'Well_description']
 
     # columns present in a pre-prep file (amplicon) that included katharoseq
     # controls. Presumably we will need these same columns in a sample-sheet.
@@ -1174,12 +1183,12 @@ class MetagenomicSampleSheetv101(KLSampleSheet):
                                    'project_abbreviation',
                                    'vol_extracted_elution_ul', 'well_id_96']
 
-    KL_ADDTL_DF_SECTIONS = {
-        BIOINFORMATICS_KEY: _BIOINFORMATICS_COLS_W_REP_SUPPORT,
-        CONTACT_KEY: _CONTACT_COLS,
+    _KL_ADDTL_DF_SECTIONS = {
+        _BIOINFORMATICS_KEY: _BIOINFORMATICS_COLS_W_REP_SUPPORT,
+        _CONTACT_KEY: _CONTACT_COLS,
     }
 
-    CARRIED_PREP_COLUMNS = ['experiment_design_description', 'i5_index_id',
+    CARRIED_PREP_COLUMNS = [EXPT_DESIGN_DESC_KEY, 'i5_index_id',
                             'i7_index_id', 'index', 'index2',
                             'library_construction_protocol',
                             SAMPLE_NAME_KEY,
@@ -1190,14 +1199,14 @@ class MetagenomicSampleSheetv101(KLSampleSheet):
         super().__init__(path=path)
         self.remapper = {
             'sample sheet Sample_ID': SS_SAMPLE_ID_KEY,
-            'Sample': SS_SAMPLE_NAME_KEY,
-            'Project Plate': 'Sample_Plate',
+            'Sample': _SS_SAMPLE_NAME_KEY,
+            PM_PROJECT_PLATE_KEY: 'Sample_Plate',
             'Well': 'well_id_384',
             'i7 name': 'I7_Index_ID',
             'i7 sequence': 'index',
             'i5 name': 'I5_Index_ID',
             'i5 sequence': 'index2',
-            'Project Name': SS_SAMPLE_PROJECT_KEY,
+            PM_PROJECT_NAME_KEY: _SS_SAMPLE_PROJECT_KEY,
             'Kathseq_RackID': 'Kathseq_RackID'
         }
 
@@ -1222,7 +1231,7 @@ class MetagenomicSampleSheetv101(KLSampleSheet):
         # this helper method will return True only if a katharo-control
         # sample is found. Note criteria for this method should be kept
         # consistent w/the above method (contains_katharoseq_samples).
-        return table[SS_SAMPLE_NAME_KEY].str.startswith('katharo').any()
+        return table[_SS_SAMPLE_NAME_KEY].str.startswith('katharo').any()
 
     def _get_expected_columns(self, table=None):
         if table is None:
@@ -1245,14 +1254,14 @@ class MetagenomicSampleSheetv101(KLSampleSheet):
 class MetagenomicSampleSheetv100(KLSampleSheet):
     _HEADER = {
         'IEMFileVersion': '4',
-        'SheetType': _STANDARD_METAG_SHEET_TYPE,
-        'SheetVersion': '100',
+        _SHEET_TYPE_KEY: _STANDARD_METAG_SHEET_TYPE,
+        _SHEET_VERSION_KEY: '100',
         'Investigator Name': 'Knight',
-        'Experiment Name': 'RKL_experiment',
+        _EXPERIMENT_NAME_KEY: _PLACEHOLDER_EXPT_NAME,
         'Date': None,
         'Workflow': 'GenerateFASTQ',
         'Application': 'FASTQ Only',
-        ASSAY_KEY: _METAGENOMIC,
+        _ASSAY_KEY: _METAGENOMIC,
         'Description': '',
         'Chemistry': 'Default',
     }
@@ -1260,16 +1269,16 @@ class MetagenomicSampleSheetv100(KLSampleSheet):
     # Note that there doesn't appear to be a difference between 95, 99, and 100
     # beyond the value observed in 'Well_description' column. The real
     # difference is between standard_metag and abs_quant_metag.
-    data_columns = [SS_SAMPLE_ID_KEY, SS_SAMPLE_NAME_KEY, 'Sample_Plate',
+    data_columns = [SS_SAMPLE_ID_KEY, _SS_SAMPLE_NAME_KEY, 'Sample_Plate',
                     'well_id_384', 'I7_Index_ID', 'index', 'I5_Index_ID',
-                    'index2', SS_SAMPLE_PROJECT_KEY, 'Well_description']
+                    'index2', _SS_SAMPLE_PROJECT_KEY, 'Well_description']
 
-    KL_ADDTL_DF_SECTIONS = {
-        BIOINFORMATICS_KEY: _BIOINFORMATICS_COLS_W_REP_SUPPORT,
-        CONTACT_KEY: _CONTACT_COLS,
+    _KL_ADDTL_DF_SECTIONS = {
+        _BIOINFORMATICS_KEY: _BIOINFORMATICS_COLS_W_REP_SUPPORT,
+        _CONTACT_KEY: _CONTACT_COLS,
     }
 
-    CARRIED_PREP_COLUMNS = ['experiment_design_description', 'i5_index_id',
+    CARRIED_PREP_COLUMNS = [EXPT_DESIGN_DESC_KEY, 'i5_index_id',
                             'i7_index_id', 'index', 'index2',
                             'library_construction_protocol',
                             SAMPLE_NAME_KEY,
@@ -1280,14 +1289,14 @@ class MetagenomicSampleSheetv100(KLSampleSheet):
         super().__init__(path=path)
         self.remapper = {
             'sample sheet Sample_ID': SS_SAMPLE_ID_KEY,
-            'Sample': SS_SAMPLE_NAME_KEY,
-            'Project Plate': 'Sample_Plate',
+            'Sample': _SS_SAMPLE_NAME_KEY,
+            PM_PROJECT_PLATE_KEY: 'Sample_Plate',
             'Well': 'well_id_384',
             'i7 name': 'I7_Index_ID',
             'i7 sequence': 'index',
             'i5 name': 'I5_Index_ID',
             'i5 sequence': 'index2',
-            'Project Name': SS_SAMPLE_PROJECT_KEY,
+            PM_PROJECT_NAME_KEY: _SS_SAMPLE_PROJECT_KEY,
         }
 
 
@@ -1300,21 +1309,21 @@ class MetagenomicSampleSheetv90(KLSampleSheet):
     """
     _HEADER = {
         'IEMFileVersion': '4',
-        'SheetType': _STANDARD_METAG_SHEET_TYPE,
-        'SheetVersion': '90',
+        _SHEET_TYPE_KEY: _STANDARD_METAG_SHEET_TYPE,
+        _SHEET_VERSION_KEY: '90',
         'Investigator Name': 'Knight',
-        'Experiment Name': 'RKL_experiment',
+        _EXPERIMENT_NAME_KEY: _PLACEHOLDER_EXPT_NAME,
         'Date': None,
         'Workflow': 'GenerateFASTQ',
         'Application': 'FASTQ Only',
-        ASSAY_KEY: _METAGENOMIC,
+        _ASSAY_KEY: _METAGENOMIC,
         'Description': '',
         'Chemistry': 'Default',
     }
 
     # data_columns are the same as base KLSampleSheet so they will not be
     # overridden here. _BIOINFORMATICS_COLUMNS as well.
-    CARRIED_PREP_COLUMNS = ['experiment_design_description', 'i5_index_id',
+    CARRIED_PREP_COLUMNS = [EXPT_DESIGN_DESC_KEY, 'i5_index_id',
                             'i7_index_id', 'index', 'index2',
                             'library_construction_protocol',
                             SAMPLE_NAME_KEY,
@@ -1325,45 +1334,45 @@ class MetagenomicSampleSheetv90(KLSampleSheet):
         super().__init__(path=path)
         self.remapper = {
             'sample sheet Sample_ID': SS_SAMPLE_ID_KEY,
-            'Sample': SS_SAMPLE_NAME_KEY,
-            'Project Plate': 'Sample_Plate',
+            'Sample': _SS_SAMPLE_NAME_KEY,
+            PM_PROJECT_PLATE_KEY: 'Sample_Plate',
             'Well': 'Sample_Well',
             'i7 name': 'I7_Index_ID',
             'i7 sequence': 'index',
             'i5 name': 'I5_Index_ID',
             'i5 sequence': 'index2',
-            'Project Name': SS_SAMPLE_PROJECT_KEY
+            PM_PROJECT_NAME_KEY: _SS_SAMPLE_PROJECT_KEY
         }
 
 
 class AbsQuantSampleSheetv10(KLSampleSheet):
     _HEADER = {
         'IEMFileVersion': '4',
-        'SheetType': _ABSQUANT_SHEET_TYPE,
-        'SheetVersion': '10',
+        _SHEET_TYPE_KEY: _ABSQUANT_SHEET_TYPE,
+        _SHEET_VERSION_KEY: '10',
         'Investigator Name': 'Knight',
-        'Experiment Name': 'RKL_experiment',
+        _EXPERIMENT_NAME_KEY: _PLACEHOLDER_EXPT_NAME,
         'Date': None,
         'Workflow': 'GenerateFASTQ',
         'Application': 'FASTQ Only',
-        ASSAY_KEY: _METAGENOMIC,
+        _ASSAY_KEY: _METAGENOMIC,
         'Description': '',
         'Chemistry': 'Default',
     }
 
-    data_columns = [SS_SAMPLE_ID_KEY, SS_SAMPLE_NAME_KEY, 'Sample_Plate',
+    data_columns = [SS_SAMPLE_ID_KEY, _SS_SAMPLE_NAME_KEY, 'Sample_Plate',
                     'well_id_384', 'I7_Index_ID', 'index', 'I5_Index_ID',
-                    'index2', SS_SAMPLE_PROJECT_KEY, 'mass_syndna_input_ng',
+                    'index2', _SS_SAMPLE_PROJECT_KEY, 'mass_syndna_input_ng',
                     'extracted_gdna_concentration_ng_ul',
                     'vol_extracted_elution_ul', 'syndna_pool_number',
                     'Well_description']
 
-    KL_ADDTL_DF_SECTIONS = {
-        BIOINFORMATICS_KEY: _BIOINFORMATICS_COLS_W_REP_SUPPORT,
-        CONTACT_KEY: _CONTACT_COLS,
+    _KL_ADDTL_DF_SECTIONS = {
+        _BIOINFORMATICS_KEY: _BIOINFORMATICS_COLS_W_REP_SUPPORT,
+        _CONTACT_KEY: _CONTACT_COLS,
     }
 
-    CARRIED_PREP_COLUMNS = ['experiment_design_description',
+    CARRIED_PREP_COLUMNS = [EXPT_DESIGN_DESC_KEY,
                             'extracted_gdna_concentration_ng_ul',
                             'i5_index_id', 'i7_index_id', 'index', 'index2',
                             'library_construction_protocol',
@@ -1376,14 +1385,14 @@ class AbsQuantSampleSheetv10(KLSampleSheet):
         super().__init__(path=path)
         self.remapper = {
             'sample sheet Sample_ID': SS_SAMPLE_ID_KEY,
-            'Sample': SS_SAMPLE_NAME_KEY,
-            'Project Plate': 'Sample_Plate',
+            'Sample': _SS_SAMPLE_NAME_KEY,
+            PM_PROJECT_PLATE_KEY: 'Sample_Plate',
             'Well': 'well_id_384',
             'i7 name': 'I7_Index_ID',
             'i7 sequence': 'index',
             'i5 name': 'I5_Index_ID',
             'i5 sequence': 'index2',
-            'Project Name': SS_SAMPLE_PROJECT_KEY,
+            PM_PROJECT_NAME_KEY: _SS_SAMPLE_PROJECT_KEY,
             'syndna_pool_number': 'syndna_pool_number',
             'mass_syndna_input_ng': 'mass_syndna_input_ng',
             'extracted_gdna_concentration_ng_ul':
@@ -1396,28 +1405,28 @@ class AbsQuantSampleSheetv10(KLSampleSheet):
 class MetatranscriptomicSampleSheetv0(KLSampleSheet):
     _HEADER = {
         'IEMFileVersion': '4',
-        'SheetType': _STANDARD_METAG_SHEET_TYPE,
-        'SheetVersion': '0',
+        _SHEET_TYPE_KEY: _STANDARD_METAG_SHEET_TYPE,
+        _SHEET_VERSION_KEY: '0',
         'Investigator Name': 'Knight',
-        'Experiment Name': 'RKL_experiment',
+        _EXPERIMENT_NAME_KEY: _PLACEHOLDER_EXPT_NAME,
         'Date': None,
         'Workflow': 'GenerateFASTQ',
         'Application': 'FASTQ Only',
-        ASSAY_KEY: _METATRANSCRIPTOMIC,
+        _ASSAY_KEY: _METATRANSCRIPTOMIC,
         'Description': '',
         'Chemistry': 'Default',
     }
 
-    data_columns = [SS_SAMPLE_ID_KEY, SS_SAMPLE_NAME_KEY, 'Sample_Plate',
+    data_columns = [SS_SAMPLE_ID_KEY, _SS_SAMPLE_NAME_KEY, 'Sample_Plate',
                     'well_id_384', 'I7_Index_ID', 'index', 'I5_Index_ID',
-                    'index2', SS_SAMPLE_PROJECT_KEY, 'Well_description']
+                    'index2', _SS_SAMPLE_PROJECT_KEY, 'Well_description']
 
-    KL_ADDTL_DF_SECTIONS = {
-        BIOINFORMATICS_KEY: _BIOINFORMATICS_COLS_W_REP_SUPPORT,
-        CONTACT_KEY: _CONTACT_COLS,
+    _KL_ADDTL_DF_SECTIONS = {
+        _BIOINFORMATICS_KEY: _BIOINFORMATICS_COLS_W_REP_SUPPORT,
+        _CONTACT_KEY: _CONTACT_COLS,
     }
 
-    CARRIED_PREP_COLUMNS = ['experiment_design_description', 'i5_index_id',
+    CARRIED_PREP_COLUMNS = [EXPT_DESIGN_DESC_KEY, 'i5_index_id',
                             'i7_index_id', 'index', 'index2',
                             'library_construction_protocol',
                             SAMPLE_NAME_KEY,
@@ -1428,28 +1437,28 @@ class MetatranscriptomicSampleSheetv0(KLSampleSheet):
         super().__init__(path=path)
         self.remapper = {
             'sample sheet Sample_ID': SS_SAMPLE_ID_KEY,
-            'Sample': SS_SAMPLE_NAME_KEY,
-            'Project Plate': 'Sample_Plate',
+            'Sample': _SS_SAMPLE_NAME_KEY,
+            PM_PROJECT_PLATE_KEY: 'Sample_Plate',
             'Well': 'well_id_384',
             'i7 name': 'I7_Index_ID',
             'i7 sequence': 'index',
             'i5 name': 'I5_Index_ID',
             'i5 sequence': 'index2',
-            'Project Name': SS_SAMPLE_PROJECT_KEY,
+            PM_PROJECT_NAME_KEY: _SS_SAMPLE_PROJECT_KEY,
         }
 
 
 class MetatranscriptomicSampleSheetv10(KLSampleSheet):
     _HEADER = {
         'IEMFileVersion': '4',
-        'SheetType': _STANDARD_METAT_SHEET_TYPE,
-        'SheetVersion': '10',
+        _SHEET_TYPE_KEY: _STANDARD_METAT_SHEET_TYPE,
+        _SHEET_VERSION_KEY: '10',
         'Investigator Name': 'Knight',
-        'Experiment Name': 'RKL_experiment',
+        _EXPERIMENT_NAME_KEY: _PLACEHOLDER_EXPT_NAME,
         'Date': None,
         'Workflow': 'GenerateFASTQ',
         'Application': 'FASTQ Only',
-        ASSAY_KEY: _METATRANSCRIPTOMIC,
+        _ASSAY_KEY: _METATRANSCRIPTOMIC,
         'Description': '',
         'Chemistry': 'Default',
     }
@@ -1459,13 +1468,13 @@ class MetatranscriptomicSampleSheetv10(KLSampleSheet):
     # (Sample_Plate + Sample_Name + well_id_384) vs. just the sample_name
     # in previous iterations.
 
-    data_columns = [SS_SAMPLE_ID_KEY, SS_SAMPLE_NAME_KEY, 'Sample_Plate',
+    data_columns = [SS_SAMPLE_ID_KEY, _SS_SAMPLE_NAME_KEY, 'Sample_Plate',
                     'well_id_384', 'I7_Index_ID', 'index', 'I5_Index_ID',
-                    'index2', SS_SAMPLE_PROJECT_KEY,
+                    'index2', _SS_SAMPLE_PROJECT_KEY,
                     'total_rna_concentration_ng_ul',
                     'vol_extracted_elution_ul', 'Well_description']
 
-    CARRIED_PREP_COLUMNS = ['experiment_design_description', 'i5_index_id',
+    CARRIED_PREP_COLUMNS = [EXPT_DESIGN_DESC_KEY, 'i5_index_id',
                             'i7_index_id', 'index', 'index2',
                             'library_construction_protocol',
                             SAMPLE_NAME_KEY,
@@ -1478,14 +1487,14 @@ class MetatranscriptomicSampleSheetv10(KLSampleSheet):
         super().__init__(path=path)
         self.remapper = {
             'sample sheet Sample_ID': SS_SAMPLE_ID_KEY,
-            'Sample': SS_SAMPLE_NAME_KEY,
-            'Project Plate': 'Sample_Plate',
+            'Sample': _SS_SAMPLE_NAME_KEY,
+            PM_PROJECT_PLATE_KEY: 'Sample_Plate',
             'Well': 'well_id_384',
             'i7 name': 'I7_Index_ID',
             'i7 sequence': 'index',
             'i5 name': 'I5_Index_ID',
             'i5 sequence': 'index2',
-            'Project Name': SS_SAMPLE_PROJECT_KEY,
+            PM_PROJECT_NAME_KEY: _SS_SAMPLE_PROJECT_KEY,
             'Sample RNA Concentration': 'total_rna_concentration_ng_ul',
             'vol_extracted_elution_ul': 'vol_extracted_elution_ul'
         }
@@ -1609,8 +1618,8 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
         sheet Sample_ID'), forward and reverse barcodes ('i5 sequence', 'i7
         sequence'), forward and reverse barcode names ('i5 name', 'i7
         name'), description ('Sample'), well identifier ('Well'), project
-        plate ('Project Plate'), project name ('Project Name'), and synthetic
-        DNA pool number ('syndna_pool_number').
+        plate (PM_PROJECT_PLATE_KEY), project name (PM_PROJECT_NAME_KEY),
+        and synthetic DNA pool number ('syndna_pool_number').
     sequencer: string
         A string representing the sequencer used.
     lanes: list of integers
@@ -1633,15 +1642,15 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
     ValueError
         If the newly-created sample-sheet fails validation.
     """
-    required_attributes = ['SheetType', 'SheetVersion', ASSAY_KEY]
+    required_attributes = [_SHEET_TYPE_KEY, _SHEET_VERSION_KEY, _ASSAY_KEY]
 
     for attribute in required_attributes:
         if attribute not in metadata:
             raise ValueError("'%s' is not defined in metadata" % attribute)
 
-    sheet_type = metadata['SheetType']
-    sheet_version = metadata['SheetVersion']
-    assay_type = metadata[ASSAY_KEY]
+    sheet_type = metadata[_SHEET_TYPE_KEY]
+    sheet_version = metadata[_SHEET_VERSION_KEY]
+    assay_type = metadata[_ASSAY_KEY]
 
     sheet = _create_sample_sheet(sheet_type, sheet_version, assay_type)
 
@@ -1649,7 +1658,7 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
 
     if len(messages) == 0:
         sheet._add_metadata_to_sheet(metadata, sequencer)
-        sheet._add_data_to_sheet(table, sequencer, lanes, metadata[ASSAY_KEY],
+        sheet._add_data_to_sheet(table, sequencer, lanes, metadata[_ASSAY_KEY],
                                  strict)
 
         # now that we have a SampleSheet() object, validate it for any
@@ -1700,11 +1709,11 @@ def sample_sheet_to_dataframe(sheet):
         data.append([sample[column] for column in columns])
 
     out = pd.DataFrame(data=data, columns=[c.lower() for c in columns])
-    out = out.merge(sheet.Bioinformatics[[SS_SAMPLE_PROJECT_KEY,
+    out = out.merge(sheet.Bioinformatics[[_SS_SAMPLE_PROJECT_KEY,
                                           'library_construction_protocol',
-                                          'experiment_design_description']],
-                    left_on='sample_project', right_on=SS_SAMPLE_PROJECT_KEY)
-    out.drop(columns=SS_SAMPLE_PROJECT_KEY, inplace=True)
+                                          EXPT_DESIGN_DESC_KEY]],
+                    left_on='sample_project', right_on=_SS_SAMPLE_PROJECT_KEY)
+    out.drop(columns=_SS_SAMPLE_PROJECT_KEY, inplace=True)
 
     # it is 'sample_well' and not 'Sample_Well' because of c.lower() above.
     if 'sample_well' in out.columns:
@@ -1747,7 +1756,7 @@ def _get_contains_replicates_value(sheet):
     # to be True or False. If some projects are True while others are
     # False, we should raise an Error.
     if len(contains_replicates) > 1:
-        raise ValueError(f"All projects in {BIOINFORMATICS_KEY} section "
+        raise ValueError(f"All projects in {_BIOINFORMATICS_KEY} section "
                          f"must either contain replicates or not.")
 
     # return either True or False, depending on the values found in
@@ -1768,7 +1777,7 @@ def _demux_sample_sheet(sheet):
     # [Data] section of this sample-sheet.
 
     df = df.drop(columns=['library_construction_protocol',
-                          'experiment_design_description'])
+                          EXPT_DESIGN_DESC_KEY])
 
     # use PlateReplication object to convert each sample's 384 well location
     # into a 96-well location + quadrant. Since replication is performed at
@@ -1814,7 +1823,7 @@ def demux_sample_sheet(sheet):
     # the syntax below reflects what appears to be common practice for such
     # types.
     if not contains_repl_value:
-        raise ValueError(f"No projects in {BIOINFORMATICS_KEY} section "
+        raise ValueError(f"No projects in {_BIOINFORMATICS_KEY} section "
                          f"contain replicates")
 
     demuxed_sheets = []
@@ -1824,15 +1833,15 @@ def demux_sample_sheet(sheet):
     # replicate of plate 1, BLANKS and all), we can split replicates
     # according to their destination quadrant number.
     for df in _demux_sample_sheet(sheet):
-        new_sheet = _create_sample_sheet(sheet.Header['SheetType'],
-                                         sheet.Header['SheetVersion'],
-                                         sheet.Header[ASSAY_KEY])
+        new_sheet = _create_sample_sheet(sheet.Header[_SHEET_TYPE_KEY],
+                                         sheet.Header[_SHEET_VERSION_KEY],
+                                         sheet.Header[_ASSAY_KEY])
         new_sheet.Header = sheet.Header
         new_sheet.Reads = sheet.Reads
         new_sheet.Settings = sheet.Settings
 
         # Add the SampleContext section to the new sheet. This is per-sample.
-        if SAMPLE_CONTEXT_KEY in sheet.sections:
+        if _SAMPLE_CONTEXT_KEY in sheet.sections:
             new_context_df = _get_demuxed_sample_context(sheet, df)
             new_sheet.SampleContext = new_context_df
             ctx_projects = \
@@ -1849,14 +1858,14 @@ def demux_sample_sheet(sheet):
         # NB: Don't handle SampleContext section here bc it is sample-, not
         # project-specific, so needs to happen after we set the samples below.
         new_sheet.Bioinformatics = sheet.Bioinformatics.loc[
-            sheet.Bioinformatics[SS_SAMPLE_PROJECT_KEY].isin(projects)].drop(
+            sheet.Bioinformatics[_SS_SAMPLE_PROJECT_KEY].isin(projects)].drop(
             [CONTAINS_REPLICATES_KEY], axis=1).reset_index(drop=True)
         new_sheet.Contact = sheet.Contact.loc[
-            sheet.Contact[SS_SAMPLE_PROJECT_KEY].isin(projects)].reset_index(
+            sheet.Contact[_SS_SAMPLE_PROJECT_KEY].isin(projects)].reset_index(
             drop=True)
 
         # Add the SampleContext section to the new sheet. This is per-sample.
-        if SAMPLE_CONTEXT_KEY in sheet.sections:
+        if _SAMPLE_CONTEXT_KEY in sheet.sections:
             new_context_df = _get_demuxed_sample_context(sheet, df)
             new_sheet.SampleContext = new_context_df
 
@@ -1871,10 +1880,10 @@ def demux_sample_sheet(sheet):
         # well-ids. Replace further down w/orig_name column.
         df = df.drop(SAMPLE_NAME_KEY, axis=1)
 
-        df.rename(columns={ORIG_NAME_KEY: SS_SAMPLE_NAME_KEY,
+        df.rename(columns={ORIG_NAME_KEY: _SS_SAMPLE_NAME_KEY,
                            'i7_index_id': 'I7_Index_ID',
                            'i5_index_id': 'I5_Index_ID',
-                           'sample_project': SS_SAMPLE_PROJECT_KEY},
+                           'sample_project': _SS_SAMPLE_PROJECT_KEY},
                   inplace=True)
         for sample in df.to_dict(orient='records'):
             new_sheet.add_sample(sample_sheet.Sample(sample))
@@ -1911,8 +1920,8 @@ def _get_sample_context_project_names(sheet, external_context=None):
     ctx_projects = set()
     sample_context = external_context
     if external_context is None:
-        if hasattr(sheet, SAMPLE_CONTEXT_KEY):
-            sample_context = getattr(sheet, SAMPLE_CONTEXT_KEY)
+        if hasattr(sheet, _SAMPLE_CONTEXT_KEY):
+            sample_context = getattr(sheet, _SAMPLE_CONTEXT_KEY)
 
     # The sample context section contains qiita study *ids*, not project
     # names. We need to match these to their corresponding project names in the
@@ -1920,11 +1929,59 @@ def _get_sample_context_project_names(sheet, external_context=None):
     # with other parts of the sample sheet.
     ctx_project_ids = get_all_projects_in_context(sample_context)
     if ctx_project_ids is not None:
-        bioinformatics = getattr(sheet, BIOINFORMATICS_KEY)
+        bioinformatics = getattr(sheet, _BIOINFORMATICS_KEY)
         ctx_projects_mask = \
-            bioinformatics[SS_QIITA_ID_KEY].isin(ctx_project_ids)
+            bioinformatics[_SS_QIITA_ID_KEY].isin(ctx_project_ids)
         ctx_projects = \
-            set(bioinformatics.loc[ctx_projects_mask, SS_SAMPLE_PROJECT_KEY])
+            set(bioinformatics.loc[ctx_projects_mask, _SS_SAMPLE_PROJECT_KEY])
     # end if there are any projects in the sample context section
 
     return ctx_projects
+
+
+def generate_sections_dict(plate_df, studies_info, expt_name, expt_type,
+                           expt_version, bioinfo_section_base):
+    sections_dict = {
+        _EXPERIMENT_NAME_KEY: expt_name,
+        _SHEET_TYPE_KEY: expt_type,
+        _SHEET_VERSION_KEY: expt_version,
+        _ASSAY_KEY: _METAGENOMIC
+    }
+
+    bioinfo_dicts = []
+    contacts_dicts = []
+    for curr_study_dict in studies_info:
+        # bioinformatics dict
+        curr_bioinfo_dict = bioinfo_section_base.copy()
+        curr_proj_name = curr_study_dict[PM_PROJECT_NAME_KEY]
+        curr_qiita_id = get_qiita_id_from_project_name(curr_proj_name)
+        curr_bioinfo_adds = {
+            _SS_SAMPLE_PROJECT_KEY: curr_proj_name,
+            _SS_QIITA_ID_KEY: curr_qiita_id,
+            _HUMAN_FILTERING_KEY: curr_study_dict[_HUMAN_FILTERING_KEY],
+            EXPT_DESIGN_DESC_KEY: curr_study_dict[EXPT_DESIGN_DESC_KEY],
+            # Per Charlie 20240715: it is accurate that 'contains_replicates'
+            # is added individually to each study dict but has the same value
+            # in each because it is really a 384-well-plate-level value.
+            # Someday maybe it can move into the header.
+            CONTAINS_REPLICATES_KEY: plate_df[CONTAINS_REPLICATES_KEY].all(),
+        }
+        curr_bioinfo_dict.update(curr_bioinfo_adds)
+        bioinfo_dicts.append(curr_bioinfo_dict)
+
+        curr_contact_dict = {
+            _SS_SAMPLE_PROJECT_KEY: curr_proj_name,
+            _EMAIL_KEY: curr_study_dict[_EMAIL_KEY]
+        }
+        contacts_dicts.append(curr_contact_dict)
+    # next study in the run
+
+    sections_dict[_BIOINFORMATICS_KEY] = bioinfo_dicts
+    sections_dict[_CONTACT_KEY] = contacts_dicts
+
+    # rows that have True in the Blanks column are blanks :)
+    blanks_mask = plate_df[PM_BLANK_KEY]
+    sections_dict[_SAMPLE_CONTEXT_KEY] = \
+        generate_sample_context(plate_df, blanks_mask=blanks_mask)
+
+    return sections_dict

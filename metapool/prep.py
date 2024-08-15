@@ -7,7 +7,8 @@ import pandas as pd
 from glob import glob
 from datetime import datetime
 from string import ascii_letters, digits
-from metapool.plate import PlateReplication, get_short_name_and_id
+from metapool.literals import get_short_name_and_id
+from metapool.plate import PlateReplication
 from collections import Counter
 
 

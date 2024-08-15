@@ -2,7 +2,11 @@
 from .prep import (preparations_for_run, parse_prep, generate_qiita_prep_file,
                    preparations_for_run_mapping_file, remove_qiita_id,
                    demux_pre_prep, pre_prep_needs_demuxing)
-from .sample_sheet import (SAMPLES_KEY, SS_SAMPLE_ID_KEY, ORIG_NAME_KEY,
+from .literals import (SAMPLE_NAME_KEY, QIITA_ID_KEY, SAMPLES_KEY,
+                       ORIG_NAME_KEY, PRIMARY_STUDY_KEY, SECONDARY_STUDIES_KEY,
+                       parse_project_name, get_short_name_and_id,
+                       get_qiita_id_from_project_name)
+from .sample_sheet import (SS_SAMPLE_ID_KEY,
                            sample_sheet_to_dataframe, make_sample_sheet,
                            AmpliconSampleSheet, MetagenomicSampleSheetv90,
                            MetagenomicSampleSheetv100,
@@ -11,15 +15,12 @@ from .sample_sheet import (SAMPLES_KEY, SS_SAMPLE_ID_KEY, ORIG_NAME_KEY,
                            sheet_needs_demuxing, KLSampleSheet,
                            load_sample_sheet, MetatranscriptomicSampleSheetv10)
 from .plate import (validate_plate_metadata, requires_dilution, dilute_gDNA,
-                    autopool, find_threshold, parse_project_name,
-                    get_short_name_and_id)
+                    autopool, find_threshold, )
 from .amplipool import assign_emp_index
 from .igm import IGMManifest
 from .count import run_counts
 from .metapool import (extract_stats_metadata, sum_lanes,
-                       compress_plates, add_controls)
-from .controls import (SAMPLE_NAME_KEY, PRIMARY_STUDY_KEY,
-                       SECONDARY_STUDIES_KEY)
+                       compress_plates, add_controls, TUBECODE_KEY)
 
 
 __credits__ = ("https://github.com/biocore/metagenomics_pooling_notebook/"
@@ -32,6 +33,7 @@ __all__ = ['IGMManifest', 'add_controls', 'assign_emp_index', 'autopool',
            'pre_prep_needs_demuxing', 'preparations_for_run',
            'preparations_for_run_mapping_file', 'remove_qiita_id',
            'parse_project_name', 'get_short_name_and_id',
+           'get_qiita_id_from_project_name',
            'requires_dilution', 'run_counts', 'sample_sheet_to_dataframe',
            'sheet_needs_demuxing', 'sum_lanes', 'validate_plate_metadata',
            'MetagenomicSampleSheetv90', 'MetagenomicSampleSheetv100',
@@ -41,7 +43,8 @@ __all__ = ['IGMManifest', 'add_controls', 'assign_emp_index', 'autopool',
            # KLSampleSheet is needed for instance() calls.
            'KLSampleSheet', 'load_sample_sheet',
            'SAMPLE_NAME_KEY', 'PRIMARY_STUDY_KEY', 'SECONDARY_STUDIES_KEY',
-           'SAMPLES_KEY', 'SS_SAMPLE_ID_KEY', 'ORIG_NAME_KEY']
+           'SAMPLES_KEY', 'SS_SAMPLE_ID_KEY', 'ORIG_NAME_KEY', 'TUBECODE_KEY',
+           'QIITA_ID_KEY']
 
 from . import _version
 

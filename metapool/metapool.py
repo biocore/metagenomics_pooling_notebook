@@ -9,14 +9,15 @@ import warnings
 from random import choices
 from configparser import ConfigParser
 from qiita_client import QiitaClient
-from .plate import _validate_well_id_96, PlateReplication, \
-    get_short_name_and_id, get_plate_num_from_plate_name, \
-    get_main_project_from_plate_name, \
-    PM_PROJECT_NAME_KEY, PM_PROJECT_PLATE_KEY, PM_COMPRESSED_PLATE_NAME_KEY, \
-    PLATE_NAME_DELIMITER
+from .literals import SAMPLE_NAME_KEY, PM_PROJECT_NAME_KEY, \
+    PM_PROJECT_PLATE_KEY, PM_COMPRESSED_PLATE_NAME_KEY, PM_BLANK_KEY, \
+    get_plate_name_delimiter, get_qiita_id_from_project_name, \
+    get_plate_num_from_plate_name, get_main_project_from_plate_name
+from .plate import _validate_well_id_96, PlateReplication
+
 from string import ascii_letters, digits
 import glob
-from .controls import BLANK_ROOT, SAMPLE_NAME_KEY
+from .controls import get_blank_root
 
 REVCOMP_SEQUENCERS = ['HiSeq4000', 'MiniSeq', 'NextSeq', 'HiSeq3000',
                       'iSeq', 'NovaSeq6000']
@@ -29,7 +30,6 @@ NORMALIZED_DNA_VOL_KEY = "Normalized DNA volume"
 INPUT_DNA_KEY = "Input DNA"
 SYNDNA_VOL_KEY = "synDNA volume"
 SYNDNA_POOL_MASS_NG_KEY = "mass_syndna_input_ng"
-BLANK_KEY = "Blank"
 TUBECODE_KEY = "TubeCode"
 
 
@@ -358,10 +358,10 @@ def read_plate_map_csv(f, sep="\t", qiita_oauth2_conf_fp=None):
             if isinstance(project, tuple):
                 project = project[0]
 
-            _, qiita_id = get_short_name_and_id(project)
+            qiita_id = get_qiita_id_from_project_name(project)
             qurl = f"/api/v1/study/{qiita_id}/samples"
 
-            not_blank_samples = ~_df[BLANK_KEY]
+            not_blank_samples = ~_df[PM_BLANK_KEY]
             plate_map_samples = \
                 {s for s in _df.loc[not_blank_samples, "Sample"]}
             qsamples = {s.replace(f"{qiita_id}.", "")
@@ -1430,7 +1430,7 @@ def calculate_iseqnorm_pooling_volumes(
         plate_df["LoadingFactor"] = (
             plate_df["proportion"].max() / plate_df["proportion"]
         )
-        nblanks = plate_df.loc[plate_df[BLANK_KEY]].shape[0]
+        nblanks = plate_df.loc[plate_df[PM_BLANK_KEY]].shape[0]
         if nblanks == 0:
             warnings.warn("There are no BLANKS in this plate")
         # May 5 2023 meeting about blanks agreed to treat them
@@ -1462,12 +1462,13 @@ def calculate_iseqnorm_pooling_volumes(
                                            output_max=max_pool_vol)
 
     # Underpooling BLANKS
-    nblanks = plate_df.loc[plate_df[BLANK_KEY]].shape[0]
+    nblanks = plate_df.loc[plate_df[PM_BLANK_KEY]].shape[0]
     if nblanks == 0:
         warnings.warn("There are no BLANKS in this plate")
     else:
-        plate_df.loc[plate_df[BLANK_KEY], "iSeq normpool volume"] = (
-            plate_df.loc[plate_df[BLANK_KEY], "iSeq normpool volume"] / 5
+        plate_df.loc[plate_df[PM_BLANK_KEY], "iSeq normpool volume"] = (
+                plate_df.loc[plate_df[PM_BLANK_KEY],
+                "iSeq normpool volume"] / 5
         )
 
     # Plotting
@@ -1478,7 +1479,7 @@ def calculate_iseqnorm_pooling_volumes(
     sns.scatterplot(
         x=normalization_column,
         y="iSeq normpool volume",
-        hue=BLANK_KEY,
+        hue=PM_BLANK_KEY,
         data=plate_df,
         alpha=0.5,
         ax=ax1
@@ -1792,6 +1793,7 @@ def _merge_accession_to_compressed_plate_df(
 
 
 def _generate_compressed_plate_name(compressed_plate_df):
+    plate_name_delim = get_plate_name_delimiter()
     temp_plate_name_base_col = "plate_name_base"
     temp_plate_num_col = "plate_num"
     temp_plate_df = compressed_plate_df.copy()
@@ -1818,7 +1820,7 @@ def _generate_compressed_plate_name(compressed_plate_df):
 
         # Concatenate all the plate numbers found for this plate base name,
         # with "_" separating each value
-        unique_project_plates_str = PLATE_NAME_DELIMITER.join(
+        unique_project_plates_str = plate_name_delim.join(
             temp_plate_df.loc[
                 curr_unique_plate_name_base_mask,
                 temp_plate_num_col].unique())
@@ -1826,7 +1828,7 @@ def _generate_compressed_plate_name(compressed_plate_df):
         # munge the plate base name to remove _Plate, then add the
         # concatenated list of plate numbers for this plate base name
         # (e.g., ProjectA_1_2_14)
-        compressed_name = (curr_unique_plate_name_base + PLATE_NAME_DELIMITER +
+        compressed_name = (curr_unique_plate_name_base + plate_name_delim +
                            unique_project_plates_str)
         plate_name_pieces.append(compressed_name)
     # next curr_unique_plate_name_base
@@ -1834,7 +1836,7 @@ def _generate_compressed_plate_name(compressed_plate_df):
     # join together all the different compressed names:
     # e.g, if there are plates 1, 2, and 14 on this compressed plate and
     # also from plates 3 and 4 of Project B, get: ProjectA_1_2_14_ProjectB_3_4
-    compressed_plate_name = PLATE_NAME_DELIMITER.join(plate_name_pieces)
+    compressed_plate_name = plate_name_delim.join(plate_name_pieces)
     return compressed_plate_name
 
 
@@ -1860,7 +1862,7 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None):
     pandas DataFrame object with control data assigned to tubes in this prep
     """
     # Check whether controls have already been added
-    if BLANK_KEY in plate_df.columns:
+    if PM_BLANK_KEY in plate_df.columns:
         warnings.warn("Plate dataframe input already had controls. "
                       "Returning unmodified input")
         return plate_df
@@ -1972,7 +1974,7 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None):
         (plate_df == "negative_control").any(axis=1)
     # Assign sample_names ('Sample') to BLANKS controls
     plate_df.loc[blanks_mask, "Sample"] = (
-        BLANK_ROOT
+        get_blank_root()
         + "."
         + plate_df["Project Abbreviation"]
         + "."
@@ -1981,12 +1983,12 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None):
         + plate_df["Row"]
         + plate_df["Col"].astype(str))
 
-    # Set BLANK_KEY to True for all blanks, False for all other samples
-    plate_df[BLANK_KEY] = False
-    plate_df.loc[blanks_mask, BLANK_KEY] = True
+    # Set PM_BLANK_KEY to True for all blanks, False for all other samples
+    plate_df[PM_BLANK_KEY] = False
+    plate_df.loc[blanks_mask, PM_BLANK_KEY] = True
 
     warnings.warn("Controls added")
-    n_blanks = plate_df[BLANK_KEY].sum()
+    n_blanks = plate_df[PM_BLANK_KEY].sum()
     if n_blanks < 6:
         warnings.warn(
             f"There are only {n_blanks} in this prep. The"

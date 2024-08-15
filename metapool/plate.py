@@ -3,32 +3,22 @@ from math import ceil
 from datetime import datetime
 import numpy as np
 import pandas as pd
-import re
 import warnings
 from scipy.stats import zscore
 from sklearn.linear_model import LogisticRegression
 from collections import OrderedDict
 from string import ascii_uppercase
-
-PROJECT_SHORT_NAME_KEY = 'short_project_name'
-PROJECT_FULL_NAME_KEY = 'full_project_name'
-QIITA_ID_KEY = 'qiita_id'
-
-# Plate map column names
-PM_PROJECT_PLATE_KEY = "Project Plate"
-PM_PROJECT_NAME_KEY = "Project Name"
-PM_COMPRESSED_PLATE_NAME_KEY = "Compressed Plate Name"
-
-PLATE_NAME_DELIMITER = "_"
+from metapool.literals import EXPT_DESIGN_DESC_KEY, PM_PROJECT_NAME_KEY, \
+    PM_PROJECT_PLATE_KEY, PM_PROJECT_ABBREV_KEY, PM_COMPRESSED_PLATE_NAME_KEY
 
 EXPECTED_COLUMNS = {
     'Plate Position', 'Plate map file', 'Plate elution volume',
     'Primer Plate #', 'Plating', 'Extraction Kit Lot',
     'Extraction Robot', 'TM1000 8 Tool', 'Primer Date', 'MasterMix Lot',
     'Water Lot', 'Processing Robot', 'Sample Plate', PM_PROJECT_NAME_KEY,
-    'Project Abbreviation', 'Original Name', 'TM300 8 Tool', 'TM50 8 Tool',
+    PM_PROJECT_ABBREV_KEY, 'Original Name', 'TM300 8 Tool', 'TM50 8 Tool',
     'TM10 8 Tool', 'run_date', 'instrument_model', 'center_project_name',
-    'experiment_design_description'}
+    EXPT_DESIGN_DESC_KEY}
 
 
 class Message(object):
@@ -283,8 +273,10 @@ def dilute_gDNA(plate_df, threshold=15):
     df = plate_df.copy()
     df['Diluted'] = True
 
-    df[PM_PROJECT_PLATE_KEY] = df[PM_PROJECT_PLATE_KEY].astype(str) + '_diluted'
-    df[PM_COMPRESSED_PLATE_NAME_KEY] = df[PM_COMPRESSED_PLATE_NAME_KEY] + '_dilution'
+    df[PM_PROJECT_PLATE_KEY] = \
+        df[PM_PROJECT_PLATE_KEY].astype(str) + '_diluted'
+    df[PM_COMPRESSED_PLATE_NAME_KEY] = \
+        df[PM_COMPRESSED_PLATE_NAME_KEY] + '_dilution'
     df['Sample DNA Concentration'] = df['Sample DNA Concentration'] / 10
 
     # Picking diluted samples for normalization
@@ -714,60 +706,3 @@ class PlateReplication:
         result.reset_index(drop=True, inplace=True)
 
         return result
-
-
-def parse_project_name(project_name):
-    """
-    Split fully-qualified project_name into a short project_name and a qiita-id
-    :param project_name: A fully-qualified project name e.g: Feist_1161.
-    :return: Dictionary of qiita_id, short_project_name, and full_project_name
-    """
-    if project_name is None or project_name == '':
-        raise ValueError("project_name cannot be None or empty string")
-
-    # project identifiers are digit groups at the end of the project name
-    # preceded by an underscore CaporasoIllumina_550
-    matches = re.search(r'^(.+)_(\d+)$', str(project_name))
-
-    if matches is None:
-        raise ValueError(f"'{project_name}' does not contain a Qiita-ID.")
-
-    proj_info_dict = {
-        QIITA_ID_KEY: matches[2],
-        PROJECT_SHORT_NAME_KEY: matches[1],
-        PROJECT_FULL_NAME_KEY: project_name
-    }
-
-    return proj_info_dict
-
-
-def get_short_name_and_id(project_name):
-    try:
-        proj_info_dict = parse_project_name(project_name)
-    except ValueError:
-        return project_name, None
-
-    return proj_info_dict[PROJECT_SHORT_NAME_KEY], proj_info_dict[QIITA_ID_KEY]
-
-
-# Full names for uncompressed (i.e., 96-well) plates have the format
-# <project_name>_Plate_<plate_number>, such as
-# Celeste_Adaptation_12986_Plate_16.
-def get_plate_num_from_plate_name(plate_name):
-    return _split_plate_name(plate_name)[1]
-
-
-def get_main_project_from_plate_name(plate_name):
-    main_project_info = _split_plate_name(plate_name)[0]
-    main_project_name = main_project_info.replace(
-        f"{PLATE_NAME_DELIMITER}Plate", "")
-    return main_project_name
-
-
-def _split_plate_name(plate_name):
-    # split on just the *last* delimiter.
-    # Note that plates can have more than one project on them, and the
-    # name embedded in the plate name is that of (only) the "main" project.
-    main_project_info, plate_num = \
-        plate_name.rsplit(PLATE_NAME_DELIMITER, maxsplit=1)
-    return main_project_info, plate_num
