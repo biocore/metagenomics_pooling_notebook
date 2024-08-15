@@ -13,6 +13,8 @@ from .prep import remove_qiita_id
 from .plate import _validate_well_id_96, PlateReplication
 from string import ascii_letters, digits
 import glob
+import xml.etree.ElementTree as ET
+from operator import itemgetter
 
 
 REVCOMP_SEQUENCERS = ['HiSeq4000', 'MiniSeq', 'NextSeq', 'HiSeq3000',
@@ -2075,3 +2077,43 @@ def validate_plate_df(
             "The following sample names are duplicated %s"
             % ", ".join(sorted(duplicated_samples))
         )
+
+
+def generate_override_cycles_value(runinfo_xml_path, adapter_length):
+    if adapter_length < 0:
+        raise ValueError("Adapter-length cannot be less than zero")
+
+    tree = ET.parse(runinfo_xml_path)
+    reads = tree.getroot().findall('.Run/Reads/Read')
+    results = []
+    for read in reads:
+        result = {'number': int(read.get('Number')),
+                  'num_cycles': int(read.get('NumCycles'))}
+        result['is_indexed'] = True if read.get('IsIndexedRead') == 'Y' \
+            else False
+        results.append(result)
+
+    if len(results) == 0:
+        raise ValueError("Reads information could not be found in "
+                         f"'{runinfo_xml_path}'")
+
+    codes = []
+    # results should be in sorted order in XML file but this ensures that
+    # we process the elements in the correct order.
+    for read in sorted(results, key=itemgetter('number')):
+        if read['is_indexed'] is True:
+            code = f"I{adapter_length}"
+            truncated = read['num_cycles'] - adapter_length
+            if truncated < 0:
+                raise ValueError(f"num_cycles '{read['num_cycles']}' appears "
+                                 "to be less than adapter-length "
+                                 f"'{adapter_length}'")
+            elif truncated > 0:
+                code += f"N{truncated}"
+            # if truncated == 0 then a truncate code does not to be appended.
+        else:
+            code = f"Y{read['num_cycles']}"
+
+        codes.append(code)
+
+    return ";".join(codes)

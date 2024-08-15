@@ -19,6 +19,7 @@ from metapool.sample_sheet import (KLSampleSheet, AmpliconSampleSheet,
                                    make_sample_sheet, load_sample_sheet,
                                    demux_sample_sheet, sheet_needs_demuxing)
 from metapool.plate import ErrorMessage, WarningMessage
+from metapool.metapool import generate_override_cycles_value
 
 
 # The classes below share the same filepaths, so we use this dummy class
@@ -52,6 +53,8 @@ class BaseTests(unittest.TestCase):
 
         self.bad_project_name_ss = join(data_dir,
                                         'bad-project-name-sample-sheet.csv')
+
+        self.good_run_info = "metapool/tests/data/runinfo_files/RunInfo1.xml"
 
         bfx = [
             {
@@ -575,6 +578,25 @@ class KLSampleSheetTests(BaseTests):
                'Well_description']
 
         self.assertEqual(set(obs), set(exp))
+
+    def test_set_override_cycles(self):
+        sheet = load_sample_sheet(self.good_ss)
+
+        # assert that the original value of the sheet is as expected.
+        self.assertEqual("Y151;I8N2;I8N2;Y151",
+                         sheet.Settings['OverrideCycles'])
+
+        # generate a known value that is different from above using a known
+        # sample-sheet. Assume that adapters are of length 8.
+        new_value = generate_override_cycles_value(self.good_run_info, 8)
+
+        # assert that the new value is as expected.
+        self.assertEqual("Y151;I8N4;Y151", new_value)
+
+        # use set_override_cycles() to change the value and assert that it
+        # is now different.
+        sheet.set_override_cycles(new_value)
+        self.assertEqual("Y151;I8N4;Y151", sheet.Settings['OverrideCycles'])
 
 
 class SampleSheetWorkflow(BaseTests):

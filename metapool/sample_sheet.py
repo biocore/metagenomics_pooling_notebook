@@ -257,6 +257,15 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                     section[key] = value
                     continue
 
+    def set_override_cycles(self, value):
+        # assume that any value including None is valid.
+        # None should be silently converted to empty string as a truly
+        # empty value would be better than None or na.
+        if value is None:
+            value = ''
+
+        self.Settings['OverrideCycles'] = value
+
     def _process_section_header(self, columns):
         for i in range(0, len(columns)):
             if columns[i] in KLSampleSheet.column_alts:
