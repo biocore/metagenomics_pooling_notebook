@@ -25,7 +25,7 @@ from metapool.sample_sheet import (KLSampleSheet, AmpliconSampleSheet,
                                    sample_sheet_to_dataframe,
                                    make_sample_sheet, load_sample_sheet,
                                    demux_sample_sheet, sheet_needs_demuxing,
-                                   SS_SAMPLE_ID_KEY)
+                                   make_sections_dict, SS_SAMPLE_ID_KEY)
 from metapool.plate import ErrorMessage, WarningMessage
 
 
@@ -764,6 +764,7 @@ class KLSampleSheetTests(BaseTests):
 class SampleSheetWorkflow(BaseTests):
     def setUp(self):
         super().setUp()
+        self.maxDiff = None
 
         self.sheet = AmpliconSampleSheet()
         self.sheet.Header['IEM4FileVersion'] = 4
@@ -1429,6 +1430,146 @@ class SampleSheetWorkflow(BaseTests):
         }
 
         self.assertEqual(obs.Settings, settings)
+
+    def test_make_sections_dict(self):
+        compressed_plate_df = pd.DataFrame([
+            {"Sample": "sample1", "Blank": True, "contains_replicates": False,
+             "Project Name": "Study_1", "Project Plate": "Study_1_Plate_11"},
+            {"Sample": "sample2", "Blank": False, "contains_replicates": False,
+             "Project Name": "Study_1", "Project Plate": "Study_1_Plate_11"},
+            {"Sample": "sample3", "Blank": False, "contains_replicates": False,
+             "Project Name": "Study_4", "Project Plate": "Study_1_Plate_11"},
+            {"Sample": "sample4", "Blank": False, "contains_replicates": False,
+             "Project Name": "Study_5", "Project Plate": "Study_1_Plate_11"},
+            {"Sample": "BLANK.2", "Blank": True, "contains_replicates": False,
+             "Project Name": "Study_2", "Project Plate": "Study_2_Plate_21"},
+            {"Sample": "sm1", "Blank": False, "contains_replicates": False,
+             "Project Name": "Study_2", "Project Plate": "Study_2_Plate_21"},
+            {"Sample": "sm2", "Blank": False, "contains_replicates": False,
+             "Project Name": "Study_3", "Project Plate": "Study_2_Plate_21"},
+            {"Sample": "sm3", "Blank": False, "contains_replicates": False,
+             "Project Name": "Study_6", "Project Plate": "Study_2_Plate_21"},
+            {"Sample": "BLANK.3", "Blank": True, "contains_replicates": False,
+             "Project Name": "Study_3", "Project Plate": "Study_3_Plate_13"},
+            {"Sample": "samp1", "Blank": False, "contains_replicates": False,
+             "Project Name": "Study_3", "Project Plate": "Study_3_Plate_13"},
+            {"Sample": "blank4", "Blank": True, "contains_replicates": False,
+             "Project Name": "Study_10", "Project Plate": "Study_10_Plate_1"},
+            {"Sample": "samples1", "Blank": False,
+             "contains_replicates": False,
+             "Project Name": "Study_10", "Project Plate": "Study_10_Plate_1"},
+            {"Sample": "samples2", "Blank": False,
+             "contains_replicates": False,
+             "Project Name": "Study_11", "Project Plate": "Study_10_Plate_1"}
+        ])
+
+        studies_info = [
+            {
+                'Project Name': 'Study_1',
+                'Project Abbreviation': 'ADAPT',
+                'sample_accession_fp': './adapt_sa.tsv',
+                'qiita_metadata_fp': './adapt_metadata.txt',
+                'experiment_design_description': 'isolate sequencing',
+                'HumanFiltering': 'False',
+                'Email': 'r@gmail.com'
+            },
+            {
+                'Project Name': 'Study_2',
+                'Project Abbreviation': 'CHILD',
+                'sample_accession_fp': './child_sa.tsv',
+                'qiita_metadata_fp': './child_metadata.txt',
+                'experiment_design_description': 'whole genome sequencing',
+                'HumanFiltering': 'True',
+                'Email': 'l@ucsd.edu'
+            },
+            {
+                'Project Name': 'Study_3',
+                'Project Abbreviation': 'MARMO',
+                'sample_accession_fp': './marmo_sa.tsv',
+                'qiita_metadata_fp': './marmo_metadata.txt',
+                'experiment_design_description': 'whole genome sequencing',
+                'HumanFiltering': 'False',
+                'Email': 'c@ucsd.edu'
+            },
+            {
+                'Project Name': 'Study_4',
+                'Project Abbreviation': 'MEME',
+                'sample_accession_fp': './meme_sa.tsv',
+                'qiita_metadata_fp': './meme_metadata.txt',
+                'experiment_design_description': 'whole genome sequencing',
+                'HumanFiltering': 'False',
+                'Email': 'b@ucsd.edu'
+            }
+        ]
+
+        bioinfo_base = {
+            'ForwardAdapter': 'GATCGGAAGAGCACACGTCTGAACTCCAGTCAC',
+            'ReverseAdapter': 'GATCGGAAGAGCGTCGTGTAGGGAAAGGAGTGT',
+            'library_construction_protocol': 'Knight Lab Kapa HyperPlus',
+            'BarcodesAreRC': 'True'
+        }
+
+        exp = {
+            'Experiment Name': 'RKL001',
+            'SheetType': 'standard_metag',
+            'SheetVersion': '102',
+            'Assay': 'Metagenomic',
+            'Bioinformatics': [
+                {'ForwardAdapter': 'GATCGGAAGAGCACACGTCTGAACTCCAGTCAC',
+                 'ReverseAdapter': 'GATCGGAAGAGCGTCGTGTAGGGAAAGGAGTGT',
+                 'library_construction_protocol': 'Knight Lab Kapa HyperPlus',
+                 'BarcodesAreRC': 'True', 'Sample_Project': 'Study_1',
+                 'QiitaID': '1', 'HumanFiltering': 'False',
+                 'experiment_design_description': 'isolate sequencing',
+                 'contains_replicates': False},
+                {'ForwardAdapter': 'GATCGGAAGAGCACACGTCTGAACTCCAGTCAC',
+                 'ReverseAdapter': 'GATCGGAAGAGCGTCGTGTAGGGAAAGGAGTGT',
+                 'library_construction_protocol': 'Knight Lab Kapa HyperPlus',
+                 'BarcodesAreRC': 'True', 'Sample_Project': 'Study_2',
+                 'QiitaID': '2', 'HumanFiltering': 'True',
+                 'experiment_design_description': 'whole genome sequencing',
+                 'contains_replicates': False},
+                {'ForwardAdapter': 'GATCGGAAGAGCACACGTCTGAACTCCAGTCAC',
+                 'ReverseAdapter': 'GATCGGAAGAGCGTCGTGTAGGGAAAGGAGTGT',
+                 'library_construction_protocol': 'Knight Lab Kapa HyperPlus',
+                 'BarcodesAreRC': 'True', 'Sample_Project': 'Study_3',
+                 'QiitaID': '3', 'HumanFiltering': 'False',
+                 'experiment_design_description': 'whole genome sequencing',
+                 'contains_replicates': False},
+                {'ForwardAdapter': 'GATCGGAAGAGCACACGTCTGAACTCCAGTCAC',
+                 'ReverseAdapter': 'GATCGGAAGAGCGTCGTGTAGGGAAAGGAGTGT',
+                 'library_construction_protocol': 'Knight Lab Kapa HyperPlus',
+                 'BarcodesAreRC': 'True', 'Sample_Project': 'Study_4',
+                 'QiitaID': '4', 'HumanFiltering': 'False',
+                 'experiment_design_description': 'whole genome sequencing',
+                 'contains_replicates': False}
+            ],
+            'Contact': [
+                {'Sample_Project': 'Study_1', 'Email': 'r@gmail.com'},
+                {'Sample_Project': 'Study_2', 'Email': 'l@ucsd.edu'},
+                {'Sample_Project': 'Study_3', 'Email': 'c@ucsd.edu'},
+                {'Sample_Project': 'Study_4', 'Email': 'b@ucsd.edu'}
+            ],
+            'SampleContext': [
+                {'sample_name': 'sample1', 'primary_qiita_study': '1',
+                 'sample_type': 'control blank',
+                 'secondary_qiita_studies': '4;5'},
+                {'sample_name': 'BLANK.2', 'primary_qiita_study': '2',
+                 'sample_type': 'control blank',
+                 'secondary_qiita_studies': '3;6'},
+                {'sample_name': 'BLANK.3', 'primary_qiita_study': '3',
+                 'sample_type': 'control blank',
+                 'secondary_qiita_studies': ''},
+                {'sample_name': 'blank4', 'primary_qiita_study': '10',
+                 'sample_type': 'control blank',
+                 'secondary_qiita_studies': '11'}
+            ]
+        }
+
+        obs = make_sections_dict(
+            compressed_plate_df, studies_info, "RKL001",
+            'standard_metag', '102', bioinfo_base)
+        self.assertDictEqual(exp, obs)
 
 
 class ValidateSampleSheetTests(BaseTests):

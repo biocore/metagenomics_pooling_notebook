@@ -18,7 +18,8 @@ from metapool.metapool import (bcl_scrub_name, sequencer_i5_index,
 from metapool.plate import ErrorMessage, WarningMessage, PlateReplication
 from metapool.controls import SAMPLE_CONTEXT_COLS, \
     get_all_projects_in_context, is_blank, get_controls_details_from_context, \
-    make_manual_control_details, generate_sample_context
+    get_delimited_controls_details_from_compressed_plate, \
+    make_manual_control_details
 
 _BIOINFORMATICS_KEY = 'Bioinformatics'
 _CONTACT_KEY = 'Contact'
@@ -1939,8 +1940,8 @@ def _get_sample_context_project_names(sheet, external_context=None):
     return ctx_projects
 
 
-def generate_sections_dict(plate_df, studies_info, expt_name, expt_type,
-                           expt_version, bioinfo_section_base):
+def make_sections_dict(plate_df, studies_info, expt_name, expt_type,
+                       expt_version, bioinfo_section_base):
     sections_dict = {
         _EXPERIMENT_NAME_KEY: expt_name,
         _SHEET_TYPE_KEY: expt_type,
@@ -1980,8 +1981,8 @@ def generate_sections_dict(plate_df, studies_info, expt_name, expt_type,
     sections_dict[_CONTACT_KEY] = contacts_dicts
 
     # rows that have True in the Blanks column are blanks :)
-    blanks_mask = plate_df[PM_BLANK_KEY]
     sections_dict[_SAMPLE_CONTEXT_KEY] = \
-        generate_sample_context(plate_df, blanks_mask=blanks_mask)
+        get_delimited_controls_details_from_compressed_plate(
+            plate_df, blanks_mask=plate_df[PM_BLANK_KEY])
 
     return sections_dict

@@ -1467,9 +1467,8 @@ def calculate_iseqnorm_pooling_volumes(
         warnings.warn("There are no BLANKS in this plate")
     else:
         plate_df.loc[plate_df[PM_BLANK_KEY], "iSeq normpool volume"] = (
-                plate_df.loc[plate_df[PM_BLANK_KEY],
-                "iSeq normpool volume"] / 5
-        )
+                plate_df.loc[plate_df[
+                    PM_BLANK_KEY], "iSeq normpool volume"] / 5)
 
     # Plotting
     f, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, figsize=(5, 8), sharex=True)

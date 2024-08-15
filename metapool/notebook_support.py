@@ -3,29 +3,7 @@ import pandas as pd
 from metapool.literals import get_qiita_id_from_project_name, \
     SAMPLE_NAME_KEY, QIITA_ID_KEY, PM_PROJECT_NAME_KEY, PM_PROJECT_ABBREV_KEY
 
-# QIITA_SAMPLE_NAME_KEY = 'sample_name'
-# TAB_SEP = "\t"
-# SAMPLE_KEY = "Sample"
-# PL_SAMPLE_NAME_KEY = "Sample Name"
-# PROJECT_PLATE_KEY = "Project Plate"
-# SAMPLE_TYPE_KEY = "Sample Type"
-# PRIMARY_STUDY_KEY = "Primary Qiita Study"
-# SECONDARY_STUDIES_KEY = "Secondary Qiita Studies"
-# _BLANK_ROOT = "BLANK"
-# _BLANK_SAMPLE_TYPE = "control blank"
-# _STUDY_ID_DELIMITER = ";"
-QIITA_STUDY_ID_KEY = 'qiita_study_id'
-# PROJECT_ABBREV_KEY = 'Project Abbreviation'
-
-# EXPERIMENT_NAME_KEY = 'Experiment Name'
-# BIOINFO_KEY = 'Bioinformatics'
-# _CONTACT_KEY = 'Contact'
-# PM_PROJECT_NAME_KEY = 'Project Name'
-# _HUMAN_FILTERING_KEY = 'HumanFiltering'
-# EXPT_DESC_KEY = 'experiment_design_description'
-# CONTAINS_REPS_KEY = 'contains_replicates'
-# SAMPLE_PROJECT_KEY = 'Sample_Project'
-# EMAIL_KEY = 'Email'
+_QIITA_STUDY_ID_KEY = 'qiita_study_id'
 
 
 def join_dfs_from_files(input_fps, req_cols_to_extract,
@@ -95,8 +73,10 @@ def join_dfs_from_files(input_fps, req_cols_to_extract,
     return growing_df
 
 
-# sample_accession_df should have a 'sample_name' col
-# metadata_df should have 'sample_name' and 'qiita_study_id' cols
+# sample_accession_df should be combined across all studies and should
+# have a 'sample_name' col.
+# metadata_df should be combined across all studies and have
+# 'sample_name' and 'qiita_study_id' cols.
 # each entry in studies_info dict should have a key named 'Project Name'
 # and one named 'Project Abbreviation', as shown in example below:
 # studies_info = [
@@ -112,6 +92,9 @@ def join_dfs_from_files(input_fps, req_cols_to_extract,
 #     <etc, etc>
 # ]
 def extend_sample_accession_df(sample_accession_df, studies_info, metadata_df):
+    local_metadata_df = metadata_df.copy()
+    local_metadata_df[QIITA_ID_KEY] = local_metadata_df[_QIITA_STUDY_ID_KEY]
+
     # extract qiita study ids from the Project Name in studies_info entries
     local_studies_info = studies_info.copy()
     for curr_study in local_studies_info:
@@ -120,13 +103,11 @@ def extend_sample_accession_df(sample_accession_df, studies_info, metadata_df):
         curr_study[QIITA_ID_KEY] = curr_qiita_id
     studies_df = pd.DataFrame(local_studies_info)
 
-    # check for qiita_study_ids in studies_df that aren't in the metadata_df
-    _check_for_missing_df_ids(studies_df, metadata_df, QIITA_ID_KEY,
+    # check for qiita_study_ids in studies_df that aren't in the metadata
+    _check_for_missing_df_ids(studies_df, local_metadata_df, QIITA_ID_KEY,
                               'studies', 'metadata')
-    # merge the metadata_df with the studies_df on the qiita_study_id
-    metadata_plus_df = pd.merge(metadata_df, studies_df,
-                                left_on=QIITA_STUDY_ID_KEY,
-                                right_on=QIITA_ID_KEY)
+    # merge the metadata df with the studies_df on the qiita_study_id
+    metadata_plus_df = pd.merge(local_metadata_df, studies_df, on=QIITA_ID_KEY)
     # pull the qiita study id off the sample name
     metadata_plus_df[SAMPLE_NAME_KEY] = metadata_plus_df.apply(
         lambda x: x[SAMPLE_NAME_KEY].replace(f"{x[QIITA_ID_KEY]}.", ""),
@@ -146,6 +127,8 @@ def extend_sample_accession_df(sample_accession_df, studies_info, metadata_df):
     return sample_accession_plus_df
 
 
+# add the project abbreviation to the compression layout so the user doesn't
+# have to enter it in two places
 def extend_compression_layout_info(compression_layout, studies_info):
     extended_compression_layout = compression_layout.copy()
     # for each dict in compression_layout
@@ -159,10 +142,13 @@ def extend_compression_layout_info(compression_layout, studies_info):
                 found_study = curr_study
                 break
         # next study
-        # add the Project Abbreviation to the dict
+
+        # add the Project Abbreviation from the studies_info to the
+        # compression layout dict
         if found_study is None:
             raise ValueError(f"{PM_PROJECT_NAME_KEY} '{curr_project_name}' "
-                             f"not found in studies_info")
+                             f"in the compression layout is not in the "
+                             f"studies info")
         curr_plate[PM_PROJECT_ABBREV_KEY] = found_study[PM_PROJECT_ABBREV_KEY]
     # next plate
 

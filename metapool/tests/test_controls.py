@@ -5,13 +5,43 @@ from unittest import TestCase
 from metapool.literals import SAMPLE_NAME_KEY, SAMPLE_TYPE_KEY, \
     PRIMARY_STUDY_KEY, SECONDARY_STUDIES_KEY
 from metapool.controls import is_blank, get_all_projects_in_context, \
-    get_controls_details_from_context, make_manual_control_details
+    get_controls_details_from_context, make_manual_control_details, \
+    get_delimited_controls_details_from_compressed_plate
 
 
 class ControlsTests(TestCase):
     def setUp(self):
         self.maxDiff = None
         self.path = os.path.dirname(__file__)
+
+        self.compressed_plate_df = pd.DataFrame([
+            {"Sample": "sample1", "Blank": True,
+             "Project Name": "Study_1", "Project Plate": "Study_1_Plate_11"},
+            {"Sample": "sample2", "Blank": False,
+             "Project Name": "Study_1", "Project Plate": "Study_1_Plate_11"},
+            {"Sample": "sample3", "Blank": False,
+             "Project Name": "Study_4", "Project Plate": "Study_1_Plate_11"},
+            {"Sample": "sample4", "Blank": False,
+             "Project Name": "Study_5", "Project Plate": "Study_1_Plate_11"},
+            {"Sample": "BLANK.2", "Blank": True,
+             "Project Name": "Study_2", "Project Plate": "Study_2_Plate_21"},
+            {"Sample": "sm1", "Blank": False,
+             "Project Name": "Study_2", "Project Plate": "Study_2_Plate_21"},
+            {"Sample": "sm2", "Blank": False,
+             "Project Name": "Study_3", "Project Plate": "Study_2_Plate_21"},
+            {"Sample": "sm3", "Blank": False,
+             "Project Name": "Study_6", "Project Plate": "Study_2_Plate_21"},
+            {"Sample": "BLANK.3", "Blank": True,
+             "Project Name": "Study_3", "Project Plate": "Study_3_Plate_13"},
+            {"Sample": "samp1", "Blank": False,
+             "Project Name": "Study_3", "Project Plate": "Study_3_Plate_13"},
+            {"Sample": "blank4", "Blank": True,
+             "Project Name": "Study_10", "Project Plate": "Study_10_Plate_1"},
+            {"Sample": "samples1", "Blank": False,
+             "Project Name": "Study_10", "Project Plate": "Study_10_Plate_1"},
+            {"Sample": "samples2", "Blank": False,
+             "Project Name": "Study_11", "Project Plate": "Study_10_Plate_1"}
+        ])
 
     def test_is_blank_w_context(self):
         sample_context = pd.DataFrame({
@@ -134,3 +164,35 @@ class ControlsTests(TestCase):
 
         obs_details = make_manual_control_details("sample1", "1")
         self.assertEqual(obs_details, exp_details)
+
+    def test_get_delimited_controls_details_from_compressed_plate_w_mask(self):
+        exp_details = [
+            {SAMPLE_NAME_KEY: "sample1", SAMPLE_TYPE_KEY: "control blank",
+             PRIMARY_STUDY_KEY: "1", SECONDARY_STUDIES_KEY: "4;5"},
+            {SAMPLE_NAME_KEY: "BLANK.2", SAMPLE_TYPE_KEY: "control blank",
+             PRIMARY_STUDY_KEY: "2", SECONDARY_STUDIES_KEY: "3;6"},
+            {SAMPLE_NAME_KEY: "BLANK.3", SAMPLE_TYPE_KEY: "control blank",
+             PRIMARY_STUDY_KEY: "3", SECONDARY_STUDIES_KEY: ""},
+            {SAMPLE_NAME_KEY: "blank4", SAMPLE_TYPE_KEY: "control blank",
+             PRIMARY_STUDY_KEY: "10", SECONDARY_STUDIES_KEY: "11"}
+        ]
+
+        obs_details = get_delimited_controls_details_from_compressed_plate(
+            self.compressed_plate_df, self.compressed_plate_df["Blank"])
+
+        self.assertListEqual(exp_details, obs_details)
+
+    def test_get_delimited_controls_details_from_compressed_plate_wo_mask(
+            self):
+
+        exp_details = [
+            {SAMPLE_NAME_KEY: "BLANK.2", SAMPLE_TYPE_KEY: "control blank",
+                PRIMARY_STUDY_KEY: "2", SECONDARY_STUDIES_KEY: "3;6"},
+            {SAMPLE_NAME_KEY: "BLANK.3", SAMPLE_TYPE_KEY: "control blank",
+                PRIMARY_STUDY_KEY: "3", SECONDARY_STUDIES_KEY: ""}
+        ]
+
+        obs_details = get_delimited_controls_details_from_compressed_plate(
+            self.compressed_plate_df)
+
+        self.assertListEqual(exp_details, obs_details)

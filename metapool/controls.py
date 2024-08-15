@@ -69,7 +69,8 @@ def get_blank_root():
 #            'Sample_Type': 'control blank'
 #        },
 #    ]
-def generate_sample_context(the_plate_df, blanks_mask=None):
+def get_delimited_controls_details_from_compressed_plate(
+        the_plate_df, blanks_mask=None):
     if blanks_mask is None:
         blanks_mask = the_plate_df[PM_SAMPLE_KEY].apply(is_blank)
 
@@ -78,16 +79,14 @@ def generate_sample_context(the_plate_df, blanks_mask=None):
         the_plate_df.loc[blanks_mask, PM_PROJECT_PLATE_KEY].unique()
 
     # start building the SampleContext object
-    def _get_primary_study(curr_row):
-        return get_qiita_id_from_project_name(curr_row[PM_PROJECT_NAME_KEY])
-
     blanks_context_df = the_plate_df.loc[
         blanks_mask,
         [PM_SAMPLE_KEY, PM_PROJECT_NAME_KEY, PM_PROJECT_PLATE_KEY]].copy()
     blanks_context_df.rename(columns={PM_SAMPLE_KEY: SAMPLE_NAME_KEY},
                              inplace=True)
     blanks_context_df[PRIMARY_STUDY_KEY] = \
-        blanks_context_df.apply(_get_primary_study, axis=1)
+        blanks_context_df[PM_PROJECT_NAME_KEY].apply(
+            get_qiita_id_from_project_name)
     blanks_context_df[SAMPLE_TYPE_KEY] = _BLANK_SAMPLE_TYPE
 
     # for each plate in names_of_plates_w_blanks
@@ -108,13 +107,14 @@ def generate_sample_context(the_plate_df, blanks_mask=None):
         # for each row in blanks_context_df that has the current plate name,
         # remove that row's project name from projects_on_curr_plate list to
         # generate the list of secondary studies for that blank
-        blanks_context_df.loc[
-            curr_plate_blanks_mask, SECONDARY_STUDIES_KEY] = (
-            blanks_context_df.apply(
+        curr_plate_records_df = blanks_context_df[curr_plate_blanks_mask]
+        curr_secondary_studies_strs = curr_plate_records_df.apply(
                 _get_secondary_studies,
                 all_projects_on_plate=projects_on_curr_plate,
                 axis=1)
-        )
+        blanks_context_df.loc[
+            curr_plate_blanks_mask, SECONDARY_STUDIES_KEY] = \
+            curr_secondary_studies_strs
     # next plate name of plate w blanks
 
     # clean up by removing the Project Plate and Project Name columns
@@ -202,6 +202,7 @@ def _get_secondary_studies(curr_row, all_projects_on_plate):
     # last element of each split
     secondary_qiita_ids = [get_qiita_id_from_project_name(x)
                            for x in secondary_projects]
+    secondary_qiita_ids = sorted(secondary_qiita_ids)
 
     secondary_qiita_ids_str = _STUDY_ID_DELIMITER.join(secondary_qiita_ids)
     return secondary_qiita_ids_str
