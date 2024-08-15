@@ -2079,7 +2079,10 @@ def validate_plate_df(
         )
 
 
-def generate_overide_cycles_value(runinfo_xml_path):
+def generate_override_cycles_value(runinfo_xml_path, adapter_length):
+    if adapter_length < 0:
+        raise ValueError("Adapter-length cannot be less than zero")
+
     tree = ET.parse(runinfo_xml_path)
     reads = tree.getroot().findall('.Run/Reads/Read')
     results = []
@@ -2099,9 +2102,15 @@ def generate_overide_cycles_value(runinfo_xml_path):
     # we process the elements in the correct order.
     for read in sorted(results, key=itemgetter('number')):
         if read['is_indexed'] is True:
-            code = f"I{read['num_cycles']}"
-            if read['num_cycles'] - 8 != 0:
-                code += f"N{read['num_cycles'] - 8}"
+            code = f"I{adapter_length}"
+            truncated = read['num_cycles'] - adapter_length
+            if truncated < 0:
+                raise ValueError(f"num_cycles '{read['num_cycles']}' appears "
+                                 "to be less than adapter-length "
+                                 f"'{adapter_length}'")
+            elif truncated > 0:
+                code += f"N{truncated}"
+            # if truncated == 0 then a truncate code does not to be appended.
         else:
             code = f"Y{read['num_cycles']}"
 

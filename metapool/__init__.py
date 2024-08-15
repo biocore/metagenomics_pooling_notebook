@@ -15,7 +15,7 @@ from .amplipool import assign_emp_index
 from .igm import IGMManifest
 from .count import run_counts
 from .metapool import (extract_stats_metadata, sum_lanes, compress_plates,
-                       add_controls, generate_overide_cycles_value)
+                       add_controls, generate_override_cycles_value)
 
 
 __credits__ = ("https://github.com/biocore/metagenomics_pooling_notebook/"
@@ -31,7 +31,7 @@ __all__ = ['IGMManifest', 'add_controls', 'assign_emp_index', 'autopool',
            'sheet_needs_demuxing', 'sum_lanes', 'validate_plate_metadata',
            'MetagenomicSampleSheetv90', 'MetagenomicSampleSheetv100',
            'MetagenomicSampleSheetv101', 'AmpliconSampleSheet',
-           'MetatranscriptomicSampleSheetv0', 'generate_overide_cycles_value',
+           'MetatranscriptomicSampleSheetv0', 'generate_override_cycles_value',
            'MetatranscriptomicSampleSheetv10', 'AbsQuantSampleSheetv10',
            # KLSampleSheet is needed for instance() calls.
            'KLSampleSheet', 'load_sample_sheet']
