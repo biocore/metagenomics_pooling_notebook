@@ -26,8 +26,9 @@ from metapool.metapool import (read_plate_map_csv, read_pico_csv,
                                add_syndna, validate_plate_df,
                                add_controls, compress_plates,
                                read_visionmate_file,
-                               TUBECODE_KEY
+                               generate_override_cycles_value, TUBECODE_KEY
                                )
+from xml.etree.ElementTree import ParseError
 
 
 class Tests(TestCase):
@@ -96,6 +97,26 @@ class Tests(TestCase):
         self.metadata = pd.read_csv(metadata_fp, sep='\t')
         self.fp = path
         self.plates = [p1, p2, p3, p4]
+        self.runinfos = [("metapool/tests/data/runinfo_files/RunInfo1.xml",
+                          "Y151;I8N4;Y151", 8),
+                         ("metapool/tests/data/runinfo_files/RunInfo2.xml",
+                          "Y150;I8;I8;Y150", 8),
+                         ("metapool/tests/data/runinfo_files/RunInfo3.xml",
+                          "Y151;I8N2;I8N2;Y151", 8),
+                         ("metapool/tests/data/runinfo_files/RunInfo4.xml",
+                          "Y151;I8N10;I8N2;Y151", 8),
+                         ("metapool/tests/data/runinfo_files/RunInfo5.xml",
+                          "Y151;I8;I8;Y151", 8)]
+
+        # intentionally pass bad parameters.
+        self.bad_runinfos = [("metapool/tests/data/runinfo_files/RunInfo1.xml",
+                              "num_cycles '12' appears to be less than "
+                              "adapter-length '14'", 14, ValueError),
+                             ("metapool/tests/data/runinfo_files/RunInfo1.xml",
+                              "Adapter-length cannot be less than zero", -1,
+                              ValueError),
+                             ("metapool/tests/data/good-sample-sheet.csv",
+                              "syntax error: line 1, column 0", 8, ParseError)]
 
     def test_read_visionmate_file(self):
         # Raises error when tries to validate that all expected
@@ -1352,6 +1373,20 @@ class Tests(TestCase):
         with self.assertRaises(Exception):
             add_syndna(test_df, syndna_pool_number='pool1',
                        syndna_concentration=None)
+
+    def test_generate_override_cycles_value(self):
+        for fp, exp, adapter_length in self.runinfos:
+            obs = generate_override_cycles_value(fp, adapter_length)
+            # if an assertion fails, print the path of the most recently
+            # processed file for debugging purposes.
+            print(fp)
+            self.assertEqual(obs, exp)
+
+    def test_generate_override_cycles_value_error(self):
+        for fp, msg, adapter_length, e_type in self.bad_runinfos:
+            with self.assertRaisesRegex(e_type, msg):
+                print(fp)
+                generate_override_cycles_value(fp, adapter_length)
 
 
 if __name__ == "__main__":

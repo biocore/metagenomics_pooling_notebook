@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<RunInfo xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Version="5">
+  <Run Id="20220912_FS10001773_27_BSE39218-1017" Number="27">
+    <Flowcell>BSE39218-1017</Flowcell>
+    <Instrument>FS10001773</Instrument>
+    <Date>220912</Date>
+    <Reads>
+      <Read Number="1" NumCycles="151" IsIndexedRead="N" />
+      <Read Number="2" NumCycles="8" IsIndexedRead="Y" />
+      <Read Number="3" NumCycles="8" IsIndexedRead="Y" />
+      <Read Number="4" NumCycles="151" IsIndexedRead="N" />
+    </Reads>
+    <FlowcellLayout LaneCount="1" SurfaceCount="1" SwathCount="1" TileCount="16" SectionPerLane="1" LanePerSection="1">
+      <TileSet TileNamingConvention="FourDigit">
+        <Tiles>
+          <Tile>1_1101</Tile>
+          <Tile>1_1102</Tile>
+          <Tile>1_1103</Tile>
+          <Tile>1_1104</Tile>
+          <Tile>1_1105</Tile>
+          <Tile>1_1106</Tile>
+          <Tile>1_1107</Tile>
+          <Tile>1_1108</Tile>
+          <Tile>1_1109</Tile>
+          <Tile>1_1110</Tile>
+          <Tile>1_1111</Tile>
+          <Tile>1_1112</Tile>
+          <Tile>1_1113</Tile>
+          <Tile>1_1114</Tile>
+          <Tile>1_1115</Tile>
+          <Tile>1_1116</Tile>
+        </Tiles>
+      </TileSet>
+    </FlowcellLayout>
+    <ImageDimensions Width="1550" Height="310" />
+    <ImageChannels>
+      <Name>1</Name>
+      <Name>2</Name>
+    </ImageChannels>
+  </Run>
+</RunInfo>
