@@ -3,7 +3,7 @@ import pandas as pd
 from metapool.literals import get_qiita_id_from_project_name, \
     SAMPLE_NAME_KEY, QIITA_ID_KEY, PM_PROJECT_NAME_KEY, PM_PROJECT_ABBREV_KEY
 
-_QIITA_STUDY_ID_KEY = 'qiita_study_id'
+QIITA_STUDY_ID_KEY = 'qiita_study_id'
 
 
 def join_dfs_from_files(input_fps, req_cols_to_extract,
@@ -93,7 +93,7 @@ def join_dfs_from_files(input_fps, req_cols_to_extract,
 # ]
 def extend_sample_accession_df(sample_accession_df, studies_info, metadata_df):
     local_metadata_df = metadata_df.copy()
-    local_metadata_df[QIITA_ID_KEY] = local_metadata_df[_QIITA_STUDY_ID_KEY]
+    local_metadata_df[QIITA_ID_KEY] = local_metadata_df[QIITA_STUDY_ID_KEY]
 
     # extract qiita study ids from the Project Name in studies_info entries
     local_studies_info = studies_info.copy()

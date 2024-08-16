@@ -1027,7 +1027,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
 class KLSampleSheetWithSampleContext(KLSampleSheet):
     _KL_ADDTL_DF_SECTIONS = {
-        _BIOINFORMATICS_KEY: _BASE_BIOINFORMATICS_COLS,
+        _BIOINFORMATICS_KEY: _BIOINFORMATICS_COLS_W_REP_SUPPORT,
         _CONTACT_KEY: _CONTACT_COLS,
         _SAMPLE_CONTEXT_KEY: SAMPLE_CONTEXT_COLS
     }
