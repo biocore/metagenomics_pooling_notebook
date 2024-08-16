@@ -20,6 +20,8 @@ _DUMMY_SHEET_TYPE = 'dummy_amp'
 _ABSQUANT_SHEET_TYPE = 'abs_quant_metag'
 SHEET_TYPES = (_STANDARD_METAG_SHEET_TYPE, _ABSQUANT_SHEET_TYPE,
                _STANDARD_METAT_SHEET_TYPE)
+_OVERRIDE_CYCLES = 'OverrideCycles'
+_MASK_SHORT_READS = 'MaskShortReads'
 
 
 class KLSampleSheet(sample_sheet.SampleSheet):
@@ -62,8 +64,8 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
     _SETTINGS = {
         'ReverseComplement': '0',
-        'MaskShortReads': '1',
-        'OverrideCycles': 'Y151;I8N2;I8N2;Y151'
+        _MASK_SHORT_READS: '1',
+        _OVERRIDE_CYCLES: 'Y151;I8N2;I8N2;Y151'
     }
 
     _ALL_METADATA = {**_HEADER, **_SETTINGS, **_READS,
@@ -264,7 +266,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         if value is None:
             value = ''
 
-        self.Settings['OverrideCycles'] = value
+        self.Settings[_OVERRIDE_CYCLES] = value
 
     def _process_section_header(self, columns):
         for i in range(0, len(columns)):
@@ -504,11 +506,11 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
             # these are only relevant for metagenomics because they are used in
             # bclconvert
-            del self.Settings['MaskShortReads']
-            del self.Settings['OverrideCycles']
+            del self.Settings[_MASK_SHORT_READS]
+            del self.Settings[_OVERRIDE_CYCLES]
 
-        # 'MaskShortReads' and 'OverrideCycles' are not relevant for iSeq runs,
-        # and can cause issues downstream.
+        # _MASK_SHORT_READS and _OVERRIDE_CYCLES are not relevant for iSeq
+        # runs, and can cause issues downstream.
 
         # Note: 'iseq' should remain at the tail of this list, since it
         # is a substring of the others.
@@ -525,10 +527,10 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             raise ErrorMessage(f"{sequencer} isn't a known sequencer")
         elif type_found == 'iseq':
             #   Verify the settings exist before deleting them.
-            if 'MaskShortReads' in self.Settings:
-                del self.Settings['MaskShortReads']
-            if 'OverrideCycles' in self.Settings:
-                del self.Settings['OverrideCycles']
+            if _MASK_SHORT_READS in self.Settings:
+                del self.Settings[_MASK_SHORT_READS]
+            if _OVERRIDE_CYCLES in self.Settings:
+                del self.Settings[_OVERRIDE_CYCLES]
 
         return self
 
@@ -1191,7 +1193,7 @@ class MetatranscriptomicSampleSheetv10(KLSampleSheet):
         'Chemistry': 'Default',
     }
 
-    # MaskShortReads and OverrideCycles are present
+    # _MASK_SHORT_READS and _OVERRIDE_CYCLES are present
     # "Well_description" column contains concatenated information
     # (Sample_Plate + Sample_Name + well_id_384) vs. just the sample_name
     # in previous iterations.

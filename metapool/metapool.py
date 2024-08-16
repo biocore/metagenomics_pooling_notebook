@@ -29,6 +29,8 @@ NORMALIZED_DNA_VOL_KEY = "Normalized DNA volume"
 INPUT_DNA_KEY = "Input DNA"
 SYNDNA_VOL_KEY = "synDNA volume"
 SYNDNA_POOL_MASS_NG_KEY = "mass_syndna_input_ng"
+NUM_CYCLES = 'num_cycles'
+LANE = 'Lane'
 
 
 def extract_stats_metadata(stats_json_fp, lane_numbers):
@@ -117,7 +119,7 @@ def extract_stats_metadata(stats_json_fp, lane_numbers):
                         "IndexSequence",
                         "SampleName",
                         "SampleId",
-                        "Lane",
+                        LANE,
                         "Mismatch0",
                         "Mismatch1",
                         "NumberReads",
@@ -131,13 +133,13 @@ def extract_stats_metadata(stats_json_fp, lane_numbers):
             )
     filtered_unknowns = []
     for unknown_barcode in unknown_barcodes:
-        if unknown_barcode["Lane"] in lane_numbers:
+        if unknown_barcode[LANE] in lane_numbers:
             # convert dict of (k,v) pairs into list form.
             lst = [
-                (k, unknown_barcode["Lane"], v)
+                (k, unknown_barcode[LANE], v)
                 for k, v in unknown_barcode["Barcodes"].items()
             ]
-            df = pd.DataFrame(lst, columns=["IndexSequence", "Lane", "Value"])
+            df = pd.DataFrame(lst, columns=["IndexSequence", LANE, "Value"])
             filtered_unknowns.append(df)
 
     # convert the list of dataframes into a single dataframe spanning all
@@ -162,12 +164,12 @@ def extract_stats_metadata(stats_json_fp, lane_numbers):
 def sum_lanes(multi_lane_df, lanes_to_sum):
     """
     Sum the values of a DataFrame across a given set of lanes.
-    :param multi_lane_df: A DataFrame containing a 'Lane' column.
+    :param multi_lane_df: A DataFrame containing a LANE column.
     :param lanes_to_sum: A list of lane numbers to sum across.
     :return: A DataFrame containing sums across the given set of lanes.
     """
-    if "Lane" not in multi_lane_df:
-        raise ValueError("DataFrame must contain 'Lane' column.")
+    if LANE not in multi_lane_df:
+        raise ValueError("DataFrame must contain LANE column.")
 
     if not set(lanes_to_sum).issubset(set(multi_lane_df.Lane.unique())):
         raise ValueError("One or more specified lanes does not occur in "
@@ -177,9 +179,9 @@ def sum_lanes(multi_lane_df, lanes_to_sum):
 
     for lane_id in lanes_to_sum:
         # create a dataframe w/only the rows from lane_id
-        lane = multi_lane_df[multi_lane_df["Lane"] == lane_id]
-        # drop the 'Lane' column
-        lane = lane.drop(columns=["Lane"])
+        lane = multi_lane_df[multi_lane_df[LANE] == lane_id]
+        # drop the LANE column
+        lane = lane.drop(columns=[LANE])
 
         if total is None:
             total = lane
@@ -197,7 +199,7 @@ def sum_lanes(multi_lane_df, lanes_to_sum):
                 # a new empty row in the running total so that this row of
                 # data does not disappear from the final result.
 
-                # one less column assuming that 'Lane' is present.
+                # one less column assuming that LANE is present.
                 total.loc[x] = [0] * (len(multi_lane_df.columns) - 1)
 
             # now sum the values in current_lane to the running-total.
@@ -2081,14 +2083,14 @@ def validate_plate_df(
 
 def generate_override_cycles_value(runinfo_xml_path, adapter_length):
     if adapter_length < 0:
-        raise ValueError("Adapter-length cannot be less than zero")
+        raise ValueError("Adapter length cannot be less than zero")
 
     tree = ET.parse(runinfo_xml_path)
     reads = tree.getroot().findall('.Run/Reads/Read')
     results = []
     for read in reads:
         result = {'number': int(read.get('Number')),
-                  'num_cycles': int(read.get('NumCycles'))}
+                  NUM_CYCLES: int(read.get('NumCycles'))}
         result['is_indexed'] = True if read.get('IsIndexedRead') == 'Y' \
             else False
         results.append(result)
@@ -2103,16 +2105,16 @@ def generate_override_cycles_value(runinfo_xml_path, adapter_length):
     for read in sorted(results, key=itemgetter('number')):
         if read['is_indexed'] is True:
             code = f"I{adapter_length}"
-            truncated = read['num_cycles'] - adapter_length
+            truncated = read[NUM_CYCLES] - adapter_length
             if truncated < 0:
-                raise ValueError(f"num_cycles '{read['num_cycles']}' appears "
+                raise ValueError(f"{NUM_CYCLES} '{read[NUM_CYCLES]}' appears "
                                  "to be less than adapter-length "
                                  f"'{adapter_length}'")
             elif truncated > 0:
                 code += f"N{truncated}"
             # if truncated == 0 then a truncate code does not to be appended.
         else:
-            code = f"Y{read['num_cycles']}"
+            code = f"Y{read[NUM_CYCLES]}"
 
         codes.append(code)
 
