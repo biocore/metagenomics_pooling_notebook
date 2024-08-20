@@ -87,7 +87,7 @@ def join_dfs_from_files(input_fps, req_cols_to_extract,
 #     'qiita_metadata_fp': './test_data/Plate_Maps/12986_20230314-090655.txt',
 #     'experiment_design_description': 'isolate sequencing',
 #     'HumanFiltering': 'False',
-#     'Email': 'rodolfo.salido@gmail.com'
+#     'Email': 'r@gmail.com'
 #     },
 #     <etc, etc>
 # ]

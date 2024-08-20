@@ -11,7 +11,7 @@ from configparser import ConfigParser
 from qiita_client import QiitaClient
 from .literals import SAMPLE_NAME_KEY, PM_PROJECT_NAME_KEY, \
     PM_PROJECT_PLATE_KEY, PM_COMPRESSED_PLATE_NAME_KEY, PM_BLANK_KEY, \
-    get_plate_name_delimiter, get_qiita_id_from_project_name, \
+    PLATE_NAME_DELIMITER, get_qiita_id_from_project_name, \
     get_plate_num_from_plate_name, get_main_project_from_plate_name
 from .plate import _validate_well_id_96, PlateReplication
 
@@ -1794,7 +1794,6 @@ def _merge_accession_to_compressed_plate_df(
 
 
 def _generate_compressed_plate_name(compressed_plate_df):
-    plate_name_delim = get_plate_name_delimiter()
     temp_plate_name_base_col = "plate_name_base"
     temp_plate_num_col = "plate_num"
     temp_plate_df = compressed_plate_df.copy()
@@ -1821,7 +1820,7 @@ def _generate_compressed_plate_name(compressed_plate_df):
 
         # Concatenate all the plate numbers found for this plate base name,
         # with "_" separating each value
-        unique_project_plates_str = plate_name_delim.join(
+        unique_project_plates_str = PLATE_NAME_DELIMITER.join(
             temp_plate_df.loc[
                 curr_unique_plate_name_base_mask,
                 temp_plate_num_col].unique())
@@ -1829,7 +1828,7 @@ def _generate_compressed_plate_name(compressed_plate_df):
         # munge the plate base name to remove _Plate, then add the
         # concatenated list of plate numbers for this plate base name
         # (e.g., ProjectA_1_2_14)
-        compressed_name = (curr_unique_plate_name_base + plate_name_delim +
+        compressed_name = (curr_unique_plate_name_base + PLATE_NAME_DELIMITER +
                            unique_project_plates_str)
         plate_name_pieces.append(compressed_name)
     # next curr_unique_plate_name_base
@@ -1837,7 +1836,7 @@ def _generate_compressed_plate_name(compressed_plate_df):
     # join together all the different compressed names:
     # e.g, if there are plates 1, 2, and 14 on this compressed plate and
     # also from plates 3 and 4 of Project B, get: ProjectA_1_2_14_ProjectB_3_4
-    compressed_plate_name = plate_name_delim.join(plate_name_pieces)
+    compressed_plate_name = PLATE_NAME_DELIMITER.join(plate_name_pieces)
     return compressed_plate_name
 
 

@@ -2,7 +2,7 @@
 from .prep import (preparations_for_run, parse_prep, generate_qiita_prep_file,
                    preparations_for_run_mapping_file, remove_qiita_id,
                    demux_pre_prep, pre_prep_needs_demuxing)
-from .literals import (SAMPLE_NAME_KEY, QIITA_ID_KEY, SAMPLES_KEY,
+from .literals import (SAMPLE_NAME_KEY, QIITA_ID_KEY, SAMPLES_DETAILS_KEY,
                        ORIG_NAME_KEY, PRIMARY_STUDY_KEY, SECONDARY_STUDIES_KEY,
                        parse_project_name, get_short_name_and_id,
                        get_qiita_id_from_project_name)
@@ -44,8 +44,8 @@ __all__ = ['IGMManifest', 'add_controls', 'assign_emp_index', 'autopool',
            # KLSampleSheet is needed for instance() calls.
            'KLSampleSheet', 'load_sample_sheet',
            'SAMPLE_NAME_KEY', 'PRIMARY_STUDY_KEY', 'SECONDARY_STUDIES_KEY',
-           'SAMPLES_KEY', 'SS_SAMPLE_ID_KEY', 'ORIG_NAME_KEY', 'TUBECODE_KEY',
-           'QIITA_ID_KEY']
+           'SAMPLES_DETAILS_KEY', 'SS_SAMPLE_ID_KEY', 'ORIG_NAME_KEY',
+           'TUBECODE_KEY', 'QIITA_ID_KEY']
 
 from . import _version
 

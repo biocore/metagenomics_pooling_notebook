@@ -10,8 +10,8 @@ from json import loads
 
 from metapool.literals import (QIITA_ID_KEY, PROJECT_SHORT_NAME_KEY,
                                PROJECT_FULL_NAME_KEY, CONTAINS_REPLICATES_KEY,
-                               SAMPLES_KEY, SAMPLE_PROJECT_KEY, ORIG_NAME_KEY,
-                               SAMPLE_NAME_KEY, SAMPLE_TYPE_KEY,
+                               SAMPLES_DETAILS_KEY, SAMPLE_PROJECT_KEY,
+                               ORIG_NAME_KEY, SAMPLE_NAME_KEY, SAMPLE_TYPE_KEY,
                                PRIMARY_STUDY_KEY, SECONDARY_STUDIES_KEY)
 from metapool.metapool import TUBECODE_KEY
 from metapool.sample_sheet import (KLSampleSheet, AmpliconSampleSheet,
@@ -727,7 +727,7 @@ class KLSampleSheetTests(BaseTests):
                 PROJECT_SHORT_NAME_KEY: 'NYU_BMS_Melanoma',
                 PROJECT_FULL_NAME_KEY: 'NYU_BMS_Melanoma_13059',
                 CONTAINS_REPLICATES_KEY: False,
-                SAMPLES_KEY: {
+                SAMPLES_DETAILS_KEY: {
                     'LP127890A01': {
                         SAMPLE_NAME_KEY: 'LP127890A01',
                         SAMPLE_PROJECT_KEY: 'NYU_BMS_Melanoma_13059',
@@ -740,7 +740,7 @@ class KLSampleSheetTests(BaseTests):
                 PROJECT_SHORT_NAME_KEY: 'Feist',
                 PROJECT_FULL_NAME_KEY: 'Feist_11661',
                 CONTAINS_REPLICATES_KEY: False,
-                SAMPLES_KEY: {
+                SAMPLES_DETAILS_KEY: {
                     'CDPH-SAL_Salmonella_Typhi_MDL-143': {
                         SAMPLE_NAME_KEY: 'CDPH-SAL_Salmonella_Typhi_MDL-143',
                         SAMPLE_PROJECT_KEY: 'Feist_11661',
@@ -753,7 +753,7 @@ class KLSampleSheetTests(BaseTests):
                 PROJECT_SHORT_NAME_KEY: 'Gerwick',
                 PROJECT_FULL_NAME_KEY: 'Gerwick_6123',
                 CONTAINS_REPLICATES_KEY: False,
-                SAMPLES_KEY: {
+                SAMPLES_DETAILS_KEY: {
                     '3A': {
                         SAMPLE_NAME_KEY: '3A',
                         SAMPLE_PROJECT_KEY: 'Gerwick_6123',
@@ -776,7 +776,7 @@ class KLSampleSheetTests(BaseTests):
         # make sure the original name is being added correctly
         obs_details = sheet.get_projects_details()
         self.assertTrue("Feist_11661" in obs_details)
-        an_obs_samples = obs_details["Feist_11661"][SAMPLES_KEY]
+        an_obs_samples = obs_details["Feist_11661"][SAMPLES_DETAILS_KEY]
         self.assertTrue("BLANK.43.12G.A1" in an_obs_samples)
         an_obs_sample = an_obs_samples["BLANK.43.12G.A1"]
         self.assertTrue(ORIG_NAME_KEY in an_obs_sample)

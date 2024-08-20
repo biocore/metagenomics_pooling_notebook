@@ -32,7 +32,7 @@ class NotebookSupportTests(TestCase):
                 'qiita_metadata_fp': './adapt_metadata.txt',
                 'experiment_design_description': 'isolate sequencing',
                 'HumanFiltering': 'False',
-                'Email': 'rodolfo.salido@gmail.com'
+                'Email': 'r@gmail.com'
             },
             {
                 'Project Name': 'CHILD_15510',
@@ -41,7 +41,7 @@ class NotebookSupportTests(TestCase):
                 'qiita_metadata_fp': './child_metadata.txt',
                 'experiment_design_description': 'whole genome sequencing',
                 'HumanFiltering': 'True',
-                'Email': 'lauren@ucsd.edu'
+                'Email': 'l@ucsd.edu'
             },
             {
                 'Project Name': 'Celeste_Marmoset_14577',
@@ -50,7 +50,7 @@ class NotebookSupportTests(TestCase):
                 'qiita_metadata_fp': './marmo_metadata.txt',
                 'experiment_design_description': 'whole genome sequencing',
                 'HumanFiltering': 'False',
-                'Email': 'celeste@ucsd.edu'
+                'Email': 'c@ucsd.edu'
             }
         ]
 

@@ -29,8 +29,8 @@ CONTAINS_REPLICATES_KEY = "contains_replicates"
 PROJECT_SHORT_NAME_KEY = "short_project_name"
 PROJECT_FULL_NAME_KEY = "full_project_name"
 # NB: don't use this as the name for a column of sample identifiers.  It is
-# the key for a list of sample info *objects* (e.g., dictionaries)
-SAMPLES_KEY = "samples"
+# the key for a list of sample details *objects* (e.g., dictionaries)
+SAMPLES_DETAILS_KEY = "samples"
 
 # Plate map (PM) column names
 PM_SAMPLE_KEY = "Sample"
@@ -45,10 +45,6 @@ PLATE_NAME_DELIMITER = "_"
 SAMPLE_TYPE_KEY = "sample_type"
 PRIMARY_STUDY_KEY = "primary_qiita_study"
 SECONDARY_STUDIES_KEY = "secondary_qiita_studies"
-
-
-def get_plate_name_delimiter():
-    return PLATE_NAME_DELIMITER
 
 
 def parse_project_name(project_name):
