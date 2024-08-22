@@ -1572,6 +1572,11 @@ class SampleSheetWorkflow(BaseTests):
                 {'Sample_Project': 'Study_3', 'Email': 'c@ucsd.edu'},
                 {'Sample_Project': 'Study_4', 'Email': 'b@ucsd.edu'}
             ],
+
+            # when there are multiple secondary studies, they are delimited
+            # by a ";" (no spaces).  When there are NO secondary studies,
+            # the value of the `secondary_qiita_studies` key is an empty string
+            # (NOT a None).
             'SampleContext': [
                 {'sample_name': 'sample1', 'primary_qiita_study': '1',
                  'sample_type': 'control blank',

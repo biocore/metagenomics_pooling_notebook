@@ -8,16 +8,12 @@ QIITA_STUDY_ID_KEY = 'qiita_study_id'
 
 def join_dfs_from_files(input_fps, req_cols_to_extract,
                         opt_cols_to_extract=None, unique_cols=None,
-                        dtype=None, sep="\t"):
+                        dtype=str, sep="\t"):
     if opt_cols_to_extract is None:
         opt_cols_to_extract = []
 
     if unique_cols is None:
         unique_cols = req_cols_to_extract
-
-    # Per Daniel M. 20240614
-    if dtype is None:
-        dtype = str
 
     uniques_required = [x in req_cols_to_extract for x in unique_cols]
     if not all(uniques_required):
