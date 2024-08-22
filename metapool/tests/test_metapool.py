@@ -1377,15 +1377,11 @@ class Tests(TestCase):
     def test_generate_override_cycles_value(self):
         for fp, exp, adapter_length in self.runinfos:
             obs = generate_override_cycles_value(fp, adapter_length)
-            # if an assertion fails, print the path of the most recently
-            # processed file for debugging purposes.
-            print(fp)
             self.assertEqual(obs, exp)
 
     def test_generate_override_cycles_value_error(self):
         for fp, msg, adapter_length, e_type in self.bad_runinfos:
             with self.assertRaisesRegex(e_type, msg):
-                print(fp)
                 generate_override_cycles_value(fp, adapter_length)
 
 
