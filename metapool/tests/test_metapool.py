@@ -25,8 +25,10 @@ from metapool.metapool import (read_plate_map_csv, read_pico_csv,
                                sanitize_plate_map_sample_names,
                                add_syndna, validate_plate_df,
                                add_controls, compress_plates,
-                               read_visionmate_file
+                               read_visionmate_file,
+                               generate_override_cycles_value, TUBECODE_KEY
                                )
+from xml.etree.ElementTree import ParseError
 
 
 class Tests(TestCase):
@@ -60,6 +62,7 @@ class Tests(TestCase):
         metadata_fp = os.path.join(path, 'data/metadata_for_test.txt')
 
         sa_fp = os.path.join(path, 'data/sa_file.tsv')
+        augmented_sa_fp = os.path.join(path, 'data/sa_file_augmented.tsv')
         p1 = os.path.join(path, 'data/plate_map1.tsv')
         p2 = os.path.join(path, 'data/plate_map2.tsv')
         p3 = os.path.join(path, 'data/plate_map3.tsv')
@@ -71,6 +74,10 @@ class Tests(TestCase):
         self.comp_plate_exp_fp = os.path.join(
             path,
             'data/compress_plates_expected_out.tsv')
+        self.comp_plate_multi_proj_on_plate_exp_fp = os.path.join(
+            path,
+            'data/compress_plates_multiple_projects_on_one_plate_'
+            'expected_out.tsv')
         self.add_controls_exp_fp = os.path.join(
             path,
             'data/add_controls_expected_out.tsv')
@@ -84,18 +91,40 @@ class Tests(TestCase):
         self.with_nan = pd.read_csv(with_nan_fp, sep='\t')
         self.blanks = pd.read_csv(blanks_fp, sep='\t')
         self.sa_df = pd.read_csv(sa_fp, sep='\t',
-                                 dtype={'TubeCode': str})
+                                 dtype={TUBECODE_KEY: str})
+        self.sa_augmented_df = pd.read_csv(augmented_sa_fp, sep='\t',
+                                           dtype={TUBECODE_KEY: str})
         self.metadata = pd.read_csv(metadata_fp, sep='\t')
         self.fp = path
         self.plates = [p1, p2, p3, p4]
+        self.runinfos = [("metapool/tests/data/runinfo_files/RunInfo1.xml",
+                          "Y151;I8N4;Y151", 8),
+                         ("metapool/tests/data/runinfo_files/RunInfo2.xml",
+                          "Y150;I8;I8;Y150", 8),
+                         ("metapool/tests/data/runinfo_files/RunInfo3.xml",
+                          "Y151;I8N2;I8N2;Y151", 8),
+                         ("metapool/tests/data/runinfo_files/RunInfo4.xml",
+                          "Y151;I8N10;I8N2;Y151", 8),
+                         ("metapool/tests/data/runinfo_files/RunInfo5.xml",
+                          "Y151;I8;I8;Y151", 8)]
+
+        # intentionally pass bad parameters.
+        self.bad_runinfos = [("metapool/tests/data/runinfo_files/RunInfo1.xml",
+                              "num_cycles '12' appears to be less than "
+                              "adapter-length '14'", 14, ValueError),
+                             ("metapool/tests/data/runinfo_files/RunInfo1.xml",
+                              "Adapter-length cannot be less than zero", -1,
+                              ValueError),
+                             ("metapool/tests/data/good-sample-sheet.csv",
+                              "syntax error: line 1, column 0", 8, ParseError)]
 
     def test_read_visionmate_file(self):
         # Raises error when tries to validate that all expected
         # columns from VisionMate file are present.
         with self.assertRaises(ValueError):
-            read_visionmate_file(self.plate_error_fp, ['TubeCode'])
+            read_visionmate_file(self.plate_error_fp, [TUBECODE_KEY])
 
-    def test_compress_plates(self):
+    def test_compress_plates_legacy_plate_defines_project(self):
         compression = [
             # top left plate
             {'Plate Position': 1,  # as int
@@ -128,20 +157,106 @@ class Tests(TestCase):
         plate_df_obs = compress_plates(compression, self.sa_df,
                                        well_col='Well')
         plate_df_exp = pd.read_csv(self.comp_plate_exp_fp,
-                                   dtype={'TubeCode': str}, sep='\t')
+                                   dtype={TUBECODE_KEY: str}, sep='\t')
+
+        pd.testing.assert_frame_equal(plate_df_obs, plate_df_exp)
+
+    def test_compress_plates_all_same_project(self):
+        # this should give same results as
+        # test_compress_plates_legacy_plate_defines_project, but via
+        # different logic
+        compression = [
+            # top left plate
+            {'Plate Position': 1,  # as int
+             'Plate map file': self.plates[0],
+             'Project Plate': 'Plate_16',
+             'Project Name': 'Celeste_Adaptation_12986',
+             'Project Abbreviation': 'ADAPT',
+             'Plate elution volume': 70},
+            # top right plate
+            {'Plate Position': 2,
+             'Plate map file': self.plates[1],
+             'Project Plate': 'Plate_17',
+             'Project Name': 'Celeste_Adaptation_12986',
+             'Project Abbreviation': 'ADAPT',
+             'Plate elution volume': 70},
+            {'Plate Position': 3,
+             'Plate map file': self.plates[2],
+             'Project Plate': 'Plate_18',
+             'Project Name': 'Celeste_Adaptation_12986',
+             'Project Abbreviation': 'ADAPT',
+             'Plate elution volume': 70},
+            {'Plate Position': 4,
+             'Plate map file': self.plates[3],
+             'Project Plate': 'Plate_21',
+             'Project Name': 'Celeste_Adaptation_12986',
+             'Project Abbreviation': 'ADAPT',
+             'Plate elution volume': 70}
+        ]
+
+        augmented_sa_df = self.sa_df.copy()
+        augmented_sa_df['Project Name'] = 'Celeste_Adaptation_12986'
+        augmented_sa_df['Project Abbreviation'] = 'ADAPT'
+
+        plate_df_obs = compress_plates(compression, augmented_sa_df,
+                                       well_col='Well')
+        plate_df_exp = pd.read_csv(self.comp_plate_exp_fp,
+                                   dtype={TUBECODE_KEY: str}, sep='\t')
+
+        pd.testing.assert_frame_equal(plate_df_obs, plate_df_exp)
+
+    def test_compress_plates_multiple_projects(self):
+        # project name for *samples* now comes from sample accession rather
+        # than the compression dict, to allow for multiple projects on the same
+        # 96-well plate.  However, project name for *blanks* still comes from
+        # the compression dict, set to the "main" project of the 96-well plate.
+
+        compression = [
+            # top left plate
+            {'Plate Position': 1,  # as int
+             'Plate map file': self.plates[0],
+             'Project Plate': 'Plate_16',
+             'Project Name': 'Celeste_Adaptation_12986',
+             'Project Abbreviation': 'ADAPT',
+             'Plate elution volume': 70},
+            # top right plate
+            {'Plate Position': 2,
+             'Plate map file': self.plates[1],
+             'Project Plate': 'Plate_17',
+             'Project Name': 'Celeste_Adaptation_12986',
+             'Project Abbreviation': 'ADAPT',
+             'Plate elution volume': 70},
+            {'Plate Position': 3,
+             'Plate map file': self.plates[2],
+             'Project Plate': 'Plate_18',
+             'Project Name': 'Celeste_Adaptation_12986',
+             'Project Abbreviation': 'ADAPT',
+             'Plate elution volume': 70},
+            {'Plate Position': 4,
+             'Plate map file': self.plates[3],
+             'Project Plate': 'Plate_42',
+             'Project Name': 'TMI_10317',
+             'Project Abbreviation': 'TMI',
+             'Plate elution volume': 70}
+        ]
+
+        plate_df_obs = compress_plates(compression, self.sa_augmented_df,
+                                       well_col='Well')
+        plate_df_exp = pd.read_csv(self.comp_plate_multi_proj_on_plate_exp_fp,
+                                   dtype={TUBECODE_KEY: str}, sep='\t')
 
         pd.testing.assert_frame_equal(plate_df_obs, plate_df_exp)
 
     def test_add_controls(self):
         plate_df = pd.read_csv(self.comp_plate_exp_fp,
-                               dtype={'TubeCode': str}, sep='\t')
+                               dtype={TUBECODE_KEY: str}, sep='\t')
 
         add_controls_obs = add_controls(plate_df,
                                         self.blanks_dir,
                                         self.katharoseq_dir)
 
         add_controls_exp = pd.read_csv(self.add_controls_exp_fp,
-                                       dtype={'TubeCode': str,
+                                       dtype={TUBECODE_KEY: str,
                                               'RackID': str,
                                               'Kathseq_RackID': str},
                                        sep='\t')
@@ -162,7 +277,7 @@ class Tests(TestCase):
         # Validator function. No return so just asserting
         # that errors are raised when expected
         plate_df = pd.read_csv(self.add_controls_exp_fp,
-                               dtype={'TubeCode': str,
+                               dtype={TUBECODE_KEY: str,
                                       'RackID': str},
                                sep='\t')
         # Test with no errors
@@ -1258,6 +1373,16 @@ class Tests(TestCase):
         with self.assertRaises(Exception):
             add_syndna(test_df, syndna_pool_number='pool1',
                        syndna_concentration=None)
+
+    def test_generate_override_cycles_value(self):
+        for fp, exp, adapter_length in self.runinfos:
+            obs = generate_override_cycles_value(fp, adapter_length)
+            self.assertEqual(obs, exp)
+
+    def test_generate_override_cycles_value_error(self):
+        for fp, msg, adapter_length, e_type in self.bad_runinfos:
+            with self.assertRaisesRegex(e_type, msg):
+                generate_override_cycles_value(fp, adapter_length)
 
 
 if __name__ == "__main__":

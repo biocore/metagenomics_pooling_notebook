@@ -1,8 +1,12 @@
 import sys
+import os
 import pandas as pd
 from pandas.testing import assert_frame_equal
 
 from unittest import TestCase, main
+from metapool.mp_strings import (get_short_name_and_id, parse_project_name,
+                                 QIITA_ID_KEY, PROJECT_SHORT_NAME_KEY,
+                                 PROJECT_FULL_NAME_KEY)
 from metapool.plate import (_well_to_row_and_col, _decompress_well,
                             _plate_position, validate_plate_metadata,
                             _validate_plate, Message, ErrorMessage,
@@ -583,8 +587,9 @@ class PlateValidationTests(TestCase):
 
 class PlateReplicationTests(TestCase):
     def setUp(self):
-        self.input_df = pd.read_csv('metapool/tests/data/input_plate.tsv',
-                                    sep='\t', dtype=str)
+        data_dir = os.path.dirname(__file__)
+        input_plate_fp = os.path.join(data_dir, 'data/input_plate.tsv')
+        self.input_df = pd.read_csv(input_plate_fp, sep='\t', dtype=str)
 
     def test_overwrite_source_quad(self):
         # replicate a valid source to empty sources 2 and 4 plus overwriting
@@ -682,6 +687,55 @@ class PlateReplicationTests(TestCase):
                                                 'quadrant'):
             pr.make_replicates(self.input_df, {1: [2], 2: [1]},
                                overwrite=False)
+
+    def test_get_short_name_and_id(self):
+        # normal, non-pathological cases
+        obs = get_short_name_and_id('project_1')
+        self.assertEqual(2, len(obs))
+        self.assertEqual(obs[0], 'project')
+        self.assertEqual(obs[1], '1')
+
+        obs = get_short_name_and_id('project_00333333')
+        self.assertEqual(2, len(obs))
+        self.assertEqual(obs[0], 'project')
+        self.assertEqual(obs[1], '00333333')
+
+        # pathological cases
+        obs = get_short_name_and_id('project')
+        self.assertEqual(2, len(obs))
+        self.assertEqual(obs[0], 'project')
+        self.assertIsNone(obs[1])
+
+        obs = get_short_name_and_id('project_')
+        self.assertEqual(2, len(obs))
+        self.assertEqual(obs[0], 'project_')
+        self.assertIsNone(obs[1])
+
+    def test_parse_project_name_err_none(self):
+        expected_err = "project_name cannot be None or empty string"
+        with self.assertRaisesRegex(ValueError, expected_err):
+            parse_project_name(None)
+
+        with self.assertRaisesRegex(ValueError, expected_err):
+            parse_project_name("")
+
+    def test_parse_project_name_err_qiita_id(self):
+        with self.assertRaisesRegex(
+                ValueError, "'project' does not contain a Qiita-ID."):
+            parse_project_name("project")
+
+        with self.assertRaisesRegex(
+                ValueError, "'project_blue' does not contain a Qiita-ID."):
+            parse_project_name("project_blue")
+
+    def test_parse_project_name(self):
+        exp = {
+            QIITA_ID_KEY: '1',
+            PROJECT_SHORT_NAME_KEY: "project_green",
+            PROJECT_FULL_NAME_KEY: "project_green_1"
+        }
+        obs = parse_project_name("project_green_1")
+        self.assertDictEqual(exp, obs)
 
 
 if __name__ == '__main__':

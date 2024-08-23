@@ -8,6 +8,12 @@ import pandas as pd
 import sample_sheet
 from json import loads
 
+from metapool.mp_strings import (
+    QIITA_ID_KEY, PROJECT_SHORT_NAME_KEY, PROJECT_FULL_NAME_KEY,
+    CONTAINS_REPLICATES_KEY, SAMPLES_DETAILS_KEY, SAMPLE_PROJECT_KEY,
+    ORIG_NAME_KEY, SAMPLE_NAME_KEY, SAMPLE_TYPE_KEY, PRIMARY_STUDY_KEY,
+    SECONDARY_STUDIES_KEY)
+from metapool.metapool import TUBECODE_KEY
 from metapool.sample_sheet import (KLSampleSheet, AmpliconSampleSheet,
                                    MetagenomicSampleSheetv102,
                                    MetagenomicSampleSheetv101,
@@ -19,14 +25,9 @@ from metapool.sample_sheet import (KLSampleSheet, AmpliconSampleSheet,
                                    sample_sheet_to_dataframe,
                                    make_sample_sheet, load_sample_sheet,
                                    demux_sample_sheet, sheet_needs_demuxing,
-                                   QIITA_ID_KEY, PROJECT_SHORT_NAME_KEY,
-                                   PROJECT_FULL_NAME_KEY,
-                                   CONTAINS_REPLICATES_KEY, SAMPLES_KEY,
-                                   SAMPLE_PROJECT_KEY, SS_SAMPLE_ID_KEY,
-                                   ORIG_NAME_KEY)
+                                   make_sections_dict, SS_SAMPLE_ID_KEY)
 from metapool.plate import ErrorMessage, WarningMessage
-from metapool.controls import SAMPLE_NAME_KEY, SAMPLE_TYPE_KEY, \
-    PRIMARY_STUDY_KEY, SECONDARY_STUDIES_KEY
+from metapool.metapool import generate_override_cycles_value
 
 
 # Default KLSampleSheet objects don't have a `contains_replicates`
@@ -75,6 +76,8 @@ class BaseTests(unittest.TestCase):
 
         self.bad_project_name_ss = join(data_dir,
                                         'bad-project-name-sample-sheet.csv')
+
+        self.good_run_info = "metapool/tests/data/runinfo_files/RunInfo1.xml"
 
         bfx = [
             {
@@ -599,6 +602,25 @@ class KLSampleSheetTests(BaseTests):
 
         self.assertEqual(set(obs), set(exp))
 
+    def test_set_override_cycles(self):
+        sheet = load_sample_sheet(self.good_ss)
+
+        # assert that the original value of the sheet is as expected.
+        self.assertEqual("Y151;I8N2;I8N2;Y151",
+                         sheet.Settings['OverrideCycles'])
+
+        # generate a known value that is different from above using a known
+        # sample-sheet. Assume that adapters are of length 8.
+        new_value = generate_override_cycles_value(self.good_run_info, 8)
+
+        # assert that the new value is as expected.
+        self.assertEqual("Y151;I8N4;Y151", new_value)
+
+        # use set_override_cycles() to change the value and assert that it
+        # is now different.
+        sheet.set_override_cycles(new_value)
+        self.assertEqual("Y151;I8N4;Y151", sheet.Settings['OverrideCycles'])
+
     def test_sample_is_a_blank_wo_context(self):
         sheet = MetagenomicSampleSheetv100(self.good_ss)
         # NB: the sample names and sample ids in the test spreadsheet are the
@@ -705,7 +727,7 @@ class KLSampleSheetTests(BaseTests):
                 PROJECT_SHORT_NAME_KEY: 'NYU_BMS_Melanoma',
                 PROJECT_FULL_NAME_KEY: 'NYU_BMS_Melanoma_13059',
                 CONTAINS_REPLICATES_KEY: False,
-                SAMPLES_KEY: {
+                SAMPLES_DETAILS_KEY: {
                     'LP127890A01': {
                         SAMPLE_NAME_KEY: 'LP127890A01',
                         SAMPLE_PROJECT_KEY: 'NYU_BMS_Melanoma_13059',
@@ -718,7 +740,7 @@ class KLSampleSheetTests(BaseTests):
                 PROJECT_SHORT_NAME_KEY: 'Feist',
                 PROJECT_FULL_NAME_KEY: 'Feist_11661',
                 CONTAINS_REPLICATES_KEY: False,
-                SAMPLES_KEY: {
+                SAMPLES_DETAILS_KEY: {
                     'CDPH-SAL_Salmonella_Typhi_MDL-143': {
                         SAMPLE_NAME_KEY: 'CDPH-SAL_Salmonella_Typhi_MDL-143',
                         SAMPLE_PROJECT_KEY: 'Feist_11661',
@@ -731,7 +753,7 @@ class KLSampleSheetTests(BaseTests):
                 PROJECT_SHORT_NAME_KEY: 'Gerwick',
                 PROJECT_FULL_NAME_KEY: 'Gerwick_6123',
                 CONTAINS_REPLICATES_KEY: False,
-                SAMPLES_KEY: {
+                SAMPLES_DETAILS_KEY: {
                     '3A': {
                         SAMPLE_NAME_KEY: '3A',
                         SAMPLE_PROJECT_KEY: 'Gerwick_6123',
@@ -754,7 +776,7 @@ class KLSampleSheetTests(BaseTests):
         # make sure the original name is being added correctly
         obs_details = sheet.get_projects_details()
         self.assertTrue("Feist_11661" in obs_details)
-        an_obs_samples = obs_details["Feist_11661"][SAMPLES_KEY]
+        an_obs_samples = obs_details["Feist_11661"][SAMPLES_DETAILS_KEY]
         self.assertTrue("BLANK.43.12G.A1" in an_obs_samples)
         an_obs_sample = an_obs_samples["BLANK.43.12G.A1"]
         self.assertTrue(ORIG_NAME_KEY in an_obs_sample)
@@ -764,6 +786,7 @@ class KLSampleSheetTests(BaseTests):
 class SampleSheetWorkflow(BaseTests):
     def setUp(self):
         super().setUp()
+        self.maxDiff = None
 
         self.sheet = AmpliconSampleSheet()
         self.sheet.Header['IEM4FileVersion'] = 4
@@ -1429,6 +1452,151 @@ class SampleSheetWorkflow(BaseTests):
         }
 
         self.assertEqual(obs.Settings, settings)
+
+    def test_make_sections_dict(self):
+        compressed_plate_df = pd.DataFrame([
+            {"Sample": "sample1", "Blank": True, "contains_replicates": False,
+             "Project Name": "Study_1", "Project Plate": "Study_1_Plate_11"},
+            {"Sample": "sample2", "Blank": False, "contains_replicates": False,
+             "Project Name": "Study_1", "Project Plate": "Study_1_Plate_11"},
+            {"Sample": "sample3", "Blank": False, "contains_replicates": False,
+             "Project Name": "Study_4", "Project Plate": "Study_1_Plate_11"},
+            {"Sample": "sample4", "Blank": False, "contains_replicates": False,
+             "Project Name": "Study_5", "Project Plate": "Study_1_Plate_11"},
+            {"Sample": "BLANK.2", "Blank": True, "contains_replicates": False,
+             "Project Name": "Study_2", "Project Plate": "Study_2_Plate_21"},
+            {"Sample": "sm1", "Blank": False, "contains_replicates": False,
+             "Project Name": "Study_2", "Project Plate": "Study_2_Plate_21"},
+            {"Sample": "sm2", "Blank": False, "contains_replicates": False,
+             "Project Name": "Study_3", "Project Plate": "Study_2_Plate_21"},
+            {"Sample": "sm3", "Blank": False, "contains_replicates": False,
+             "Project Name": "Study_6", "Project Plate": "Study_2_Plate_21"},
+            {"Sample": "BLANK.3", "Blank": True, "contains_replicates": False,
+             "Project Name": "Study_3", "Project Plate": "Study_3_Plate_13"},
+            {"Sample": "samp1", "Blank": False, "contains_replicates": False,
+             "Project Name": "Study_3", "Project Plate": "Study_3_Plate_13"},
+            {"Sample": "blank4", "Blank": True, "contains_replicates": False,
+             "Project Name": "Study_10", "Project Plate": "Study_10_Plate_1"},
+            {"Sample": "samples1", "Blank": False,
+             "contains_replicates": False,
+             "Project Name": "Study_10", "Project Plate": "Study_10_Plate_1"},
+            {"Sample": "samples2", "Blank": False,
+             "contains_replicates": False,
+             "Project Name": "Study_11", "Project Plate": "Study_10_Plate_1"}
+        ])
+
+        studies_info = [
+            {
+                'Project Name': 'Study_1',
+                'Project Abbreviation': 'ADAPT',
+                'sample_accession_fp': './adapt_sa.tsv',
+                'qiita_metadata_fp': './adapt_metadata.txt',
+                'experiment_design_description': 'isolate sequencing',
+                'HumanFiltering': 'False',
+                'Email': 'r@gmail.com'
+            },
+            {
+                'Project Name': 'Study_2',
+                'Project Abbreviation': 'CHILD',
+                'sample_accession_fp': './child_sa.tsv',
+                'qiita_metadata_fp': './child_metadata.txt',
+                'experiment_design_description': 'whole genome sequencing',
+                'HumanFiltering': 'True',
+                'Email': 'l@ucsd.edu'
+            },
+            {
+                'Project Name': 'Study_3',
+                'Project Abbreviation': 'MARMO',
+                'sample_accession_fp': './marmo_sa.tsv',
+                'qiita_metadata_fp': './marmo_metadata.txt',
+                'experiment_design_description': 'whole genome sequencing',
+                'HumanFiltering': 'False',
+                'Email': 'c@ucsd.edu'
+            },
+            {
+                'Project Name': 'Study_4',
+                'Project Abbreviation': 'MEME',
+                'sample_accession_fp': './meme_sa.tsv',
+                'qiita_metadata_fp': './meme_metadata.txt',
+                'experiment_design_description': 'whole genome sequencing',
+                'HumanFiltering': 'False',
+                'Email': 'b@ucsd.edu'
+            }
+        ]
+
+        bioinfo_base = {
+            'ForwardAdapter': 'GATCGGAAGAGCACACGTCTGAACTCCAGTCAC',
+            'ReverseAdapter': 'GATCGGAAGAGCGTCGTGTAGGGAAAGGAGTGT',
+            'library_construction_protocol': 'Knight Lab Kapa HyperPlus',
+            'BarcodesAreRC': 'True'
+        }
+
+        exp = {
+            'Experiment Name': 'RKL001',
+            'SheetType': 'standard_metag',
+            'SheetVersion': '102',
+            'Assay': 'Metagenomic',
+            'Bioinformatics': [
+                {'ForwardAdapter': 'GATCGGAAGAGCACACGTCTGAACTCCAGTCAC',
+                 'ReverseAdapter': 'GATCGGAAGAGCGTCGTGTAGGGAAAGGAGTGT',
+                 'library_construction_protocol': 'Knight Lab Kapa HyperPlus',
+                 'BarcodesAreRC': 'True', 'Sample_Project': 'Study_1',
+                 'QiitaID': '1', 'HumanFiltering': 'False',
+                 'experiment_design_description': 'isolate sequencing',
+                 'contains_replicates': False},
+                {'ForwardAdapter': 'GATCGGAAGAGCACACGTCTGAACTCCAGTCAC',
+                 'ReverseAdapter': 'GATCGGAAGAGCGTCGTGTAGGGAAAGGAGTGT',
+                 'library_construction_protocol': 'Knight Lab Kapa HyperPlus',
+                 'BarcodesAreRC': 'True', 'Sample_Project': 'Study_2',
+                 'QiitaID': '2', 'HumanFiltering': 'True',
+                 'experiment_design_description': 'whole genome sequencing',
+                 'contains_replicates': False},
+                {'ForwardAdapter': 'GATCGGAAGAGCACACGTCTGAACTCCAGTCAC',
+                 'ReverseAdapter': 'GATCGGAAGAGCGTCGTGTAGGGAAAGGAGTGT',
+                 'library_construction_protocol': 'Knight Lab Kapa HyperPlus',
+                 'BarcodesAreRC': 'True', 'Sample_Project': 'Study_3',
+                 'QiitaID': '3', 'HumanFiltering': 'False',
+                 'experiment_design_description': 'whole genome sequencing',
+                 'contains_replicates': False},
+                {'ForwardAdapter': 'GATCGGAAGAGCACACGTCTGAACTCCAGTCAC',
+                 'ReverseAdapter': 'GATCGGAAGAGCGTCGTGTAGGGAAAGGAGTGT',
+                 'library_construction_protocol': 'Knight Lab Kapa HyperPlus',
+                 'BarcodesAreRC': 'True', 'Sample_Project': 'Study_4',
+                 'QiitaID': '4', 'HumanFiltering': 'False',
+                 'experiment_design_description': 'whole genome sequencing',
+                 'contains_replicates': False}
+            ],
+            'Contact': [
+                {'Sample_Project': 'Study_1', 'Email': 'r@gmail.com'},
+                {'Sample_Project': 'Study_2', 'Email': 'l@ucsd.edu'},
+                {'Sample_Project': 'Study_3', 'Email': 'c@ucsd.edu'},
+                {'Sample_Project': 'Study_4', 'Email': 'b@ucsd.edu'}
+            ],
+
+            # when there are multiple secondary studies, they are delimited
+            # by a ";" (no spaces).  When there are NO secondary studies,
+            # the value of the `secondary_qiita_studies` key is an empty string
+            # (NOT a None).
+            'SampleContext': [
+                {'sample_name': 'sample1', 'primary_qiita_study': '1',
+                 'sample_type': 'control blank',
+                 'secondary_qiita_studies': '4;5'},
+                {'sample_name': 'BLANK.2', 'primary_qiita_study': '2',
+                 'sample_type': 'control blank',
+                 'secondary_qiita_studies': '3;6'},
+                {'sample_name': 'BLANK.3', 'primary_qiita_study': '3',
+                 'sample_type': 'control blank',
+                 'secondary_qiita_studies': ''},
+                {'sample_name': 'blank4', 'primary_qiita_study': '10',
+                 'sample_type': 'control blank',
+                 'secondary_qiita_studies': '11'}
+            ]
+        }
+
+        obs = make_sections_dict(
+            compressed_plate_df, studies_info, "RKL001",
+            'standard_metag', '102', bioinfo_base)
+        self.assertDictEqual(exp, obs)
 
 
 class ValidateSampleSheetTests(BaseTests):
@@ -2255,7 +2423,7 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
         exp = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
                'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
                'Sample_Project', 'Well_description', 'Kathseq_RackID',
-               'TubeCode', 'katharo_description', 'number_of_cells',
+               TUBECODE_KEY, 'katharo_description', 'number_of_cells',
                'platemap_generation_date', 'project_abbreviation',
                'vol_extracted_elution_ul', 'well_id_96']
         obs = sheet2._get_expected_columns()
@@ -2420,7 +2588,7 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
         header = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
                   'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
                   'Sample_Project', 'Well_description', 'Kathseq_RackID',
-                  'TubeCode', 'katharo_description', 'number_of_cells',
+                  TUBECODE_KEY, 'katharo_description', 'number_of_cells',
                   'platemap_generation_date', 'project_abbreviation',
                   'vol_extracted_elution_ul', 'well_id_96']
 
@@ -2529,7 +2697,7 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
         self.data[0][1] = 'katharo.01'  # changing sample_name
 
         # add missing columns to the data and populate them with 'junk value'.
-        optional_columns = ['Kathseq_RackID', 'TubeCode',
+        optional_columns = ['Kathseq_RackID', TUBECODE_KEY,
                             'katharo_description', 'number_of_cells',
                             'platemap_generation_date', 'project_abbreviation',
                             'vol_extracted_elution_ul', 'well_id_96']
@@ -2549,7 +2717,7 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
         self.assertIsInstance(sheet, MetagenomicSampleSheetv101)
         self.assertTrue(sheet.contains_katharoseq_samples())
         obs_columns = set(sheet.samples[0].to_json().keys())
-        exp_columns = {'Sample_Project', 'Sample_ID', 'TubeCode', 'index2',
+        exp_columns = {'Sample_Project', 'Sample_ID', TUBECODE_KEY, 'index2',
                        'index', 'Kathseq_RackID', 'well_id_384',
                        'katharo_description', 'Well_description',
                        'platemap_generation_date', 'Sample_Plate',
