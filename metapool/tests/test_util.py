@@ -3,7 +3,7 @@ from pandas.testing import assert_frame_equal
 import os
 
 from unittest import TestCase
-from metapool.notebook_support import join_dfs_from_files, \
+from metapool.util import join_dfs_from_files, \
     extend_sample_accession_df, extend_compression_layout_info, \
     _check_for_missing_df_ids
 

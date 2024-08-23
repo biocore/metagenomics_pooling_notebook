@@ -8,11 +8,11 @@ import pandas as pd
 import sample_sheet
 from json import loads
 
-from metapool.literals import (QIITA_ID_KEY, PROJECT_SHORT_NAME_KEY,
-                               PROJECT_FULL_NAME_KEY, CONTAINS_REPLICATES_KEY,
-                               SAMPLES_DETAILS_KEY, SAMPLE_PROJECT_KEY,
-                               ORIG_NAME_KEY, SAMPLE_NAME_KEY, SAMPLE_TYPE_KEY,
-                               PRIMARY_STUDY_KEY, SECONDARY_STUDIES_KEY)
+from metapool.mp_strings import (
+    QIITA_ID_KEY, PROJECT_SHORT_NAME_KEY, PROJECT_FULL_NAME_KEY,
+    CONTAINS_REPLICATES_KEY, SAMPLES_DETAILS_KEY, SAMPLE_PROJECT_KEY,
+    ORIG_NAME_KEY, SAMPLE_NAME_KEY, SAMPLE_TYPE_KEY, PRIMARY_STUDY_KEY,
+    SECONDARY_STUDIES_KEY)
 from metapool.metapool import TUBECODE_KEY
 from metapool.sample_sheet import (KLSampleSheet, AmpliconSampleSheet,
                                    MetagenomicSampleSheetv102,

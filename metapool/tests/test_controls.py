@@ -2,7 +2,7 @@ import pandas as pd
 import os
 
 from unittest import TestCase
-from metapool.literals import SAMPLE_NAME_KEY, SAMPLE_TYPE_KEY, \
+from metapool.mp_strings import SAMPLE_NAME_KEY, SAMPLE_TYPE_KEY, \
     PRIMARY_STUDY_KEY, SECONDARY_STUDIES_KEY
 from metapool.controls import is_blank, get_all_projects_in_context, \
     get_controls_details_from_context, make_manual_control_details, \

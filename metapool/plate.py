@@ -8,7 +8,7 @@ from scipy.stats import zscore
 from sklearn.linear_model import LogisticRegression
 from collections import OrderedDict
 from string import ascii_uppercase
-from metapool.literals import EXPT_DESIGN_DESC_KEY, PM_PROJECT_NAME_KEY, \
+from metapool.mp_strings import EXPT_DESIGN_DESC_KEY, PM_PROJECT_NAME_KEY, \
     PM_PROJECT_PLATE_KEY, PM_PROJECT_ABBREV_KEY, PM_COMPRESSED_PLATE_NAME_KEY
 
 EXPECTED_COLUMNS = {

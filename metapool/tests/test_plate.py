@@ -4,9 +4,9 @@ import pandas as pd
 from pandas.testing import assert_frame_equal
 
 from unittest import TestCase, main
-from metapool.literals import (get_short_name_and_id, parse_project_name,
-                               QIITA_ID_KEY, PROJECT_SHORT_NAME_KEY,
-                               PROJECT_FULL_NAME_KEY)
+from metapool.mp_strings import (get_short_name_and_id, parse_project_name,
+                                 QIITA_ID_KEY, PROJECT_SHORT_NAME_KEY,
+                                 PROJECT_FULL_NAME_KEY)
 from metapool.plate import (_well_to_row_and_col, _decompress_well,
                             _plate_position, validate_plate_metadata,
                             _validate_plate, Message, ErrorMessage,

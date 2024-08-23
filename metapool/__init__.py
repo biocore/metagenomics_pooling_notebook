@@ -2,10 +2,10 @@
 from .prep import (preparations_for_run, parse_prep, generate_qiita_prep_file,
                    preparations_for_run_mapping_file, remove_qiita_id,
                    demux_pre_prep, pre_prep_needs_demuxing)
-from .literals import (SAMPLE_NAME_KEY, QIITA_ID_KEY, SAMPLES_DETAILS_KEY,
-                       ORIG_NAME_KEY, PRIMARY_STUDY_KEY, SECONDARY_STUDIES_KEY,
-                       parse_project_name, get_short_name_and_id,
-                       get_qiita_id_from_project_name)
+from .mp_strings import (SAMPLE_NAME_KEY, QIITA_ID_KEY, SAMPLES_DETAILS_KEY,
+                         ORIG_NAME_KEY, PRIMARY_STUDY_KEY,
+                         SECONDARY_STUDIES_KEY, parse_project_name,
+                         get_short_name_and_id, get_qiita_id_from_project_name)
 from .sample_sheet import (SS_SAMPLE_ID_KEY,
                            sample_sheet_to_dataframe, make_sample_sheet,
                            AmpliconSampleSheet, MetagenomicSampleSheetv90,

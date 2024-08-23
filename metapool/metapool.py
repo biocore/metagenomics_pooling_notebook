@@ -9,7 +9,7 @@ import warnings
 from random import choices
 from configparser import ConfigParser
 from qiita_client import QiitaClient
-from .literals import SAMPLE_NAME_KEY, PM_PROJECT_NAME_KEY, \
+from .mp_strings import SAMPLE_NAME_KEY, PM_PROJECT_NAME_KEY, \
     PM_PROJECT_PLATE_KEY, PM_COMPRESSED_PLATE_NAME_KEY, PM_BLANK_KEY, \
     PLATE_NAME_DELIMITER, get_qiita_id_from_project_name, \
     get_plate_num_from_plate_name, get_main_project_from_plate_name

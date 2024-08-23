@@ -8,7 +8,7 @@ from json import loads as json_loads
 import sample_sheet
 import pandas as pd
 from types import MappingProxyType
-from metapool.literals import parse_project_name, \
+from metapool.mp_strings import parse_project_name, \
     get_qiita_id_from_project_name, \
     SAMPLES_DETAILS_KEY, SAMPLE_NAME_KEY, SAMPLE_PROJECT_KEY, \
     CONTAINS_REPLICATES_KEY, ORIG_NAME_KEY, EXPT_DESIGN_DESC_KEY, \

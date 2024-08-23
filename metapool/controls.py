@@ -1,5 +1,5 @@
 from types import MappingProxyType
-from metapool.literals import get_qiita_id_from_project_name, \
+from metapool.mp_strings import get_qiita_id_from_project_name, \
     SAMPLE_NAME_KEY, SAMPLE_TYPE_KEY, PRIMARY_STUDY_KEY, \
     SECONDARY_STUDIES_KEY, PM_PROJECT_NAME_KEY, PM_PROJECT_PLATE_KEY, \
     PM_SAMPLE_KEY

@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from metapool.literals import get_qiita_id_from_project_name, \
+from metapool.mp_strings import get_qiita_id_from_project_name, \
     SAMPLE_NAME_KEY, QIITA_ID_KEY, PM_PROJECT_NAME_KEY, PM_PROJECT_ABBREV_KEY
 
 QIITA_STUDY_ID_KEY = 'qiita_study_id'

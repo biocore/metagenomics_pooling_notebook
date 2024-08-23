@@ -85,24 +85,27 @@ def get_qiita_id_from_project_name(project_name):
     return parse_project_name(project_name)[QIITA_ID_KEY]
 
 
-# Full names for uncompressed (i.e., 96-well) plates have the format
-# <project_name>_Plate_<plate_number>, such as
-# Celeste_Adaptation_12986_Plate_16.
 def get_plate_num_from_plate_name(plate_name):
     return _split_plate_name(plate_name)[1]
 
 
 def get_main_project_from_plate_name(plate_name):
-    main_project_info = _split_plate_name(plate_name)[0]
-    main_project_name = main_project_info.replace(
-        f"{PLATE_NAME_DELIMITER}Plate", "")
-    return main_project_name
+    return _split_plate_name(plate_name)[0]
 
 
+# Full names for uncompressed (i.e., 96-well) plates have the format
+# <project_name>_Plate_<plate_number>, such as
+# Celeste_Adaptation_12986_Plate_16.
 def _split_plate_name(plate_name):
     # split on just the *last* delimiter.
     # Note that plates can have more than one project on them, and the
     # name embedded in the plate name is that of (only) the "main" project.
+    if PLATE_NAME_DELIMITER not in plate_name:
+        raise ValueError(f"Plate name '{plate_name}' is malformed.")
     main_project_info, plate_num = \
         plate_name.rsplit(PLATE_NAME_DELIMITER, maxsplit=1)
+
+    # There may or may not be a "_Plate" in the name; remove if there
+    main_project_info = main_project_info.replace(
+        f"{PLATE_NAME_DELIMITER}Plate", "")
     return main_project_info, plate_num
