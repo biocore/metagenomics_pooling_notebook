@@ -162,6 +162,10 @@ class AmplipoolTests(TestCase):
         # change some of the well ids and their primer plates to spot check
         # that correct barcodes are retrieved from the EMP indices file
 
+        # 'Col' is automatically interpreted as an integer, and new pandas
+        # complains about setting it to a string w/o changing the type first
+        self.df['Col'] = self.df['Col'].astype('object')
+
         # position 1 gets primer plate 5
         self.plate_metadata.loc[0, 'Primer Plate #'] = '5'
         self.df.loc[0, 'Row'] = 'A'

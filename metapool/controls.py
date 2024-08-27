@@ -127,7 +127,7 @@ def get_delimited_controls_details_from_compressed_plate(
 
 
 def get_all_projects_in_context(sample_context):
-    if sample_context is None:
+    if sample_context is None or sample_context.empty:
         return []
 
     # get unique set of values in the PRIMARY_QIITA_STUDY_KEY col

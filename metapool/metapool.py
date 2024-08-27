@@ -1334,8 +1334,9 @@ def merge_read_counts(plate_df, counts_df, reads_column_name="Filtered Reads"):
         counts_df.rename(columns={'reads': reads_column_name},
                          inplace=True)
     elif file_type == 'prep_file':
-        counts_df = counts_df[[sample_column, 'quality_filtered_reads_r1r2',
-                               'raw_reads_r1r2']]
+        counts_df = \
+            counts_df.loc[:, [sample_column, 'quality_filtered_reads_r1r2',
+                              'raw_reads_r1r2']]
         counts_df.rename(columns={sample_column: 'Sample',
                                   'quality_filtered_reads_r1r2':
                                   'Filtered Reads',
@@ -1373,7 +1374,9 @@ def read_survival(reads, label="Remaining", rmin=0, rmax=10**6, rsteps=100):
     steps = list(range(rmin, rmax, rstep))
     remaining = np.zeros(rsteps)
     for i, t in enumerate(steps):
-        remaining[i] = np.greater_equal(reads, t).sum()
+        temp_single_item_series = np.greater_equal(reads, t).sum()
+        # new pandas won't allow implicit float convert of a single-item series
+        remaining[i] = float(temp_single_item_series.iloc[0])
 
     remaining_df = pd.DataFrame(remaining, index=steps, columns=[label])
     return remaining_df
