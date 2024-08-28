@@ -15,6 +15,7 @@ from metapool.mp_strings import (
     SECONDARY_STUDIES_KEY)
 from metapool.metapool import TUBECODE_KEY
 from metapool.sample_sheet import (KLSampleSheet, AmpliconSampleSheet,
+                                   MetagenomicSampleSheetv102,
                                    MetagenomicSampleSheetv101,
                                    MetagenomicSampleSheetv100,
                                    MetagenomicSampleSheetv90,
@@ -2368,7 +2369,7 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
             'SampleContext': [],
             'Assay': 'Metagenomic',
             'SheetType': 'standard_metag',
-            'SheetVersion': '101'
+            'SheetVersion': '102'
         }
 
         self.data = [
@@ -2385,10 +2386,10 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
              'CMGCCGCGGTAA', 'pool1']
         ]
 
-        self.test_sheet = MetagenomicSampleSheetv101()
+        self.test_sheet = MetagenomicSampleSheetv102()
         self.test_sheet.Header['IEMFileVersion'] = 4
         self.test_sheet.Header['sheetType'] = 'standard_metag'
-        self.test_sheet.Header['sheetVersion'] = '101'
+        self.test_sheet.Header['sheetVersion'] = '102'
         self.test_sheet.Header['Investigator Name'] = 'Knight'
         self.test_sheet.Header['Experiment Name'] = 'RKO_experiment'
         self.test_sheet.Header['Date'] = '2021-08-17'
@@ -2421,7 +2422,7 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
         # section, and get a list of the columns.
         sheet1 = load_sample_sheet(self.katharoseq_1)
         # confirm that the sheet is of the new karathoseq-enabled type.
-        self.assertEqual(type(sheet1), MetagenomicSampleSheetv101)
+        self.assertEqual(type(sheet1), MetagenomicSampleSheetv102)
         obs = sheet1._get_expected_data_columns()
 
         # because sheet1 does not contain karathoseq samples, it should not
@@ -2436,7 +2437,7 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
         # load metagenomic sample-sheet w/katharoseq samples in the [Data]
         # section, and perform similar tests.
         sheet2 = load_sample_sheet(self.katharoseq_2)
-        self.assertEqual(type(sheet2), MetagenomicSampleSheetv101)
+        self.assertEqual(type(sheet2), MetagenomicSampleSheetv102)
         exp = ('Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
                'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
                'Sample_Project', 'Well_description', 'Kathseq_RackID',
@@ -2452,7 +2453,7 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
         # a karathoseq-enabled file. Reloading sheet1 should continue to have
         # only the shorter set of columns.
         sheet1 = load_sample_sheet(self.katharoseq_1)
-        self.assertEqual(type(sheet1), MetagenomicSampleSheetv101)
+        self.assertEqual(type(sheet1), MetagenomicSampleSheetv102)
         exp = ('Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
                'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
                'Sample_Project',
@@ -2469,14 +2470,14 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
         # number_of_cells has been replaced w/number_of_sells. This is
         # enough to fail load_sample_sheet(). Confirm specific error by
         # manually loading the sample-sheet into an SampleSheet object.
-        sheet = MetagenomicSampleSheetv101(self.katharoseq_3)
+        sheet = MetagenomicSampleSheetv102(self.katharoseq_3)
 
         # self.katharoseq_3 should load properly into an object, although it
         # will later fail validation.
         self.assertIsNotNone(sheet)
 
         # confirm type is katharoseq-enabled.
-        self.assertEqual(type(sheet), MetagenomicSampleSheetv101)
+        self.assertEqual(type(sheet), MetagenomicSampleSheetv102)
 
         # Note: _get_expected_data_columns() returns what columns the data
         # section of the sample sheet SHOULD have.
@@ -2496,10 +2497,10 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
     def test_katharoseq_enabled_sheet_creation_no_kath(self):
         # create a Metagenomic-type sample-sheet from scratch w/out karathoseq
         # samples and manually populate the required fields.
-        sheet = MetagenomicSampleSheetv101()
+        sheet = MetagenomicSampleSheetv102()
         sheet.Header['IEMFileVersion'] = 4
         sheet.Header['SheetType'] = 'standard_metag'
-        sheet.Header['SheetVersion'] = '101'
+        sheet.Header['SheetVersion'] = '102'
         sheet.Header['Investigator Name'] = 'Knight'
         sheet.Header['Experiment Name'] = 'RKO_experiment'
         sheet.Header['Date'] = '2021-08-17'
@@ -2660,7 +2661,7 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
         # confirm that we get a sample-sheet w/out katharoseq-control-related
         # columns.
         self.assertIsNotNone(sheet)
-        self.assertIsInstance(sheet, MetagenomicSampleSheetv101)
+        self.assertIsInstance(sheet, MetagenomicSampleSheetv102)
         self.assertFalse(sheet.contains_katharoseq_samples())
         obs_columns = set(sheet.samples[0].to_json().keys())
         exp_columns = {'Sample_ID', 'Sample_Name', 'Sample_Plate',
@@ -2676,7 +2677,7 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
         # confirm that we get a sample-sheet w/out katharoseq-control-related
         # columns.
         self.assertIsNotNone(sheet)
-        self.assertIsInstance(sheet, MetagenomicSampleSheetv101)
+        self.assertIsInstance(sheet, MetagenomicSampleSheetv102)
         self.assertFalse(sheet.contains_katharoseq_samples())
         obs_columns = set(sheet.samples[0].to_json().keys())
         exp_columns = {'Sample_ID', 'Sample_Name', 'Sample_Plate',
@@ -2696,7 +2697,7 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
                                   strict=False)
 
         self.assertIsNotNone(sheet)
-        self.assertIsInstance(sheet, MetagenomicSampleSheetv101)
+        self.assertIsInstance(sheet, MetagenomicSampleSheetv102)
         self.assertFalse(sheet.contains_katharoseq_samples())
         obs_columns = set(sheet.samples[0].to_json().keys())
         exp_columns = {'Sample_ID', 'Sample_Name', 'Sample_Plate',
@@ -2752,7 +2753,7 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
         # confirm that a sheet was created w/all the extended columns
         # required for katharoseq-controls.
         self.assertIsNotNone(sheet)
-        self.assertIsInstance(sheet, MetagenomicSampleSheetv101)
+        self.assertIsInstance(sheet, MetagenomicSampleSheetv102)
         self.assertTrue(sheet.contains_katharoseq_samples())
         obs_columns = set(sheet.samples[0].to_json().keys())
         exp_columns = {'Sample_Project', 'Sample_ID', TUBECODE_KEY, 'index2',

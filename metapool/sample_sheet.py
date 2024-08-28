@@ -1290,10 +1290,20 @@ class AmpliconSampleSheet(KLSampleSheet):
         }
 
 
-class MetagenomicSampleSheetv101(
+class MetagenomicSampleSheetv102(
         KatharoseqMixin, KLSampleSheetWithSampleContext):
     # Adds support for optional KATHAROSEQ columns in [Data] section.
 
+    _HEADER = KLSampleSheet._HEADER.copy()
+    _HEADER[_SHEET_TYPE_KEY] = STANDARD_METAG_SHEET_TYPE
+    _HEADER[_SHEET_VERSION_KEY] = '102'
+    _HEADER[_ASSAY_KEY] = _METAGENOMIC
+
+
+class MetagenomicSampleSheetv101(KLSampleSheetWithSampleContext):
+    # A copy of MetagenomicSampleSheetv100 but inherits from
+    # KLSampleSheetWithSampleContext. This is the first version of the
+    # metagenomic sample sheet that includes the SampleContext section.
     _HEADER = KLSampleSheet._HEADER.copy()
     _HEADER[_SHEET_TYPE_KEY] = STANDARD_METAG_SHEET_TYPE
     _HEADER[_SHEET_VERSION_KEY] = '101'
@@ -1500,6 +1510,10 @@ def load_sample_sheet(sample_sheet_path):
     if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
         return sheet
 
+    sheet = MetagenomicSampleSheetv102(sample_sheet_path)
+    if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
+        return sheet
+
     sheet = MetagenomicSampleSheetv101(sample_sheet_path)
     if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
         return sheet
@@ -1534,7 +1548,9 @@ def _create_sample_sheet(sheet_type, sheet_version, assay_type):
 
     if sheet_type == STANDARD_METAG_SHEET_TYPE:
         if assay_type == _METAGENOMIC:
-            if sheet_version == '101':
+            if sheet_version == '102':
+                sheet = MetagenomicSampleSheetv102()
+            elif sheet_version == '101':
                 sheet = MetagenomicSampleSheetv101()
             elif sheet_version == '90':
                 sheet = MetagenomicSampleSheetv90()
