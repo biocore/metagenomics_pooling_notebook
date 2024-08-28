@@ -153,6 +153,8 @@ class KLSampleSheet(sample_sheet.SampleSheet):
     sections = (_HEADER_KEY, _READS_KEY, _SETTINGS_KEY, _DATA_KEY,
                 _BIOINFORMATICS_KEY, _CONTACT_KEY)
 
+    _ORDERED_BY_DATA_COLUMNS = False
+
     # NB: Inside `make_sample_sheet`, the 'Well_description' column is
     # (over)written by concatenating project plate, sample, and well.
     # So it is required in the sense that it has to be present in the sample
@@ -416,10 +418,24 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 for read in self.Reads:
                     writer.writerow(pad_iterable([read], csv_width))
             elif title == _DATA_KEY:
-                writer.writerow(pad_iterable(self.all_sample_keys, csv_width))
+                if self._ORDERED_BY_DATA_COLUMNS:
+                    # order according to the expected column order.  If there
+                    # are columns other than the expected ones, put them at the
+                    # end in alphabetical order.
+                    extra_cols = set(self.all_sample_keys) - \
+                                 set(self._get_expected_data_columns())
+                    expected_cols = set(self.all_sample_keys) - extra_cols
+                    col_order = \
+                        [x for x in self._get_expected_data_columns()
+                         if x in expected_cols] + sorted(list(extra_cols))
+                else:
+                    # legacy behavior
+                    col_order = self.all_sample_keys
+
+                writer.writerow(pad_iterable(col_order, csv_width))
 
                 for sample in self.samples:
-                    line = [getattr(sample, k) for k in self.all_sample_keys]
+                    line = [getattr(sample, k) for k in col_order]
                     writer.writerow(pad_iterable(line, csv_width))
 
             elif title in self._KL_ADDTL_DF_SECTIONS:
@@ -807,10 +823,10 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
             # make the changes to prevent useless errors where the scrubbed
             # names fail to match between sections.
-            self.Contact.Sample_Project.replace(updated_projects,
-                                                inplace=True)
-            self.Bioinformatics.Sample_Project.replace(updated_projects,
-                                                       inplace=True)
+            # new pandas won't let you set value inplace on a slice
+            project_remapper = {'Sample_Project': updated_projects}
+            self.Contact.replace(project_remapper, inplace=True)
+            self.Bioinformatics.replace(project_remapper, inplace=True)
 
         pairs = collections.Counter([(s.Lane, s.Sample_Project)
                                      for s in self.samples])
@@ -1106,6 +1122,8 @@ class KLSampleSheetWithSampleContext(KLSampleSheet):
 
     sections = (_HEADER_KEY, _READS_KEY, _SETTINGS_KEY, _DATA_KEY,
                 _BIOINFORMATICS_KEY, _CONTACT_KEY, _SAMPLE_CONTEXT_KEY)
+
+    _ORDERED_BY_DATA_COLUMNS = True
 
     def __new__(cls, path=None, *args, **kwargs):
         """

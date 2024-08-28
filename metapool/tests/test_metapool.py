@@ -1167,7 +1167,7 @@ class Tests(TestCase):
 
     def test_read_survival(self):
         reads = [10 + i for i in range(11)]
-        reads = pd.DataFrame({'reads': reads})
+        reads = pd.Series(reads)
 
         counts = [11.0, 11.0, 11.0, 9.0, 5.0]
         index = [0, 4, 8, 12, 16]

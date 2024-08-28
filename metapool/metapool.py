@@ -1358,7 +1358,7 @@ def merge_read_counts(plate_df, counts_df, reads_column_name="Filtered Reads"):
 def read_survival(reads, label="Remaining", rmin=0, rmax=10**6, rsteps=100):
     """
     Calculates a sample_retention curve from a read distribution
-    :param reads: A DataFrame Series of a distribution of reads.
+    :param reads: A Series of a distribution of reads.
     :param label: A string label for the column that counts samples retained.
     :param rmin: An integer that counts the minimum number of reads
     for the sample_retention curve
@@ -1374,9 +1374,7 @@ def read_survival(reads, label="Remaining", rmin=0, rmax=10**6, rsteps=100):
     steps = list(range(rmin, rmax, rstep))
     remaining = np.zeros(rsteps)
     for i, t in enumerate(steps):
-        temp_single_item_series = np.greater_equal(reads, t).sum()
-        # new pandas won't allow implicit float convert of a single-item series
-        remaining[i] = float(temp_single_item_series.iloc[0])
+        remaining[i] = np.greater_equal(reads, t).sum()
 
     remaining_df = pd.DataFrame(remaining, index=steps, columns=[label])
     return remaining_df
