@@ -7,11 +7,11 @@ on:
   pull_request:
     branches:
       - master
-      - multiproject_plate
+      - dev
   push:
     branches: 
       - master
-      - multiproject_plate
+      - dev
 
 jobs:
   # name of job
