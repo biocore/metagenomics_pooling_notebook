@@ -21,6 +21,7 @@ import xml.etree.ElementTree as ET
 from operator import itemgetter
 from .controls import get_blank_root
 
+# NB: If modifying these lists, see issue ##234!
 REVCOMP_SEQUENCERS = ['HiSeq4000', 'MiniSeq', 'NextSeq', 'HiSeq3000',
                       'iSeq', 'NovaSeq6000']
 OTHER_SEQUENCERS = ['HiSeq2500', 'HiSeq1500', 'MiSeq', 'NovaSeqX',

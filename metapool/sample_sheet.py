@@ -144,12 +144,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
     _ALL_METADATA = MappingProxyType({
         **_HEADER, **_SETTINGS, **_READS, **_BIOINFORMATICS_AND_CONTACT})
 
-    # TODO: Would love to know if this is being used outside this module or not
-    #  and if not would love to rename it, as the underlying Illumina-code
-    #  SampleSheet object has a `_sections` attribute, which is a little too
-    #  close for comfort (also, the sheet's `add_section()` method adds to
-    #  *that* attribute, but one might be forgiven for guessing it would add
-    #  to this one ...
+    # If modifying, see issue #233
     sections = (_HEADER_KEY, _READS_KEY, _SETTINGS_KEY, _DATA_KEY,
                 _BIOINFORMATICS_KEY, _CONTACT_KEY)
 
@@ -640,10 +635,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
         # Note: 'iseq' should remain at the tail of this list, since it
         # is a substring of the others.
-        # TODO: It makes me super nervous to have this list here and to also
-        #  have the OTHER_SEQUENCERS list in metapool.metapool; I realize that
-        #  they are doing slightly different things, but there's a good chance
-        #  that if one changes, the other at least needs to be looked at.
+        # NB: If modifying this list, see issue ##234!
         sequencer_types = ['novaseq', 'hiseq', 'miseq', 'miniseq', 'iseq']
         type_found = None
         for sequencer_type in sequencer_types:
@@ -1670,14 +1662,11 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=None):
     if len(messages) == 0:
         # if the user did not *explicitly* set the strict value
         if strict is None:
-            # TODO: this is a temporary measure. Katharoseq-enabled sample
-            #  sheets may or may *not* have katharoseq controls, and if they
-            #  don't, they fail during strict adding, even though they're legal
             # NB: the below is duck-typing.  It isn't checking whether the
             # sheet's data actually contains any katharoseq samples, but rather
             # whether the sheet *itself* can check whether it
             # contains any katharoseq samples.  If it has this ability, it
-            # needs to go through the strict=False handling.
+            # needs to go through the strict=False handling; see issue #236.
             strict = getattr(
                 sheet, 'contains_katharoseq_samples', None) is None
 
