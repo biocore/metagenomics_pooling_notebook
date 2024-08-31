@@ -93,8 +93,8 @@ class SeqproAmpliconTests(unittest.TestCase):
 
     def test_verbose_flag(self):
         self.maxDiff = None
-        sample_dir = ('metapool/tests/data/runs/230207_M05314_0346_000000000'
-                      '-KVMGL')
+        sample_dir = (f"{self.data_dir}/runs/230207_M05314_0346_000000000"
+                      f"-KVMGL")
 
         cmd = ['seqpro_mf', '--verbose',
                sample_dir,

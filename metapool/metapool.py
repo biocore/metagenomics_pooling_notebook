@@ -21,6 +21,7 @@ import xml.etree.ElementTree as ET
 from operator import itemgetter
 from .controls import get_blank_root
 
+# NB: If modifying these lists, see issue ##234!
 REVCOMP_SEQUENCERS = ['HiSeq4000', 'MiniSeq', 'NextSeq', 'HiSeq3000',
                       'iSeq', 'NovaSeq6000']
 OTHER_SEQUENCERS = ['HiSeq2500', 'HiSeq1500', 'MiSeq', 'NovaSeqX',
@@ -1334,8 +1335,9 @@ def merge_read_counts(plate_df, counts_df, reads_column_name="Filtered Reads"):
         counts_df.rename(columns={'reads': reads_column_name},
                          inplace=True)
     elif file_type == 'prep_file':
-        counts_df = counts_df[[sample_column, 'quality_filtered_reads_r1r2',
-                               'raw_reads_r1r2']]
+        counts_df = \
+            counts_df.loc[:, [sample_column, 'quality_filtered_reads_r1r2',
+                              'raw_reads_r1r2']]
         counts_df.rename(columns={sample_column: 'Sample',
                                   'quality_filtered_reads_r1r2':
                                   'Filtered Reads',
@@ -1357,7 +1359,7 @@ def merge_read_counts(plate_df, counts_df, reads_column_name="Filtered Reads"):
 def read_survival(reads, label="Remaining", rmin=0, rmax=10**6, rsteps=100):
     """
     Calculates a sample_retention curve from a read distribution
-    :param reads: A DataFrame Series of a distribution of reads.
+    :param reads: A Series of a distribution of reads.
     :param label: A string label for the column that counts samples retained.
     :param rmin: An integer that counts the minimum number of reads
     for the sample_retention curve
