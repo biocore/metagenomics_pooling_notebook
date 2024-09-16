@@ -11,14 +11,15 @@ from metapool.mp_strings import parse_project_name, \
     get_qiita_id_from_project_name, \
     SAMPLES_DETAILS_KEY, SAMPLE_NAME_KEY, SAMPLE_PROJECT_KEY, \
     CONTAINS_REPLICATES_KEY, ORIG_NAME_KEY, EXPT_DESIGN_DESC_KEY, \
-    PM_PROJECT_NAME_KEY, PM_PROJECT_PLATE_KEY, PM_BLANK_KEY
+    PM_PROJECT_NAME_KEY, PM_PROJECT_PLATE_KEY, PM_BLANK_KEY, QIITA_ID_KEY, \
+    PROJECT_FULL_NAME_KEY
 from metapool.metapool import (bcl_scrub_name, sequencer_i5_index,
                                REVCOMP_SEQUENCERS, TUBECODE_KEY)
 from metapool.plate import ErrorMessage, WarningMessage, PlateReplication
 from metapool.controls import SAMPLE_CONTEXT_COLS, \
     get_all_projects_in_context, is_blank, get_controls_details_from_context, \
     get_delimited_controls_details_from_compressed_plate, \
-    make_manual_control_details
+    make_manual_control_details, denormalize_controls_details
 
 _BIOINFORMATICS_KEY = 'Bioinformatics'
 _CONTACT_KEY = 'Contact'
@@ -958,6 +959,41 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         # endif is/isn't a sample context section
 
         return controls_details
+
+    def get_denormalized_controls_list(self):
+        # get info on each control, showing its primary and secondary studies
+        normalized_details = self.get_controls_details()
+
+        # create info on each individual control+study combination
+        # (so a control that has a primary study and two secondary studies
+        # will have three entries in the denormalized_details dictionary).
+        # There are no longer primary and secondary study id keys, just a
+        # single qiita id key for each control. Result is a list not a dict
+        # since a control name may now have >1 record.
+        denormalized_details = denormalize_controls_details(normalized_details)
+
+        # get info on all projects in the sample sheet
+        project_details = self.get_projects_details()
+
+        def _get_matching_full_project_name(qiita_id):
+            matching = \
+                [x[PROJECT_FULL_NAME_KEY] for x in project_details.values()
+                 if x[QIITA_ID_KEY] == qiita_id]
+            if len(matching) != 1:
+                raise ValueError(f"Expected 1 matching project for qiita id "
+                                 f"{qiita_id}, found {len(matching)}")
+            return matching[0]
+
+        # add full project name into each denormalized entry, using qiita id
+        for curr_control_details in denormalized_details:
+            curr_qiita_id = curr_control_details[QIITA_ID_KEY]
+            curr_full_project_name = \
+                _get_matching_full_project_name(curr_qiita_id)
+            curr_control_details[PROJECT_FULL_NAME_KEY] = \
+                curr_full_project_name
+        # next denormalized control
+
+        return denormalized_details
 
     def get_projects_details(self):
         # parse bioinformatics section and data section to generate a

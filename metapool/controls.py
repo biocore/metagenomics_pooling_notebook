@@ -2,7 +2,7 @@ from types import MappingProxyType
 from metapool.mp_strings import get_qiita_id_from_project_name, \
     SAMPLE_NAME_KEY, SAMPLE_TYPE_KEY, PRIMARY_STUDY_KEY, \
     SECONDARY_STUDIES_KEY, PM_PROJECT_NAME_KEY, PM_PROJECT_PLATE_KEY, \
-    PM_SAMPLE_KEY
+    PM_SAMPLE_KEY, QIITA_ID_KEY
 
 _BLANK_ROOT = "BLANK"
 _BLANK_SAMPLE_TYPE = "control blank"
@@ -149,6 +149,7 @@ def get_controls_details_from_context(sample_context):
 
     result = {}
     # convert the sample context dataframe to a list of dictionaries
+    # and split the secondary studies strings into lists
     controls_dicts_list = sample_context.to_dict(orient="records")
     for curr_dict in controls_dicts_list:
         curr_sample_name = curr_dict[SAMPLE_NAME_KEY]
@@ -156,6 +157,38 @@ def get_controls_details_from_context(sample_context):
             curr_dict[SECONDARY_STUDIES_KEY]))
         result[curr_sample_name] = curr_dict
     return result
+
+
+def denormalize_controls_details(controls_details):
+    denormalized_controls_details = []
+    if controls_details is None:
+        return None
+
+    def _denormalize_details_record(a_record, qiita_id):
+        # remove the primary and secondary studies entries from the record,
+        # replace with a single QIITA_ID_KEY entry; leave everything else alone
+        denormalized_record = a_record.copy()
+        denormalized_record.pop(SECONDARY_STUDIES_KEY)
+        denormalized_record.pop(PRIMARY_STUDY_KEY)
+        denormalized_record[QIITA_ID_KEY] = qiita_id
+        return denormalized_record
+
+    for curr_record in controls_details.values():
+        for curr_secondary_study in curr_record[SECONDARY_STUDIES_KEY]:
+            curr_denorm_secondary_record = _denormalize_details_record(
+                curr_record, curr_secondary_study)
+            denormalized_controls_details.append(curr_denorm_secondary_record)
+        # next secondary study, if any
+
+        curr_denorm_primary_record = _denormalize_details_record(
+            curr_record, curr_record[PRIMARY_STUDY_KEY])
+        denormalized_controls_details.append(curr_denorm_primary_record)
+    # next controls_detail record
+
+    denormalized_controls_details = sorted(
+        denormalized_controls_details,
+        key=lambda k: (k[SAMPLE_NAME_KEY], k[QIITA_ID_KEY]))
+    return denormalized_controls_details
 
 
 def make_manual_control_details(sample_name, primary_study,
