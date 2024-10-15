@@ -15,14 +15,16 @@ from .amplipool import assign_emp_index
 from .igm import IGMManifest
 from .count import run_counts
 from .metapool import (extract_stats_metadata, sum_lanes, compress_plates,
-                       add_controls, generate_override_cycles_value)
+                       add_controls, generate_override_cycles_value,
+                       strip_tubecode_leading_zeroes)
 
 
 __credits__ = ("https://github.com/biocore/metagenomics_pooling_notebook/"
                "graphs/contributors")
 
 __all__ = ['IGMManifest', 'add_controls', 'assign_emp_index', 'autopool',
-           'compress_plates', 'demux_pre_prep', 'demux_sample_sheet',
+           'compress_plates', 'strip_tubecode_leading_zeroes',
+           'demux_pre_prep', 'demux_sample_sheet',
            'dilute_gDNA', 'extract_stats_metadata', 'find_threshold',
            'generate_qiita_prep_file', 'make_sample_sheet', 'parse_prep',
            'pre_prep_needs_demuxing', 'preparations_for_run',
