@@ -111,11 +111,36 @@ class Tests(TestCase):
                              ("metapool/tests/data/good-sample-sheet.csv",
                               "syntax error: line 1, column 0", 8, ParseError)]
 
-    def test_read_visionmate_file(self):
+    def test_read_visionmate_file_err(self):
         # Raises error when tries to validate that all expected
         # columns from VisionMate file are present.
         with self.assertRaises(ValueError):
             read_visionmate_file(self.plate_error_fp, ['TubeCode'])
+
+    def test_read_visionmate_file_preserve_leading_zeroes(self):
+        exp_first_record = {
+            'Date': 20230627, 'LocationCell': 'A1',
+            'LocationColumn': 1, 'LocationRow': 'A', 'RackID': 'plate_1',
+            'Time': '09:26:10', 'TubeCode': '0363132553'}
+
+        obs = read_visionmate_file(self.plates[0], ['TubeCode'],
+                                   preserve_leading_zeroes=True)
+
+        # not gonna test the whole frame, just a few bits
+        self.assertEqual((96, 7), obs.shape)
+        self.assertDictEqual(exp_first_record, obs.iloc[0].to_dict())
+
+    def test_read_visionmate_file(self):
+        exp_first_record = {
+            'Date': 20230627, 'LocationCell': 'A1',
+            'LocationColumn': 1, 'LocationRow': 'A', 'RackID': 'plate_1',
+            'Time': '09:26:10', 'TubeCode': '363132553'}
+
+        obs = read_visionmate_file(self.plates[0], ['TubeCode'])
+
+        # not gonna test the whole frame, just a few bits
+        self.assertEqual((96, 7), obs.shape)
+        self.assertDictEqual(exp_first_record, obs.iloc[0].to_dict())
 
     def test_compress_plates(self):
         compression = [
@@ -147,12 +172,78 @@ class Tests(TestCase):
              'Plate elution volume': 70}
         ]
 
+        exp_fp = os.path.join(
+            self.fp,
+            'data/compress_plates_expected_out_no_leading_zeroes_tubecode.tsv')
         plate_df_obs = compress_plates(compression, self.sa_df,
                                        well_col='Well')
+        plate_df_exp = pd.read_csv(exp_fp, dtype={'TubeCode': str}, sep='\t')
+        pd.testing.assert_frame_equal(plate_df_obs, plate_df_exp)
+
+    def test_compress_plates_preserve_leading_zeroes(self):
+        compression = [
+            # top left plate
+            {'Plate Position': 1,  # as int
+             'Plate map file': self.plates[0],
+             'Project Plate': 'Plate_16',
+             'Project Name': 'Celeste_Adaptation_12986',
+             'Project Abbreviation': 'ADAPT',
+             'Plate elution volume': 70},
+            # top right plate
+            {'Plate Position': 2,
+             'Plate map file': self.plates[1],
+             'Project Plate': 'Plate_17',
+             'Project Name': 'Celeste_Adaptation_12986',
+             'Project Abbreviation': 'ADAPT',
+             'Plate elution volume': 70},
+            {'Plate Position': 3,
+             'Plate map file': self.plates[2],
+             'Project Plate': 'Plate_18',
+             'Project Name': 'Celeste_Adaptation_12986',
+             'Project Abbreviation': 'ADAPT',
+             'Plate elution volume': 70},
+            {'Plate Position': 4,
+             'Plate map file': self.plates[3],
+             'Project Plate': 'Plate_21',
+             'Project Name': 'Celeste_Adaptation_12986',
+             'Project Abbreviation': 'ADAPT',
+             'Plate elution volume': 70}
+        ]
+
+        plate_df_obs = compress_plates(
+            compression, self.sa_df, well_col='Well',
+            preserve_leading_zeroes=True)
         plate_df_exp = pd.read_csv(self.comp_plate_exp_fp,
                                    dtype={'TubeCode': str}, sep='\t')
 
         pd.testing.assert_frame_equal(plate_df_obs, plate_df_exp)
+
+    def test_add_controls_preserve_leading_zeroes(self):
+        plate_df = pd.read_csv(self.comp_plate_exp_fp,
+                               dtype={'TubeCode': str}, sep='\t')
+
+        add_controls_obs = add_controls(plate_df,
+                                        self.blanks_dir,
+                                        self.katharoseq_dir,
+                                        preserve_leading_zeroes=True)
+
+        add_controls_exp = pd.read_csv(self.add_controls_exp_fp,
+                                       dtype={'TubeCode': str,
+                                              'RackID': str,
+                                              'Kathseq_RackID': str},
+                                       sep='\t')
+
+        pd.testing.assert_frame_equal(add_controls_obs,
+                                      add_controls_exp)
+
+        # Testing edge case that technician reruns the
+        # module on the same dataframe
+        add_controls_obs = add_controls(add_controls_exp,
+                                        self.blanks_dir,
+                                        self.katharoseq_dir)
+
+        pd.testing.assert_frame_equal(add_controls_obs,
+                                      add_controls_exp)
 
     def test_add_controls(self):
         plate_df = pd.read_csv(self.comp_plate_exp_fp,
@@ -162,7 +253,10 @@ class Tests(TestCase):
                                         self.blanks_dir,
                                         self.katharoseq_dir)
 
-        add_controls_exp = pd.read_csv(self.add_controls_exp_fp,
+        exp_fp = os.path.join(
+            self.fp,
+            'data/add_controls_expected_out_no_leading_zeroes_tubecode.tsv')
+        add_controls_exp = pd.read_csv(exp_fp,
                                        dtype={'TubeCode': str,
                                               'RackID': str,
                                               'Kathseq_RackID': str},
@@ -187,9 +281,21 @@ class Tests(TestCase):
                                dtype={'TubeCode': str,
                                       'RackID': str},
                                sep='\t')
-        # Test with no errors
+        # Test with no errors, preserving leading zeroes
         validate_plate_df(plate_df, self.metadata, self.sa_df,
+                          self.blanks_dir, self.katharoseq_dir,
+                          preserve_leading_zeroes=True)
+
+        # Test with no errors, not preserving leading zeroes
+        plate_df_no_zeroes = plate_df.copy()
+        plate_df_no_zeroes['TubeCode'] = \
+            plate_df_no_zeroes['TubeCode'].str.lstrip('0')
+        sa_df_no_zeroes = self.sa_df.copy()
+        sa_df_no_zeroes['TubeCode'] = \
+            sa_df_no_zeroes['TubeCode'].str.lstrip('0')
+        validate_plate_df(plate_df_no_zeroes, self.metadata, sa_df_no_zeroes,
                           self.blanks_dir, self.katharoseq_dir)
+
         # Test for errors
         # Raises error for lack of katharoseq dir, tubes with no
         # metadata
