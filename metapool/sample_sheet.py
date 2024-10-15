@@ -1301,9 +1301,15 @@ def load_sample_sheet(sample_sheet_path):
 
     header = _parse_header(sample_sheet_path)
 
-    if 'SheetType' not in header or 'SheetVersion' not in header:
-        raise ValueError("'SheetType' and 'SheetVersion' must be defined in "
-                         "[Header]")
+    required_attributes = ['Assay', 'SheetType', 'SheetVersion']
+    missing_attributes = []
+    for attribute in required_attributes:
+        if attribute not in header:
+            missing_attributes.append(f"'{attribute}'")
+
+    if len(missing_attributes) != 0:
+        raise ValueError("The following fields must be defined in [Header]: "
+                         " %s" % ", ".join(missing_attributes))
 
     sheet = None
 
