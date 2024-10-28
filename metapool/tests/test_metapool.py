@@ -106,7 +106,7 @@ class Tests(TestCase):
                               "num_cycles '12' appears to be less than "
                               "adapter-length '14'", 14, ValueError),
                              ("metapool/tests/data/runinfo_files/RunInfo1.xml",
-                              "Adapter-length cannot be less than zero", -1,
+                              "Adapter length cannot be less than zero", -1,
                               ValueError),
                              ("metapool/tests/data/good-sample-sheet.csv",
                               "syntax error: line 1, column 0", 8, ParseError)]
