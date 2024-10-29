@@ -21,6 +21,7 @@ from .plate import (validate_plate_metadata, requires_dilution, dilute_gDNA,
 from .amplipool import assign_emp_index
 from .igm import IGMManifest
 from .count import run_counts
+from .controls import is_blank, get_blank_root
 from .metapool import (extract_stats_metadata, sum_lanes, compress_plates,
                        add_controls, generate_override_cycles_value,
                        TUBECODE_KEY)
