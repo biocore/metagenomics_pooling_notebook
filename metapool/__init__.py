@@ -4,10 +4,10 @@ from .prep import (preparations_for_run, parse_prep, generate_qiita_prep_file,
                    demux_pre_prep, pre_prep_needs_demuxing)
 from .mp_strings import (SAMPLE_NAME_KEY, QIITA_ID_KEY, SAMPLES_DETAILS_KEY,
                          ORIG_NAME_KEY, PRIMARY_STUDY_KEY,
-                         SECONDARY_STUDIES_KEY, parse_project_name,
-                         get_short_name_and_id, get_qiita_id_from_project_name,
-                         PROJECT_SHORT_NAME_KEY, PROJECT_FULL_NAME_KEY,
-                         CONTAINS_REPLICATES_KEY)
+                         SECONDARY_STUDIES_KEY, PROJECT_SHORT_NAME_KEY,
+                         PROJECT_FULL_NAME_KEY, CONTAINS_REPLICATES_KEY,
+                         parse_project_name, get_short_name_and_id,
+                         get_qiita_id_from_project_name)
 from .sample_sheet import (SS_SAMPLE_ID_KEY,
                            sample_sheet_to_dataframe, make_sample_sheet,
                            AmpliconSampleSheet, MetagenomicSampleSheetv90,
@@ -25,6 +25,7 @@ from .controls import is_blank, get_blank_root
 from .metapool import (extract_stats_metadata, sum_lanes, compress_plates,
                        add_controls, generate_override_cycles_value,
                        TUBECODE_KEY)
+from .controls import is_blank
 
 
 __credits__ = ("https://github.com/biocore/metagenomics_pooling_notebook/"
@@ -45,7 +46,7 @@ __all__ = ['IGMManifest', 'add_controls', 'assign_emp_index', 'autopool',
            'MetatranscriptomicSampleSheetv0', 'generate_override_cycles_value',
            'MetatranscriptomicSampleSheetv10', 'AbsQuantSampleSheetv10',
            # KLSampleSheet is needed for instance() calls.
-           'KLSampleSheet', 'load_sample_sheet', 'is_blank', 'get_blank_root',
+           'KLSampleSheet', 'load_sample_sheet', 'is_blank',
            'SAMPLE_NAME_KEY', 'PRIMARY_STUDY_KEY', 'SECONDARY_STUDIES_KEY',
            'SAMPLES_DETAILS_KEY', 'SS_SAMPLE_ID_KEY', 'ORIG_NAME_KEY',
            'TUBECODE_KEY', 'QIITA_ID_KEY', 'PROJECT_SHORT_NAME_KEY',
