@@ -8,7 +8,8 @@ from .sample_sheet import (sample_sheet_to_dataframe, make_sample_sheet,
                            MetagenomicSampleSheetv101, AbsQuantSampleSheetv10,
                            MetatranscriptomicSampleSheetv0, demux_sample_sheet,
                            sheet_needs_demuxing, KLSampleSheet,
-                           load_sample_sheet, MetatranscriptomicSampleSheetv10)
+                           load_sample_sheet, MetatranscriptomicSampleSheetv10,
+                           parse_sheet_into_dataframes)
 from .plate import (validate_plate_metadata, requires_dilution, dilute_gDNA,
                     autopool, find_threshold)
 from .amplipool import assign_emp_index
@@ -34,7 +35,8 @@ __all__ = ['IGMManifest', 'add_controls', 'assign_emp_index', 'autopool',
            'MetatranscriptomicSampleSheetv0', 'generate_override_cycles_value',
            'MetatranscriptomicSampleSheetv10', 'AbsQuantSampleSheetv10',
            # KLSampleSheet is needed for instance() calls.
-           'KLSampleSheet', 'load_sample_sheet']
+           'KLSampleSheet', 'load_sample_sheet',
+           'parse_sheet_into_dataframes',]
 
 from . import _version
 

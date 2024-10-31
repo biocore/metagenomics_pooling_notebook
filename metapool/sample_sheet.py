@@ -18,8 +18,9 @@ _STANDARD_METAG_SHEET_TYPE = 'standard_metag'
 _STANDARD_METAT_SHEET_TYPE = 'standard_metat'
 _DUMMY_SHEET_TYPE = 'dummy_amp'
 _ABSQUANT_SHEET_TYPE = 'abs_quant_metag'
+_TELLSEQ_SHEET_TYPE = 'tellseq_metag'
 SHEET_TYPES = (_STANDARD_METAG_SHEET_TYPE, _ABSQUANT_SHEET_TYPE,
-               _STANDARD_METAT_SHEET_TYPE)
+               _STANDARD_METAT_SHEET_TYPE, _TELLSEQ_SHEET_TYPE)
 
 
 class KLSampleSheet(sample_sheet.SampleSheet):
@@ -1021,6 +1022,62 @@ class MetagenomicSampleSheetv100(KLSampleSheet):
         }
 
 
+class TellSeqSampleSheetv10(KLSampleSheet):
+    # A temporary stand-in for the final TellSeq SampleSheet() class.
+    # duplicates MetagenomicsSampleSheetv100.
+    _HEADER = {
+        'IEMFileVersion': '4',
+        'SheetType': _TELLSEQ_SHEET_TYPE,
+        'SheetVersion': '10',
+        'Investigator Name': 'Knight',
+        'Experiment Name': 'RKL_experiment',
+        'Date': None,
+        'Workflow': 'GenerateFASTQ',
+        'Application': 'FASTQ Only',
+        'Assay': _METAGENOMIC,
+        'Description': '',
+        'Chemistry': 'Default',
+    }
+
+    # Note that there doesn't appear to be a difference between 95, 99, and 100
+    # beyond the value observed in 'Well_description' column. The real
+    # difference is between standard_metag and abs_quant_metag.
+    data_columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'Sample_Well',
+                    'barcode_id', 'Sample_Project', 'Well_description']
+
+    # For now, assume only AbsQuantSampleSheetv10 doesn't contain
+    # 'contains_replicates' column, while the others do.
+
+    _BIOINFORMATICS_COLUMNS = {'Sample_Project', 'QiitaID', 'BarcodesAreRC',
+                               'ForwardAdapter', 'ReverseAdapter',
+                               'HumanFiltering', 'contains_replicates',
+                               'library_construction_protocol',
+                               'experiment_design_description'}
+
+    _BIOINFORMATICS_BOOLEANS = frozenset({'BarcodesAreRC', 'HumanFiltering',
+                                          'contains_replicates'})
+
+    CARRIED_PREP_COLUMNS = ['experiment_design_description', 'i5_index_id',
+                            'i7_index_id', 'index', 'index2',
+                            'library_construction_protocol', 'sample_name',
+                            'sample_plate', 'sample_project',
+                            'well_description', 'well_id_384']
+
+    def __init__(self, path=None):
+        super().__init__(path=path)
+        self.remapper = {
+            'sample sheet Sample_ID': 'Sample_ID',
+            'Sample': 'Sample_Name',
+            'Project Plate': 'Sample_Plate',
+            'Well': 'well_id_384',
+            'i7 name': 'I7_Index_ID',
+            'i7 sequence': 'index',
+            'i5 name': 'I5_Index_ID',
+            'i5 sequence': 'index2',
+            'Project Name': 'Sample_Project',
+        }
+
+
 class MetagenomicSampleSheetv90(KLSampleSheet):
     '''
     MetagenomicSampleSheetv90 is meant to be a class to handle legacy
@@ -1293,11 +1350,87 @@ def _parse_header(fp):
     return results
 
 
+def parse_sheet_into_dataframes(fp):
+    pd.options.mode.chained_assignment = None
+    df = pd.read_csv(fp, dtype="str", sep=",", header=None,
+                     names=range(100))
+
+    # pandas will have trouble reading a sample-sheet if the csv has a
+    # variable number of columns. This occurs in legacy sheets when a user
+    # has introduced one too many ',' characters in a line.
+    #
+    # the solution is to fix the number of initial columns at a high enough
+    # value to include all columns, name them with integers, and later
+    # truncate all columns that are entirely empty.
+    df.dropna(how='all', axis=1, inplace=True)
+
+    # remove all whitespace rows (drop all rows that are entirely empty)
+    df.dropna(how='all', axis=0, inplace=True)
+
+    # remove all comments rows, whether they are at the top of the file (no
+    # longer supported, technically), or not.
+    comment_rows = df.index[df[0].str.startswith("#")].tolist()
+    df = df.drop(index=comment_rows)
+    # reset the index to make it easier to post-process.
+    df.reset_index(inplace=True, drop=True)
+
+    # for simplicity's sake, assume the first row marks the [Header]
+    # column and raise an Error if not. By convention it should be, once
+    # legacy comments and whitespace rows are removed.
+    if df[0][0] != '[Header]':
+        raise ValueError("Top section is not [Header]")
+
+    header_row_numbers = df.index[df[0].str.startswith("[")].tolist()
+
+    results = {}
+
+    for i in range(0, len(header_row_numbers)):
+        header_name = df[0][header_row_numbers[i]]
+        section_start = header_row_numbers[i]
+
+        if i == len(header_row_numbers) - 1:
+            section_end = None
+        else:
+            section_end = header_row_numbers[i+1]
+
+        # we want to clip out the section on the line following [Section].
+        # Don't include [Section].
+        if section_end is None:
+            section_df = df.iloc[section_start+1:]
+        else:
+            section_df = df.iloc[section_start+1:section_end]
+        # remove any potential empty columns on the right. It's not a given
+        # that [Data] section is the longest. [Bioinformatics] can be longer.
+        section_df.dropna(how='all', axis=1, inplace=True)
+
+        # some [Sections] are tables while others are just key/value pairs.
+        if header_name in ['[Bioinformatics]', '[Data]', '[Contact]']:
+            # extract the list of column names, rename the columns after
+            # them, and remove the original (now duplicate) header in the
+            # first row.
+            section_header = section_df.iloc[0].tolist()
+            section_df.columns = section_header
+            section_df.drop(index=section_df.index[0], axis=0, inplace=True)
+        elif header_name == '[Reads]':
+            # the [Reads] section does not contain key, value pairs, just a
+            # single column of values.
+            section_df.columns = ['value']
+        else:
+            # default [Sections] are of the form key, value and do not
+            # contain a header in the original file.
+            section_df.columns = ['key', 'value']
+
+        section_df.reset_index(drop=True, inplace=True)
+        results[header_name] = section_df
+
+    return results
+
+
 def load_sample_sheet(sample_sheet_path):
     types = [AmpliconSampleSheet, MetagenomicSampleSheetv101,
              MetagenomicSampleSheetv100, MetagenomicSampleSheetv90,
              AbsQuantSampleSheetv10, MetatranscriptomicSampleSheetv0,
-             MetatranscriptomicSampleSheetv10]
+             MetatranscriptomicSampleSheetv10, TellSeqSampleSheetv10]
 
     header = _parse_header(sample_sheet_path)
 
@@ -1368,6 +1501,8 @@ def _create_sample_sheet(sheet_type, sheet_version, assay_type):
         sheet = AbsQuantSampleSheetv10()
     elif sheet_type == _DUMMY_SHEET_TYPE:
         sheet = AmpliconSampleSheet()
+    elif sheet_type == _TELLSEQ_SHEET_TYPE:
+        sheet = TellSeqSampleSheetv10()
     else:
         raise ValueError("'%s' is an unrecognized SheetType" % sheet_type)
 
