@@ -1938,9 +1938,10 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
         self.assertEqual(obs, exp)
         self.assertTrue(sheet1.validate_and_scrub_sample_sheet())
 
-        with self.assertRaisesRegex(ValueError, 'does not appear to be a valid'
-                                                ' sample-sheet.'):
-            load_sample_sheet(self.katharoseq_3)
+        sheet = load_sample_sheet(self.katharoseq_3)
+        obs = sheet.quiet_validate_and_scrub_sample_sheet()
+        self.assertEqual(str(obs[0]), "ErrorMessage: The number_of_cells "
+                                      "column in the Data section is missing")
 
         # self.katharoseq_3 is a duplicate of self.katharoseq_2, except
         # number_of_cells has been replaced w/number_of_sells. This is
