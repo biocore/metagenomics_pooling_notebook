@@ -9,6 +9,7 @@ import pandas as pd
 from metapool.metapool import (bcl_scrub_name, sequencer_i5_index,
                                REVCOMP_SEQUENCERS)
 from metapool.plate import ErrorMessage, WarningMessage, PlateReplication
+from collections import OrderedDict
 
 
 _AMPLICON = 'TruSeq HT'
@@ -1294,136 +1295,146 @@ class MetatranscriptomicSampleSheetv10(KLSampleSheet):
         }
 
 
-def _parse_header(fp):
-    df = pd.read_csv(fp, dtype="str", sep=",", header=None,
-                     names=range(100))
+class DFSheet():
+    def __init__(self, file_path):
+        self.file_path = file_path
+        self.frames = self._parse_sheet_into_dataframes()
 
-    # pandas will have trouble reading a sample-sheet if the csv has a
-    # variable number of columns. This occurs in legacy sheets when a user
-    # has introduced one too many ',' characters in a line.
-    #
-    # the solution is to fix the number of initial columns at a high enough
-    # value to include all columns, name them with integers, and later
-    # truncate all columns that are entirely empty.
-    df.dropna(how='all', axis=1, inplace=True)
+    def _parse_header(self, sample_sheet_path):
+        df = self._parse_sheet_into_dataframes()['Header']
 
-    # remove all whitespace rows (drop all rows that are entirely empty)
-    df.dropna(how='all', axis=0, inplace=True)
+        # TODO: convert the keys column to be indexes so we can convert to
+        # dictionary. Perhaps this should always be done for non tabular
+        # values.
+        df.index = df['key'].tolist()
+        df.drop('key', axis=1, inplace=True)
+        # return the value of key '1'. This will return an immediately
+        # recognizable dictionary of key/value pairs.
+        results = df.to_dict()['value']
 
-    # remove all comments rows, whether they are at the top of the file (no
-    # longer supported, technically), or not.
-    comment_rows = df.index[df[0].str.startswith("#")].tolist()
-    df = df.drop(index=comment_rows)
-    # reset the index to make it easier to post-process.
-    df.reset_index(inplace=True, drop=True)
+        # conversion to dict causes SheetVersion to be wrapped in single ticks.
+        # e.g.: "'100'". These should be removed if present.
+        if 'SheetVersion' in results:
+            results['SheetVersion'] = results['SheetVersion'].replace("'", "")
 
-    # for simplicity's sake, assume the first row marks the [Header]
-    # column and raise an Error if not. By convention it should be, once
-    # legacy comments and whitespace rows are removed.
-    if df[0][0] != '[Header]':
-        raise ValueError("Top section is not [Header]")
+        return results
 
-    # identify the beginning of the following section and remove everything
-    # from the start of the first section on down. Remove the now redundant
-    # [Header] from the top row as well.
-    next_section_start = df.index[df[0].str.startswith("[")].tolist()[1]
-    df = df.iloc[1:next_section_start]
+    def _parse_sheet_into_dataframes(self):
+        pd.options.mode.chained_assignment = None
+        df = pd.read_csv(self.file_path, dtype="str", sep=",", header=None,
+                         names=range(100))
 
-    # lastly, trim off the additional all-empty columns that are now
-    # present after the removal of the other sections.
-    df.dropna(how='all', axis=1, inplace=True)
+        # pandas will have trouble reading a sample-sheet if the csv has a
+        # variable number of columns. This occurs in legacy sheets when a user
+        # has introduced one too many ',' characters in a line.
+        #
+        # the solution is to fix the number of initial columns at a high enough
+        # value to include all columns, name them with integers, and later
+        # truncate all columns that are entirely empty.
+        df.dropna(how='all', axis=1, inplace=True)
 
-    # set the index to the attributes column of the sample-sheet, replacing
-    # the numeric index which now isn't needed. The dataframe will now just
-    # contain the index column and a single column named 1.
-    df.set_index(0, inplace=True)
+        # remove all whitespace rows (drop all rows that are entirely empty)
+        df.dropna(how='all', axis=0, inplace=True)
 
-    # return the value of key '1'. This will return an immediately
-    # recognizable dictionary of key/value pairs.
-    results = df.to_dict()[1]
+        # remove all comments rows, whether they are at the top of the file (no
+        # longer supported, technically), or not.
+        comment_rows = df.index[df[0].str.startswith("#")].tolist()
+        df = df.drop(index=comment_rows)
+        # reset the index to make it easier to post-process.
+        df.reset_index(inplace=True, drop=True)
 
-    # conversion to dict causes SheetVersion to be wrapped in single ticks.
-    # e.g.: "'100'". These should be removed if present.
-    if 'SheetVersion' in results:
-        results['SheetVersion'] = results['SheetVersion'].replace("'", "")
+        # for simplicity's sake, assume the first row marks the [Header]
+        # column and raise an Error if not. By convention it should be, once
+        # legacy comments and whitespace rows are removed.
+        if df[0][0] != '[Header]':
+            raise ValueError("Top section is not [Header]")
 
-    return results
+        header_row_numbers = df.index[df[0].str.startswith("[")].tolist()
 
+        results = OrderedDict()
 
-def parse_sheet_into_dataframes(fp):
-    pd.options.mode.chained_assignment = None
-    df = pd.read_csv(fp, dtype="str", sep=",", header=None,
-                     names=range(100))
+        for i in range(0, len(header_row_numbers)):
+            header_name = df[0][header_row_numbers[i]]
+            header_name = header_name.replace('[', '')
+            header_name = header_name.replace(']', '')
+            section_start = header_row_numbers[i]
 
-    # pandas will have trouble reading a sample-sheet if the csv has a
-    # variable number of columns. This occurs in legacy sheets when a user
-    # has introduced one too many ',' characters in a line.
-    #
-    # the solution is to fix the number of initial columns at a high enough
-    # value to include all columns, name them with integers, and later
-    # truncate all columns that are entirely empty.
-    df.dropna(how='all', axis=1, inplace=True)
+            if i == len(header_row_numbers) - 1:
+                section_end = None
+            else:
+                section_end = header_row_numbers[i+1]
 
-    # remove all whitespace rows (drop all rows that are entirely empty)
-    df.dropna(how='all', axis=0, inplace=True)
+            # we want to clip out the section on the line following [Section].
+            # Don't include [Section].
+            if section_end is None:
+                section_df = df.iloc[section_start+1:]
+            else:
+                section_df = df.iloc[section_start+1:section_end]
+            # remove any potential empty columns on the right. It's not a given
+            # that [Data] section is the longest. [Bioinformatics] can be
+            # longer.
+            section_df.dropna(how='all', axis=1, inplace=True)
 
-    # remove all comments rows, whether they are at the top of the file (no
-    # longer supported, technically), or not.
-    comment_rows = df.index[df[0].str.startswith("#")].tolist()
-    df = df.drop(index=comment_rows)
-    # reset the index to make it easier to post-process.
-    df.reset_index(inplace=True, drop=True)
+            # some [Sections] are tables while others are just key/value pairs.
+            if header_name in ['Bioinformatics', 'Data', 'Contact']:
+                # extract the list of column names, rename the columns after
+                # them, and remove the original (now duplicate) header in the
+                # first row.
+                section_header = section_df.iloc[0].tolist()
+                section_df.columns = section_header
+                section_df.drop(index=section_df.index[0],
+                                axis=0,
+                                inplace=True)
+            elif header_name == 'Reads':
+                # the [Reads] section does not contain key, value pairs, just a
+                # single column of values.
+                section_df.columns = ['value']
+            else:
+                # default [Sections] are of the form key, value and do not
+                # contain a header in the original file.
+                section_df.columns = ['key', 'value']
 
-    # for simplicity's sake, assume the first row marks the [Header]
-    # column and raise an Error if not. By convention it should be, once
-    # legacy comments and whitespace rows are removed.
-    if df[0][0] != '[Header]':
-        raise ValueError("Top section is not [Header]")
+            section_df.reset_index(drop=True, inplace=True)
+            results[header_name] = section_df
 
-    header_row_numbers = df.index[df[0].str.startswith("[")].tolist()
+        return results
 
-    results = {}
+    def to_csv(self, file_path):
+        def resize(foo):
+            # find the widest df
+            max_width = 0
+            for df in foo:
+                if df.shape[1] > max_width:
+                    max_width = df.shape[1]
 
-    for i in range(0, len(header_row_numbers)):
-        header_name = df[0][header_row_numbers[i]]
-        section_start = header_row_numbers[i]
+            # extend all other dfs to the same width
+            for df in foo:
+                if df.shape[1] < max_width:
+                    for i in range(0, max_width - df.shape[1]):
+                        df[str(i)] = None
+            return foo
 
-        if i == len(header_row_numbers) - 1:
-            section_end = None
-        else:
-            section_end = header_row_numbers[i+1]
+        # flatten the dict and add headers before resizing them to be of equal
+        # width.
+        result = []
+        for key in self.frames:
+            if key in ['Bioinformatics', 'Data', 'Contact']:
+                section_name = pd.DataFrame([f'[{key}]'], columns=['a'])
+                result.append(section_name)
+                tmp = self.frames[key]
+                new_row = pd.DataFrame([tmp.columns], columns=tmp.columns)
+                tmp = pd.concat([new_row, tmp])
+                result.append(tmp)
+            else:
+                section_name = pd.DataFrame([f'[{key}]'], columns=['a'])
+                result.append(section_name)
+                result.append(self.frames[key])
 
-        # we want to clip out the section on the line following [Section].
-        # Don't include [Section].
-        if section_end is None:
-            section_df = df.iloc[section_start+1:]
-        else:
-            section_df = df.iloc[section_start+1:section_end]
-        # remove any potential empty columns on the right. It's not a given
-        # that [Data] section is the longest. [Bioinformatics] can be longer.
-        section_df.dropna(how='all', axis=1, inplace=True)
+        result = resize(result)
 
-        # some [Sections] are tables while others are just key/value pairs.
-        if header_name in ['[Bioinformatics]', '[Data]', '[Contact]']:
-            # extract the list of column names, rename the columns after
-            # them, and remove the original (now duplicate) header in the
-            # first row.
-            section_header = section_df.iloc[0].tolist()
-            section_df.columns = section_header
-            section_df.drop(index=section_df.index[0], axis=0, inplace=True)
-        elif header_name == '[Reads]':
-            # the [Reads] section does not contain key, value pairs, just a
-            # single column of values.
-            section_df.columns = ['value']
-        else:
-            # default [Sections] are of the form key, value and do not
-            # contain a header in the original file.
-            section_df.columns = ['key', 'value']
-
-        section_df.reset_index(drop=True, inplace=True)
-        results[header_name] = section_df
-
-    return results
+        with open(file_path, 'w') as f:
+            for key in result:
+                key.to_csv(f, header=False, index=False)
 
 
 def load_sample_sheet(sample_sheet_path):
@@ -1432,7 +1443,9 @@ def load_sample_sheet(sample_sheet_path):
              AbsQuantSampleSheetv10, MetatranscriptomicSampleSheetv0,
              MetatranscriptomicSampleSheetv10, TellSeqSampleSheetv10]
 
-    header = _parse_header(sample_sheet_path)
+    # For our purposes here we need to instantiate a DFSheet but we don't
+    # need to hold onto it after parsing the header.
+    header = DFSheet(sample_sheet_path)._parse_header(sample_sheet_path)
 
     required_attributes = ['Assay', 'SheetType', 'SheetVersion']
     missing_attributes = []
@@ -1507,6 +1520,12 @@ def _create_sample_sheet(sheet_type, sheet_version, assay_type):
         raise ValueError("'%s' is an unrecognized SheetType" % sheet_type)
 
     return sheet
+
+
+def set_lane_number_in_sheet(sample_sheet_path, lane):
+    sheet = DFSheet(sample_sheet_path)
+    sheet.frames['Data']['Lane'] = int(lane)
+    sheet.to_csv(sample_sheet_path)
 
 
 def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
