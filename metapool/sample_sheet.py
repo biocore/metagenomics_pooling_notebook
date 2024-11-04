@@ -227,11 +227,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                         self.add_sample(
                             sample_sheet.Sample(dict(zip(section_header,
                                                          line))))
-                    elif any(key == '' for key in line):
-                        raise ValueError(
-                            f'Header for [Data] section is not allowed to '
-                            f'have empty fields: {line}'
-                        )
+
                     else:
                         section_header = self._process_section_header(line)
                     continue
