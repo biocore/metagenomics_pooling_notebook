@@ -1237,38 +1237,99 @@ class MetatranscriptomicSampleSheetv10(KLSampleSheet):
         }
 
 
+def _parse_header(fp):
+    df = pd.read_csv(fp, dtype="str", sep=",", header=None,
+                     names=range(100))
+
+    # pandas will have trouble reading a sample-sheet if the csv has a
+    # variable number of columns. This occurs in legacy sheets when a user
+    # has introduced one too many ',' characters in a line.
+    #
+    # the solution is to fix the number of initial columns at a high enough
+    # value to include all columns, name them with integers, and later
+    # truncate all columns that are entirely empty.
+    df.dropna(how='all', axis=1, inplace=True)
+
+    # remove all whitespace rows (drop all rows that are entirely empty)
+    df.dropna(how='all', axis=0, inplace=True)
+
+    # remove all comments rows, whether they are at the top of the file (no
+    # longer supported, technically), or not.
+    comment_rows = df.index[df[0].str.startswith("#")].tolist()
+    df = df.drop(index=comment_rows)
+    # reset the index to make it easier to post-process.
+    df.reset_index(inplace=True, drop=True)
+
+    # for simplicity's sake, assume the first row marks the [Header]
+    # column and raise an Error if not. By convention it should be, once
+    # legacy comments and whitespace rows are removed.
+    if df[0][0] != '[Header]':
+        raise ValueError("Top section is not [Header]")
+
+    # identify the beginning of the following section and remove everything
+    # from the start of the first section on down. Remove the now redundant
+    # [Header] from the top row as well.
+    next_section_start = df.index[df[0].str.startswith("[")].tolist()[1]
+    df = df.iloc[1:next_section_start]
+
+    # lastly, trim off the additional all-empty columns that are now
+    # present after the removal of the other sections.
+    df.dropna(how='all', axis=1, inplace=True)
+
+    # set the index to the attributes column of the sample-sheet, replacing
+    # the numeric index which now isn't needed. The dataframe will now just
+    # contain the index column and a single column named 1.
+    df.set_index(0, inplace=True)
+
+    # return the value of key '1'. This will return an immediately
+    # recognizable dictionary of key/value pairs.
+    results = df.to_dict()[1]
+
+    # conversion to dict causes SheetVersion to be wrapped in single ticks.
+    # e.g.: "'100'". These should be removed if present.
+    if 'SheetVersion' in results:
+        results['SheetVersion'] = results['SheetVersion'].replace("'", "")
+
+    return results
+
+
 def load_sample_sheet(sample_sheet_path):
-    # Load the sample-sheet using various KLSampleSheet children and return
-    # the first instance that produces a valid sample-sheet. We assume that
-    # because of specific SheetType and SheetVersion values, no one sample-
-    # sheet can match more than one KLSampleSheet child.
+    types = [AmpliconSampleSheet, MetagenomicSampleSheetv101,
+             MetagenomicSampleSheetv100, MetagenomicSampleSheetv90,
+             AbsQuantSampleSheetv10, MetatranscriptomicSampleSheetv0,
+             MetatranscriptomicSampleSheetv10]
 
-    sheet = AbsQuantSampleSheetv10(sample_sheet_path)
-    if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
-        return sheet
+    header = _parse_header(sample_sheet_path)
 
-    sheet = AmpliconSampleSheet(sample_sheet_path)
-    if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
-        return sheet
+    required_attributes = ['Assay', 'SheetType', 'SheetVersion']
+    missing_attributes = []
+    for attribute in required_attributes:
+        if attribute not in header:
+            missing_attributes.append(f"'{attribute}'")
 
-    sheet = MetagenomicSampleSheetv101(sample_sheet_path)
-    if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
-        return sheet
+    if len(missing_attributes) != 0:
+        raise ValueError("The following fields must be defined in [Header]: "
+                         " %s" % ", ".join(missing_attributes))
 
-    sheet = MetagenomicSampleSheetv100(sample_sheet_path)
-    if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
-        return sheet
+    sheet = None
 
-    sheet = MetagenomicSampleSheetv90(sample_sheet_path)
-    if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
-        return sheet
+    for type in types:
+        m = True
+        for attribute in ['SheetType', 'SheetVersion', 'Assay']:
+            if type._HEADER[attribute] != header[attribute]:
+                m = False
+                break
 
-    sheet = MetatranscriptomicSampleSheetv10(sample_sheet_path)
-    if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
-        return sheet
+        if m is True:
+            # header matches all the attributes for the type.
+            sheet = type(sample_sheet_path)
+            break
 
-    sheet = MetatranscriptomicSampleSheetv0(sample_sheet_path)
-    if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
+    # return a SampleSheet() object if the metadata in the file was
+    # successfully matched to a sample-sheet type. this allows the user to
+    # call validate_and_scrub() or quiet_validate_and_scrub() on the sample-
+    # sheet to determine its correctness or receive warnings and errors.
+    if sheet is not None:
         return sheet
 
     raise ValueError(f"'{sample_sheet_path}' does not appear to be a valid "
