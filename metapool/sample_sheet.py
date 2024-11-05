@@ -1607,7 +1607,7 @@ def load_sample_sheet(sample_sheet_path):
                 m = False
                 break
 
-        if m is True:
+        if m:
             # header matches all the attributes for the type.
             sheet = type(sample_sheet_path)
             break
