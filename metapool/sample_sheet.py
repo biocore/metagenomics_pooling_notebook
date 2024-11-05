@@ -1602,7 +1602,7 @@ def load_sample_sheet(sample_sheet_path):
 
     for type in types:
         m = True
-        for attribute in ['SheetType', 'SheetVersion', 'Assay']:
+        for attribute in required_attributes:
             if type._HEADER[attribute] != header[attribute]:
                 m = False
                 break
