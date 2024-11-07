@@ -227,7 +227,18 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                         self.add_sample(
                             sample_sheet.Sample(dict(zip(section_header,
                                                          line))))
-
+                    # NB: This only works because [Data] segment has
+                    # historically had more columns than [Bioinformatics].
+                    # When the latter is larger, this check will cause valid
+                    # sample-sheets to fail because they have trailing ','
+                    # (empty columns) just like any other section. The
+                    # alternative is to force the exact number of columns for
+                    # the [Data] section only.
+                    #elif any(key == '' for key in line):
+                    #    raise ValueError(
+                    #        f'Header for [Data] section is not allowed to '
+                    #        f'have empty fields: {line}'
+                    #    )
                     else:
                         section_header = self._process_section_header(line)
                     continue
