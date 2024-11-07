@@ -11,14 +11,15 @@ from metapool.mp_strings import parse_project_name, \
     get_qiita_id_from_project_name, \
     SAMPLES_DETAILS_KEY, SAMPLE_NAME_KEY, SAMPLE_PROJECT_KEY, \
     CONTAINS_REPLICATES_KEY, ORIG_NAME_KEY, EXPT_DESIGN_DESC_KEY, \
-    PM_PROJECT_NAME_KEY, PM_PROJECT_PLATE_KEY, PM_BLANK_KEY
+    PM_PROJECT_NAME_KEY, PM_PROJECT_PLATE_KEY, PM_BLANK_KEY, QIITA_ID_KEY, \
+    PROJECT_FULL_NAME_KEY
 from metapool.metapool import (bcl_scrub_name, sequencer_i5_index,
                                REVCOMP_SEQUENCERS, TUBECODE_KEY)
 from metapool.plate import ErrorMessage, WarningMessage, PlateReplication
 from metapool.controls import SAMPLE_CONTEXT_COLS, \
     get_all_projects_in_context, is_blank, get_controls_details_from_context, \
     get_delimited_controls_details_from_compressed_plate, \
-    make_manual_control_details
+    make_manual_control_details, denormalize_controls_details
 
 _BIOINFORMATICS_KEY = 'Bioinformatics'
 _CONTACT_KEY = 'Contact'
@@ -959,6 +960,41 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
         return controls_details
 
+    def get_denormalized_controls_list(self):
+        # get info on each control, showing its primary and secondary studies
+        normalized_details = self.get_controls_details()
+
+        # create info on each individual control+study combination
+        # (so a control that has a primary study and two secondary studies
+        # will have three entries in the denormalized_details dictionary).
+        # There are no longer primary and secondary study id keys, just a
+        # single qiita id key for each control. Result is a list not a dict
+        # since a control name may now have >1 record.
+        denormalized_details = denormalize_controls_details(normalized_details)
+
+        # get info on all projects in the sample sheet
+        project_details = self.get_projects_details()
+
+        def _get_matching_full_project_name(qiita_id):
+            matching = \
+                [x[PROJECT_FULL_NAME_KEY] for x in project_details.values()
+                 if x[QIITA_ID_KEY] == qiita_id]
+            if len(matching) != 1:
+                raise ValueError(f"Expected 1 matching project for qiita id "
+                                 f"{qiita_id}, found {len(matching)}")
+            return matching[0]
+
+        # add full project name into each denormalized entry, using qiita id
+        for curr_control_details in denormalized_details:
+            curr_qiita_id = curr_control_details[QIITA_ID_KEY]
+            curr_full_project_name = \
+                _get_matching_full_project_name(curr_qiita_id)
+            curr_control_details[PROJECT_FULL_NAME_KEY] = \
+                curr_full_project_name
+        # next denormalized control
+
+        return denormalized_details
+
     def get_projects_details(self):
         # parse bioinformatics section and data section to generate a
         # durable list of project identifiers and associated sample identifiers
@@ -1488,42 +1524,99 @@ class MetatranscriptomicSampleSheetv10(KLSampleSheet):
             }
 
 
+def _parse_header(fp):
+    df = pd.read_csv(fp, dtype="str", sep=",", header=None,
+                     names=range(100))
+
+    # pandas will have trouble reading a sample-sheet if the csv has a
+    # variable number of columns. This occurs in legacy sheets when a user
+    # has introduced one too many ',' characters in a line.
+    #
+    # the solution is to fix the number of initial columns at a high enough
+    # value to include all columns, name them with integers, and later
+    # truncate all columns that are entirely empty.
+    df.dropna(how='all', axis=1, inplace=True)
+
+    # remove all whitespace rows (drop all rows that are entirely empty)
+    df.dropna(how='all', axis=0, inplace=True)
+
+    # remove all comments rows, whether they are at the top of the file (no
+    # longer supported, technically), or not.
+    comment_rows = df.index[df[0].str.startswith("#")].tolist()
+    df = df.drop(index=comment_rows)
+    # reset the index to make it easier to post-process.
+    df.reset_index(inplace=True, drop=True)
+
+    # for simplicity's sake, assume the first row marks the [Header]
+    # column and raise an Error if not. By convention it should be, once
+    # legacy comments and whitespace rows are removed.
+    if df[0][0] != '[Header]':
+        raise ValueError("Top section is not [Header]")
+
+    # identify the beginning of the following section and remove everything
+    # from the start of the first section on down. Remove the now redundant
+    # [Header] from the top row as well.
+    next_section_start = df.index[df[0].str.startswith("[")].tolist()[1]
+    df = df.iloc[1:next_section_start]
+
+    # lastly, trim off the additional all-empty columns that are now
+    # present after the removal of the other sections.
+    df.dropna(how='all', axis=1, inplace=True)
+
+    # set the index to the attributes column of the sample-sheet, replacing
+    # the numeric index which now isn't needed. The dataframe will now just
+    # contain the index column and a single column named 1.
+    df.set_index(0, inplace=True)
+
+    # return the value of key '1'. This will return an immediately
+    # recognizable dictionary of key/value pairs.
+    results = df.to_dict()[1]
+
+    # conversion to dict causes SheetVersion to be wrapped in single ticks.
+    # e.g.: "'100'". These should be removed if present.
+    if 'SheetVersion' in results:
+        results['SheetVersion'] = results['SheetVersion'].replace("'", "")
+
+    return results
+
+
 def load_sample_sheet(sample_sheet_path):
-    # Load the sample-sheet using various KLSampleSheet children and return
-    # the first instance that produces a valid sample-sheet. We assume that
-    # because of specific SheetType and SheetVersion values, no one sample
-    # sheet can match more than one KLSampleSheet child.
+    types = [AmpliconSampleSheet, MetagenomicSampleSheetv101,
+             MetagenomicSampleSheetv100, MetagenomicSampleSheetv90,
+             AbsQuantSampleSheetv10, MetatranscriptomicSampleSheetv0,
+             MetatranscriptomicSampleSheetv10]
 
-    sheet = AbsQuantSampleSheetv10(sample_sheet_path)
-    if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
-        return sheet
+    header = _parse_header(sample_sheet_path)
 
-    sheet = AmpliconSampleSheet(sample_sheet_path)
-    if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
-        return sheet
+    required_attributes = ['Assay', 'SheetType', 'SheetVersion']
+    missing_attributes = []
+    for attribute in required_attributes:
+        if attribute not in header:
+            missing_attributes.append(f"'{attribute}'")
 
-    sheet = MetagenomicSampleSheetv102(sample_sheet_path)
-    if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
-        return sheet
+    if len(missing_attributes) != 0:
+        raise ValueError("The following fields must be defined in [Header]: "
+                         " %s" % ", ".join(missing_attributes))
 
-    sheet = MetagenomicSampleSheetv101(sample_sheet_path)
-    if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
-        return sheet
+    sheet = None
 
-    sheet = MetagenomicSampleSheetv100(sample_sheet_path)
-    if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
-        return sheet
+    for type in types:
+        m = True
+        for attribute in required_attributes:
+            if type._HEADER[attribute] != header[attribute]:
+                m = False
+                break
 
-    sheet = MetagenomicSampleSheetv90(sample_sheet_path)
-    if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
-        return sheet
+        if m:
+            # header matches all the attributes for the type.
+            sheet = type(sample_sheet_path)
+            break
 
-    sheet = MetatranscriptomicSampleSheetv10(sample_sheet_path)
-    if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
-        return sheet
-
-    sheet = MetatranscriptomicSampleSheetv0(sample_sheet_path)
-    if sheet.validate_and_scrub_sample_sheet(echo_msgs=False):
+    # return a SampleSheet() object if the metadata in the file was
+    # successfully matched to a sample-sheet type. this allows the user to
+    # call validate_and_scrub() or quiet_validate_and_scrub() on the sample-
+    # sheet to determine its correctness or receive warnings and errors.
+    if sheet is not None:
         return sheet
 
     raise ValueError(f"'{sample_sheet_path}' does not appear to be a valid "

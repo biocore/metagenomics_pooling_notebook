@@ -721,6 +721,51 @@ class KLSampleSheetTests(BaseTests):
             self.assertEqual(curr_details[SECONDARY_STUDIES_KEY], [])
         # next expected blank name
 
+    def test_get_denormalized_controls_list(self):
+        exp_details_list = [
+            ('BLANK_40_12G', '11661', 'Feist_11661'),
+            ('BLANK_40_12H', '11661', 'Feist_11661'),
+            ('BLANK_41_12G', '11661', 'Feist_11661'),
+            ('BLANK_41_12G', '10317', 'TMI_10317'),
+            ('BLANK_41_12G', '11223', 'Other_11223'),
+            ('BLANK_41_12H', '11661', 'Feist_11661'),
+            ('BLANK_41_12H', '10317', 'TMI_10317'),
+            ('BLANK_41_12H', '11223', 'Other_11223'),
+            ('BLANK_42_12G', '11661', 'Feist_11661'),
+            ('BLANK_42_12H', '11661', 'Feist_11661'),
+            ('BLANK_43_12G', '11661', 'Feist_11661'),
+            ('BLANK_43_12H', '11661', 'Feist_11661')]
+        nyu_blanks = [
+            'BLANK1_1A', 'BLANK1_1B', 'BLANK1_1C', 'BLANK1_1D', 'BLANK1_1E',
+            'BLANK1_1F', 'BLANK1_1G', 'BLANK1_1H', 'BLANK2_2A', 'BLANK2_2B',
+            'BLANK2_2C', 'BLANK2_2D', 'BLANK2_2E', 'BLANK2_2F', 'BLANK2_2G',
+            'BLANK2_2H', 'BLANK3_3A', 'BLANK3_3B', 'BLANK3_3C', 'BLANK3_3D',
+            'BLANK3_3E', 'BLANK3_3F', 'BLANK3_3G', 'BLANK3_3H', 'BLANK4_4A',
+            'BLANK4_4B', 'BLANK4_4C', 'BLANK4_4D', 'BLANK4_4E', 'BLANK4_4F',
+            'BLANK4_4G', 'BLANK4_4H']
+        for curr_blank_name in nyu_blanks:
+            exp_details_list.append(
+                (curr_blank_name, '13059', 'NYU_BMS_Melanoma_13059'))
+        exp_details_list = sorted(exp_details_list, key=lambda k: (k[0], k[1]))
+
+        sheet = MetagenomicSampleSheetv101(self.good_metag_ss_w_context)
+        obs_details_list = sheet.get_denormalized_controls_list()
+        self.assertEqual(len(exp_details_list), len(obs_details_list))
+        for i in range(len(exp_details_list)):
+            curr_exp_details = exp_details_list[i]
+            curr_obs_details = obs_details_list[i]
+
+            self.assertEqual(len(curr_obs_details), 4)
+            self.assertEqual(
+                curr_obs_details[SAMPLE_NAME_KEY], curr_exp_details[0])
+            self.assertEqual(
+                curr_obs_details[SAMPLE_TYPE_KEY], 'control blank')
+            self.assertEqual(
+                curr_obs_details[QIITA_ID_KEY], curr_exp_details[1])
+            self.assertEqual(
+                curr_obs_details[PROJECT_FULL_NAME_KEY], curr_exp_details[2])
+        # next expected blank
+
     def test_get_projects_details(self):
         exp_details = {
             'NYU_BMS_Melanoma_13059': {
@@ -2462,9 +2507,10 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
         self.assertEqual(obs, exp)
         self.assertTrue(sheet1.validate_and_scrub_sample_sheet())
 
-        with self.assertRaisesRegex(ValueError, 'does not appear to be a valid'
-                                                ' sample-sheet.'):
-            load_sample_sheet(self.katharoseq_3)
+        sheet = load_sample_sheet(self.katharoseq_3)
+        obs = sheet.quiet_validate_and_scrub_sample_sheet()
+        self.assertEqual(str(obs[0]), "ErrorMessage: The number_of_cells "
+                                      "column in the Data section is missing")
 
         # self.katharoseq_3 is a duplicate of self.katharoseq_2, except
         # number_of_cells has been replaced w/number_of_sells. This is
