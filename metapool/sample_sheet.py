@@ -1581,7 +1581,8 @@ def _parse_header(fp):
 
 
 def load_sample_sheet(sample_sheet_path):
-    types = [AmpliconSampleSheet, MetagenomicSampleSheetv101,
+    types = [AmpliconSampleSheet,
+             MetagenomicSampleSheetv102, MetagenomicSampleSheetv101,
              MetagenomicSampleSheetv100, MetagenomicSampleSheetv90,
              AbsQuantSampleSheetv10, MetatranscriptomicSampleSheetv0,
              MetatranscriptomicSampleSheetv10]
