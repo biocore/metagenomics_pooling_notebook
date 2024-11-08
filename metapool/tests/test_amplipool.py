@@ -85,14 +85,15 @@ class AmplipoolTests(TestCase):
             ['X00179796', 'K', 1, False, 'THDMI_10317_PUK2', 'THDMI_10317',
              'THDMI_10317_UK2-US6', 'K1']]
 
-        self.df = pd.DataFrame(columns=columns, data=data)
+        self.df = (pd.DataFrame(columns=columns, data=data).astype(
+            dtype={'Col': 'str'}))
         self.seqtype = '16S'
 
     def test_assign_emp_index_position_one(self):
         obs = assign_emp_index(self.df, self.plate_metadata, self.seqtype)
 
         data = [
-            ['X00180471', 'A', 1, False, 'THDMI_10317_PUK2', 'THDMI_10317',
+            ['X00180471', 'A', '1', False, 'THDMI_10317_PUK2', 'THDMI_10317',
              'THDMI_10317_UK2-US6', 'A1', '1', '1', 'SF', '166032128',
              'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
              'Echo550', 'THDMI_UK_Plate_2', 'THDMI UK', '', '1', 'A1',
@@ -100,7 +101,7 @@ class AmplipoolTests(TestCase):
              'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
              ('AATGATACGGCGACCACCGAGATCTACACGCTAG'
               'CCTTCGTCGCTATGGTAATTGTGTGYCAGCMGCCGCGGTAA')],
-            ['X00180199', 'C', 1, False, 'THDMI_10317_PUK2', 'THDMI_10317',
+            ['X00180199', 'C', '1', False, 'THDMI_10317_PUK2', 'THDMI_10317',
              'THDMI_10317_UK2-US6', 'C1', '1', '1', 'SF', '166032128',
              'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
              'Echo550', 'THDMI_UK_Plate_2', 'THDMI UK', '', '1', 'B1',
@@ -108,7 +109,7 @@ class AmplipoolTests(TestCase):
              'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
              ('AATGATACGGCGACCACCGAGATCTACACGCTCG'
               'TATAAATGCGTATGGTAATTGTGTGYCAGCMGCCGCGGTAA')],
-            ['X00179789', 'E', 1, False, 'THDMI_10317_PUK2', 'THDMI_10317',
+            ['X00179789', 'E', '1', False, 'THDMI_10317_PUK2', 'THDMI_10317',
              'THDMI_10317_UK2-US6', 'E1', '1', '1', 'SF', '166032128',
              'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
              'Echo550', 'THDMI_UK_Plate_2', 'THDMI UK', '', '1', 'C1',
@@ -116,7 +117,7 @@ class AmplipoolTests(TestCase):
              'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
              ('AATGATACGGCGACCACCGAGATCTACACGCTTGAC'
               'TAATGGCCTATGGTAATTGTGTGYCAGCMGCCGCGGTAA')],
-            ['X00180201', 'G', 1, False, 'THDMI_10317_PUK2', 'THDMI_10317',
+            ['X00180201', 'G', '1', False, 'THDMI_10317_PUK2', 'THDMI_10317',
              'THDMI_10317_UK2-US6', 'G1', '1', '1', 'SF', '166032128',
              'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
              'Echo550', 'THDMI_UK_Plate_2', 'THDMI UK', '', '1', 'D1',
@@ -124,7 +125,7 @@ class AmplipoolTests(TestCase):
              'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
              ('AATGATACGGCGACCACCGAGATCTACACGC'
               'TGTGGAGTCTCATTATGGTAATTGTGTGYCAGCMGCCGCGGTAA')],
-            ['X00180464', 'I', 1, False, 'THDMI_10317_PUK2', 'THDMI_10317',
+            ['X00180464', 'I', '1', False, 'THDMI_10317_PUK2', 'THDMI_10317',
              'THDMI_10317_UK2-US6', 'I1', '1', '1', 'SF', '166032128',
              'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
              'Echo550', 'THDMI_UK_Plate_2', 'THDMI UK', '', '1', 'E1',
@@ -132,7 +133,7 @@ class AmplipoolTests(TestCase):
              'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
              ('AATGATACGGCGACCACCGAGATCTACACGCTTGATGTG'
               'CTAAGTATGGTAATTGTGTGYCAGCMGCCGCGGTAA')],
-            ['X00179796', 'K', 1, False, 'THDMI_10317_PUK2', 'THDMI_10317',
+            ['X00179796', 'K', '1', False, 'THDMI_10317_PUK2', 'THDMI_10317',
              'THDMI_10317_UK2-US6', 'K1', '1', '1', 'SF', '166032128',
              'Carmen_HOWE_KF3', '109379Z', '2021-08-17', '978215', 'RNBJ0628',
              'Echo550', 'THDMI_UK_Plate_2', 'THDMI UK', '', '1', 'F1',

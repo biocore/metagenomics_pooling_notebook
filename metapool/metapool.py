@@ -9,19 +9,23 @@ import warnings
 from random import choices
 from configparser import ConfigParser
 from qiita_client import QiitaClient
-from .prep import remove_qiita_id
+from .mp_strings import SAMPLE_NAME_KEY, PM_PROJECT_NAME_KEY, \
+    PM_PROJECT_PLATE_KEY, PM_COMPRESSED_PLATE_NAME_KEY, PM_BLANK_KEY, \
+    PLATE_NAME_DELIMITER, get_qiita_id_from_project_name, \
+    get_plate_num_from_plate_name, get_main_project_from_plate_name
 from .plate import _validate_well_id_96, PlateReplication
+
 from string import ascii_letters, digits
 import glob
 import xml.etree.ElementTree as ET
 from operator import itemgetter
+from .controls import get_blank_root
 
-
+# NB: If modifying these lists, see issue ##234!
 REVCOMP_SEQUENCERS = ['HiSeq4000', 'MiniSeq', 'NextSeq', 'HiSeq3000',
                       'iSeq', 'NovaSeq6000']
 OTHER_SEQUENCERS = ['HiSeq2500', 'HiSeq1500', 'MiSeq', 'NovaSeqX',
                     'NovaSeqXPlus']
-
 
 SYNDNA_POOL_NUM_KEY = "syndna_pool_number"
 SAMPLE_DNA_CONC_KEY = "Sample DNA Concentration"
@@ -29,6 +33,7 @@ NORMALIZED_DNA_VOL_KEY = "Normalized DNA volume"
 INPUT_DNA_KEY = "Input DNA"
 SYNDNA_VOL_KEY = "synDNA volume"
 SYNDNA_POOL_MASS_NG_KEY = "mass_syndna_input_ng"
+TUBECODE_KEY = "TubeCode"
 
 
 def extract_stats_metadata(stats_json_fp, lane_numbers):
@@ -300,7 +305,7 @@ def read_plate_map_csv(f, sep="\t", qiita_oauth2_conf_fp=None):
         )
 
     plate_df = pd.read_csv(f, sep=sep, dtype={"Sample": str})
-    if "Project Name" not in plate_df.columns:
+    if PM_PROJECT_NAME_KEY not in plate_df.columns:
         raise ValueError("Missing `Project Name` column.")
 
     if "well_id_96" not in plate_df.columns:
@@ -351,17 +356,17 @@ def read_plate_map_csv(f, sep="\t", qiita_oauth2_conf_fp=None):
 
     if qiita_validate:
         errors = []
-        for project, _df in plate_df.groupby(["Project Name"]):
+        for project, _df in plate_df.groupby([PM_PROJECT_NAME_KEY]):
             # if project is a tuple, force to string
             if isinstance(project, tuple):
                 project = project[0]
 
-            project_name = remove_qiita_id(project)
-            qiita_id = project.replace(f"{project_name}_", "")
+            qiita_id = get_qiita_id_from_project_name(project)
             qurl = f"/api/v1/study/{qiita_id}/samples"
 
-            plate_map_samples = {s for s in _df["Sample"]
-                                 if not s.startswith("BLANK")}
+            not_blank_samples = ~_df[PM_BLANK_KEY]
+            plate_map_samples = \
+                {s for s in _df.loc[not_blank_samples, "Sample"]}
             qsamples = {s.replace(f"{qiita_id}.", "")
                         for s in qclient.get(qurl)}
             sample_name_diff = plate_map_samples - set(qsamples)
@@ -746,7 +751,7 @@ def compute_qpcr_concentration(cp_vals, m=-3.231, b=12.059, dil_factor=25000):
         The dilution factor of the samples going into the qPCR
 
     Returns
-    -------10
+    -------
     np.array of floats
         A 2D array of floats
     """
@@ -939,7 +944,7 @@ def estimate_pool_conc_vol(sample_vols, sample_concs):
 
 
 def format_pooling_echo_pick_list(
-    vol_sample, max_vol_per_well=60000, dest_plate_shape=[16, 24]
+    vol_sample, max_vol_per_well=60000, dest_plate_shape=None
 ):
     """Format the contents of an echo pooling pick list
 
@@ -950,6 +955,9 @@ def format_pooling_echo_pick_list(
     max_vol_per_well : 2d numpy array of floats
         Maximum destination well volume, in nL
     """
+    if dest_plate_shape is None:
+        dest_plate_shape = (16, 24)
+
     contents = [
         "Source Plate Name,Source Plate Type,Source Well,"
         "Concentration,Transfer Volume,Destination Plate Name,"
@@ -1209,7 +1217,7 @@ def rc(seq):
 
 def sequencer_i5_index(sequencer, indices):
     if sequencer in REVCOMP_SEQUENCERS:
-        print("%s: i5 barcodes are output as reverse compliments" % sequencer)
+        print("%s: i5 barcodes are output as reverse complements" % sequencer)
         return [rc(x) for x in indices]
     elif sequencer in OTHER_SEQUENCERS:
         print("%s: i5 barcodes are output in standard direction" % sequencer)
@@ -1327,8 +1335,9 @@ def merge_read_counts(plate_df, counts_df, reads_column_name="Filtered Reads"):
         counts_df.rename(columns={'reads': reads_column_name},
                          inplace=True)
     elif file_type == 'prep_file':
-        counts_df = counts_df[[sample_column, 'quality_filtered_reads_r1r2',
-                               'raw_reads_r1r2']]
+        counts_df = \
+            counts_df.loc[:, [sample_column, 'quality_filtered_reads_r1r2',
+                              'raw_reads_r1r2']]
         counts_df.rename(columns={sample_column: 'Sample',
                                   'quality_filtered_reads_r1r2':
                                   'Filtered Reads',
@@ -1350,7 +1359,7 @@ def merge_read_counts(plate_df, counts_df, reads_column_name="Filtered Reads"):
 def read_survival(reads, label="Remaining", rmin=0, rmax=10**6, rsteps=100):
     """
     Calculates a sample_retention curve from a read distribution
-    :param reads: A DataFrame Series of a distribution of reads.
+    :param reads: A Series of a distribution of reads.
     :param label: A string label for the column that counts samples retained.
     :param rmin: An integer that counts the minimum number of reads
     for the sample_retention curve
@@ -1425,7 +1434,7 @@ def calculate_iseqnorm_pooling_volumes(
         plate_df["LoadingFactor"] = (
             plate_df["proportion"].max() / plate_df["proportion"]
         )
-        nblanks = plate_df.loc[plate_df["Blank"]].shape[0]
+        nblanks = plate_df.loc[plate_df[PM_BLANK_KEY]].shape[0]
         if nblanks == 0:
             warnings.warn("There are no BLANKS in this plate")
         # May 5 2023 meeting about blanks agreed to treat them
@@ -1457,13 +1466,13 @@ def calculate_iseqnorm_pooling_volumes(
                                            output_max=max_pool_vol)
 
     # Underpooling BLANKS
-    nblanks = plate_df.loc[plate_df["Blank"]].shape[0]
+    nblanks = plate_df.loc[plate_df[PM_BLANK_KEY]].shape[0]
     if nblanks == 0:
         warnings.warn("There are no BLANKS in this plate")
     else:
-        plate_df.loc[plate_df["Blank"], "iSeq normpool volume"] = (
-            plate_df.loc[plate_df["Blank"], "iSeq normpool volume"] / 5
-        )
+        plate_df.loc[plate_df[PM_BLANK_KEY], "iSeq normpool volume"] = (
+                plate_df.loc[plate_df[
+                    PM_BLANK_KEY], "iSeq normpool volume"] / 5)
 
     # Plotting
     f, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, figsize=(5, 8), sharex=True)
@@ -1473,7 +1482,7 @@ def calculate_iseqnorm_pooling_volumes(
     sns.scatterplot(
         x=normalization_column,
         y="iSeq normpool volume",
-        hue="Blank",
+        hue=PM_BLANK_KEY,
         data=plate_df,
         alpha=0.5,
         ax=ax1
@@ -1643,7 +1652,7 @@ def read_visionmate_file(file_path_, cast_as_str, sep="\t", validate=True):
             "LocationCell",
             "LocationColumn",
             "LocationRow",
-            "TubeCode",
+            TUBECODE_KEY,
             "RackID",
         }
         # Validating input plate_maps
@@ -1693,22 +1702,22 @@ def compress_plates(compression_layout, sample_accession_df, well_col="Well"):
     for plate_dict_index in range(len(compression_layout)):
         idx = compression_layout[plate_dict_index]
         plate_map = read_visionmate_file(idx["Plate map file"],
-                                         ["TubeCode", "RackID"])
+                                         [TUBECODE_KEY, "RackID"])
 
         # Populate plate map
-        plate_map["Project Name"] = idx["Project Name"]
+        plate_map[PM_PROJECT_NAME_KEY] = idx[PM_PROJECT_NAME_KEY]
         plate_map["Plate Position"] = idx["Plate Position"]
         plate_map["Project Abbreviation"] = idx["Project Abbreviation"]
         plate_map["vol_extracted_elution_ul"] = idx["Plate elution volume"]
-        if "Project Plate" in idx:
+        if PM_PROJECT_PLATE_KEY in idx:
             # If yes, use "Project Plate" to construct the value for
             # "Project Plate" in plate_map
-            plate_map["Project Plate"] = \
-                f"{idx['Project Name']}_{idx['Project Plate']}"
+            plate_map[PM_PROJECT_PLATE_KEY] = \
+                f"{idx[PM_PROJECT_NAME_KEY]}_{idx[PM_PROJECT_PLATE_KEY]}"
         elif "Sample Plate" in compression_layout[plate_dict_index]:
             # If "Project Plate" is not present but "Sample Plate" is, use
             # "Sample Plate" for "Project Plate" in plate_map
-            plate_map["Project Plate"] = idx["Sample Plate"]
+            plate_map[PM_PROJECT_PLATE_KEY] = idx["Sample Plate"]
 
         # assume it is okay if neither is found.
 
@@ -1723,38 +1732,26 @@ def compress_plates(compression_layout, sample_accession_df, well_col="Well"):
 
         compressed_plate_df = pd.concat([compressed_plate_df, plate_map])
 
-    # Merging sample accession
-    compressed_plate_df_merged = compressed_plate_df.merge(
-        sample_accession_df[["sample_name", "TubeCode"]],
-        on="TubeCode", how="left")
+    # Merge sample accession
+    compressed_plate_df_merged = _merge_accession_to_compressed_plate_df(
+        compressed_plate_df, sample_accession_df)
 
-    # Renaming columns for legacy
+    # Rename columns for legacy
     compressed_plate_df_merged.rename(
         columns={
             "LocationCell": "well_id_96",
             "LocationColumn": "Col",
             "LocationRow": "Row",
-            "sample_name": "Sample",
+            SAMPLE_NAME_KEY: "Sample",
         },
         inplace=True,
     )
 
-    # Assign COMPRESSED PLATE NAME BASED OFF PROJECT PLATE
-    col = "Project Plate"
-    compressed_plate_df_merged["Compressed Plate Name"] = (
-        compressed_plate_df_merged[col].str.rsplit("_", n=1).str[-1]
-    )
-
-    # Concatenate the values with "_" separating each value
-    unique_project_plate = "_".join(
-        compressed_plate_df_merged["Compressed Plate Name"].unique()
-    )
-    unique_project_name = "_".join(
-        compressed_plate_df_merged["Project Name"].unique())
-
-    compressed_plate_df_merged["Compressed Plate Name"] = (
-        unique_project_name + "_" + unique_project_plate
-    )
+    # Generate name for compressed plate
+    compressed_plate_name = _generate_compressed_plate_name(
+        compressed_plate_df_merged)
+    compressed_plate_df_merged[PM_COMPRESSED_PLATE_NAME_KEY] = \
+        compressed_plate_name
 
     # Arrange plate_df so sample col is first
     diff = compressed_plate_df_merged.columns.difference(["Sample"])
@@ -1762,6 +1759,87 @@ def compress_plates(compression_layout, sample_accession_df, well_col="Well"):
                                                             list(diff)]
 
     return compressed_plate_df_merged
+
+
+def _merge_accession_to_compressed_plate_df(
+        compressed_plate_df, sample_accession_df):
+
+    # NB: important to reset the index to a straight linear integer index or
+    # the later update won't work.
+    compressed_plate_df_merged = compressed_plate_df.copy()
+    compressed_plate_df_merged.reset_index(drop=True, inplace=True)
+
+    # if there are project names in the sample accession df, use them too
+    sample_merge_cols = [TUBECODE_KEY, SAMPLE_NAME_KEY]
+    if PM_PROJECT_NAME_KEY in sample_accession_df.columns:
+        sample_merge_cols.append(PM_PROJECT_NAME_KEY)
+
+    # Make a temporary df out of the tubecode column (only) from compressed_df
+    # and the selected merge columns from sample accession df. In this temp df,
+    # the only non-nan values in columns other than TubeCode are for
+    # the TubeCodes that *do* have values in the sample_accession_df.
+    # Note that this df has the same index as that of the full compressed df.
+    temp_merged_df = compressed_plate_df_merged[[TUBECODE_KEY]].merge(
+        sample_accession_df[sample_merge_cols], on=TUBECODE_KEY, how="left")
+
+    # Now update the *full* compressed df with the sample_names, etc., from the
+    # temp df (which can be done because both dfs have the same index). This
+    # sets the info in compressed df for anything *different* from the default.
+    # NB: 'update()' won't ADD new columns from the temp df, and the
+    # compressed df doesn't come with a sample name column, so we first add
+    # a placeholder for that column, of a type that can be nan but is not float
+    compressed_plate_df_merged[SAMPLE_NAME_KEY] = np.nan
+    compressed_plate_df_merged[SAMPLE_NAME_KEY] = \
+        compressed_plate_df_merged[SAMPLE_NAME_KEY].astype('object')
+    compressed_plate_df_merged.update(temp_merged_df)
+    return compressed_plate_df_merged
+
+
+def _generate_compressed_plate_name(compressed_plate_df):
+    temp_plate_name_base_col = "plate_name_base"
+    temp_plate_num_col = "plate_num"
+    temp_plate_df = compressed_plate_df.copy()
+
+    # get the unique "plate_name_base" values (not *exactly* the projects on
+    # the plate, but rather the "main" projects that get a plate named after
+    # them)
+    temp_plate_df[temp_plate_name_base_col] = \
+        temp_plate_df[PM_PROJECT_PLATE_KEY].apply(
+            get_main_project_from_plate_name)
+    unique_plate_name_bases = \
+        temp_plate_df[temp_plate_name_base_col].unique()
+    plate_name_pieces = []
+    for curr_unique_plate_name_base in unique_plate_name_bases:
+        # for each record with this base name, get its plate number from
+        # the plate name and assign it to "plate_num" col
+        curr_unique_plate_name_base_mask = \
+            temp_plate_df[temp_plate_name_base_col] == \
+            curr_unique_plate_name_base
+        temp_plate_df.loc[
+            curr_unique_plate_name_base_mask, temp_plate_num_col] = \
+            temp_plate_df[PM_PROJECT_PLATE_KEY].apply(
+                get_plate_num_from_plate_name)
+
+        # Concatenate all the plate numbers found for this plate base name,
+        # with "_" separating each value
+        unique_project_plates_str = PLATE_NAME_DELIMITER.join(
+            temp_plate_df.loc[
+                curr_unique_plate_name_base_mask,
+                temp_plate_num_col].unique())
+
+        # munge the plate base name to remove _Plate, then add the
+        # concatenated list of plate numbers for this plate base name
+        # (e.g., ProjectA_1_2_14)
+        compressed_name = (curr_unique_plate_name_base + PLATE_NAME_DELIMITER +
+                           unique_project_plates_str)
+        plate_name_pieces.append(compressed_name)
+    # next curr_unique_plate_name_base
+
+    # join together all the different compressed names:
+    # e.g, if there are plates 1, 2, and 14 on this compressed plate and
+    # also from plates 3 and 4 of Project B, get: ProjectA_1_2_14_ProjectB_3_4
+    compressed_plate_name = PLATE_NAME_DELIMITER.join(plate_name_pieces)
+    return compressed_plate_name
 
 
 def add_controls(plate_df, blanks_dir, katharoseq_dir=None):
@@ -1786,7 +1864,7 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None):
     pandas DataFrame object with control data assigned to tubes in this prep
     """
     # Check whether controls have already been added
-    if "Blank" in plate_df.columns:
+    if PM_BLANK_KEY in plate_df.columns:
         warnings.warn("Plate dataframe input already had controls. "
                       "Returning unmodified input")
         return plate_df
@@ -1796,7 +1874,7 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None):
     blanks = []
 
     for file_path in blank_file_paths:
-        dff = read_visionmate_file(file_path, ["TubeCode"])
+        dff = read_visionmate_file(file_path, [TUBECODE_KEY])
         blanks.append(dff.drop(["Time", "Date", "RackID"], axis=1))
 
     blanks = pd.concat(blanks, ignore_index=True)
@@ -1809,7 +1887,7 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None):
         katharoseq = []
 
         for file_path in katharoseq_file_paths:
-            df = read_visionmate_file(file_path, ["TubeCode", "RackID"])
+            df = read_visionmate_file(file_path, [TUBECODE_KEY, "RackID"])
             katharoseq.append(df.drop(["Time", "Date"], axis=1))
 
         katharoseq = pd.concat(katharoseq, ignore_index=True)
@@ -1868,7 +1946,7 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None):
         )
 
         # Merge plate_df with controls table
-        plate_df = pd.merge(plate_df, controls, on="TubeCode", how="left")
+        plate_df = pd.merge(plate_df, controls, on=TUBECODE_KEY, how="left")
 
         # Assign sample_names ('Sample') to Katharoseq controls
         plate_df["Sample"] = np.where(
@@ -1877,7 +1955,8 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None):
             "katharo."
             + plate_df["Project Abbreviation"]
             + "."
-            + plate_df["Project Plate"].str.split("_").str.get(-1)
+            + plate_df[PM_PROJECT_PLATE_KEY].apply(
+                get_plate_num_from_plate_name)
             + "."
             + plate_df["Row"]
             + plate_df["Col"].astype(str)
@@ -1888,29 +1967,30 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None):
 
     else:
         # Merge plate_df with controls table
-        plate_df = pd.merge(plate_df, blanks, on="TubeCode", how="left")
+        plate_df = pd.merge(plate_df, blanks, on=TUBECODE_KEY, how="left")
 
+    # identify the blanks based on their lack of a name and the presence of
+    # the "negative_control" description somewhere in their record
+    # TODO: why look anywhere, rather than in description col, where we put it?
+    blanks_mask = plate_df["Sample"].isna() & \
+        (plate_df == "negative_control").any(axis=1)
     # Assign sample_names ('Sample') to BLANKS controls
-    plate_df["Sample"] = np.where(
-        (plate_df["Sample"].isna()) &
-        (plate_df == "negative_control").any(axis=1),
-        "BLANK"
+    plate_df.loc[blanks_mask, "Sample"] = (
+        get_blank_root()
         + "."
         + plate_df["Project Abbreviation"]
         + "."
-        + plate_df["Project Plate"].str.split("_").str.get(-1)
+        + plate_df[PM_PROJECT_PLATE_KEY].apply(get_plate_num_from_plate_name)
         + "."
         + plate_df["Row"]
-        + plate_df["Col"].astype(str),
-        plate_df["Sample"]
-    )
+        + plate_df["Col"].astype(str))
 
-    # Assign BLANK column
-    plate_df["Blank"] = np.where(plate_df["Sample"].str.contains("BLANK"),
-                                 True, False)
+    # Set PM_BLANK_KEY to True for all blanks, False for all other samples
+    plate_df[PM_BLANK_KEY] = False
+    plate_df.loc[blanks_mask, PM_BLANK_KEY] = True
 
     warnings.warn("Controls added")
-    n_blanks = plate_df["Blank"].sum()
+    n_blanks = plate_df[PM_BLANK_KEY].sum()
     if n_blanks < 6:
         warnings.warn(
             f"There are only {n_blanks} in this prep. The"
@@ -1923,7 +2003,7 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None):
 def validate_plate_df(
     plate_df, metadata, sample_accession_df, blanks_dir, katharoseq_dir=None
 ):
-    """ "Function checks that all the samples names recorded in the plate_df
+    """ Function checks that all the samples names recorded in the plate_df
     have metadata associated with them. It also checks that all the matrix
     tubes in the plate_df are indeed located in the sample accesion file or
     controls lists.Checks for duplicate sample names and makes sure the
@@ -1963,10 +2043,10 @@ def validate_plate_df(
     samples_in_metadata = []
     if "tube_id" in metadata.columns:
         # str slicing [6:] is to slice out the Qiita_ID '12345.stool_sample_1'
-        mask = plate_df["Sample"].isin(metadata["sample_name"].str[6:]) | \
+        mask = plate_df["Sample"].isin(metadata[SAMPLE_NAME_KEY].str[6:]) | \
                plate_df["Sample"].isin(metadata["tube_id"])
     else:
-        mask = plate_df["Sample"].isin(metadata["sample_name"].str[6:])
+        mask = plate_df["Sample"].isin(metadata[SAMPLE_NAME_KEY].str[6:])
 
     samples_in_metadata = set(plate_df.loc[mask, "Sample"])
     warnings.warn(
@@ -1994,7 +2074,7 @@ def validate_plate_df(
     blank_file_paths = glob.glob(f"{blanks_dir}/*.tsv")
     blanks = []
     for file_path in blank_file_paths:
-        dff = read_visionmate_file(file_path, ["TubeCode"])
+        dff = read_visionmate_file(file_path, [TUBECODE_KEY])
         blanks.append(dff)
 
     blanks = pd.concat(blanks, ignore_index=True)
@@ -2004,26 +2084,28 @@ def validate_plate_df(
         katharoseq_file_paths = glob.glob(f"{katharoseq_dir}/*_tube_ids.tsv")
         katharoseq = []
         for file_path in katharoseq_file_paths:
-            df = read_visionmate_file(file_path, ["TubeCode", "RackID"])
+            df = read_visionmate_file(file_path, [TUBECODE_KEY, "RackID"])
             katharoseq.append(df)
 
         katharoseq = pd.concat(katharoseq, ignore_index=True)
 
         missing_samples_tubecode = plate_df[
             ~(
-                (plate_df["TubeCode"].isin(sample_accession_df["TubeCode"]))
-                | (plate_df["TubeCode"].isin(blanks["TubeCode"]))
-                | (plate_df["TubeCode"].isin(katharoseq["TubeCode"]))
+                (plate_df[TUBECODE_KEY].isin(
+                    sample_accession_df[TUBECODE_KEY]))
+                | (plate_df[TUBECODE_KEY].isin(blanks[TUBECODE_KEY]))
+                | (plate_df[TUBECODE_KEY].isin(katharoseq[TUBECODE_KEY]))
             )
-        ]["TubeCode"]
+        ][TUBECODE_KEY]
 
     else:
         missing_samples_tubecode = plate_df[
             ~(
-                (plate_df["TubeCode"].isin(sample_accession_df["TubeCode"]))
-                | (plate_df["TubeCode"].isin(blanks["TubeCode"]))
+                (plate_df[TUBECODE_KEY].isin(
+                    sample_accession_df[TUBECODE_KEY]))
+                | (plate_df[TUBECODE_KEY].isin(blanks[TUBECODE_KEY]))
             )
-        ]["TubeCode"]
+        ][TUBECODE_KEY]
 
     if missing_samples_tubecode.empty:
         warnings.warn("All TubeCodes have associated data :D")
