@@ -40,6 +40,8 @@ _SHEET_VERSION_KEY = 'SheetVersion'
 
 STANDARD_METAG_SHEET_TYPE = 'standard_metag'
 STANDARD_METAT_SHEET_TYPE = 'standard_metat'
+TELLSEQ_METAG_SHEET_TYPE = 'tellseq_metag'
+TELLSEQ_ABSQUANT_SHEET_TYPE = 'tellseq_absquant'
 ABSQUANT_SHEET_TYPE = 'abs_quant_metag'
 _AMPLICON = 'TruSeq HT'
 _DUMMY_SHEET_TYPE = 'dummy_amp'
@@ -76,12 +78,16 @@ _CONTACT_COLS = MappingProxyType({
     _SS_SAMPLE_PROJECT_KEY: str,
     _EMAIL_KEY: str})
 
+_PREFIX_PLATE_COLUMNS = (SS_SAMPLE_ID_KEY, _SS_SAMPLE_NAME_KEY, 'Sample_Plate',
+                         'well_id_384')
+_SUFFIX_PLATE_COLUMNS = (_SS_SAMPLE_PROJECT_KEY, 'Well_description')
+
 # Note that there doesn't appear to be a difference between 95, 99, and 100
 # beyond the value observed in 'Well_description' column. The real
 # difference is between standard_metag and abs_quant_metag.
-_BASE_DATA_COLUMNS = (SS_SAMPLE_ID_KEY, _SS_SAMPLE_NAME_KEY, 'Sample_Plate',
-                      'well_id_384', 'I7_Index_ID', 'index', 'I5_Index_ID',
-                      'index2', _SS_SAMPLE_PROJECT_KEY, 'Well_description')
+_BASE_DATA_COLUMNS = _PREFIX_PLATE_COLUMNS + \
+                     ('I7_Index_ID', 'index', 'I5_Index_ID', 'index2') + \
+                     _SUFFIX_PLATE_COLUMNS
 
 _BASE_CARRIED_PREP_COLUMNS = (EXPT_DESIGN_DESC_KEY, 'i5_index_id',
                               'i7_index_id', 'index', 'index2',
@@ -92,16 +98,21 @@ _BASE_CARRIED_PREP_COLUMNS = (EXPT_DESIGN_DESC_KEY, 'i5_index_id',
 
 _ELUTION_VOL_KEY = 'vol_extracted_elution_ul'
 
-_BASE_METAG_REMAPPER = MappingProxyType({
-            'sample sheet Sample_ID': SS_SAMPLE_ID_KEY,
-            'Sample': _SS_SAMPLE_NAME_KEY,
-            PM_PROJECT_PLATE_KEY: 'Sample_Plate',
-            'Well': 'well_id_384',
+_BASE_PLATE_REMAPPER = MappingProxyType({
+    'sample sheet Sample_ID': SS_SAMPLE_ID_KEY,
+    'Sample': _SS_SAMPLE_NAME_KEY,
+    PM_PROJECT_PLATE_KEY: 'Sample_Plate',
+    'Well': 'well_id_384',
+    PM_PROJECT_NAME_KEY: _SS_SAMPLE_PROJECT_KEY,
+    'Well_description': 'Well_description'
+})
+
+_BASE_METAG_REMAPPER = MappingProxyType(
+    _BASE_PLATE_REMAPPER | {
             'i7 name': 'I7_Index_ID',
             'i7 sequence': 'index',
             'i5 name': 'I5_Index_ID',
-            'i5 sequence': 'index2',
-            PM_PROJECT_NAME_KEY: _SS_SAMPLE_PROJECT_KEY,
+            'i5 sequence': 'index2'
         })
 
 
@@ -1197,8 +1208,7 @@ class AbsQuantMixin(object):
         _ABS_SYNDNA_INPUT_MASS_KEY, _ABS_GDNA_CONC_KEY,
         _ELUTION_VOL_KEY, _ABS_SYNDNA_POOL_NUM_KEY)
 
-    _ABSQUANT_REMAPPER = MappingProxyType(
-        _BASE_METAG_REMAPPER | {
+    _ABSQUANT_REMAPPER = MappingProxyType({
             _ABS_SYNDNA_POOL_NUM_KEY: _ABS_SYNDNA_POOL_NUM_KEY,
             _ABS_SYNDNA_INPUT_MASS_KEY: _ABS_SYNDNA_INPUT_MASS_KEY,
             _ABS_GDNA_CONC_KEY: _ABS_GDNA_CONC_KEY,
@@ -1210,8 +1220,9 @@ class AbsQuantMixin(object):
         self._remapper = self._extend_remapper(self._ABSQUANT_REMAPPER)
         self._data_columns = \
             self._data_columns + self._ABSQUANT_SPECIFIC_COLUMNS
-        self._CARRIED_PREP_COLUMNS = \
-            self._CARRIED_PREP_COLUMNS + self._ABSQUANT_SPECIFIC_COLUMNS
+        if self._CARRIED_PREP_COLUMNS is not None:
+            self._CARRIED_PREP_COLUMNS = \
+                self._CARRIED_PREP_COLUMNS + self._ABSQUANT_SPECIFIC_COLUMNS
 
 
 # NB: Must be mixed in to something that inherits from KLSampleSheetWithContext
@@ -1280,6 +1291,71 @@ class KatharoseqMixin(object):
                 return self._data_columns + self._optional_katharoseq_columns
 
         return self._data_columns
+
+
+class KLTellSeqSampleSheet(KLSampleSheetWithSampleContext):
+    BARCODE_ID_KEY = 'barcode_id'
+
+    def __new__(cls, path=None, *args, **kwargs):
+        """
+            Override so that base class cannot be instantiated.
+        """
+        if cls is KLTellSeqSampleSheet:
+            raise TypeError(
+                f"only children of '{cls.__name__}' may be instantiated")
+
+        instance = super(KLTellSeqSampleSheet, cls).__new__(
+            cls, *args, **kwargs)
+        return instance
+
+    def __init__(self, path=None):
+        """Knight Lab's SampleSheet subclass that includes SampleContext
+
+        Expands Knight Lab SampleSheet to include a new (required) section
+        called 'SampleContext'. This section is used to store information
+        about the blanks and other controls used in the sequencing run.
+
+        Parameters
+        ----------
+        path: str, optional
+            File path to the sample sheet to load.
+        """
+
+        # NB: it matters that this come *before* the __init__ call;
+        # __init__ calls _parse, which will automatically populate the
+        # SampleContext section if it is present in the file--but only if
+        # it is defined here first.
+        self.SampleContext = None
+        super().__init__(path=path)
+        self._remapper = MappingProxyType(
+            _BASE_PLATE_REMAPPER | {self.BARCODE_ID_KEY: self.BARCODE_ID_KEY})
+
+        # Note: do NOT remove the comma after barcode id key below--that is
+        # what makes this a tuple with one item ... otherwise, python
+        # "simplifies" it to a string, which can't be added to tuples.
+        self._data_columns = \
+            _PREFIX_PLATE_COLUMNS + (self.BARCODE_ID_KEY, ) + \
+            _SUFFIX_PLATE_COLUMNS
+        self._CARRIED_PREP_COLUMNS = None
+
+    @property
+    def CARRIED_PREP_COLUMNS(self):
+        raise NotImplementedError("CARRIED_PREP_COLUMNS is not implemented "
+                                  "for tellseq metagenomics sample sheets")
+
+
+class TellseqMetagSampleSheetv10(KLTellSeqSampleSheet):
+    _HEADER = KLSampleSheet._HEADER.copy()
+    _HEADER[_SHEET_TYPE_KEY] = TELLSEQ_METAG_SHEET_TYPE
+    _HEADER[_SHEET_VERSION_KEY] = '10'
+    _HEADER[_ASSAY_KEY] = _METAGENOMIC
+
+
+class TellseqAbsquantMetagSampleSheetv10(AbsQuantMixin, KLTellSeqSampleSheet):
+    _HEADER = KLSampleSheet._HEADER.copy()
+    _HEADER[_SHEET_TYPE_KEY] = TELLSEQ_ABSQUANT_SHEET_TYPE
+    _HEADER[_SHEET_VERSION_KEY] = '10'
+    _HEADER[_ASSAY_KEY] = _METAGENOMIC
 
 
 class AmpliconSampleSheet(KLSampleSheet):
@@ -1448,7 +1524,8 @@ class AbsQuantSampleSheetv10(KLSampleSheet):
 
     def __init__(self, path=None):
         super().__init__(path=path)
-        self._remapper = AbsQuantMixin._ABSQUANT_REMAPPER
+        self._remapper = MappingProxyType(
+            _BASE_METAG_REMAPPER | AbsQuantMixin._ABSQUANT_REMAPPER)
 
 
 class AbsQuantSampleSheetv11(AbsQuantMixin, KLSampleSheetWithSampleContext):
