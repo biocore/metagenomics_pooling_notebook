@@ -5,7 +5,8 @@ import os
 import pandas as pd
 from os.path import abspath
 
-from metapool import preparations_for_run_mapping_file, remove_qiita_id
+from metapool import (preparations_for_run_mapping_file,
+                      get_qiita_id_from_project_name)
 
 
 @click.command()
@@ -62,10 +63,9 @@ def format_preparation_files_mf(run_dir, mapping_file, output_dir, verbose):
                            'well_id_384', 'well_id_96'])
 
         if verbose:
-            project_name = remove_qiita_id(project)
             # assume qiita_id is extractable and is an integer, given that
             # we have already passed error-checking.
-            qiita_id = project.replace(project_name + '_', '')
+            qiita_id = get_qiita_id_from_project_name(project)
             print("%s\t%s" % (qiita_id, abspath(fp)))
 
 

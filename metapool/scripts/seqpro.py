@@ -7,7 +7,7 @@ from os.path import abspath
 
 from metapool import (preparations_for_run, load_sample_sheet,
                       sample_sheet_to_dataframe, run_counts,
-                      remove_qiita_id)
+                      get_qiita_id_from_project_name)
 
 
 @click.command()
@@ -73,10 +73,9 @@ def format_preparation_files(run_dir, sample_sheet, output_dir, verbose):
         df.to_csv(fp, sep='\t', index=False)
 
         if verbose:
-            project_name = remove_qiita_id(project)
             # assume qiita_id is extractable and is an integer, given that
             # we have already passed error-checking.
-            qiita_id = project.replace(project_name + '_', '')
+            qiita_id = get_qiita_id_from_project_name(project)
             print("%s\t%s" % (qiita_id, abspath(fp)))
 
 

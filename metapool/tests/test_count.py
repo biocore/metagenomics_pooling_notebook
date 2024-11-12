@@ -227,6 +227,10 @@ class TestBCLConvertCount(TestCase):
         # before continuing, create a copy of 200318_A00953_0082_AH5TWYDSXY
         # and replace Stats sub-dir with Reports.
         self.run_dir = self.orig_dir.replace('200318', '200418')
+        # remove any existing run_dir left over from previous runs
+        # (this prevents failure of subsequent tests due to a test run
+        # being stopped part way through)
+        shutil.rmtree(self.run_dir, ignore_errors=True)
         shutil.copytree(self.orig_dir, self.run_dir)
         shutil.rmtree(os.path.join(self.run_dir, 'Stats'))
         os.makedirs(os.path.join(self.run_dir, 'Reports'))
