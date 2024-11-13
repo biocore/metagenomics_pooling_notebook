@@ -187,10 +187,11 @@ class Tests(TestCase):
 
         plate_df_obs = compress_plates(compression, self.sa_df,
                                        well_col='Well')
-        plate_df_exp = pd.read_csv(self.comp_plate_exp_fp, dtype={TUBECODE_KEY: str}, sep='\t')
+        plate_df_exp = pd.read_csv(self.comp_plate_exp_fp,
+                                   dtype={TUBECODE_KEY: str}, sep='\t')
         pd.testing.assert_frame_equal(plate_df_obs, plate_df_exp)
 
-    def test_compress_plates_legacy_plate_defines_project_and_preserve_leading_zeroes(self):
+    def test_compress_plates_legacy_plate_defines_proj_and_keep_zeroes(self):
         compression = [
             # top left plate
             {'Plate Position': 1,  # as int
