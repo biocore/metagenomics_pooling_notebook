@@ -74,6 +74,9 @@ class Tests(TestCase):
         self.comp_plate_exp_fp = os.path.join(
             path,
             'data/compress_plates_expected_out.tsv')
+        self.comp_plate_exp_fp_w_leading_zeroes_tubecode = os.path.join(
+            path,
+            'data/compress_plates_expected_out_w_leading_zeroes_tubecode.tsv')
         self.comp_plate_multi_proj_on_plate_exp_fp = os.path.join(
             path,
             'data/compress_plates_multiple_projects_on_one_plate_'
@@ -81,6 +84,9 @@ class Tests(TestCase):
         self.add_controls_exp_fp = os.path.join(
             path,
             'data/add_controls_expected_out.tsv')
+        self.add_controls_exp_fp_w_leading_zeroes_tubecode = os.path.join(
+            path,
+            'data/add_controls_expected_out_w_leading_zeroes_tubecode.tsv')
         self.katharoseq_dir = os.path.join(path, 'data/katharo')
         self.blanks_dir = os.path.join(path, 'data/blanks')
 
@@ -179,15 +185,12 @@ class Tests(TestCase):
              'Plate elution volume': 70}
         ]
 
-        exp_fp = os.path.join(
-            self.fp,
-            'data/compress_plates_expected_out_no_leading_zeroes_tubecode.tsv')
         plate_df_obs = compress_plates(compression, self.sa_df,
                                        well_col='Well')
-        plate_df_exp = pd.read_csv(exp_fp, dtype={'TubeCode': str}, sep='\t')
+        plate_df_exp = pd.read_csv(self.comp_plate_exp_fp, dtype={TUBECODE_KEY: str}, sep='\t')
         pd.testing.assert_frame_equal(plate_df_obs, plate_df_exp)
 
-    def test_compress_plates_preserve_leading_zeroes(self):
+    def test_compress_plates_legacy_plate_defines_project_and_preserve_leading_zeroes(self):
         compression = [
             # top left plate
             {'Plate Position': 1,  # as int
@@ -220,8 +223,10 @@ class Tests(TestCase):
         plate_df_obs = compress_plates(
             compression, self.sa_df, well_col='Well',
             preserve_leading_zeroes=True)
-        plate_df_exp = pd.read_csv(self.comp_plate_exp_fp,
-                                   dtype={TUBECODE_KEY: str}, sep='\t')
+
+        plate_df_exp = pd.read_csv(
+            self.comp_plate_exp_fp_w_leading_zeroes_tubecode,
+            dtype={TUBECODE_KEY: str}, sep='\t')
 
         pd.testing.assert_frame_equal(plate_df_obs, plate_df_exp)
 
@@ -312,19 +317,21 @@ class Tests(TestCase):
         pd.testing.assert_frame_equal(plate_df_obs, plate_df_exp)
 
     def test_add_controls_preserve_leading_zeroes(self):
-        plate_df = pd.read_csv(self.comp_plate_exp_fp,
-                               dtype={'TubeCode': str}, sep='\t')
+        plate_df = pd.read_csv(
+            self.comp_plate_exp_fp_w_leading_zeroes_tubecode,
+            dtype={'TubeCode': str}, sep='\t')
 
         add_controls_obs = add_controls(plate_df,
                                         self.blanks_dir,
                                         self.katharoseq_dir,
                                         preserve_leading_zeroes=True)
 
-        add_controls_exp = pd.read_csv(self.add_controls_exp_fp,
-                                       dtype={'TubeCode': str,
-                                              'RackID': str,
-                                              'Kathseq_RackID': str},
-                                       sep='\t')
+        add_controls_exp = pd.read_csv(
+            self.add_controls_exp_fp_w_leading_zeroes_tubecode,
+            dtype={TUBECODE_KEY: str,
+                   'RackID': str,
+                   'Kathseq_RackID': str},
+            sep='\t')
 
         pd.testing.assert_frame_equal(add_controls_obs,
                                       add_controls_exp)
@@ -346,10 +353,7 @@ class Tests(TestCase):
                                         self.blanks_dir,
                                         self.katharoseq_dir)
 
-        exp_fp = os.path.join(
-            self.fp,
-            'data/add_controls_expected_out_no_leading_zeroes_tubecode.tsv')
-        add_controls_exp = pd.read_csv(exp_fp,
+        add_controls_exp = pd.read_csv(self.add_controls_exp_fp,
                                        dtype={TUBECODE_KEY: str,
                                               'RackID': str,
                                               'Kathseq_RackID': str},
@@ -370,10 +374,11 @@ class Tests(TestCase):
     def test_validate_plate_df(self):
         # Validator function. No return so just asserting
         # that errors are raised when expected
-        plate_df = pd.read_csv(self.add_controls_exp_fp,
-                               dtype={TUBECODE_KEY: str,
-                                      'RackID': str},
-                               sep='\t')
+        plate_df = pd.read_csv(
+            self.add_controls_exp_fp_w_leading_zeroes_tubecode,
+            dtype={TUBECODE_KEY: str,
+                   'RackID': str},
+            sep='\t')
         # Test with no errors, preserving leading zeroes
         validate_plate_df(plate_df, self.metadata, self.sa_df,
                           self.blanks_dir, self.katharoseq_dir,
