@@ -23,6 +23,7 @@ from metapool.sample_sheet import (KLSampleSheet, AmpliconSampleSheet,
                                    MetatranscriptomicSampleSheetv10,
                                    AbsQuantSampleSheetv10,
                                    AbsQuantSampleSheetv11,
+                                   TellseqMetagSampleSheetv10,
                                    TellseqAbsquantMetagSampleSheetv10,
                                    sample_sheet_to_dataframe,
                                    make_sample_sheet, load_sample_sheet,
@@ -2364,6 +2365,181 @@ class AdditionalSampleSheetCreationTests(BaseTests):
         # KLSampleSheet.
         sheet = load_sample_sheet(self.good_metag_ss_w_context)
         self.assertIsInstance(sheet, MetagenomicSampleSheetv101)
+
+
+class TellseqSheetCreationTests(BaseTests):
+    expected_cols = (
+        'Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
+        'barcode_id', 'Sample_Project', 'Well_description')
+
+    def setUp(self):
+        self.data_dir = join(dirname(__file__), 'data')
+        self.tellseq_metag_10_fp = \
+            join(self.data_dir, 'tellseq_metag_dummy_sample_sheet.csv')
+
+        self.input_columns = ['sample sheet Sample_ID',
+                              'Sample', 'Row', 'Col', 'Blank', 'Project Plate',
+                              'Project Name', 'Compressed Plate Name', 'Well',
+                              'Plate Position', 'Primer Plate #', 'Plating',
+                              'Extraction Kit Lot', 'Extraction Robot',
+                              'TM1000 8 Tool', 'Primer Date', 'MasterMix Lot',
+                              'Water Lot', 'Processing Robot', 'Sample Plate',
+                              'Project_Name', 'Original Name', 'Plate',
+                              'EMP Primer Plate Well', 'barcode_id',
+                              "Illumina 5' Adapter", 'Golay Barcode',
+                              'Forward Primer Pad', 'Forward Primer Linker',
+                              '515FB Forward Primer (Parada)',
+                              'Primer For PCR', 'syndna_pool_number']
+
+        self.data = [
+            ['sample1', 'sample1', 'A', 1, False, 'THDMI_10317_PUK2',
+             'MyProject_99999', 'THDMI_10317_UK2-US6', 'A1', '1', '1',
+             'SF',
+             '166032128', 'Carmen_HOWE_KF3', '109379Z', '2021-08-17',
+             '978215',
+             'RNBJ0628', 'Echo550', 'THDMI_UK_Plate_2', 'THDMI UK', '',
+             '1',
+             'A1', 'C501', 'AATGATACGGCGACCACCGAGATCTACACGCT',
+             'AGCCTTCGTCGC', 'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
+             'AATGATACGGCGACCACCGAGATCTACACGCTAGCCTTCGTCGCTATGGTAATTGTGTGYCAG'
+             'CMGCCGCGGTAA', 'pool1']
+        ]
+
+
+        self.metadata = {
+            'Bioinformatics': [
+                {
+                    'Sample_Project': 'MyProject_99999',
+                    'QiitaID': '101',
+                    'BarcodesAreRC': 'False',
+                    'ForwardAdapter': 'N',
+                    'ReverseAdapter': 'N',
+                    'HumanFiltering': 'False',
+                    'library_construction_protocol': 'tellseq',
+                    'experiment_design_description': 'some description',
+                    'contains_replicates': 'False'
+                }
+            ],
+            'Contact': [
+                {
+                    'Sample_Project': 'MyProject_99999',
+                    'Email': 'foo@bar.org'
+                }
+            ],
+            'SampleContext': [],
+            'Assay': 'Metagenomic',
+            'SheetType': 'tellseq_metag',
+            'SheetVersion': '10'
+        }
+
+    def test_tellseq_metag_load_sample_sheet(self):
+        sheet1 = load_sample_sheet(self.tellseq_metag_10_fp)
+        self.assertEqual(type(sheet1), TellseqMetagSampleSheetv10)
+
+        obs = sheet1._get_expected_data_columns()
+        self.assertEqual(obs, self.expected_cols)
+
+        self.assertTrue(sheet1.validate_and_scrub_sample_sheet())
+
+    def test_tellseq_metag_make_sample_sheet(self):
+        table = pd.DataFrame(columns=self.input_columns, data=self.data)
+        sheet = make_sample_sheet(self.metadata, table, 'iSeq', [1],
+                                  strict=False)
+
+        self.assertIsNotNone(sheet)
+        self.assertIsInstance(sheet, TellseqMetagSampleSheetv10)
+        obs_columns = set(sheet.samples[0].to_json().keys())
+        exp_columns = set(self.expected_cols) | {'Lane'}
+        self.assertEqual(exp_columns, obs_columns)
+
+        self.assertTrue(sheet.validate_and_scrub_sample_sheet())
+
+
+class TellseqAbsquantSheetCreationTests(BaseTests):
+    expected_cols = TellseqSheetCreationTests.expected_cols + (
+            'mass_syndna_input_ng', 'extracted_gdna_concentration_ng_ul',
+            'vol_extracted_elution_ul', 'syndna_pool_number')
+
+    def setUp(self):
+        self.data_dir = join(dirname(__file__), 'data')
+        self.tellseq_absquant_10_fp = \
+            join(self.data_dir, 'tellseq_absquant_dummy_sample_sheet.csv')
+
+        self.input_columns = ['sample sheet Sample_ID',
+                              'Sample', 'Row', 'Col', 'Blank', 'Project Plate',
+                              'Project Name', 'Compressed Plate Name', 'Well',
+                              'Plate Position', 'Primer Plate #', 'Plating',
+                              'Extraction Kit Lot', 'Extraction Robot',
+                              'TM1000 8 Tool', 'Primer Date', 'MasterMix Lot',
+                              'Water Lot', 'Processing Robot', 'Sample Plate',
+                              'Project_Name', 'Original Name', 'Plate',
+                              'EMP Primer Plate Well', 'barcode_id',
+                              "Illumina 5' Adapter", 'Golay Barcode',
+                              'Forward Primer Pad', 'Forward Primer Linker',
+                              '515FB Forward Primer (Parada)',
+                              'Primer For PCR', 'syndna_pool_number']
+
+        self.data = [
+            ['sample1', 'sample1', 'A', 1, False, 'THDMI_10317_PUK2',
+             'MyProject_99999', 'THDMI_10317_UK2-US6', 'A1', '1', '1',
+             'SF',
+             '166032128', 'Carmen_HOWE_KF3', '109379Z', '2021-08-17',
+             '978215',
+             'RNBJ0628', 'Echo550', 'THDMI_UK_Plate_2', 'THDMI UK', '',
+             '1',
+             'A1', 'C501', 'AATGATACGGCGACCACCGAGATCTACACGCT',
+             'AGCCTTCGTCGC', 'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
+             'AATGATACGGCGACCACCGAGATCTACACGCTAGCCTTCGTCGCTATGGTAATTGTGTGYCAG'
+             'CMGCCGCGGTAA', 'pool1']
+        ]
+
+        self.metadata = {
+            'Bioinformatics': [
+                {
+                    'Sample_Project': 'MyProject_99999',
+                    'QiitaID': '101',
+                    'BarcodesAreRC': 'False',
+                    'ForwardAdapter': 'N',
+                    'ReverseAdapter': 'N',
+                    'HumanFiltering': 'False',
+                    'library_construction_protocol': 'tellseq',
+                    'experiment_design_description': 'some description',
+                    'contains_replicates': 'False'
+                }
+            ],
+            'Contact': [
+                {
+                    'Sample_Project': 'MyProject_99999',
+                    'Email': 'foo@bar.org'
+                }
+            ],
+            'SampleContext': [],
+            'Assay': 'Metagenomic',
+            'SheetType': 'tellseq_absquant',
+            'SheetVersion': '10'
+        }
+
+    def test_tellseq_absquant_load_sample_sheet(self):
+        sheet1 = load_sample_sheet(self.tellseq_absquant_10_fp)
+        self.assertEqual(type(sheet1), TellseqAbsquantMetagSampleSheetv10)
+
+        obs = sheet1._get_expected_data_columns()
+        self.assertEqual(obs, self.expected_cols)
+
+        self.assertTrue(sheet1.validate_and_scrub_sample_sheet())
+
+    def test_tellseq_absquant_make_sample_sheet(self):
+        table = pd.DataFrame(columns=self.input_columns, data=self.data)
+        sheet = make_sample_sheet(self.metadata, table, 'iSeq', [1],
+                                  strict=False)
+
+        self.assertIsNotNone(sheet)
+        self.assertIsInstance(sheet, TellseqAbsquantMetagSampleSheetv10)
+        obs_columns = set(sheet.samples[0].to_json().keys())
+        exp_columns = set(self.expected_cols) | {'Lane'}
+        self.assertEqual(exp_columns, obs_columns)
+
+        self.assertTrue(sheet.validate_and_scrub_sample_sheet())
 
 
 class KarathoseqEnabledSheetCreationTests(BaseTests):

@@ -260,6 +260,12 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         def _is_empty(csv_line):
             return not ''.join(csv_line).strip()
 
+        def remove_trailing_empties(a_list):
+            # While if the list is not empty and the last element is empty
+            while a_list and not a_list[-1]:
+                a_list.pop()  # Remove the last element
+            return a_list
+
         with open(path, encoding=self._encoding) as handle:
             lines = list(csv.reader(handle, skipinitialspace=True))
 
@@ -324,15 +330,19 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 # [Data] - delimited data with the first line a header.
                 elif section_name == _DATA_KEY:
                     if section_header is not None:
+                        # vals beyond the header are empty values so don't add
+                        # them
+                        line = line[:len(section_header)]
                         self.add_sample(
                             sample_sheet.Sample(dict(zip(section_header,
                                                          line))))
-                    elif any(key == '' for key in line):
-                        raise ValueError(
-                            f'Header for [{_DATA_KEY}] section is not allowed '
-                            f'to have empty fields: {line}'
-                        )
                     else:
+                        line = remove_trailing_empties(line)
+                        if any(key == '' for key in line):
+                            raise ValueError(
+                                f'Header for [{_DATA_KEY}] section is not '
+                                f'allowed to have empty fields: {line}'
+                            )
                         section_header = self._process_section_header(line)
                     continue
 
@@ -347,7 +357,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                         # CSV rows are padded to include commas for the longest
                         # line in the file, so we remove them to avoid creating
                         # empty columns
-                        col_names = [value for value in line if value != '']
+                        col_names = remove_trailing_empties(line)
                         setattr(self, section_name,
                                 pd.DataFrame(columns=col_names))
                     continue
@@ -574,7 +584,9 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 table[column] = ''
 
         if assay != _AMPLICON:
-            table['index2'] = sequencer_i5_index(sequencer, table['index2'])
+            if 'index2' in table.columns:
+                table['index2'] = \
+                    sequencer_i5_index(sequencer, table['index2'])
 
             self.Bioinformatics['BarcodesAreRC'] = str(
                 sequencer in REVCOMP_SEQUENCERS)
@@ -1662,7 +1674,8 @@ def load_sample_sheet(sample_sheet_path):
              MetagenomicSampleSheetv102, MetagenomicSampleSheetv101,
              MetagenomicSampleSheetv100, MetagenomicSampleSheetv90,
              AbsQuantSampleSheetv10, MetatranscriptomicSampleSheetv0,
-             MetatranscriptomicSampleSheetv10]
+             MetatranscriptomicSampleSheetv10, TellseqMetagSampleSheetv10,
+             TellseqAbsquantMetagSampleSheetv10]
 
     header = _parse_header(sample_sheet_path)
 
@@ -1709,6 +1722,10 @@ def _create_sample_sheet(sheet_type, sheet_version, assay_type):
     def _make_assay_err_msg(assay_type):
         return f"'{assay_type}' is an unrecognized Assay type"
 
+    def check_metag_assay_type(assay_type):
+        if assay_type != _METAGENOMIC:
+            raise ValueError(_make_assay_err_msg(assay_type))
+
     if sheet_type == STANDARD_METAG_SHEET_TYPE:
         if assay_type == _METAGENOMIC:
             if sheet_version == '102':
@@ -1739,13 +1756,26 @@ def _create_sample_sheet(sheet_type, sheet_version, assay_type):
         else:
             raise ValueError(_make_assay_err_msg(assay_type))
     elif sheet_type == ABSQUANT_SHEET_TYPE:
-        if assay_type != _METAGENOMIC:
-            raise ValueError(_make_assay_err_msg(assay_type))
+        check_metag_assay_type(assay_type)
 
         if sheet_version == '11':
             sheet = AbsQuantSampleSheetv11()
         elif sheet_version == '10':
             sheet = AbsQuantSampleSheetv10()
+        else:
+            raise ValueError(_make_version_err_msg(sheet_type, sheet_version))
+    elif sheet_type == TELLSEQ_METAG_SHEET_TYPE:
+        check_metag_assay_type(assay_type)
+
+        if sheet_version == '10':
+            sheet = TellseqMetagSampleSheetv10()
+        else:
+            raise ValueError(_make_version_err_msg(sheet_type, sheet_version))
+    elif sheet_type == TELLSEQ_ABSQUANT_SHEET_TYPE:
+        check_metag_assay_type(assay_type)
+
+        if sheet_version == '10':
+            sheet = TellseqAbsquantMetagSampleSheetv10()
         else:
             raise ValueError(_make_version_err_msg(sheet_type, sheet_version))
     elif sheet_type == _DUMMY_SHEET_TYPE:
