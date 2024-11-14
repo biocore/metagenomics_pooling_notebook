@@ -234,7 +234,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                     # (empty columns) just like any other section. The
                     # alternative is to force the exact number of columns for
                     # the [Data] section only.
-                    #elif any(key == '' for key in line):
+                    # elif any(key == '' for key in line):
                     #    raise ValueError(
                     #        f'Header for [Data] section is not allowed to '
                     #        f'have empty fields: {line}'
@@ -1329,7 +1329,7 @@ class DFSheet():
     def _parse_sheet_into_dataframes(self):
         pd.options.mode.chained_assignment = None
         df = pd.read_csv(self.file_path, dtype="str", sep=",", header=None,
-                         names=range(100))
+                         names=range(30))
 
         # pandas will have trouble reading a sample-sheet if the csv has a
         # variable number of columns. This occurs in legacy sheets when a user
@@ -1345,7 +1345,8 @@ class DFSheet():
 
         # remove all comments rows, whether they are at the top of the file (no
         # longer supported, technically), or not.
-        comment_rows = df.index[df[0].str.startswith("#")].tolist()
+        comment_rows = df.index[df[0].str.startswith("#")
+                                .fillna(False)].tolist()
         df = df.drop(index=comment_rows)
         # reset the index to make it easier to post-process.
         df.reset_index(inplace=True, drop=True)
@@ -1356,7 +1357,8 @@ class DFSheet():
         if df[0][0] != '[Header]':
             raise ValueError("Top section is not [Header]")
 
-        header_row_numbers = df.index[df[0].str.startswith("[")].tolist()
+        header_row_numbers = df.index[df[0].str.startswith("[")
+                                      .fillna(False)].tolist()
 
         results = OrderedDict()
 
@@ -1533,6 +1535,11 @@ def set_lane_number_in_sheet(sample_sheet_path, lane):
     sheet = DFSheet(sample_sheet_path)
     sheet.frames['Data']['Lane'] = int(lane)
     sheet.to_csv(sample_sheet_path)
+
+
+def extract_data_from_sheet(sample_sheet_path):
+    sheet = DFSheet(sample_sheet_path)
+    return sheet.frames['Data']
 
 
 def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
