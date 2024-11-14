@@ -1629,7 +1629,8 @@ def add_syndna(plate_df, syndna_pool_number=None, syndna_concentration=None,
         return result
 
 
-def read_visionmate_file(file_path_, cast_as_str, sep="\t", validate=True):
+def read_visionmate_file(file_path_, cast_as_str, sep="\t", validate=True,
+                         preserve_leading_zeroes=False):
     """
     Helper function. Imports and validates files exported from VisionMate
     Args:
@@ -1662,10 +1663,29 @@ def read_visionmate_file(file_path_, cast_as_str, sep="\t", validate=True):
                 f"The following columns are missing from "
                 f"file {file_path_}: {missing_columns}"
             )
-    return vm_file
+
+    vm_df = vm_file if preserve_leading_zeroes else \
+        strip_tubecode_leading_zeroes(vm_file)
+    return vm_df
 
 
-def compress_plates(compression_layout, sample_accession_df, well_col="Well"):
+def strip_tubecode_leading_zeroes(a_df, tubecode_col="TubeCode"):
+    """
+    Strips leading zeroes from TubeCode column in a DataFrame.
+    Args:
+    a_df: pandas DataFrame object
+    tubecode_col: str, name of column with TubeCode information
+
+    Returns:
+    pandas DataFrame object with leading zeroes stripped from TubeCode column
+    """
+    if tubecode_col in a_df.columns:
+        a_df[tubecode_col] = a_df[tubecode_col].str.lstrip("0")
+    return a_df
+
+
+def compress_plates(compression_layout, sample_accession_df, well_col="Well",
+                    preserve_leading_zeroes=False):
     """
     Takes the plate map file output from
     VisionMate of up to 4 racks containing
@@ -1701,8 +1721,9 @@ def compress_plates(compression_layout, sample_accession_df, well_col="Well"):
 
     for plate_dict_index in range(len(compression_layout)):
         idx = compression_layout[plate_dict_index]
-        plate_map = read_visionmate_file(idx["Plate map file"],
-                                         [TUBECODE_KEY, "RackID"])
+        plate_map = read_visionmate_file(
+            idx["Plate map file"], [TUBECODE_KEY, "RackID"],
+            preserve_leading_zeroes=preserve_leading_zeroes)
 
         # Populate plate map
         plate_map[PM_PROJECT_NAME_KEY] = idx[PM_PROJECT_NAME_KEY]
@@ -1731,6 +1752,10 @@ def compress_plates(compression_layout, sample_accession_df, well_col="Well"):
             plate_map.loc[plate_map[col] == well_96_id, well_col] = well_384_id
 
         compressed_plate_df = pd.concat([compressed_plate_df, plate_map])
+
+    if not preserve_leading_zeroes:
+        sample_accession_df = \
+            strip_tubecode_leading_zeroes(sample_accession_df)
 
     # Merge sample accession
     compressed_plate_df_merged = _merge_accession_to_compressed_plate_df(
@@ -1842,7 +1867,8 @@ def _generate_compressed_plate_name(compressed_plate_df):
     return compressed_plate_name
 
 
-def add_controls(plate_df, blanks_dir, katharoseq_dir=None):
+def add_controls(plate_df, blanks_dir, katharoseq_dir=None,
+                 preserve_leading_zeroes=False):
     """
     Compiles negative and positive controls into plate_df.
 
@@ -1870,27 +1896,17 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None):
         return plate_df
 
     # Loop through BLANK folder and assign description "negative_control"
-    blank_file_paths = glob.glob(f"{blanks_dir}/*.tsv")
-    blanks = []
-
-    for file_path in blank_file_paths:
-        dff = read_visionmate_file(file_path, [TUBECODE_KEY])
-        blanks.append(dff.drop(["Time", "Date", "RackID"], axis=1))
-
-    blanks = pd.concat(blanks, ignore_index=True)
+    blanks = _load_blanks_accession_df(
+        blanks_dir, preserve_leading_zeroes=preserve_leading_zeroes)
+    blanks.drop(["Time", "Date", "RackID"], axis=1, inplace=True)
     blanks["description"] = "negative_control"
 
     if katharoseq_dir is not None:
         # Build a master table with katharoseq tube ids and
         # assign description "positive_control"
-        katharoseq_file_paths = glob.glob(f"{katharoseq_dir}/*_tube_ids.tsv")
-        katharoseq = []
-
-        for file_path in katharoseq_file_paths:
-            df = read_visionmate_file(file_path, [TUBECODE_KEY, "RackID"])
-            katharoseq.append(df.drop(["Time", "Date"], axis=1))
-
-        katharoseq = pd.concat(katharoseq, ignore_index=True)
+        katharoseq = _load_katharoseq_accession_df(
+            katharoseq_dir, preserve_leading_zeroes=preserve_leading_zeroes)
+        katharoseq.drop(["Time", "Date"], axis=1, inplace=True)
         katharoseq["description"] = "positive_control"
 
         # Find katharoseq rackid and merge cell counts
@@ -1903,9 +1919,9 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None):
         katharoseq_cell_counts = []
 
         for file_path in katharoseq_cell_counts_file_paths:
-            cell_counts_df = read_visionmate_file(file_path,
-                                                  ["RackID"],
-                                                  validate=False)
+            cell_counts_df = read_visionmate_file(
+                file_path, ["RackID"], validate=False,
+                preserve_leading_zeroes=preserve_leading_zeroes)
             # Validating cell counts files
             expected_columns = {
                 "LocationRow",
@@ -1946,6 +1962,8 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None):
         )
 
         # Merge plate_df with controls table
+        if not preserve_leading_zeroes:
+            plate_df = strip_tubecode_leading_zeroes(plate_df)
         plate_df = pd.merge(plate_df, controls, on=TUBECODE_KEY, how="left")
 
         # Assign sample_names ('Sample') to Katharoseq controls
@@ -2000,9 +2018,67 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None):
     return plate_df
 
 
-def validate_plate_df(
-    plate_df, metadata, sample_accession_df, blanks_dir, katharoseq_dir=None
-):
+def _load_blanks_accession_df(blanks_dir, preserve_leading_zeroes=False):
+    """
+    Helper function. Loads blanks accession file(s) and optionally
+    strips leading zeroes from TubeCode column.
+    Args:
+    blanks_dir: dir
+        "*.tsv" files of tube IDs assigned to blank tubes
+    preserve_leading_zeroes: bool (default: False)
+        If True, leading zeroes are preserved in TubeCode column
+
+    Returns:
+    pandas DataFrame object
+    """
+    return _load_accession_df_from_dir(
+        blanks_dir, "*.tsv", [TUBECODE_KEY],
+        preserve_leading_zeroes)
+
+
+def _load_katharoseq_accession_df(
+        katharoseq_dir, preserve_leading_zeroes=False):
+
+    return _load_accession_df_from_dir(
+        katharoseq_dir, "*_tube_ids.tsv",
+        [TUBECODE_KEY, "RackID"], preserve_leading_zeroes)
+
+
+def _load_accession_df_from_dir(
+        accession_dir, accession_fname_pattern, str_col_names,
+        preserve_leading_zeroes=False):
+    """
+    Helper function. Loads accession file(s) and optionally
+    strips leading zeroes from TubeCode column.
+    Args:
+    accession_dir: dir
+        directory of files of tube IDs assigned to samples
+    accession_fname_pattern: str
+        pattern to match accession files in accession_dir
+    str_col_names: list of str
+        column names to cast as str dtype
+    preserve_leading_zeroes: bool (default: False)
+        If True, leading zeroes are preserved in TubeCode column
+
+    Returns:
+    pandas DataFrame object
+    """
+
+    file_paths = glob.glob(f"{accession_dir}/{accession_fname_pattern}")
+    dfs = []
+
+    for file_path in file_paths:
+        df = read_visionmate_file(
+            file_path, str_col_names,
+            preserve_leading_zeroes=preserve_leading_zeroes)
+        dfs.append(df)
+
+    df = pd.concat(dfs, ignore_index=True)
+    return df
+
+
+def validate_plate_df(plate_df, metadata, sample_accession_df, blanks_dir,
+                      katharoseq_dir=None, preserve_leading_zeroes=False):
     """ Function checks that all the samples names recorded in the plate_df
     have metadata associated with them. It also checks that all the matrix
     tubes in the plate_df are indeed located in the sample accesion file or
@@ -2066,28 +2142,14 @@ def validate_plate_df(
                            f"{missing_str}")
         raise ValueError(warning_message)
 
-    # This repeats the code in the add_controls function to get a controls
-    # list to compare against our tubes in the plate_df file. This checks
-    # that all the tubes in our plate_df files are indeed located in the SA
-    # file / controls list
-
-    blank_file_paths = glob.glob(f"{blanks_dir}/*.tsv")
-    blanks = []
-    for file_path in blank_file_paths:
-        dff = read_visionmate_file(file_path, [TUBECODE_KEY])
-        blanks.append(dff)
-
-    blanks = pd.concat(blanks, ignore_index=True)
+    # This checks that all the tubes in our plate_df files are indeed
+    # located in the SA file / controls list
+    blanks = _load_blanks_accession_df(blanks_dir, preserve_leading_zeroes)
 
     # katharoseq chunk
     if katharoseq_dir is not None:
-        katharoseq_file_paths = glob.glob(f"{katharoseq_dir}/*_tube_ids.tsv")
-        katharoseq = []
-        for file_path in katharoseq_file_paths:
-            df = read_visionmate_file(file_path, [TUBECODE_KEY, "RackID"])
-            katharoseq.append(df)
-
-        katharoseq = pd.concat(katharoseq, ignore_index=True)
+        katharoseq = _load_katharoseq_accession_df(
+            katharoseq_dir, preserve_leading_zeroes)
 
         missing_samples_tubecode = plate_df[
             ~(
@@ -2112,8 +2174,8 @@ def validate_plate_df(
     else:
         missing_samples_str = ", ".join(missing_samples_tubecode.astype(str))
         warning_message = (
-            "The following TubeCodes are missing sample"
-            + f" identity information (metadata): {missing_samples_str}"
+            "The following plate_df TubeCodes are missing sample"
+            + f" accession information: {missing_samples_str}"
         )
         raise ValueError(warning_message)
 
