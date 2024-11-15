@@ -2405,7 +2405,6 @@ class TellseqSheetCreationTests(BaseTests):
              'CMGCCGCGGTAA', 'pool1']
         ]
 
-
         self.metadata = {
             'Bioinformatics': [
                 {
