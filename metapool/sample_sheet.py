@@ -1537,11 +1537,6 @@ def set_lane_number_in_sheet(sample_sheet_path, lane):
     sheet.to_csv(sample_sheet_path)
 
 
-def extract_data_from_sheet(sample_sheet_path):
-    sheet = DFSheet(sample_sheet_path)
-    return sheet.frames['Data']
-
-
 def make_sample_sheet(metadata, table, sequencer, lanes, strict=True):
     """Write a valid sample sheet
 
