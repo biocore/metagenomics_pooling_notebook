@@ -60,8 +60,9 @@ _METATRANSCRIPTOMIC = 'Metatranscriptomic'
 _DUMMY_SHEET_TYPE = 'dummy_amp'
 _ABSQUANT_SHEET_TYPE = 'abs_quant_metag'
 _TELLSEQ_SHEET_TYPE = 'tellseq_metag'
-SHEET_TYPES = (_STANDARD_METAG_SHEET_TYPE, _ABSQUANT_SHEET_TYPE,
-               _STANDARD_METAT_SHEET_TYPE, _TELLSEQ_SHEET_TYPE)
+SHEET_TYPES = (STANDARD_METAG_SHEET_TYPE, ABSQUANT_SHEET_TYPE,
+               STANDARD_METAT_SHEET_TYPE, TELLSEQ_METAG_SHEET_TYPE,
+               STANDARD_METAT_SHEET_TYPE)
 
 SS_SAMPLE_ID_KEY = 'Sample_ID'
 
@@ -1760,7 +1761,8 @@ class DFSheet():
             section_df.dropna(how='all', axis=1, inplace=True)
 
             # some [Sections] are tables while others are just key/value pairs.
-            if header_name in ['Bioinformatics', 'Data', 'Contact']:
+            if header_name in ['Bioinformatics', 'Data', 'Contact',
+                               'SampleContext']:
                 # extract the list of column names, rename the columns after
                 # them, and remove the original (now duplicate) header in the
                 # first row.
@@ -1941,13 +1943,13 @@ def _create_sample_sheet(sheet_type, sheet_version, assay_type):
 
     return sheet
 
-  
+
 def set_lane_number_in_sheet(sample_sheet_path, lane):
     sheet = DFSheet(sample_sheet_path)
     sheet.frames['Data']['Lane'] = int(lane)
     sheet.to_csv(sample_sheet_path)
 
-    
+
 def make_sample_sheet(metadata, table, sequencer, lanes, strict=None):
     """Write a valid sample sheet
 
