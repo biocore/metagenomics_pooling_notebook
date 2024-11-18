@@ -1,0 +1,59 @@
+[Header],,,,,,,,,,,,,
+IEMFileVersion,4,,,,,,,,,,,,
+SheetType,standard_metag,,,,,,,,,,,,
+SheetVersion,101,,,,,,,,,,,,
+Investigator Name,Knight,,,,,,,,,,,,
+Experiment Name,RKL0042,,,,,,,,,,,,
+Date,2/26/20,,,,,,,,,,,,
+Workflow,GenerateFASTQ,,,,,,,,,,,,
+Application,FASTQ Only,,,,,,,,,,,,
+Assay,Metagenomic,,,,,,,,,,,,
+Description,,,,,,,,,,,,,
+Chemistry,Default,,,,,,,,,,,,
+,,,,,,,,,,,,,
+[Reads],,,,,,,,,,,,,
+150,,,,,,,,,,,,,
+150,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+[Settings],,,,,,,,,,,,,
+ReverseComplement,0,,,,,,,,,,,,
+,,,,,,,,,,,,,
+[Data],,,,,,,,,,,,,
+sample_id,sample_name,source_well_384,destination_well_384,sample_plate,well_id_384,i7_index_id,index,i5_index_id,index2,sample_project,well_description,library_construction_protocol,experiment_design_description
+BLANK_43_12G_A1,BLANK.43.12G,A1,A1,Feist_11661_P43,A1,iTru7_114_08,CCGACTAT,iTru5_01_A,AAGGCTGA,Feist_11661,blue_quadrant,Nextera,Equipment
+RMA_KHP_rpoS_Mage_Q97E_A11,RMA.KHP.rpoS.Mage.Q97E,A11,A11,Feist_11661_P43,A11,iTru7_201_01,AACACCAC,iTru5_06_A,CATCTGCT,Feist_11661,blue_quadrant,Nextera,Equipment
+JBI_KHP_HGL_021_A13,JBI.KHP.HGL.021,A13,A13,Feist_11661_P43,A13,iTru7_201_02,AACTTGCC,iTru5_07_A,GAAGGTTC,Feist_11661,blue_quadrant,Nextera,Equipment
+JBI_KHP_HGL_022_A15,JBI.KHP.HGL.022,A15,A15,Feist_11661_P43,A15,iTru7_201_03,CGTATCTC,iTru5_08_A,CTCTCAGA,Feist_11661,blue_quadrant,Nextera,Equipment
+JBI_KHP_HGL_023_A17,JBI.KHP.HGL.023,A17,A17,Feist_11661_P43,A17,iTru7_201_04,CAATGTGG,iTru5_09_A,GAAGAGGT,Feist_11661,blue_quadrant,Nextera,Equipment
+JBI_KHP_HGL_024_A19,JBI.KHP.HGL.024,A19,A19,Feist_11661_P43,A19,iTru7_201_05,GGTACGAA,iTru5_10_A,TCGTCTGA,Feist_11661,blue_quadrant,Nextera,Equipment
+AP581451B02_A21,AP581451B02,A21,A21,NYU_BMS_Melanoma_13059_P1,A21,iTru7_108_05,TCTGAGAG,iTru5_09_A,CTCTCAGA,NYU_BMS_Melanoma_13059,blue_quadrant,Knight Lab Kapa HP,Equipment
+EP256645B01_A23,EP256645B01,A23,A23,NYU_BMS_Melanoma_13059_P1,A23,iTru7_108_06,ACCGCATA,iTru5_10_A,TCGTCTGA,NYU_BMS_Melanoma_13059,blue_quadrant,Knight Lab Kapa HP,Equipment
+BLANK_43_12H_A3,BLANK.43.12H,A3,A3,Feist_11661_P43,A3,iTru7_114_09,ACCGACAA,iTru5_02_A,CGATCGAT,Feist_11661,blue_quadrant,Nextera,Equipment
+TMI_test_1_A5,TMI.test.1,A5,A5,Feist_11661_P43,A5,iTru7_114_10,CCGACTAT,iTru5_03_A,TTACCGAG,TMI_10317,blue_quadrant,Nextera,Equipment
+Other_test_2_A7,Other.test.2,A7,A7,Feist_11661_P43,A7,iTru7_114_11,CTTCGCAA,iTru5_04_A,AAGACACC,Other_11223,blue_quadrant,Nextera,Equipment
+RMA_KHP_rpoS_Mage_Q97N_A9,RMA.KHP.rpoS.Mage.Q97N,A9,A9,Feist_11661_P43,A9,iTru7_114_12,GCCTTGTT,iTru5_05_A,GTCCTAAG,Feist_11661,blue_quadrant,Nextera,Equipment
+EP112567B02_C1,EP112567B02,C1,C1,NYU_BMS_Melanoma_13059_P1,C1,iTru7_108_07,GAAGTACC,iTru5_11_A,CAATAGCC,NYU_BMS_Melanoma_13059,blue_quadrant,Knight Lab Kapa HP,Equipment
+AP959450A03_C11,AP959450A03,C11,C11,NYU_BMS_Melanoma_13059_P1,C11,iTru7_108_12,TGTTCGAG,iTru5_04_B,CGTCAAGA,NYU_BMS_Melanoma_13059,blue_quadrant,Knight Lab Kapa HP,Equipment
+SP464350A04_C13,SP464350A04,C13,C13,NYU_BMS_Melanoma_13059_P1,C13,iTru7_109_01,CTCGTCTT,iTru5_05_B,AAGCATCG,NYU_BMS_Melanoma_13059,blue_quadrant,Knight Lab Kapa HP,Equipment
+EP121011B01_C15,EP121011B01,C15,C15,NYU_BMS_Melanoma_13059_P1,C15,iTru7_109_04,TCGGTTAC,iTru5_08_B,ACCTCTTC,NYU_BMS_Melanoma_13059,blue_quadrant,Knight Lab Kapa HP,Equipment
+EP337425B01_C3,EP337425B01,C3,C3,NYU_BMS_Melanoma_13059_P1,C3,iTru7_108_08,CAGGTATC,iTru5_12_A,CATTCGTC,NYU_BMS_Melanoma_13059,blue_quadrant,Knight Lab Kapa HP,Equipment
+LP127890A01_C5,LP127890A01,C5,C5,NYU_BMS_Melanoma_13059_P1,C5,iTru7_108_09,TCTCTAGG,iTru5_01_B,AGTGGCAA,NYU_BMS_Melanoma_13059,blue_quadrant,Knight Lab Kapa HP,Equipment
+EP159692B04_C7,EP159692B04,C7,C7,NYU_BMS_Melanoma_13059_P1,C7,iTru7_108_10,AAGCACTG,iTru5_02_B,GTGGTATG,NYU_BMS_Melanoma_13059,blue_quadrant,Knight Lab Kapa HP,Equipment
+EP987683A01_C9,EP987683A01,C9,C9,NYU_BMS_Melanoma_13059_P1,C9,iTru7_108_11,CCAAGCAA,iTru5_03_B,TGAGCTGT,NYU_BMS_Melanoma_13059,blue_quadrant,Knight Lab Kapa HP,Equipment
+,,,,,,,,,,,,,
+[Bioinformatics],,,,,,,,,,,,,
+Sample_Project,QiitaID,BarcodesAreRC,ForwardAdapter,ReverseAdapter,HumanFiltering,library_construction_protocol,experiment_design_description,,,,,,
+Feist_11661,11661,FALSE,AACC,GGTT,FALSE,Nextera,Equipment,,,,,,
+NYU_BMS_Melanoma_13059,13059,FALSE,AACC,GGTT,FALSE,Knight Lab Kapa HP,Equipment,,,,,,
+TMI_10317,10317,FALSE,AACC,GGTT,FALSE,Knight Lab Kapa HP,Eqiiperiment,,,,,,
+Other_11223,11223,FALSE,AACC,GGTT,FALSE,Knight Lab Kapa HP,Eqiiperiment,,,,,,
+,,,,,,,,,,,,,
+[Contact],,,,,,,,,,,,,
+Email,Sample_Project,,,,,,,,,,,,
+person@domain.edu,Feist_11661,,,,,,,,,,,,
+another_person@domain.edu,NYU_BMS_Melanoma_13059,,,,,,,,,,,,
+,,,,,,,,,,,,,
+[SampleContext],,,,,,,,,,,,,
+sample_name,sample_type,primary_qiita_study,secondary_qiita_studies,,,,,,,,,,
+BLANK.43.12G,control blank,11661,10317;11223,,,,,,,,,,
+BLANK.43.12H,control blank,11661,10317;11223,,,,,,,,,,
