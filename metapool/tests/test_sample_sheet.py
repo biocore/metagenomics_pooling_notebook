@@ -182,6 +182,24 @@ class KLSampleSheetTests(BaseTests):
                                      f.read().split(),
                                      f'Problem found with {filename}')
 
+    def test_write_w_lane(self):
+        test_fp = self.good_metag_ss_w_context.replace(
+            ".csv", "_lane_overwritten.csv")
+        sheet = MetagenomicSampleSheetv101(test_fp)
+
+        with tempfile.NamedTemporaryFile('w+') as tmp:
+            sheet.write(tmp, lane=3)
+            tmp.seek(0)
+            observed = tmp.read()
+
+        with open(test_fp) as f:
+            expected = f.read()
+
+            # Normalize line endings to '\n' for both files
+        expected1 = expected.replace('\r\n', '\n').replace('\r', '\n')
+        observed1 = observed.replace('\r\n', '\n').replace('\r', '\n')
+        self.assertEqual(expected1, observed1)
+
     def test_empty_write(self):
         exp = [
             '[Header],',
