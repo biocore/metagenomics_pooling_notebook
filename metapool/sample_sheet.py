@@ -12,9 +12,10 @@ from metapool.mp_strings import parse_project_name, \
     SAMPLES_DETAILS_KEY, SAMPLE_NAME_KEY, SAMPLE_PROJECT_KEY, \
     CONTAINS_REPLICATES_KEY, ORIG_NAME_KEY, EXPT_DESIGN_DESC_KEY, \
     PM_PROJECT_NAME_KEY, PM_PROJECT_PLATE_KEY, PM_BLANK_KEY, QIITA_ID_KEY, \
-    PROJECT_FULL_NAME_KEY
+    PROJECT_FULL_NAME_KEY, TUBECODE_KEY, SYNDNA_POOL_MASS_NG_KEY, \
+    SYNDNA_POOL_NUM_KEY, ELUTION_VOL_KEY, EXTRACTED_GDNA_CONC_KEY
 from metapool.metapool import (bcl_scrub_name, sequencer_i5_index,
-                               REVCOMP_SEQUENCERS, TUBECODE_KEY)
+                               REVCOMP_SEQUENCERS)
 from metapool.plate import ErrorMessage, WarningMessage, PlateReplication
 from metapool.controls import SAMPLE_CONTEXT_COLS, \
     get_all_projects_in_context, is_blank, get_controls_details_from_context, \
@@ -96,7 +97,6 @@ _BASE_CARRIED_PREP_COLUMNS = (EXPT_DESIGN_DESC_KEY, 'i5_index_id',
                               'sample_project', 'well_description',
                               'well_id_384')
 
-_ELUTION_VOL_KEY = 'vol_extracted_elution_ul'
 
 _BASE_PLATE_REMAPPER = MappingProxyType({
     'sample sheet Sample_ID': SS_SAMPLE_ID_KEY,
@@ -572,10 +572,9 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         # be overwritten, otherwise it will be created here.
         well_description = table[PM_PROJECT_PLATE_KEY].astype(str) + "." + \
             table['Sample'].astype(str) + "." + table['Well'].astype(str)
+        table['Well_description'] = well_description
 
         table = self._remap_table(table, strict)
-
-        table['Well_description'] = well_description
 
         for column in self._get_expected_data_columns():
             if column not in table.columns:
@@ -1213,18 +1212,15 @@ class KLSampleSheetWithSampleContext(KLSampleSheet):
 
 
 class AbsQuantMixin(object):
-    _ABS_SYNDNA_INPUT_MASS_KEY = 'mass_syndna_input_ng'
-    _ABS_GDNA_CONC_KEY = 'extracted_gdna_concentration_ng_ul'
-    _ABS_SYNDNA_POOL_NUM_KEY = 'syndna_pool_number'
     _ABSQUANT_SPECIFIC_COLUMNS = (
-        _ABS_SYNDNA_INPUT_MASS_KEY, _ABS_GDNA_CONC_KEY,
-        _ELUTION_VOL_KEY, _ABS_SYNDNA_POOL_NUM_KEY)
+        SYNDNA_POOL_MASS_NG_KEY, EXTRACTED_GDNA_CONC_KEY,
+        ELUTION_VOL_KEY, SYNDNA_POOL_NUM_KEY)
 
     _ABSQUANT_REMAPPER = MappingProxyType({
-            _ABS_SYNDNA_POOL_NUM_KEY: _ABS_SYNDNA_POOL_NUM_KEY,
-            _ABS_SYNDNA_INPUT_MASS_KEY: _ABS_SYNDNA_INPUT_MASS_KEY,
-            _ABS_GDNA_CONC_KEY: _ABS_GDNA_CONC_KEY,
-            _ELUTION_VOL_KEY: _ELUTION_VOL_KEY
+            SYNDNA_POOL_NUM_KEY: SYNDNA_POOL_NUM_KEY,
+            SYNDNA_POOL_MASS_NG_KEY: SYNDNA_POOL_MASS_NG_KEY,
+            EXTRACTED_GDNA_CONC_KEY: EXTRACTED_GDNA_CONC_KEY,
+            ELUTION_VOL_KEY: ELUTION_VOL_KEY
         })
 
     def __init__(self, path=None):
@@ -1251,7 +1247,7 @@ class KatharoseqMixin(object):
                                     'number_of_cells',
                                     'platemap_generation_date',
                                     'project_abbreviation',
-                                    _ELUTION_VOL_KEY, 'well_id_96')
+                                    ELUTION_VOL_KEY, 'well_id_96')
 
     @staticmethod
     def _is_katharo_name(sample_name):
@@ -1599,17 +1595,17 @@ class MetatranscriptomicSampleSheetv10(KLSampleSheet):
                      'well_id_384', 'I7_Index_ID', 'index', 'I5_Index_ID',
                      'index2', _SS_SAMPLE_PROJECT_KEY,
                      'total_rna_concentration_ng_ul',
-                     _ELUTION_VOL_KEY, 'Well_description')
+                     ELUTION_VOL_KEY, 'Well_description')
 
     _CARRIED_PREP_COLUMNS = _BASE_CARRIED_PREP_COLUMNS + (
                             'total_rna_concentration_ng_ul',
-                            _ELUTION_VOL_KEY)
+                            ELUTION_VOL_KEY)
 
     def __init__(self, path=None):
         super().__init__(path=path)
         self._remapper = _BASE_METAG_REMAPPER | {
                 'Sample RNA Concentration': 'total_rna_concentration_ng_ul',
-                _ELUTION_VOL_KEY: _ELUTION_VOL_KEY
+                ELUTION_VOL_KEY: ELUTION_VOL_KEY
             }
 
 

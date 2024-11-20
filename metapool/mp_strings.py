@@ -46,6 +46,14 @@ SAMPLE_TYPE_KEY = "sample_type"
 PRIMARY_STUDY_KEY = "primary_qiita_study"
 SECONDARY_STUDIES_KEY = "secondary_qiita_studies"
 
+SYNDNA_POOL_NUM_KEY = "syndna_pool_number"
+SAMPLE_DNA_CONC_KEY = "Sample DNA Concentration"
+NORMALIZED_DNA_VOL_KEY = "Normalized DNA volume"
+SYNDNA_POOL_MASS_NG_KEY = "mass_syndna_input_ng"
+TUBECODE_KEY = "TubeCode"
+ELUTION_VOL_KEY = 'vol_extracted_elution_ul'
+EXTRACTED_GDNA_CONC_KEY = 'extracted_gdna_concentration_ng_ul'
+
 
 def parse_project_name(project_name):
     """

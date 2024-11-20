@@ -11,7 +11,9 @@ from configparser import ConfigParser
 from qiita_client import QiitaClient
 from .mp_strings import SAMPLE_NAME_KEY, PM_PROJECT_NAME_KEY, \
     PM_PROJECT_PLATE_KEY, PM_COMPRESSED_PLATE_NAME_KEY, PM_BLANK_KEY, \
-    PLATE_NAME_DELIMITER, get_qiita_id_from_project_name, \
+    PLATE_NAME_DELIMITER, SAMPLE_DNA_CONC_KEY, NORMALIZED_DNA_VOL_KEY, \
+    SYNDNA_POOL_MASS_NG_KEY, SYNDNA_POOL_NUM_KEY, TUBECODE_KEY, \
+    get_qiita_id_from_project_name, \
     get_plate_num_from_plate_name, get_main_project_from_plate_name
 from .plate import _validate_well_id_96, PlateReplication
 
@@ -27,13 +29,9 @@ REVCOMP_SEQUENCERS = ['HiSeq4000', 'MiniSeq', 'NextSeq', 'HiSeq3000',
 OTHER_SEQUENCERS = ['HiSeq2500', 'HiSeq1500', 'MiSeq', 'NovaSeqX',
                     'NovaSeqXPlus']
 
-SYNDNA_POOL_NUM_KEY = "syndna_pool_number"
-SAMPLE_DNA_CONC_KEY = "Sample DNA Concentration"
-NORMALIZED_DNA_VOL_KEY = "Normalized DNA volume"
+
 INPUT_DNA_KEY = "Input DNA"
 SYNDNA_VOL_KEY = "synDNA volume"
-SYNDNA_POOL_MASS_NG_KEY = "mass_syndna_input_ng"
-TUBECODE_KEY = "TubeCode"
 
 
 def extract_stats_metadata(stats_json_fp, lane_numbers):
@@ -691,45 +689,56 @@ def format_index_picklist(
 
     picklist = ""
 
-    # header
-    picklist += (
+    main_headers = (
         "Sample\tSource Plate Name\tSource Plate Type\tSource Well\t"
-        "Transfer Volume\tIndex Name\tIndex Sequence\tIndex Combo\t"
-        "Destination Plate Name\tDestination Well"
-    )
+        "Transfer Volume\tIndex Name\t")
+    seq_and_combo_headers = "Index Sequence\tIndex Combo\t"
+    destination_headers = "Destination Plate Name\tDestination Well"
+
+    combo_index_cols = ["i5 sequence", "i7 sequence", "index combo"]
+    is_combo = all([col in indices.columns for col in combo_index_cols])
+    optional_headers = seq_and_combo_headers if is_combo else ""
+
+    # header
+    picklist += main_headers + optional_headers + destination_headers
 
     # i5 additions
     for i, (sample, well) in enumerate(zip(sample_names, sample_wells)):
-        picklist += "\n" + "\t".join(
-            [
+        main_list = [
                 str(sample),
                 indices.iloc[i]["i5 plate"],
                 i5_plate_type,
                 indices.iloc[i]["i5 well"],
                 str(i5_vol),
-                indices.iloc[i]["i5 name"],
+                indices.iloc[i]["i5 name"]
+        ]
+
+        optional_list = []
+        if is_combo:
+            optional_list = [
                 indices.iloc[i]["i5 sequence"],
-                str(indices.iloc[i]["index combo"]),
-                dest_plate_name,
-                well,
+                str(indices.iloc[i]["index combo"])
             ]
-        )
-    # i7 additions
-    for i, (sample, well) in enumerate(zip(sample_names, sample_wells)):
-        picklist += "\n" + "\t".join(
-            [
-                str(sample),
-                indices.iloc[i]["i7 plate"],
-                i7_plate_type,
-                indices.iloc[i]["i7 well"],
-                str(i7_vol),
-                indices.iloc[i]["i7 name"],
-                indices.iloc[i]["i7 sequence"],
-                str(indices.iloc[i]["index combo"]),
-                dest_plate_name,
-                well,
-            ]
-        )
+        picklist_pieces = main_list + optional_list + [dest_plate_name, well]
+        picklist += "\n" + "\t".join(picklist_pieces)
+
+    if is_combo:
+        # i7 additions
+        for i, (sample, well) in enumerate(zip(sample_names, sample_wells)):
+            picklist += "\n" + "\t".join(
+                [
+                    str(sample),
+                    indices.iloc[i]["i7 plate"],
+                    i7_plate_type,
+                    indices.iloc[i]["i7 well"],
+                    str(i7_vol),
+                    indices.iloc[i]["i7 name"],
+                    indices.iloc[i]["i7 sequence"],
+                    str(indices.iloc[i]["index combo"]),
+                    dest_plate_name,
+                    well,
+                ]
+            )
 
     return picklist
 
@@ -1049,8 +1058,8 @@ def plot_plate_vals(dataset, color_map="YlGnBu", annot_str=None,
 
     with sns.axes_style():
         ax4 = plt.subplot2grid((40, 20), (0, 0), colspan=18, rowspan=18)
-        sns.distplot(dataset.flatten()[~np.isnan(dataset.flatten())], ax=ax4,
-                     bins=20)
+        sns.histplot(dataset.flatten()[~np.isnan(dataset.flatten())], ax=ax4,
+                     bins=20, kde=True, stat="density", kde_kws=dict(cut=3))
 
     return
 

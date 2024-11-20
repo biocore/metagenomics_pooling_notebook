@@ -7,7 +7,11 @@ from .mp_strings import (SAMPLE_NAME_KEY, QIITA_ID_KEY, SAMPLES_DETAILS_KEY,
                          SECONDARY_STUDIES_KEY, PROJECT_SHORT_NAME_KEY,
                          PROJECT_FULL_NAME_KEY, CONTAINS_REPLICATES_KEY,
                          parse_project_name, get_short_name_and_id,
-                         get_qiita_id_from_project_name)
+                         get_qiita_id_from_project_name, TUBECODE_KEY,
+                         SYNDNA_POOL_NUM_KEY, SAMPLE_DNA_CONC_KEY,
+                         NORMALIZED_DNA_VOL_KEY,
+                         SYNDNA_POOL_MASS_NG_KEY, ELUTION_VOL_KEY,
+                         EXTRACTED_GDNA_CONC_KEY)
 from .sample_sheet import (SS_SAMPLE_ID_KEY,
                            sample_sheet_to_dataframe, make_sample_sheet,
                            AmpliconSampleSheet, MetagenomicSampleSheetv90,
@@ -25,7 +29,7 @@ from .count import run_counts
 from .controls import is_blank
 from .metapool import (extract_stats_metadata, sum_lanes, compress_plates,
                        add_controls, generate_override_cycles_value,
-                       strip_tubecode_leading_zeroes, TUBECODE_KEY)
+                       strip_tubecode_leading_zeroes)
 
 
 __credits__ = ("https://github.com/biocore/metagenomics_pooling_notebook/"
@@ -51,7 +55,11 @@ __all__ = ['IGMManifest', 'add_controls', 'assign_emp_index', 'autopool',
            'SAMPLE_NAME_KEY', 'PRIMARY_STUDY_KEY', 'SECONDARY_STUDIES_KEY',
            'SAMPLES_DETAILS_KEY', 'SS_SAMPLE_ID_KEY', 'ORIG_NAME_KEY',
            'TUBECODE_KEY', 'QIITA_ID_KEY', 'PROJECT_SHORT_NAME_KEY',
-           'PROJECT_FULL_NAME_KEY', 'CONTAINS_REPLICATES_KEY']
+           'PROJECT_FULL_NAME_KEY', 'CONTAINS_REPLICATES_KEY',
+           'SYNDNA_POOL_NUM_KEY', 'SAMPLE_DNA_CONC_KEY',
+           'NORMALIZED_DNA_VOL_KEY',
+           'SYNDNA_POOL_MASS_NG_KEY', 'ELUTION_VOL_KEY',
+           'EXTRACTED_GDNA_CONC_KEY']
 
 from . import _version
 
