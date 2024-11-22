@@ -954,7 +954,7 @@ def estimate_pool_conc_vol(sample_vols, sample_concs):
 
 def format_pooling_echo_pick_list(
     vol_sample, max_vol_per_well=60000, dest_plate_shape=None,
-    source_well_names=None):
+        source_well_names=None):
     """Format the contents of an echo pooling pick list
 
     Parameters
@@ -1669,9 +1669,15 @@ def add_syndna(plate_df, syndna_pool_number=None, syndna_concentration=None,
 
 
 def is_absquant(a_plate_df):
-    syndna_pool_num_vals = a_plate_df[SYNDNA_POOL_NUM_KEY].unique()
-    has_non_nans = (~np.isnan(syndna_pool_num_vals)).any()
-    return has_non_nans
+    result = False  # default assumption
+    if SYNDNA_POOL_NUM_KEY in a_plate_df.columns:
+        syndna_pool_num_vals = a_plate_df[SYNDNA_POOL_NUM_KEY].unique()
+        syndna_pool_num_numeric = np.array(
+            [x if x is not None else np.nan for x in syndna_pool_num_vals],
+            dtype=float)
+        has_non_nans = (~np.isnan(syndna_pool_num_numeric)).any()
+        result = bool(has_non_nans)
+    return result
 
 
 def read_visionmate_file(file_path_, cast_as_str, sep="\t", validate=True,
