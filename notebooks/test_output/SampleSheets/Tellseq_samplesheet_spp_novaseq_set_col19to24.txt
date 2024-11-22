@@ -121,7 +121,7 @@ KATHARO_LEAP_4_12H_7,KATHARO.LEAP.4.12H.7,Wellcome_Leap_15538_Plate_4,P24,C596,W
 ,,,,,,,,
 [Bioinformatics],,,,,,,,
 Sample_Project,QiitaID,BarcodesAreRC,ForwardAdapter,ReverseAdapter,HumanFiltering,library_construction_protocol,experiment_design_description,contains_replicates
-Wellcome_Leap_15538,15538,False,GATCGGAAGAGCACACGTCTGAACTCCAGTCAC,GATCGGAAGAGCGTCGTGTAGGGAAAGGAGTGT,False,Knight Lab Kapa HyperPlus,isolate sequencing,False
+Wellcome_Leap_15538,15538,False,GATCGGAAGAGCACACGTCTGAACTCCAGTCAC,GATCGGAAGAGCGTCGTGTAGGGAAAGGAGTGT,True,Knight Lab Kapa HyperPlus,plasma sequencing,False
 ,,,,,,,,
 [Contact],,,,,,,,
 Sample_Project,Email,,,,,,,
