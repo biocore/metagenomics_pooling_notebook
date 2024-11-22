@@ -27,8 +27,9 @@ from metapool.metapool import (read_plate_map_csv, read_pico_csv,
                                add_syndna, validate_plate_df,
                                add_controls, compress_plates,
                                read_visionmate_file,
-                               generate_override_cycles_value, TUBECODE_KEY
-                               )
+                               generate_override_cycles_value, TUBECODE_KEY,
+                               is_absquant)
+from metapool.mp_strings import SYNDNA_POOL_NUM_KEY
 from xml.etree.ElementTree import ParseError
 
 
@@ -928,16 +929,69 @@ class Tests(TestCase):
         self.assertEqual(exp_str, obs_str)
 
     def test_format_pooling_echo_pick_list_sourcewells(self):
-        # TODO: fill in
-        pass
+        vol_sample = np.array([[10.00, 10.00, np.nan, 5.00, 10.00, 10.00]])
+        source_wells = np.array([['A1', 'B2', 'C3', 'D4', 'D5', 'A6']])
+
+        header = ['Source Plate Name,Source Plate Type,Source Well,'
+                  'Concentration,Transfer Volume,Destination Plate Name,'
+                  'Destination Well']
+
+        exp_values = ['1,384LDV_AQ_B2,A1,,10.00,NormalizedDNA,A1',
+                      '1,384LDV_AQ_B2,B2,,10.00,NormalizedDNA,A1',
+                      '1,384LDV_AQ_B2,C3,,0.00,NormalizedDNA,A1',
+                      '1,384LDV_AQ_B2,D4,,5.00,NormalizedDNA,A1',
+                      '1,384LDV_AQ_B2,D5,,10.00,NormalizedDNA,A2',
+                      '1,384LDV_AQ_B2,A6,,10.00,NormalizedDNA,A2']
+
+        exp_str = '\n'.join(header + exp_values)
+
+        obs_str = format_pooling_echo_pick_list(vol_sample,
+                                                max_vol_per_well=26,
+                                                dest_plate_shape=[16, 24],
+                                                source_well_names=source_wells)
+        self.maxDiff = None
+        self.assertEqual(exp_str, obs_str)
 
     def test_is_absquant_true(self):
-        # TODO: fill in
-        pass
+        example_qpcr_df = pd.DataFrame({'Cp': [12, 0, 5, np.nan],
+                                        'Pos': ['A1', 'A2', 'A3', 'A4'],
+                                        SYNDNA_POOL_NUM_KEY: [1, 1, 1, 1]})
+        obs = is_absquant(example_qpcr_df)
+        self.assertTrue(obs)
+
+        example_2pcr_df = pd.DataFrame({'Cp': [12, 0, 5, np.nan],
+                                        'Pos': ['A1', 'A2', 'A3', 'A4'],
+                                        SYNDNA_POOL_NUM_KEY:
+                                            [np.nan, 1, np.nan, np.nan]})
+        obs2 = is_absquant(example_2pcr_df)
+        self.assertTrue(obs2)
+
+        example_3pcr_df = pd.DataFrame({'Cp': [12, 0, 5, np.nan],
+                                        'Pos': ['A1', 'A2', 'A3', 'A4'],
+                                        SYNDNA_POOL_NUM_KEY:
+                                            [None, 1, None, None]})
+        obs3 = is_absquant(example_3pcr_df)
+        self.assertTrue(obs3)
 
     def test_is_absquant_false(self):
-        # TODO: fill in
-        pass
+        example_qpcr_df = pd.DataFrame({'Cp': [12, 0, 5, np.nan],
+                                        'Pos': ['A1', 'A2', 'A3', 'A4']})
+        obs = is_absquant(example_qpcr_df)
+        self.assertFalse(obs)
+
+        example_2pcr_df = pd.DataFrame({'Cp': [12, 0, 5, np.nan],
+                                        'Pos': ['A1', 'A2', 'A3', 'A4'],
+                                        SYNDNA_POOL_NUM_KEY:
+                                            [np.nan, np.nan, np.nan, np.nan]})
+        obs2 = is_absquant(example_2pcr_df)
+        self.assertFalse(obs2)
+
+        example_3pcr_df = pd.DataFrame({'Cp': [12, 0, 5, np.nan],
+                                        'Pos': ['A1', 'A2', 'A3', 'A4'],
+                                        SYNDNA_POOL_NUM_KEY:
+                                            [None, None, None, None]})
+        obs3 = is_absquant(example_3pcr_df)
+        self.assertFalse(obs3)
 
     def test_make_2D_array(self):
         example_qpcr_df = pd.DataFrame({'Cp': [12, 0, 5, np.nan],
