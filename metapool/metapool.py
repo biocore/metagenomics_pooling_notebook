@@ -953,8 +953,8 @@ def estimate_pool_conc_vol(sample_vols, sample_concs):
 
 
 def format_pooling_echo_pick_list(
-    vol_sample, max_vol_per_well=60000, dest_plate_shape=None
-):
+    vol_sample, max_vol_per_well=60000, dest_plate_shape=None,
+    source_well_names=None):
     """Format the contents of an echo pooling pick list
 
     Parameters
@@ -982,7 +982,11 @@ def format_pooling_echo_pick_list(
     d = 1
     for i in range(rows):
         for j in range(cols):
-            well_name = "%s%d" % (chr(ord("A") + i), j + 1)
+            if source_well_names is None:
+                well_name = "%s%d" % (chr(ord("A") + i), j + 1)
+            else:
+                well_name = source_well_names[i][j]
+
             # Machine will round, so just give it enough info to do the
             # correct rounding.
             val = "%.2f" % pool_vols[i][j]
@@ -1096,6 +1100,32 @@ def make_2D_array(qpcr, data_col="Cp", well_col="Pos", rows=16, cols=24):
         cp_array[row, col] = record[1][data_col]
 
     return cp_array
+
+
+def make_compressed_2d_array(a_df, data_col, row_col, col_col):
+    # make a copy of the dataframe and ensure cols are integers
+    a_df = a_df.copy()
+    a_df[col_col] = a_df[col_col].astype(int)
+
+    # Step 1: Map rows, cols (separately) to contiguous indices starting at 0
+    row_mapping = {letter: idx for idx, letter
+                   in enumerate(sorted(a_df[row_col].unique()))}
+
+    col_mapping = {col: idx for idx, col
+                   in enumerate(sorted(a_df[col_col].unique()))}
+
+    # Step 2: Determine the size of the 2D array and create empty
+    n_rows = len(row_mapping)
+    n_cols = len(col_mapping)
+    out_array = np.empty((n_rows, n_cols), dtype=object)
+
+    # Step 3: Populate the array
+    for _, row in a_df.iterrows():
+        row_idx = row_mapping[row[row_col]]
+        col_idx = col_mapping[row[col_col]]
+        out_array[row_idx, col_idx] = row[data_col]
+
+    return out_array
 
 
 def combine_dfs(qpcr_df, dna_picklist, index_picklist):
@@ -1636,6 +1666,12 @@ def add_syndna(plate_df, syndna_pool_number=None, syndna_concentration=None,
         ) * syndna_concentration
 
         return result
+
+
+def is_absquant(a_plate_df):
+    syndna_pool_num_vals = a_plate_df[SYNDNA_POOL_NUM_KEY].unique()
+    has_non_nans = (~np.isnan(syndna_pool_num_vals)).any()
+    return has_non_nans
 
 
 def read_visionmate_file(file_path_, cast_as_str, sep="\t", validate=True,

@@ -13,7 +13,8 @@ from metapool.metapool import (read_plate_map_csv, read_pico_csv,
                                compute_shotgun_pooling_values_qpcr_minvol,
                                estimate_pool_conc_vol,
                                format_pooling_echo_pick_list,
-                               make_2D_array, combine_dfs,
+                               make_2D_array, make_compressed_2d_array,
+                               combine_dfs,
                                add_dna_conc, compute_pico_concentration,
                                bcl_scrub_name, rc, sequencer_i5_index,
                                reformat_interleaved_to_columns,
@@ -926,6 +927,18 @@ class Tests(TestCase):
         self.maxDiff = None
         self.assertEqual(exp_str, obs_str)
 
+    def test_format_pooling_echo_pick_list_sourcewells(self):
+        # TODO: fill in
+        pass
+
+    def test_is_absquant_true(self):
+        # TODO: fill in
+        pass
+
+    def test_is_absquant_false(self):
+        # TODO: fill in
+        pass
+
     def test_make_2D_array(self):
         example_qpcr_df = pd.DataFrame({'Cp': [12, 0, 5, np.nan],
                                         'Pos': ['A1', 'A2', 'A3', 'A4']})
@@ -944,6 +957,31 @@ class Tests(TestCase):
 
         np.testing.assert_allclose(make_2D_array(
             example2_qpcr_df, rows=2, cols=4).astype(float), exp2_cp_array)
+
+    def test_make_compressed_2d_array(self):
+        example_df = pd.DataFrame({'Cp': [12, 0, 5, np.nan],
+                                   'Row': ['A', 'A', 'A', 'A'],
+                                   'Col': [1, 3, 5, 7]})
+
+        exp_cp_array = np.array([[12.0, 0.0, 5.0, np.nan]])
+
+        np.testing.assert_allclose(
+            make_compressed_2d_array(
+                example_df, data_col='Cp', row_col='Row', col_col='Col'
+            ).astype(float), exp_cp_array)
+
+        example2_df = pd.DataFrame({'Cp': [12, 0, 1, np.nan,
+                                           12, 0, 5, np.nan],
+                                    'Row': ['A', 'A', 'A', 'A',
+                                            'C', 'C', 'C', 'C'],
+                                    'Col': [1, 3, 5, 7, 1, 3, 5, 7]})
+        exp2_cp_array = np.array([[12.0, 0.0, 1.0, np.nan],
+                                  [12.0, 0.0, 5.0, np.nan]])
+
+        np.testing.assert_allclose(
+            make_compressed_2d_array(
+                example2_df, data_col='Cp', row_col='Row', col_col='Col'
+            ).astype(float), exp2_cp_array)
 
     def combine_dfs(self):
         test_index_picklist_f = (
