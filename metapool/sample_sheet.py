@@ -38,6 +38,7 @@ _EMAIL_KEY = 'Email'
 _HUMAN_FILTERING_KEY = 'HumanFiltering'
 _SHEET_TYPE_KEY = 'SheetType'
 _SHEET_VERSION_KEY = 'SheetVersion'
+_LANE_KEY = 'Lane'
 
 STANDARD_METAG_SHEET_TYPE = 'standard_metag'
 STANDARD_METAT_SHEET_TYPE = 'standard_metat'
@@ -181,7 +182,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                              'library_construction_protocol',
                              SAMPLE_NAME_KEY,
                              'sample_plate', 'sample_project',
-                             'well_description', 'Sample_Well', 'Lane')
+                             'well_description', 'Sample_Well', _LANE_KEY)
 
     _GENERATED_PREP_COLUMNS = ('center_name', 'center_project_name',
                                'instrument_model', 'lane', 'platform',
@@ -389,7 +390,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 columns[i] = KLSampleSheet._column_alts[columns[i]]
         return columns
 
-    def write(self, handle, blank_lines=1) -> None:
+    def write(self, handle, blank_lines=1, lane=None) -> None:
         """Write to a file-like object.
 
         Parameters
@@ -424,6 +425,14 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             for i in range(n):
                 a_writer.writerow(pad_iterable([], width))
 
+        def _write_df_section(a_df):
+            # these sections are represented as DataFrame objects
+            writer.writerow(pad_iterable(a_df.columns.tolist(), csv_width))
+
+            for _, row in a_df.iterrows():
+                writer.writerow(pad_iterable(row.values.tolist(),
+                                             csv_width))
+
         for title in self.sections:
             writer.writerow(pad_iterable([f'[{title}]'], csv_width))
 
@@ -435,6 +444,13 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 for read in self.Reads:
                     writer.writerow(pad_iterable([read], csv_width))
             elif title == _DATA_KEY:
+                # turn into a df to make it easier to write
+                df_lines = []
+                for sample in self.samples:
+                    line = [getattr(sample, k) for k in self.all_sample_keys]
+                    df_lines.append(line)
+                data_df = pd.DataFrame(df_lines, columns=self.all_sample_keys)
+
                 if self._ORDERED_BY_DATA_COLUMNS:
                     # order according to the expected column order.  If there
                     # are columns other than the expected ones, put them at the
@@ -449,22 +465,14 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                     # legacy behavior
                     col_order = self.all_sample_keys
 
-                writer.writerow(pad_iterable(col_order, csv_width))
-
-                for sample in self.samples:
-                    line = [getattr(sample, k) for k in col_order]
-                    writer.writerow(pad_iterable(line, csv_width))
+                if not data_df.empty and lane is not None:
+                    data_df[_LANE_KEY] = lane
+                _write_df_section(data_df[col_order])
 
             elif title in self._KL_ADDTL_DF_SECTIONS:
                 if section is not None:
                     # these sections are represented as DataFrame objects
-                    writer.writerow(pad_iterable(section.columns.tolist(),
-                                                 csv_width))
-
-                    for _, row in section.iterrows():
-                        writer.writerow(pad_iterable(row.values.tolist(),
-                                                     csv_width))
-
+                    _write_df_section(section)
             else:
                 for key, value in section.items():
                     writer.writerow(pad_iterable([key, value], csv_width))
@@ -592,7 +600,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
         for lane in lanes:
             for sample in table.to_dict(orient='records'):
-                sample['Lane'] = lane
+                sample[_LANE_KEY] = lane
                 self.add_sample(sample_sheet.Sample(sample))
 
         return table
