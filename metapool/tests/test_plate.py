@@ -20,11 +20,15 @@ from metapool.metapool import (read_plate_map_csv, read_pico_csv,
 
 class DilutionTests(TestCase):
     def test_dilution_test(self):
-        plate_df = read_plate_map_csv('notebooks/test_data/Plate_Maps/Finrisk'
-                                      ' 33-36_plate_map.tsv')
-        sample_concs = read_pico_csv(open('notebooks/test_data/Quant/MiniPico'
-                                          '/FinRisk_33-36_gDNA_quant.tsv',
-                                          'r'))
+        notebook_test_data_dir = \
+            os.path.join(
+                os.path.dirname(__file__), '../../notebooks/test_data')
+        plate_df = read_plate_map_csv(
+            f'{notebook_test_data_dir}/Plate_Maps/Finrisk 33-36_plate_map.tsv')
+        sample_concs = read_pico_csv(
+            open(
+                f'{notebook_test_data_dir}/Quant/MiniPico'
+                f'/FinRisk_33-36_gDNA_quant.tsv', 'r'))
         plate_df = pd.merge(plate_df, sample_concs, on='Well')
 
         self.assertFalse(requires_dilution(plate_df,
