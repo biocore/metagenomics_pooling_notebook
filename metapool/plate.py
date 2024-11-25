@@ -9,7 +9,8 @@ from sklearn.linear_model import LogisticRegression
 from collections import OrderedDict
 from string import ascii_uppercase
 from metapool.mp_strings import EXPT_DESIGN_DESC_KEY, PM_PROJECT_NAME_KEY, \
-    PM_PROJECT_PLATE_KEY, PM_PROJECT_ABBREV_KEY, PM_COMPRESSED_PLATE_NAME_KEY
+    PM_PROJECT_PLATE_KEY, PM_PROJECT_ABBREV_KEY, \
+    PM_COMPRESSED_PLATE_NAME_KEY, SAMPLE_DNA_CONC_KEY, EXTRACTED_GDNA_CONC_KEY
 
 EXPECTED_COLUMNS = {
     'Plate Position', 'Plate map file', 'Plate elution volume',
@@ -261,27 +262,44 @@ def dilute_gDNA(plate_df, threshold=15):
                If dilution was needed, gDNA concentrations will be adjusted.
                'Diluted' column will be added and contents set to 'True'.
     """
+
+    temp_key = 'TEMP_CONC'
+    a_df = plate_df.copy()
+    diluted_mask = a_df[SAMPLE_DNA_CONC_KEY] > threshold
+    a_df[temp_key] = a_df[SAMPLE_DNA_CONC_KEY] / 10
+    result = record_gdna_dilution(a_df, diluted_mask, temp_key)
+    result.drop(columns=[temp_key], inplace=True)
+    return result
+
+
+def record_gdna_dilution(plate_df, diluted_mask, diluted_conc_key):
+    """
+        Reads a plate_df and sets info for samples that need dilution.
+        :param plate_df: processing-plate Pandas dataframe
+        :param diluted_mask: Boolean mask for samples that need dilution.
+        :param diluted_conc_key: Key for the diluted concentration column.
+        :return: Pandas DataFrame
+               Note: 'Diluted' column will be added and contents set to 'True'.
+    """
     if 'Diluted' in plate_df.columns:
         # function has already been applied to data
         warnings.warn('Dilution operation was already performed')
         return plate_df
 
-    # return a copy of the input data. Do not overwrite the input data by
-    # default.
-    plate_df['extracted_gdna_concentration_ng_ul'] = \
-        plate_df['Sample DNA Concentration'].copy()
+    plate_df[EXTRACTED_GDNA_CONC_KEY] = plate_df[SAMPLE_DNA_CONC_KEY].copy()
+
+    # return a copy of the input data. Do not overwrite input data by default.
     df = plate_df.copy()
     df['Diluted'] = True
-
     df[PM_PROJECT_PLATE_KEY] = \
         df[PM_PROJECT_PLATE_KEY].astype(str) + '_diluted'
     df[PM_COMPRESSED_PLATE_NAME_KEY] = \
         df[PM_COMPRESSED_PLATE_NAME_KEY] + '_dilution'
-    df['Sample DNA Concentration'] = df['Sample DNA Concentration'] / 10
+    df[SAMPLE_DNA_CONC_KEY] = df[diluted_conc_key]
 
-    # Picking diluted samples for normalization
-    diluted = (df.loc[df['Sample DNA Concentration'] > (threshold / 10)])
-    undiluted = plate_df.loc[~plate_df['Sample'].isin(diluted['Sample'])]
+    # Make output dataframe from the diluted and undiluted samples
+    diluted = (df.loc[diluted_mask])
+    undiluted = plate_df.loc[~diluted_mask]
 
     return pd.concat([diluted, undiluted]).sort_index()
 
@@ -296,7 +314,7 @@ def requires_dilution(plate_df, threshold=15, tolerance=0.05):
         """
     # generate a Series of Booleans, based on whether each concentration falls
     # within the threshold or not.
-    within_threshold = plate_df['Sample DNA Concentration'] > threshold
+    within_threshold = plate_df[SAMPLE_DNA_CONC_KEY] > threshold
     pct_of_total = plate_df.loc[within_threshold].shape[0] / plate_df.shape[0]
 
     return pct_of_total > tolerance
