@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import warnings
 from metapool.mp_strings import get_qiita_id_from_project_name, \
     SAMPLE_NAME_KEY, QIITA_ID_KEY, PM_PROJECT_NAME_KEY, PM_PROJECT_ABBREV_KEY
 
@@ -170,4 +171,4 @@ def get_set_fp(set_fbase, set_id):
 
 def warn_if_fp_exists(fp):
     if os.path.isfile(fp):
-        print(f"Warning! This file exists already: {fp}.")
+        warnings.warn(f"Warning! This file exists already: {fp}.")
