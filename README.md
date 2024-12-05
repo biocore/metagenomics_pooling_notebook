@@ -16,8 +16,7 @@ git clone https://github.com/biocore/metagenomics_pooling_notebook.git
 Create a Python3 Conda environment in which to run the package:
 
 ```bash
-conda create -n metapool 'python=3.9' scikit-learn pandas numpy scipy nose pep8 flake8 matplotlib jupyter 'seaborn>=0.7.1' pip openpyxl seqtk
-
+conda create --yes -n metapool python='python=3.9' scikit-learn pandas numpy nose pep8 flake8 matplotlib jupyter notebook 'seaborn>=0.7.1' pip openpyxl 'seqtk>=1.4'
 ```
 
 Activate the Conda environment:
