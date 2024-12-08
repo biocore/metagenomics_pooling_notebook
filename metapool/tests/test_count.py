@@ -7,7 +7,7 @@ from sample_sheet import Sample
 from unittest import main, TestCase
 from metapool.sample_sheet import MetagenomicSampleSheetv90
 from metapool.count import (_extract_name_and_lane, _parse_fastp_counts,
-                            bcl2fastq_counts, fastp_counts, run_counts,
+                            raw_read_counts, fastp_counts, run_counts,
                             _parsefier)
 
 
@@ -128,8 +128,14 @@ class TestCount(TestCase):
                                              f"{bad_dir}/Stats/Stats.json' or "
                                              "Demultiplex_Stats.csv '"
                                              f"{bad_dir}/Reports/Demultiplex_"
-                                             "Stats.csv' for this run"):
-            bcl2fastq_counts(bad_dir, self.ss)
+                                             "Stats.csv' or SeqCounts.csv '/"
+                                             "Users/ccowart/SATURDAY/meta"
+                                             "genomics_pooling_notebook/"
+                                             "metapool/tests/data/runs/200318_"
+                                             "A00953_0082_AH5TWYDSXY/Trojecp_"
+                                             "666/SeqCounts.csv' for this "
+                                             "run"):
+            raw_read_counts(bad_dir, self.ss)
 
     def test_bcl2fastq_counts_malformed_results(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -142,7 +148,7 @@ class TestCount(TestCase):
             with self.assertRaisesRegex(KeyError, 'bcl stats file is missing '
                                                   'ConversionResults '
                                                   'attribute'):
-                bcl2fastq_counts(tmp, self.ss)
+                raw_read_counts(tmp, self.ss)
 
     def test_bcl2fastq_counts_malformed_lane(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -155,7 +161,7 @@ class TestCount(TestCase):
             with self.assertRaisesRegex(KeyError, 'bcl stats file is missing '
                                                   'DemuxResults '
                                                   'attribute'):
-                bcl2fastq_counts(tmp, self.ss)
+                raw_read_counts(tmp, self.ss)
 
     def test_bcl2fastq_counts_malformed_lane_number(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -168,10 +174,10 @@ class TestCount(TestCase):
 
             with self.assertRaisesRegex(KeyError, 'bcl stats file is missing '
                                                   'LaneNumber attribute'):
-                bcl2fastq_counts(tmp, self.ss)
+                raw_read_counts(tmp, self.ss)
 
     def test_bcl2fastq_counts(self):
-        obs = bcl2fastq_counts(self.run_dir, self.ss)
+        obs = raw_read_counts(self.run_dir, self.ss)
         pd.testing.assert_frame_equal(obs.sort_index(),
                                       self.stats[['raw_reads_r1r2']])
 
@@ -254,8 +260,15 @@ class TestBCLConvertCount(TestCase):
                                              f"{bad_dir}/Stats/Stats.json' or "
                                              "Demultiplex_Stats.csv '"
                                              f"{bad_dir}/Reports/Demultiplex_"
-                                             "Stats.csv' for this run"):
-            bcl2fastq_counts(bad_dir, self.ss)
+                                             "Stats.csv' or SeqCounts.csv '/"
+                                             "Users/ccowart/SATURDAY/meta"
+                                             "genomics_pooling_notebook/meta"
+                                             "pool/tests/data/runs/200418_"
+                                             "A00953_0082_AH5TWYDSXY/Trojecp_"
+                                             "666/SeqCounts.csv' for this "
+                                             "run"):
+
+            raw_read_counts(bad_dir, self.ss)
 
     def test_bcl2fastq_counts_malformed_results(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -267,7 +280,7 @@ class TestBCLConvertCount(TestCase):
 
             with self.assertRaisesRegex(pd.errors.EmptyDataError,
                                         'No columns to parse from file'):
-                bcl2fastq_counts(tmp, self.ss)
+                raw_read_counts(tmp, self.ss)
 
     def test_bcl2fastq_counts_malformed_lane(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -282,10 +295,10 @@ class TestBCLConvertCount(TestCase):
                         '\n')
 
             with self.assertRaisesRegex(KeyError, r"\['Lane'\] not in index"):
-                bcl2fastq_counts(tmp, self.ss)
+                raw_read_counts(tmp, self.ss)
 
     def test_bcl2fastq_counts(self):
-        obs = bcl2fastq_counts(self.run_dir, self.ss)
+        obs = raw_read_counts(self.run_dir, self.ss)
 
         exp = self.stats[['raw_reads_r1r2']] * 2
         pd.testing.assert_frame_equal(obs.sort_index(), exp)
