@@ -98,6 +98,10 @@ _BASE_CARRIED_PREP_COLUMNS = (EXPT_DESIGN_DESC_KEY, 'i5_index_id',
                               'sample_project', 'well_description',
                               'well_id_384')
 
+_BASE_GENERATED_PREP_COLUMNS = ('center_name', 'center_project_name',
+                                'instrument_model', 'lane', 'platform',
+                                'run_center', 'run_date', 'run_prefix',
+                                'runid', 'sequencing_meth')
 
 _BASE_PLATE_REMAPPER = MappingProxyType({
     'sample sheet Sample_ID': SS_SAMPLE_ID_KEY,
@@ -1352,12 +1356,6 @@ class KLTellSeqSampleSheet(KLSampleSheetWithSampleContext):
         self._data_columns = \
             _PREFIX_PLATE_COLUMNS + (self.BARCODE_ID_KEY, ) + \
             _SUFFIX_PLATE_COLUMNS
-        self._CARRIED_PREP_COLUMNS = None
-
-    @property
-    def CARRIED_PREP_COLUMNS(self):
-        raise NotImplementedError("CARRIED_PREP_COLUMNS is not implemented "
-                                  "for tellseq metagenomics sample sheets")
 
 
 class TellseqMetagSampleSheetv10(KLTellSeqSampleSheet):
@@ -1366,12 +1364,29 @@ class TellseqMetagSampleSheetv10(KLTellSeqSampleSheet):
     _HEADER[_SHEET_VERSION_KEY] = '10'
     _HEADER[_ASSAY_KEY] = _METAGENOMIC
 
+    @property
+    def CARRIED_PREP_COLUMNS(self):
+        return list(_BASE_CARRIED_PREP_COLUMNS)
+
+    @property
+    def GENERATED_PREP_COLUMNS(self):
+        return list(_BASE_GENERATED_PREP_COLUMNS)
+
 
 class TellseqAbsquantMetagSampleSheetv10(AbsQuantMixin, KLTellSeqSampleSheet):
     _HEADER = KLSampleSheet._HEADER.copy()
     _HEADER[_SHEET_TYPE_KEY] = TELLSEQ_ABSQUANT_SHEET_TYPE
     _HEADER[_SHEET_VERSION_KEY] = '10'
     _HEADER[_ASSAY_KEY] = _METAGENOMIC
+
+    @property
+    def CARRIED_PREP_COLUMNS(self):
+        return list(_BASE_CARRIED_PREP_COLUMNS +
+                    AbsQuantMixin._ABSQUANT_SPECIFIC_COLUMNS)
+
+    @property
+    def GENERATED_PREP_COLUMNS(self):
+        return list(_BASE_GENERATED_PREP_COLUMNS)
 
 
 class AmpliconSampleSheet(KLSampleSheet):

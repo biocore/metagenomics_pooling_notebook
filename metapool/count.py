@@ -139,7 +139,7 @@ def _safe_get(_document, _key):
 def raw_read_counts(run_dir, sample_sheet):
     bcl2fastq_path = join(abspath(run_dir), 'Stats/Stats.json')
     bclconvert_path = join(abspath(run_dir), 'Reports/Demultiplex_Stats.csv')
-    seqcounts_path = join(abspath(run_dir), 'SeqCounts.csv')
+    seqcounts_path = join(abspath(run_dir), 'Reports/SeqCounts.csv')
 
     count = 0
     found = []
