@@ -1366,9 +1366,8 @@ class TellseqMetagSampleSheetv10(KLTellSeqSampleSheet):
 
     @property
     def CARRIED_PREP_COLUMNS(self):
-        foo = [x for x in _BASE_CARRIED_PREP_COLUMNS if x not in {'i7_index_id', 'index', 'index2', 'i5_index_id'}]
-
-        return foo
+        return [x for x in _BASE_CARRIED_PREP_COLUMNS if x not in
+                {'i7_index_id', 'index', 'index2', 'i5_index_id'}]
 
     @property
     def GENERATED_PREP_COLUMNS(self):
@@ -1383,8 +1382,9 @@ class TellseqAbsquantMetagSampleSheetv10(AbsQuantMixin, KLTellSeqSampleSheet):
 
     @property
     def CARRIED_PREP_COLUMNS(self):
-        foo = [x for x in _BASE_CARRIED_PREP_COLUMNS if x not in {'i7_index_id', 'index', 'index2', 'i5_index_id'}]
-        return foo + list(AbsQuantMixin._ABSQUANT_SPECIFIC_COLUMNS)
+        return [x for x in _BASE_CARRIED_PREP_COLUMNS if x not in
+                {'i7_index_id', 'index', 'index2', 'i5_index_id'}] + \
+                list(AbsQuantMixin._ABSQUANT_SPECIFIC_COLUMNS)
 
     @property
     def GENERATED_PREP_COLUMNS(self):

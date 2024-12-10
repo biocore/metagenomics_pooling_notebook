@@ -124,17 +124,13 @@ class TestCount(TestCase):
 
     def test_bcl2fastq_no_stats_file(self):
         bad_dir = os.path.join(os.path.abspath(self.run_dir), 'Trojecp_666')
-        with self.assertRaisesRegex(IOError, "Cannot find Stats.json '"
-                                             f"{bad_dir}/Stats/Stats.json' or "
-                                             "Demultiplex_Stats.csv '"
-                                             f"{bad_dir}/Reports/Demultiplex_"
-                                             "Stats.csv' or SeqCounts.csv '/"
-                                             "Users/ccowart/SATURDAY/meta"
-                                             "genomics_pooling_notebook/"
-                                             "metapool/tests/data/runs/200318_"
-                                             "A00953_0082_AH5TWYDSXY/Trojecp_"
-                                             "666/SeqCounts.csv' for this "
-                                             "run"):
+
+        msg = (f"Cannot find Stats.json '{bad_dir}/Stats/Stats.json' or "
+               f"Demultiplex_Stats.csv '{bad_dir}/Reports/Demultiplex_Stats"
+               f".csv' or SeqCounts.csv '{bad_dir}/Reports/SeqCounts.csv' for"
+               " this run")
+
+        with self.assertRaisesRegex(IOError, msg):
             raw_read_counts(bad_dir, self.ss)
 
     def test_bcl2fastq_counts_malformed_results(self):
@@ -256,18 +252,13 @@ class TestBCLConvertCount(TestCase):
 
     def test_bcl2fastq_no_stats_file(self):
         bad_dir = os.path.join(os.path.abspath(self.run_dir), 'Trojecp_666')
-        with self.assertRaisesRegex(IOError, f"Cannot find Stats.json '"
-                                             f"{bad_dir}/Stats/Stats.json' or "
-                                             "Demultiplex_Stats.csv '"
-                                             f"{bad_dir}/Reports/Demultiplex_"
-                                             "Stats.csv' or SeqCounts.csv '/"
-                                             "Users/ccowart/SATURDAY/meta"
-                                             "genomics_pooling_notebook/meta"
-                                             "pool/tests/data/runs/200418_"
-                                             "A00953_0082_AH5TWYDSXY/Trojecp_"
-                                             "666/SeqCounts.csv' for this "
-                                             "run"):
 
+        msg = (f"Cannot find Stats.json '{bad_dir}/Stats/Stats.json' or "
+               f"Demultiplex_Stats.csv '{bad_dir}/Reports/Demultiplex_Stats"
+               f".csv' or SeqCounts.csv '{bad_dir}/Reports/SeqCounts.csv' for"
+               " this run")
+
+        with self.assertRaisesRegex(IOError, msg):
             raw_read_counts(bad_dir, self.ss)
 
     def test_bcl2fastq_counts_malformed_results(self):
