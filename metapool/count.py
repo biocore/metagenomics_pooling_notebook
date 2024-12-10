@@ -164,7 +164,7 @@ def raw_read_counts(run_dir, sample_sheet):
     elif found[0] == seqcounts_path:
         return _seqcount_counts(seqcounts_path)
     else:
-        raise IOError("Undetermiend Error")
+        raise IOError(f"Undetermined error accessing {found[0]}")
 
 
 def _bcl2fastq_counts(path):

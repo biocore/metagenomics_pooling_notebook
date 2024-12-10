@@ -122,7 +122,7 @@ class TestCount(TestCase):
 
         self.assertEqual(obs, 4692)
 
-    def test_bcl2fastq_no_stats_file(self):
+    def test_raw_read_counts_no_stats_file(self):
         bad_dir = os.path.join(os.path.abspath(self.run_dir), 'Trojecp_666')
 
         msg = (f"Cannot find Stats.json '{bad_dir}/Stats/Stats.json' or "
@@ -133,7 +133,7 @@ class TestCount(TestCase):
         with self.assertRaisesRegex(IOError, msg):
             raw_read_counts(bad_dir, self.ss)
 
-    def test_bcl2fastq_counts_malformed_results(self):
+    def test_raw_read_counts_malformed_results(self):
         with tempfile.TemporaryDirectory() as tmp:
             stats = os.path.join(tmp, 'Stats')
             os.makedirs(stats)
@@ -146,7 +146,7 @@ class TestCount(TestCase):
                                                   'attribute'):
                 raw_read_counts(tmp, self.ss)
 
-    def test_bcl2fastq_counts_malformed_lane(self):
+    def test_raw_read_counts_malformed_lane(self):
         with tempfile.TemporaryDirectory() as tmp:
             stats = os.path.join(tmp, 'Stats')
             os.makedirs(stats)
@@ -159,7 +159,7 @@ class TestCount(TestCase):
                                                   'attribute'):
                 raw_read_counts(tmp, self.ss)
 
-    def test_bcl2fastq_counts_malformed_lane_number(self):
+    def test_raw_read_counts_malformed_lane_number(self):
         with tempfile.TemporaryDirectory() as tmp:
             stats = os.path.join(tmp, 'Stats')
             os.makedirs(stats)
@@ -172,7 +172,7 @@ class TestCount(TestCase):
                                                   'LaneNumber attribute'):
                 raw_read_counts(tmp, self.ss)
 
-    def test_bcl2fastq_counts(self):
+    def test_raw_read_counts(self):
         obs = raw_read_counts(self.run_dir, self.ss)
         pd.testing.assert_frame_equal(obs.sort_index(),
                                       self.stats[['raw_reads_r1r2']])
@@ -250,7 +250,7 @@ class TestBCLConvertCount(TestCase):
 
         self.stats.index.set_names(['Sample_ID', 'Lane'], inplace=True)
 
-    def test_bcl2fastq_no_stats_file(self):
+    def test_raw_read_counts_no_stats_file(self):
         bad_dir = os.path.join(os.path.abspath(self.run_dir), 'Trojecp_666')
 
         msg = (f"Cannot find Stats.json '{bad_dir}/Stats/Stats.json' or "
@@ -261,7 +261,7 @@ class TestBCLConvertCount(TestCase):
         with self.assertRaisesRegex(IOError, msg):
             raw_read_counts(bad_dir, self.ss)
 
-    def test_bcl2fastq_counts_malformed_results(self):
+    def test_raw_read_counts_malformed_results(self):
         with tempfile.TemporaryDirectory() as tmp:
             stats = os.path.join(tmp, 'Reports')
             os.makedirs(stats)
@@ -273,7 +273,7 @@ class TestBCLConvertCount(TestCase):
                                         'No columns to parse from file'):
                 raw_read_counts(tmp, self.ss)
 
-    def test_bcl2fastq_counts_malformed_lane(self):
+    def test_raw_read_counts_malformed_lane(self):
         with tempfile.TemporaryDirectory() as tmp:
             stats = os.path.join(tmp, 'Reports')
             os.makedirs(stats)
@@ -288,7 +288,7 @@ class TestBCLConvertCount(TestCase):
             with self.assertRaisesRegex(KeyError, r"\['Lane'\] not in index"):
                 raw_read_counts(tmp, self.ss)
 
-    def test_bcl2fastq_counts(self):
+    def test_raw_read_counts(self):
         obs = raw_read_counts(self.run_dir, self.ss)
 
         exp = self.stats[['raw_reads_r1r2']] * 2

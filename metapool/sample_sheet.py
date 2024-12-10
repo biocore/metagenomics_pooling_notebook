@@ -1364,14 +1364,13 @@ class TellseqMetagSampleSheetv10(KLTellSeqSampleSheet):
     _HEADER[_SHEET_VERSION_KEY] = '10'
     _HEADER[_ASSAY_KEY] = _METAGENOMIC
 
+    # if refactoring, see:
+    # https://github.com/biocore/metagenomics_pooling_notebook/issues/263
+
     @property
     def CARRIED_PREP_COLUMNS(self):
         return [x for x in _BASE_CARRIED_PREP_COLUMNS if x not in
                 {'i7_index_id', 'index', 'index2', 'i5_index_id'}]
-
-    @property
-    def GENERATED_PREP_COLUMNS(self):
-        return list(_BASE_GENERATED_PREP_COLUMNS)
 
 
 class TellseqAbsquantMetagSampleSheetv10(AbsQuantMixin, KLTellSeqSampleSheet):
@@ -1380,15 +1379,14 @@ class TellseqAbsquantMetagSampleSheetv10(AbsQuantMixin, KLTellSeqSampleSheet):
     _HEADER[_SHEET_VERSION_KEY] = '10'
     _HEADER[_ASSAY_KEY] = _METAGENOMIC
 
+    # if refactoring, see:
+    # https://github.com/biocore/metagenomics_pooling_notebook/issues/263
+
     @property
     def CARRIED_PREP_COLUMNS(self):
         return [x for x in _BASE_CARRIED_PREP_COLUMNS if x not in
                 {'i7_index_id', 'index', 'index2', 'i5_index_id'}] + \
                 list(AbsQuantMixin._ABSQUANT_SPECIFIC_COLUMNS)
-
-    @property
-    def GENERATED_PREP_COLUMNS(self):
-        return list(_BASE_GENERATED_PREP_COLUMNS)
 
 
 class AmpliconSampleSheet(KLSampleSheet):
