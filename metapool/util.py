@@ -1,9 +1,11 @@
 import os
 import pandas as pd
+import warnings
 from metapool.mp_strings import get_qiita_id_from_project_name, \
     SAMPLE_NAME_KEY, QIITA_ID_KEY, PM_PROJECT_NAME_KEY, PM_PROJECT_ABBREV_KEY
 
 QIITA_STUDY_ID_KEY = 'qiita_study_id'
+SET_SUFFIX = '_set'
 
 
 def join_dfs_from_files(input_fps, req_cols_to_extract,
@@ -161,3 +163,12 @@ def _check_for_missing_df_ids(subset_df, superset_df, id_col,
         raise ValueError(f'Some {id_col} values in the {sub_name} dataframe '
                          f'are not in the {sup_name} dataframe: '
                          f'{", ".join(missing_vals)}')
+
+
+def get_set_fp(set_fbase, set_id):
+    return f"{set_fbase}{SET_SUFFIX}_{set_id}.txt"
+
+
+def warn_if_fp_exists(fp):
+    if os.path.isfile(fp):
+        warnings.warn(f"Warning! This file exists already: {fp}.")

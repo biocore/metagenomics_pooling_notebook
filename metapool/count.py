@@ -136,22 +136,35 @@ def _safe_get(_document, _key):
         return _document[_key]
 
 
-def bcl2fastq_counts(run_dir, sample_sheet):
+def raw_read_counts(run_dir, sample_sheet):
     bcl2fastq_path = join(abspath(run_dir), 'Stats/Stats.json')
     bclconvert_path = join(abspath(run_dir), 'Reports/Demultiplex_Stats.csv')
+    seqcounts_path = join(abspath(run_dir), 'Reports/SeqCounts.csv')
 
-    if exists(bcl2fastq_path):
-        if exists(bclconvert_path):
-            raise IOError(f"both '{bcl2fastq_path}' and '{bclconvert_path}'"
-                          " exist")
-        else:
-            return _bcl2fastq_counts(bcl2fastq_path)
-    elif exists(bclconvert_path):
-        return _bclconvert_counts(bclconvert_path)
-    else:
+    count = 0
+    found = []
+    for item in [bcl2fastq_path, bclconvert_path, seqcounts_path]:
+        if exists(item):
+            count += 1
+            found.append(item)
+
+        if count > 1:
+            raise IOError("multiple metadata files exist: %s",
+                          ', '.join(found))
+
+    if len(found) == 0:
         raise IOError(f"Cannot find Stats.json '{bcl2fastq_path}' or "
-                      f"Demultiplex_Stats.csv '{bclconvert_path}' for this"
-                      " run")
+                      f"Demultiplex_Stats.csv '{bclconvert_path}' or "
+                      f"SeqCounts.csv '{seqcounts_path}' for this run")
+
+    if found[0] == bcl2fastq_path:
+        return _bcl2fastq_counts(bcl2fastq_path)
+    elif found[0] == bclconvert_path:
+        return _bclconvert_counts(bclconvert_path)
+    elif found[0] == seqcounts_path:
+        return _seqcount_counts(seqcounts_path)
+    else:
+        raise IOError(f"Undetermined error accessing {found[0]}")
 
 
 def _bcl2fastq_counts(path):
@@ -194,6 +207,20 @@ def _bclconvert_counts(path):
     # rename columns to standard values for metapool
     df.rename(columns={'SampleID': 'Sample_ID'}, inplace=True)
     # create indexes on these columns
+    df['Lane'] = df['Lane'].astype(str)
+    df.set_index(['Sample_ID', 'Lane'], inplace=True, verify_integrity=True)
+
+    return df
+
+
+def _seqcount_counts(path):
+    # read the csv in from file
+    df = pd.read_csv(path)
+
+    # drop rows that have zero reads.
+    df = df[df['raw_reads_r1r2'] != 0]
+
+    # create indexes
     df['Lane'] = df['Lane'].astype(str)
     df.set_index(['Sample_ID', 'Lane'], inplace=True, verify_integrity=True)
 
@@ -293,7 +320,7 @@ def run_counts(run_dir, metadata):
     :param metadata: A sample-sheet (metagenomic) or mapping-file (amplicon)
     :return: pandas.DataFrame
     '''
-    out = bcl2fastq_counts(run_dir, metadata).join(
+    out = raw_read_counts(run_dir, metadata).join(
         [fastp_counts(run_dir, metadata),
          direct_sequence_counts(run_dir, metadata)])
 

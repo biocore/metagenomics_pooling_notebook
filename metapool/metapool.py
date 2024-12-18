@@ -11,7 +11,9 @@ from configparser import ConfigParser
 from qiita_client import QiitaClient
 from .mp_strings import SAMPLE_NAME_KEY, PM_PROJECT_NAME_KEY, \
     PM_PROJECT_PLATE_KEY, PM_COMPRESSED_PLATE_NAME_KEY, PM_BLANK_KEY, \
-    PLATE_NAME_DELIMITER, get_qiita_id_from_project_name, \
+    PLATE_NAME_DELIMITER, SAMPLE_DNA_CONC_KEY, NORMALIZED_DNA_VOL_KEY, \
+    SYNDNA_POOL_MASS_NG_KEY, SYNDNA_POOL_NUM_KEY, TUBECODE_KEY, \
+    get_qiita_id_from_project_name, \
     get_plate_num_from_plate_name, get_main_project_from_plate_name
 from .plate import _validate_well_id_96, PlateReplication
 
@@ -27,13 +29,9 @@ REVCOMP_SEQUENCERS = ['HiSeq4000', 'MiniSeq', 'NextSeq', 'HiSeq3000',
 OTHER_SEQUENCERS = ['HiSeq2500', 'HiSeq1500', 'MiSeq', 'NovaSeqX',
                     'NovaSeqXPlus']
 
-SYNDNA_POOL_NUM_KEY = "syndna_pool_number"
-SAMPLE_DNA_CONC_KEY = "Sample DNA Concentration"
-NORMALIZED_DNA_VOL_KEY = "Normalized DNA volume"
+
 INPUT_DNA_KEY = "Input DNA"
 SYNDNA_VOL_KEY = "synDNA volume"
-SYNDNA_POOL_MASS_NG_KEY = "mass_syndna_input_ng"
-TUBECODE_KEY = "TubeCode"
 
 
 def extract_stats_metadata(stats_json_fp, lane_numbers):
@@ -691,45 +689,56 @@ def format_index_picklist(
 
     picklist = ""
 
-    # header
-    picklist += (
+    main_headers = (
         "Sample\tSource Plate Name\tSource Plate Type\tSource Well\t"
-        "Transfer Volume\tIndex Name\tIndex Sequence\tIndex Combo\t"
-        "Destination Plate Name\tDestination Well"
-    )
+        "Transfer Volume\tIndex Name\t")
+    seq_and_combo_headers = "Index Sequence\tIndex Combo\t"
+    destination_headers = "Destination Plate Name\tDestination Well"
+
+    combo_index_cols = ["i5 sequence", "i7 sequence", "index combo"]
+    is_combo = all([col in indices.columns for col in combo_index_cols])
+    optional_headers = seq_and_combo_headers if is_combo else ""
+
+    # header
+    picklist += main_headers + optional_headers + destination_headers
 
     # i5 additions
     for i, (sample, well) in enumerate(zip(sample_names, sample_wells)):
-        picklist += "\n" + "\t".join(
-            [
+        main_list = [
                 str(sample),
                 indices.iloc[i]["i5 plate"],
                 i5_plate_type,
                 indices.iloc[i]["i5 well"],
                 str(i5_vol),
-                indices.iloc[i]["i5 name"],
+                indices.iloc[i]["i5 name"]
+        ]
+
+        optional_list = []
+        if is_combo:
+            optional_list = [
                 indices.iloc[i]["i5 sequence"],
-                str(indices.iloc[i]["index combo"]),
-                dest_plate_name,
-                well,
+                str(indices.iloc[i]["index combo"])
             ]
-        )
-    # i7 additions
-    for i, (sample, well) in enumerate(zip(sample_names, sample_wells)):
-        picklist += "\n" + "\t".join(
-            [
-                str(sample),
-                indices.iloc[i]["i7 plate"],
-                i7_plate_type,
-                indices.iloc[i]["i7 well"],
-                str(i7_vol),
-                indices.iloc[i]["i7 name"],
-                indices.iloc[i]["i7 sequence"],
-                str(indices.iloc[i]["index combo"]),
-                dest_plate_name,
-                well,
-            ]
-        )
+        picklist_pieces = main_list + optional_list + [dest_plate_name, well]
+        picklist += "\n" + "\t".join(picklist_pieces)
+
+    if is_combo:
+        # i7 additions
+        for i, (sample, well) in enumerate(zip(sample_names, sample_wells)):
+            picklist += "\n" + "\t".join(
+                [
+                    str(sample),
+                    indices.iloc[i]["i7 plate"],
+                    i7_plate_type,
+                    indices.iloc[i]["i7 well"],
+                    str(i7_vol),
+                    indices.iloc[i]["i7 name"],
+                    indices.iloc[i]["i7 sequence"],
+                    str(indices.iloc[i]["index combo"]),
+                    dest_plate_name,
+                    well,
+                ]
+            )
 
     return picklist
 
@@ -946,7 +955,8 @@ def estimate_pool_conc_vol(sample_vols, sample_concs):
 def format_pooling_echo_pick_list(
     main_input, max_vol_per_well=30000,
     pooling_vol_column='MiniPico Pooled Volume',
-    dest_plate_shape=None):
+    dest_plate_shape=None,
+    source_well_names=None):
     """Format the contents of an echo pooling pick list
 
     Parameters
@@ -955,36 +965,35 @@ def format_pooling_echo_pick_list(
         2d array specifies the per well sample volume,
         in nL (Legacy)
         pandas DataFrame contains pooling volumes
-    pooling_vol_column : a string 
-        specifies the pandas dataframe column header 
-        that contains the pooling volumes. 
+    pooling_vol_column : a string
+        specifies the pandas dataframe column header
+        that contains the pooling volumes.
     max_vol_per_well : 2d numpy array of floats
         Maximum destination well volume, in nL
-    
     """
-    #Logic checks for pandas DataFrame as input
-    #or np.array as input for legacy support
+    # Logic checks for pandas DataFrame as input
+    # or np.array as input for legacy support
     if isinstance(main_input, pd.DataFrame):
         formatted_df = main_input[['Compressed Plate Name',
-                                  'Library Well',
-                                  pooling_vol_column,
-                                  ]]
+                                   'Library Well',
+                                   pooling_vol_column,
+                                   ]]
 
-        #Writing picklist headers 
+        # Writing picklist headers
         contents = [
             "Source Plate Name,Source Plate Type,Source Well,"
             "Concentration,Transfer Volume,Destination Plate Name,"
             "Destination Well"
         ]
-        
-        #Destination well cycling logic
+
+        # Destination well cycling logic
         running_tot = 0
         d = 1
-        
+
         if dest_plate_shape is None:
             dest_plate_shape = (16, 24)
-            
-        for i,pool_vol in formatted_df[[pooling_vol_column]].iterrows():
+
+        for i, pool_vol in formatted_df[[pooling_vol_column]].iterrows():
             pool_vol = float(pool_vol)
             # test to see if we will exceed total vol per well
             if running_tot + pool_vol > max_vol_per_well:
@@ -996,19 +1005,19 @@ def format_pooling_echo_pick_list(
             dest = "%s%d" % (
                 chr(ord("A") + int(np.floor(d / dest_plate_shape[0]))),
                 (d % dest_plate_shape[1]))
-        
-            #writing picklist from row iterations
-            contents.append(",".join([formatted_df.loc[i,'Compressed Plate Name'],
+
+            # writing picklist from row iterations
+            contents.append(",".join([formatted_df.loc[i, 'Compressed Plate Name'],
                                       "384LDV_AQ_B2",
-                                      formatted_df.loc[i,'Library Well'],
+                                      formatted_df.loc[i, 'Library Well'],
                                       "",
                                       "%.2f" % pool_vol,
                                       "NormalizedDNA",
                                       dest]))
-            
-    
+
+
     elif isinstance(main_input, np.ndarray):
-            
+
         # # For LEGACY support, this code block is unaltered # #
         # # ################################################ # #
         if dest_plate_shape is None:
@@ -1029,7 +1038,11 @@ def format_pooling_echo_pick_list(
         d = 1
         for i in range(rows):
             for j in range(cols):
-                well_name = "%s%d" % (chr(ord("A") + i), j + 1)
+                if source_well_names is None:
+                    well_name = "%s%d" % (chr(ord("A") + i), j + 1)
+                else:
+                    well_name = source_well_names[i][j]
+
                 # Machine will round, so just give it enough info to do the
                 # correct rounding.
                 val = "%.2f" % pool_vols[i][j]
@@ -1050,7 +1063,7 @@ def format_pooling_echo_pick_list(
                                           "NormalizedDNA", dest]))
         # # ################################################ # #
         # # ################################################ # #
-    
+
     return "\n".join(contents)
 
 
@@ -1107,8 +1120,8 @@ def plot_plate_vals(dataset, color_map="YlGnBu", annot_str=None,
 
     with sns.axes_style():
         ax4 = plt.subplot2grid((40, 20), (0, 0), colspan=18, rowspan=18)
-        sns.distplot(dataset.flatten()[~np.isnan(dataset.flatten())], ax=ax4,
-                     bins=20)
+        sns.histplot(dataset.flatten()[~np.isnan(dataset.flatten())], ax=ax4,
+                     bins=20, kde=True, stat="density", kde_kws=dict(cut=3))
 
     return
 
@@ -1145,6 +1158,32 @@ def make_2D_array(qpcr, data_col="Cp", well_col="Pos", rows=16, cols=24):
         cp_array[row, col] = record[1][data_col]
 
     return cp_array
+
+
+def make_compressed_2d_array(a_df, data_col, row_col, col_col):
+    # make a copy of the dataframe and ensure cols are integers
+    a_df = a_df.copy()
+    a_df[col_col] = a_df[col_col].astype(int)
+
+    # Step 1: Map rows, cols (separately) to contiguous indices starting at 0
+    row_mapping = {letter: idx for idx, letter
+                   in enumerate(sorted(a_df[row_col].unique()))}
+
+    col_mapping = {col: idx for idx, col
+                   in enumerate(sorted(a_df[col_col].unique()))}
+
+    # Step 2: Determine the size of the 2D array and create empty
+    n_rows = len(row_mapping)
+    n_cols = len(col_mapping)
+    out_array = np.empty((n_rows, n_cols), dtype=object)
+
+    # Step 3: Populate the array
+    for _, row in a_df.iterrows():
+        row_idx = row_mapping[row[row_col]]
+        col_idx = col_mapping[row[col_col]]
+        out_array[row_idx, col_idx] = row[data_col]
+
+    return out_array
 
 
 def combine_dfs(qpcr_df, dna_picklist, index_picklist):
@@ -1687,7 +1726,20 @@ def add_syndna(plate_df, syndna_pool_number=None, syndna_concentration=None,
         return result
 
 
-def read_visionmate_file(file_path_, cast_as_str, sep="\t", validate=True):
+def is_absquant(a_plate_df):
+    result = False  # default assumption
+    if SYNDNA_POOL_NUM_KEY in a_plate_df.columns:
+        syndna_pool_num_vals = a_plate_df[SYNDNA_POOL_NUM_KEY].unique()
+        syndna_pool_num_numeric = np.array(
+            [x if x is not None else np.nan for x in syndna_pool_num_vals],
+            dtype=float)
+        has_non_nans = (~np.isnan(syndna_pool_num_numeric)).any()
+        result = bool(has_non_nans)
+    return result
+
+
+def read_visionmate_file(file_path_, cast_as_str, sep="\t", validate=True,
+                         preserve_leading_zeroes=False):
     """
     Helper function. Imports and validates files exported from VisionMate
     Args:
@@ -1720,10 +1772,29 @@ def read_visionmate_file(file_path_, cast_as_str, sep="\t", validate=True):
                 f"The following columns are missing from "
                 f"file {file_path_}: {missing_columns}"
             )
-    return vm_file
+
+    vm_df = vm_file if preserve_leading_zeroes else \
+        strip_tubecode_leading_zeroes(vm_file)
+    return vm_df
 
 
-def compress_plates(compression_layout, sample_accession_df, well_col="Well"):
+def strip_tubecode_leading_zeroes(a_df, tubecode_col="TubeCode"):
+    """
+    Strips leading zeroes from TubeCode column in a DataFrame.
+    Args:
+    a_df: pandas DataFrame object
+    tubecode_col: str, name of column with TubeCode information
+
+    Returns:
+    pandas DataFrame object with leading zeroes stripped from TubeCode column
+    """
+    if tubecode_col in a_df.columns:
+        a_df[tubecode_col] = a_df[tubecode_col].str.lstrip("0")
+    return a_df
+
+
+def compress_plates(compression_layout, sample_accession_df, well_col="Well",
+                    preserve_leading_zeroes=False):
     """
     Takes the plate map file output from
     VisionMate of up to 4 racks containing
@@ -1759,8 +1830,9 @@ def compress_plates(compression_layout, sample_accession_df, well_col="Well"):
 
     for plate_dict_index in range(len(compression_layout)):
         idx = compression_layout[plate_dict_index]
-        plate_map = read_visionmate_file(idx["Plate map file"],
-                                         [TUBECODE_KEY, "RackID"])
+        plate_map = read_visionmate_file(
+            idx["Plate map file"], [TUBECODE_KEY, "RackID"],
+            preserve_leading_zeroes=preserve_leading_zeroes)
 
         # Populate plate map
         plate_map[PM_PROJECT_NAME_KEY] = idx[PM_PROJECT_NAME_KEY]
@@ -1789,6 +1861,10 @@ def compress_plates(compression_layout, sample_accession_df, well_col="Well"):
             plate_map.loc[plate_map[col] == well_96_id, well_col] = well_384_id
 
         compressed_plate_df = pd.concat([compressed_plate_df, plate_map])
+
+    if not preserve_leading_zeroes:
+        sample_accession_df = \
+            strip_tubecode_leading_zeroes(sample_accession_df)
 
     # Merge sample accession
     compressed_plate_df_merged = _merge_accession_to_compressed_plate_df(
@@ -1900,7 +1976,8 @@ def _generate_compressed_plate_name(compressed_plate_df):
     return compressed_plate_name
 
 
-def add_controls(plate_df, blanks_dir, katharoseq_dir=None):
+def add_controls(plate_df, blanks_dir, katharoseq_dir=None,
+                 preserve_leading_zeroes=False):
     """
     Compiles negative and positive controls into plate_df.
 
@@ -1928,27 +2005,17 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None):
         return plate_df
 
     # Loop through BLANK folder and assign description "negative_control"
-    blank_file_paths = glob.glob(f"{blanks_dir}/*.tsv")
-    blanks = []
-
-    for file_path in blank_file_paths:
-        dff = read_visionmate_file(file_path, [TUBECODE_KEY])
-        blanks.append(dff.drop(["Time", "Date", "RackID"], axis=1))
-
-    blanks = pd.concat(blanks, ignore_index=True)
+    blanks = _load_blanks_accession_df(
+        blanks_dir, preserve_leading_zeroes=preserve_leading_zeroes)
+    blanks.drop(["Time", "Date", "RackID"], axis=1, inplace=True)
     blanks["description"] = "negative_control"
 
     if katharoseq_dir is not None:
         # Build a master table with katharoseq tube ids and
         # assign description "positive_control"
-        katharoseq_file_paths = glob.glob(f"{katharoseq_dir}/*_tube_ids.tsv")
-        katharoseq = []
-
-        for file_path in katharoseq_file_paths:
-            df = read_visionmate_file(file_path, [TUBECODE_KEY, "RackID"])
-            katharoseq.append(df.drop(["Time", "Date"], axis=1))
-
-        katharoseq = pd.concat(katharoseq, ignore_index=True)
+        katharoseq = _load_katharoseq_accession_df(
+            katharoseq_dir, preserve_leading_zeroes=preserve_leading_zeroes)
+        katharoseq.drop(["Time", "Date"], axis=1, inplace=True)
         katharoseq["description"] = "positive_control"
 
         # Find katharoseq rackid and merge cell counts
@@ -1961,9 +2028,9 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None):
         katharoseq_cell_counts = []
 
         for file_path in katharoseq_cell_counts_file_paths:
-            cell_counts_df = read_visionmate_file(file_path,
-                                                  ["RackID"],
-                                                  validate=False)
+            cell_counts_df = read_visionmate_file(
+                file_path, ["RackID"], validate=False,
+                preserve_leading_zeroes=preserve_leading_zeroes)
             # Validating cell counts files
             expected_columns = {
                 "LocationRow",
@@ -2004,6 +2071,8 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None):
         )
 
         # Merge plate_df with controls table
+        if not preserve_leading_zeroes:
+            plate_df = strip_tubecode_leading_zeroes(plate_df)
         plate_df = pd.merge(plate_df, controls, on=TUBECODE_KEY, how="left")
 
         # Assign sample_names ('Sample') to Katharoseq controls
@@ -2058,9 +2127,67 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None):
     return plate_df
 
 
-def validate_plate_df(
-    plate_df, metadata, sample_accession_df, blanks_dir, katharoseq_dir=None
-):
+def _load_blanks_accession_df(blanks_dir, preserve_leading_zeroes=False):
+    """
+    Helper function. Loads blanks accession file(s) and optionally
+    strips leading zeroes from TubeCode column.
+    Args:
+    blanks_dir: dir
+        "*.tsv" files of tube IDs assigned to blank tubes
+    preserve_leading_zeroes: bool (default: False)
+        If True, leading zeroes are preserved in TubeCode column
+
+    Returns:
+    pandas DataFrame object
+    """
+    return _load_accession_df_from_dir(
+        blanks_dir, "*.tsv", [TUBECODE_KEY],
+        preserve_leading_zeroes)
+
+
+def _load_katharoseq_accession_df(
+        katharoseq_dir, preserve_leading_zeroes=False):
+
+    return _load_accession_df_from_dir(
+        katharoseq_dir, "*_tube_ids.tsv",
+        [TUBECODE_KEY, "RackID"], preserve_leading_zeroes)
+
+
+def _load_accession_df_from_dir(
+        accession_dir, accession_fname_pattern, str_col_names,
+        preserve_leading_zeroes=False):
+    """
+    Helper function. Loads accession file(s) and optionally
+    strips leading zeroes from TubeCode column.
+    Args:
+    accession_dir: dir
+        directory of files of tube IDs assigned to samples
+    accession_fname_pattern: str
+        pattern to match accession files in accession_dir
+    str_col_names: list of str
+        column names to cast as str dtype
+    preserve_leading_zeroes: bool (default: False)
+        If True, leading zeroes are preserved in TubeCode column
+
+    Returns:
+    pandas DataFrame object
+    """
+
+    file_paths = glob.glob(f"{accession_dir}/{accession_fname_pattern}")
+    dfs = []
+
+    for file_path in file_paths:
+        df = read_visionmate_file(
+            file_path, str_col_names,
+            preserve_leading_zeroes=preserve_leading_zeroes)
+        dfs.append(df)
+
+    df = pd.concat(dfs, ignore_index=True)
+    return df
+
+
+def validate_plate_df(plate_df, metadata, sample_accession_df, blanks_dir,
+                      katharoseq_dir=None, preserve_leading_zeroes=False):
     """ Function checks that all the samples names recorded in the plate_df
     have metadata associated with them. It also checks that all the matrix
     tubes in the plate_df are indeed located in the sample accesion file or
@@ -2124,28 +2251,14 @@ def validate_plate_df(
                            f"{missing_str}")
         raise ValueError(warning_message)
 
-    # This repeats the code in the add_controls function to get a controls
-    # list to compare against our tubes in the plate_df file. This checks
-    # that all the tubes in our plate_df files are indeed located in the SA
-    # file / controls list
-
-    blank_file_paths = glob.glob(f"{blanks_dir}/*.tsv")
-    blanks = []
-    for file_path in blank_file_paths:
-        dff = read_visionmate_file(file_path, [TUBECODE_KEY])
-        blanks.append(dff)
-
-    blanks = pd.concat(blanks, ignore_index=True)
+    # This checks that all the tubes in our plate_df files are indeed
+    # located in the SA file / controls list
+    blanks = _load_blanks_accession_df(blanks_dir, preserve_leading_zeroes)
 
     # katharoseq chunk
     if katharoseq_dir is not None:
-        katharoseq_file_paths = glob.glob(f"{katharoseq_dir}/*_tube_ids.tsv")
-        katharoseq = []
-        for file_path in katharoseq_file_paths:
-            df = read_visionmate_file(file_path, [TUBECODE_KEY, "RackID"])
-            katharoseq.append(df)
-
-        katharoseq = pd.concat(katharoseq, ignore_index=True)
+        katharoseq = _load_katharoseq_accession_df(
+            katharoseq_dir, preserve_leading_zeroes)
 
         missing_samples_tubecode = plate_df[
             ~(
@@ -2170,8 +2283,8 @@ def validate_plate_df(
     else:
         missing_samples_str = ", ".join(missing_samples_tubecode.astype(str))
         warning_message = (
-            "The following TubeCodes are missing sample"
-            + f" identity information (metadata): {missing_samples_str}"
+            "The following plate_df TubeCodes are missing sample"
+            + f" accession information: {missing_samples_str}"
         )
         raise ValueError(warning_message)
 

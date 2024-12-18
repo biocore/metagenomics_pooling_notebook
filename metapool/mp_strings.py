@@ -38,6 +38,8 @@ PM_PROJECT_PLATE_KEY = "Project Plate"
 PM_PROJECT_NAME_KEY = "Project Name"
 PM_PROJECT_ABBREV_KEY = 'Project Abbreviation'
 PM_COMPRESSED_PLATE_NAME_KEY = "Compressed Plate Name"
+PM_WELL_KEY = 'Well'
+PM_LIB_WELL_KEY = 'Library Well'
 PM_BLANK_KEY = "Blank"
 PLATE_NAME_DELIMITER = "_"
 
@@ -45,6 +47,17 @@ PLATE_NAME_DELIMITER = "_"
 SAMPLE_TYPE_KEY = "sample_type"
 PRIMARY_STUDY_KEY = "primary_qiita_study"
 SECONDARY_STUDIES_KEY = "secondary_qiita_studies"
+
+SYNDNA_POOL_NUM_KEY = "syndna_pool_number"
+SAMPLE_DNA_CONC_KEY = "Sample DNA Concentration"
+MINIPICO_LIB_CONC_KEY = 'MiniPico Library Concentration'
+NORMALIZED_DNA_VOL_KEY = "Normalized DNA volume"
+TELLSEQ_BARCODE_ID_KEY = "barcode_id"
+TELLSEQ_BARCODE_SET_ID_KEY = "barcode_set_id"
+SYNDNA_POOL_MASS_NG_KEY = "mass_syndna_input_ng"
+TUBECODE_KEY = "TubeCode"
+ELUTION_VOL_KEY = 'vol_extracted_elution_ul'
+EXTRACTED_GDNA_CONC_KEY = 'extracted_gdna_concentration_ng_ul'
 
 
 def parse_project_name(project_name):

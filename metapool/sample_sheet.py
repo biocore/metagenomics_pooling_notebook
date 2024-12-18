@@ -12,9 +12,10 @@ from metapool.mp_strings import parse_project_name, \
     SAMPLES_DETAILS_KEY, SAMPLE_NAME_KEY, SAMPLE_PROJECT_KEY, \
     CONTAINS_REPLICATES_KEY, ORIG_NAME_KEY, EXPT_DESIGN_DESC_KEY, \
     PM_PROJECT_NAME_KEY, PM_PROJECT_PLATE_KEY, PM_BLANK_KEY, QIITA_ID_KEY, \
-    PROJECT_FULL_NAME_KEY
+    PROJECT_FULL_NAME_KEY, TUBECODE_KEY, SYNDNA_POOL_MASS_NG_KEY, \
+    SYNDNA_POOL_NUM_KEY, ELUTION_VOL_KEY, EXTRACTED_GDNA_CONC_KEY
 from metapool.metapool import (bcl_scrub_name, sequencer_i5_index,
-                               REVCOMP_SEQUENCERS, TUBECODE_KEY)
+                               REVCOMP_SEQUENCERS)
 from metapool.plate import ErrorMessage, WarningMessage, PlateReplication
 from metapool.controls import SAMPLE_CONTEXT_COLS, \
     get_all_projects_in_context, is_blank, get_controls_details_from_context, \
@@ -37,9 +38,12 @@ _EMAIL_KEY = 'Email'
 _HUMAN_FILTERING_KEY = 'HumanFiltering'
 _SHEET_TYPE_KEY = 'SheetType'
 _SHEET_VERSION_KEY = 'SheetVersion'
+_LANE_KEY = 'Lane'
 
 STANDARD_METAG_SHEET_TYPE = 'standard_metag'
 STANDARD_METAT_SHEET_TYPE = 'standard_metat'
+TELLSEQ_METAG_SHEET_TYPE = 'tellseq_metag'
+TELLSEQ_ABSQUANT_SHEET_TYPE = 'tellseq_absquant'
 ABSQUANT_SHEET_TYPE = 'abs_quant_metag'
 _AMPLICON = 'TruSeq HT'
 _DUMMY_SHEET_TYPE = 'dummy_amp'
@@ -76,12 +80,16 @@ _CONTACT_COLS = MappingProxyType({
     _SS_SAMPLE_PROJECT_KEY: str,
     _EMAIL_KEY: str})
 
+_PREFIX_PLATE_COLUMNS = (SS_SAMPLE_ID_KEY, _SS_SAMPLE_NAME_KEY, 'Sample_Plate',
+                         'well_id_384')
+_SUFFIX_PLATE_COLUMNS = (_SS_SAMPLE_PROJECT_KEY, 'Well_description')
+
 # Note that there doesn't appear to be a difference between 95, 99, and 100
 # beyond the value observed in 'Well_description' column. The real
 # difference is between standard_metag and abs_quant_metag.
-_BASE_DATA_COLUMNS = (SS_SAMPLE_ID_KEY, _SS_SAMPLE_NAME_KEY, 'Sample_Plate',
-                      'well_id_384', 'I7_Index_ID', 'index', 'I5_Index_ID',
-                      'index2', _SS_SAMPLE_PROJECT_KEY, 'Well_description')
+_BASE_DATA_COLUMNS = _PREFIX_PLATE_COLUMNS + \
+                     ('I7_Index_ID', 'index', 'I5_Index_ID', 'index2') + \
+                     _SUFFIX_PLATE_COLUMNS
 
 _BASE_CARRIED_PREP_COLUMNS = (EXPT_DESIGN_DESC_KEY, 'i5_index_id',
                               'i7_index_id', 'index', 'index2',
@@ -90,18 +98,26 @@ _BASE_CARRIED_PREP_COLUMNS = (EXPT_DESIGN_DESC_KEY, 'i5_index_id',
                               'sample_project', 'well_description',
                               'well_id_384')
 
-_ELUTION_VOL_KEY = 'vol_extracted_elution_ul'
+_BASE_GENERATED_PREP_COLUMNS = ('center_name', 'center_project_name',
+                                'instrument_model', 'lane', 'platform',
+                                'run_center', 'run_date', 'run_prefix',
+                                'runid', 'sequencing_meth')
 
-_BASE_METAG_REMAPPER = MappingProxyType({
-            'sample sheet Sample_ID': SS_SAMPLE_ID_KEY,
-            'Sample': _SS_SAMPLE_NAME_KEY,
-            PM_PROJECT_PLATE_KEY: 'Sample_Plate',
-            'Well': 'well_id_384',
+_BASE_PLATE_REMAPPER = MappingProxyType({
+    'sample sheet Sample_ID': SS_SAMPLE_ID_KEY,
+    'Sample': _SS_SAMPLE_NAME_KEY,
+    PM_PROJECT_PLATE_KEY: 'Sample_Plate',
+    'Well': 'well_id_384',
+    PM_PROJECT_NAME_KEY: _SS_SAMPLE_PROJECT_KEY,
+    'Well_description': 'Well_description'
+})
+
+_BASE_METAG_REMAPPER = MappingProxyType(
+    _BASE_PLATE_REMAPPER | {
             'i7 name': 'I7_Index_ID',
             'i7 sequence': 'index',
             'i5 name': 'I5_Index_ID',
-            'i5 sequence': 'index2',
-            PM_PROJECT_NAME_KEY: _SS_SAMPLE_PROJECT_KEY,
+            'i5 sequence': 'index2'
         })
 
 
@@ -170,7 +186,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                              'library_construction_protocol',
                              SAMPLE_NAME_KEY,
                              'sample_plate', 'sample_project',
-                             'well_description', 'Sample_Well', 'Lane')
+                             'well_description', 'Sample_Well', _LANE_KEY)
 
     _GENERATED_PREP_COLUMNS = ('center_name', 'center_project_name',
                                'instrument_model', 'lane', 'platform',
@@ -249,6 +265,12 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         def _is_empty(csv_line):
             return not ''.join(csv_line).strip()
 
+        def remove_trailing_empties(a_list):
+            # While if the list is not empty and the last element is empty
+            while a_list and not a_list[-1]:
+                a_list.pop()  # Remove the last element
+            return a_list
+
         with open(path, encoding=self._encoding) as handle:
             lines = list(csv.reader(handle, skipinitialspace=True))
 
@@ -313,15 +335,19 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 # [Data] - delimited data with the first line a header.
                 elif section_name == _DATA_KEY:
                     if section_header is not None:
+                        # vals beyond the header are empty values so don't add
+                        # them
+                        line = line[:len(section_header)]
                         self.add_sample(
                             sample_sheet.Sample(dict(zip(section_header,
                                                          line))))
-                    elif any(key == '' for key in line):
-                        raise ValueError(
-                            f'Header for [{_DATA_KEY}] section is not allowed '
-                            f'to have empty fields: {line}'
-                        )
                     else:
+                        line = remove_trailing_empties(line)
+                        if any(key == '' for key in line):
+                            raise ValueError(
+                                f'Header for [{_DATA_KEY}] section is not '
+                                f'allowed to have empty fields: {line}'
+                            )
                         section_header = self._process_section_header(line)
                     continue
 
@@ -336,7 +362,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                         # CSV rows are padded to include commas for the longest
                         # line in the file, so we remove them to avoid creating
                         # empty columns
-                        col_names = [value for value in line if value != '']
+                        col_names = remove_trailing_empties(line)
                         setattr(self, section_name,
                                 pd.DataFrame(columns=col_names))
                     continue
@@ -368,7 +394,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 columns[i] = KLSampleSheet._column_alts[columns[i]]
         return columns
 
-    def write(self, handle, blank_lines=1) -> None:
+    def write(self, handle, blank_lines=1, lane=None) -> None:
         """Write to a file-like object.
 
         Parameters
@@ -403,6 +429,14 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             for i in range(n):
                 a_writer.writerow(pad_iterable([], width))
 
+        def _write_df_section(a_df):
+            # these sections are represented as DataFrame objects
+            writer.writerow(pad_iterable(a_df.columns.tolist(), csv_width))
+
+            for _, row in a_df.iterrows():
+                writer.writerow(pad_iterable(row.values.tolist(),
+                                             csv_width))
+
         for title in self.sections:
             writer.writerow(pad_iterable([f'[{title}]'], csv_width))
 
@@ -414,6 +448,13 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 for read in self.Reads:
                     writer.writerow(pad_iterable([read], csv_width))
             elif title == _DATA_KEY:
+                # turn into a df to make it easier to write
+                df_lines = []
+                for sample in self.samples:
+                    line = [getattr(sample, k) for k in self.all_sample_keys]
+                    df_lines.append(line)
+                data_df = pd.DataFrame(df_lines, columns=self.all_sample_keys)
+
                 if self._ORDERED_BY_DATA_COLUMNS:
                     # order according to the expected column order.  If there
                     # are columns other than the expected ones, put them at the
@@ -428,22 +469,14 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                     # legacy behavior
                     col_order = self.all_sample_keys
 
-                writer.writerow(pad_iterable(col_order, csv_width))
-
-                for sample in self.samples:
-                    line = [getattr(sample, k) for k in col_order]
-                    writer.writerow(pad_iterable(line, csv_width))
+                if not data_df.empty and lane is not None:
+                    data_df[_LANE_KEY] = lane
+                _write_df_section(data_df[col_order])
 
             elif title in self._KL_ADDTL_DF_SECTIONS:
                 if section is not None:
                     # these sections are represented as DataFrame objects
-                    writer.writerow(pad_iterable(section.columns.tolist(),
-                                                 csv_width))
-
-                    for _, row in section.iterrows():
-                        writer.writerow(pad_iterable(row.values.tolist(),
-                                                     csv_width))
-
+                    _write_df_section(section)
             else:
                 for key, value in section.items():
                     writer.writerow(pad_iterable([key, value], csv_width))
@@ -551,10 +584,9 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         # be overwritten, otherwise it will be created here.
         well_description = table[PM_PROJECT_PLATE_KEY].astype(str) + "." + \
             table['Sample'].astype(str) + "." + table['Well'].astype(str)
+        table['Well_description'] = well_description
 
         table = self._remap_table(table, strict)
-
-        table['Well_description'] = well_description
 
         for column in self._get_expected_data_columns():
             if column not in table.columns:
@@ -563,14 +595,16 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 table[column] = ''
 
         if assay != _AMPLICON:
-            table['index2'] = sequencer_i5_index(sequencer, table['index2'])
+            if 'index2' in table.columns:
+                table['index2'] = \
+                    sequencer_i5_index(sequencer, table['index2'])
 
             self.Bioinformatics['BarcodesAreRC'] = str(
                 sequencer in REVCOMP_SEQUENCERS)
 
         for lane in lanes:
             for sample in table.to_dict(orient='records'):
-                sample['Lane'] = lane
+                sample[_LANE_KEY] = lane
                 self.add_sample(sample_sheet.Sample(sample))
 
         return table
@@ -1190,19 +1224,15 @@ class KLSampleSheetWithSampleContext(KLSampleSheet):
 
 
 class AbsQuantMixin(object):
-    _ABS_SYNDNA_INPUT_MASS_KEY = 'mass_syndna_input_ng'
-    _ABS_GDNA_CONC_KEY = 'extracted_gdna_concentration_ng_ul'
-    _ABS_SYNDNA_POOL_NUM_KEY = 'syndna_pool_number'
     _ABSQUANT_SPECIFIC_COLUMNS = (
-        _ABS_SYNDNA_INPUT_MASS_KEY, _ABS_GDNA_CONC_KEY,
-        _ELUTION_VOL_KEY, _ABS_SYNDNA_POOL_NUM_KEY)
+        SYNDNA_POOL_MASS_NG_KEY, EXTRACTED_GDNA_CONC_KEY,
+        ELUTION_VOL_KEY, SYNDNA_POOL_NUM_KEY)
 
-    _ABSQUANT_REMAPPER = MappingProxyType(
-        _BASE_METAG_REMAPPER | {
-            _ABS_SYNDNA_POOL_NUM_KEY: _ABS_SYNDNA_POOL_NUM_KEY,
-            _ABS_SYNDNA_INPUT_MASS_KEY: _ABS_SYNDNA_INPUT_MASS_KEY,
-            _ABS_GDNA_CONC_KEY: _ABS_GDNA_CONC_KEY,
-            _ELUTION_VOL_KEY: _ELUTION_VOL_KEY
+    _ABSQUANT_REMAPPER = MappingProxyType({
+            SYNDNA_POOL_NUM_KEY: SYNDNA_POOL_NUM_KEY,
+            SYNDNA_POOL_MASS_NG_KEY: SYNDNA_POOL_MASS_NG_KEY,
+            EXTRACTED_GDNA_CONC_KEY: EXTRACTED_GDNA_CONC_KEY,
+            ELUTION_VOL_KEY: ELUTION_VOL_KEY
         })
 
     def __init__(self, path=None):
@@ -1210,8 +1240,9 @@ class AbsQuantMixin(object):
         self._remapper = self._extend_remapper(self._ABSQUANT_REMAPPER)
         self._data_columns = \
             self._data_columns + self._ABSQUANT_SPECIFIC_COLUMNS
-        self._CARRIED_PREP_COLUMNS = \
-            self._CARRIED_PREP_COLUMNS + self._ABSQUANT_SPECIFIC_COLUMNS
+        if self._CARRIED_PREP_COLUMNS is not None:
+            self._CARRIED_PREP_COLUMNS = \
+                self._CARRIED_PREP_COLUMNS + self._ABSQUANT_SPECIFIC_COLUMNS
 
 
 # NB: Must be mixed in to something that inherits from KLSampleSheetWithContext
@@ -1228,7 +1259,7 @@ class KatharoseqMixin(object):
                                     'number_of_cells',
                                     'platemap_generation_date',
                                     'project_abbreviation',
-                                    _ELUTION_VOL_KEY, 'well_id_96')
+                                    ELUTION_VOL_KEY, 'well_id_96')
 
     @staticmethod
     def _is_katharo_name(sample_name):
@@ -1280,6 +1311,82 @@ class KatharoseqMixin(object):
                 return self._data_columns + self._optional_katharoseq_columns
 
         return self._data_columns
+
+
+class KLTellSeqSampleSheet(KLSampleSheetWithSampleContext):
+    BARCODE_ID_KEY = 'barcode_id'
+
+    def __new__(cls, path=None, *args, **kwargs):
+        """
+            Override so that base class cannot be instantiated.
+        """
+        if cls is KLTellSeqSampleSheet:
+            raise TypeError(
+                f"only children of '{cls.__name__}' may be instantiated")
+
+        instance = super(KLTellSeqSampleSheet, cls).__new__(
+            cls, *args, **kwargs)
+        return instance
+
+    def __init__(self, path=None):
+        """Knight Lab's SampleSheet subclass that includes SampleContext
+
+        Expands Knight Lab SampleSheet to include a new (required) section
+        called 'SampleContext'. This section is used to store information
+        about the blanks and other controls used in the sequencing run.
+
+        Parameters
+        ----------
+        path: str, optional
+            File path to the sample sheet to load.
+        """
+
+        # NB: it matters that this come *before* the __init__ call;
+        # __init__ calls _parse, which will automatically populate the
+        # SampleContext section if it is present in the file--but only if
+        # it is defined here first.
+        self.SampleContext = None
+        super().__init__(path=path)
+        self._remapper = MappingProxyType(
+            _BASE_PLATE_REMAPPER | {self.BARCODE_ID_KEY: self.BARCODE_ID_KEY})
+
+        # Note: do NOT remove the comma after barcode id key below--that is
+        # what makes this a tuple with one item ... otherwise, python
+        # "simplifies" it to a string, which can't be added to tuples.
+        self._data_columns = \
+            _PREFIX_PLATE_COLUMNS + (self.BARCODE_ID_KEY, ) + \
+            _SUFFIX_PLATE_COLUMNS
+
+
+class TellseqMetagSampleSheetv10(KLTellSeqSampleSheet):
+    _HEADER = KLSampleSheet._HEADER.copy()
+    _HEADER[_SHEET_TYPE_KEY] = TELLSEQ_METAG_SHEET_TYPE
+    _HEADER[_SHEET_VERSION_KEY] = '10'
+    _HEADER[_ASSAY_KEY] = _METAGENOMIC
+
+    # if refactoring, see:
+    # https://github.com/biocore/metagenomics_pooling_notebook/issues/263
+
+    @property
+    def CARRIED_PREP_COLUMNS(self):
+        return [x for x in _BASE_CARRIED_PREP_COLUMNS if x not in
+                {'i7_index_id', 'index', 'index2', 'i5_index_id'}]
+
+
+class TellseqAbsquantMetagSampleSheetv10(AbsQuantMixin, KLTellSeqSampleSheet):
+    _HEADER = KLSampleSheet._HEADER.copy()
+    _HEADER[_SHEET_TYPE_KEY] = TELLSEQ_ABSQUANT_SHEET_TYPE
+    _HEADER[_SHEET_VERSION_KEY] = '10'
+    _HEADER[_ASSAY_KEY] = _METAGENOMIC
+
+    # if refactoring, see:
+    # https://github.com/biocore/metagenomics_pooling_notebook/issues/263
+
+    @property
+    def CARRIED_PREP_COLUMNS(self):
+        return [x for x in _BASE_CARRIED_PREP_COLUMNS if x not in
+                {'i7_index_id', 'index', 'index2', 'i5_index_id'}] + \
+                list(AbsQuantMixin._ABSQUANT_SPECIFIC_COLUMNS)
 
 
 class AmpliconSampleSheet(KLSampleSheet):
@@ -1448,7 +1555,8 @@ class AbsQuantSampleSheetv10(KLSampleSheet):
 
     def __init__(self, path=None):
         super().__init__(path=path)
-        self._remapper = AbsQuantMixin._ABSQUANT_REMAPPER
+        self._remapper = MappingProxyType(
+            _BASE_METAG_REMAPPER | AbsQuantMixin._ABSQUANT_REMAPPER)
 
 
 class AbsQuantSampleSheetv11(AbsQuantMixin, KLSampleSheetWithSampleContext):
@@ -1510,17 +1618,17 @@ class MetatranscriptomicSampleSheetv10(KLSampleSheet):
                      'well_id_384', 'I7_Index_ID', 'index', 'I5_Index_ID',
                      'index2', _SS_SAMPLE_PROJECT_KEY,
                      'total_rna_concentration_ng_ul',
-                     _ELUTION_VOL_KEY, 'Well_description')
+                     ELUTION_VOL_KEY, 'Well_description')
 
     _CARRIED_PREP_COLUMNS = _BASE_CARRIED_PREP_COLUMNS + (
                             'total_rna_concentration_ng_ul',
-                            _ELUTION_VOL_KEY)
+                            ELUTION_VOL_KEY)
 
     def __init__(self, path=None):
         super().__init__(path=path)
         self._remapper = _BASE_METAG_REMAPPER | {
                 'Sample RNA Concentration': 'total_rna_concentration_ng_ul',
-                _ELUTION_VOL_KEY: _ELUTION_VOL_KEY
+                ELUTION_VOL_KEY: ELUTION_VOL_KEY
             }
 
 
@@ -1585,7 +1693,8 @@ def load_sample_sheet(sample_sheet_path):
              MetagenomicSampleSheetv102, MetagenomicSampleSheetv101,
              MetagenomicSampleSheetv100, MetagenomicSampleSheetv90,
              AbsQuantSampleSheetv10, MetatranscriptomicSampleSheetv0,
-             MetatranscriptomicSampleSheetv10]
+             MetatranscriptomicSampleSheetv10, TellseqMetagSampleSheetv10,
+             TellseqAbsquantMetagSampleSheetv10]
 
     header = _parse_header(sample_sheet_path)
 
@@ -1632,6 +1741,10 @@ def _create_sample_sheet(sheet_type, sheet_version, assay_type):
     def _make_assay_err_msg(assay_type):
         return f"'{assay_type}' is an unrecognized Assay type"
 
+    def check_metag_assay_type(assay_type):
+        if assay_type != _METAGENOMIC:
+            raise ValueError(_make_assay_err_msg(assay_type))
+
     if sheet_type == STANDARD_METAG_SHEET_TYPE:
         if assay_type == _METAGENOMIC:
             if sheet_version == '102':
@@ -1662,13 +1775,26 @@ def _create_sample_sheet(sheet_type, sheet_version, assay_type):
         else:
             raise ValueError(_make_assay_err_msg(assay_type))
     elif sheet_type == ABSQUANT_SHEET_TYPE:
-        if assay_type != _METAGENOMIC:
-            raise ValueError(_make_assay_err_msg(assay_type))
+        check_metag_assay_type(assay_type)
 
         if sheet_version == '11':
             sheet = AbsQuantSampleSheetv11()
         elif sheet_version == '10':
             sheet = AbsQuantSampleSheetv10()
+        else:
+            raise ValueError(_make_version_err_msg(sheet_type, sheet_version))
+    elif sheet_type == TELLSEQ_METAG_SHEET_TYPE:
+        check_metag_assay_type(assay_type)
+
+        if sheet_version == '10':
+            sheet = TellseqMetagSampleSheetv10()
+        else:
+            raise ValueError(_make_version_err_msg(sheet_type, sheet_version))
+    elif sheet_type == TELLSEQ_ABSQUANT_SHEET_TYPE:
+        check_metag_assay_type(assay_type)
+
+        if sheet_version == '10':
+            sheet = TellseqAbsquantMetagSampleSheetv10()
         else:
             raise ValueError(_make_version_err_msg(sheet_type, sheet_version))
     elif sheet_type == _DUMMY_SHEET_TYPE:
