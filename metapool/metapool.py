@@ -953,10 +953,10 @@ def estimate_pool_conc_vol(sample_vols, sample_concs):
 
 
 def format_pooling_echo_pick_list(
-    main_input, max_vol_per_well=30000,
-    pooling_vol_column='MiniPico Pooled Volume',
-    dest_plate_shape=None,
-    source_well_names=None):
+        main_input, max_vol_per_well=30000,
+        pooling_vol_column='MiniPico Pooled Volume',
+        dest_plate_shape=None,
+        source_well_names=None):
     """Format the contents of an echo pooling pick list
 
     Parameters
@@ -1007,7 +1007,8 @@ def format_pooling_echo_pick_list(
                 (d % dest_plate_shape[1]))
 
             # writing picklist from row iterations
-            contents.append(",".join([formatted_df.loc[i, 'Compressed Plate Name'],
+            contents.append(",".join([formatted_df.loc[i, 'Compressed' +
+                                                       ' Plate Name'],
                                       "384LDV_AQ_B2",
                                       formatted_df.loc[i, 'Library Well'],
                                       "",
@@ -1015,9 +1016,7 @@ def format_pooling_echo_pick_list(
                                       "NormalizedDNA",
                                       dest]))
 
-
     elif isinstance(main_input, np.ndarray):
-
         # # For LEGACY support, this code block is unaltered # #
         # # ################################################ # #
         if dest_plate_shape is None:
@@ -1059,7 +1058,8 @@ def format_pooling_echo_pick_list(
                     (d % dest_plate_shape[1]),
                 )
 
-                contents.append(",".join(["1", "384LDV_AQ_B2", well_name, "", val,
+                contents.append(",".join(["1", "384LDV_AQ_B2",
+                                          well_name, "", val,
                                           "NormalizedDNA", dest]))
         # # ################################################ # #
         # # ################################################ # #
