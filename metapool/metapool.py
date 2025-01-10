@@ -953,58 +953,127 @@ def estimate_pool_conc_vol(sample_vols, sample_concs):
 
 
 def format_pooling_echo_pick_list(
-    vol_sample, max_vol_per_well=60000, dest_plate_shape=None,
+        main_input, max_vol_per_well=30000,
+        pooling_vol_column='MiniPico Pooled Volume',
+        dest_plate_shape=None,
         source_well_names=None):
     """Format the contents of an echo pooling pick list
 
     Parameters
     ----------
-    vol_sample : 2d numpy array of floats
-        The per well sample volume, in nL
+    main_input : 2d numpy array of floats OR pd.DataFrame
+        2d array specifies the per well sample volume,
+        in nL (Legacy)
+        pandas DataFrame contains pooling volumes and must
+        contain the following columns ['Compressed Plate Name',
+        'Library Well']
+    pooling_vol_column : a string
+        specifies the pandas dataframe column header
+        that contains the pooling volumes.
     max_vol_per_well : 2d numpy array of floats
         Maximum destination well volume, in nL
     """
-    if dest_plate_shape is None:
-        dest_plate_shape = (16, 24)
+    # Logic checks for pandas DataFrame as input
+    # or np.array as input for legacy support
+    if isinstance(main_input, pd.DataFrame):
+        required_columns = ['Compressed Plate Name',
+                            'Library Well',
+                            pooling_vol_column]
+        if not all(column in main_input.columns for
+                   column in required_columns):
+            raise ValueError(
+                "Your input dataframe does not have the "
+                "required columns ['Compressed Plate Name'",
+                "'Library Well','%s']. Perhaps you are running "
+                "this module out of sequential order."
+                % pooling_vol_column
+                )
+        formatted_df = main_input[['Compressed Plate Name',
+                                   'Library Well',
+                                   pooling_vol_column,
+                                   ]]
 
-    contents = [
-        "Source Plate Name,Source Plate Type,Source Well,"
-        "Concentration,Transfer Volume,Destination Plate Name,"
-        "Destination Well"
-    ]
-    # Write the sample transfer volumes
-    rows, cols = vol_sample.shape
+        # Writing picklist headers
+        contents = [
+            "Source Plate Name,Source Plate Type,Source Well,"
+            "Concentration,Transfer Volume,Destination Plate Name,"
+            "Destination Well"
+        ]
 
-    # replace NaN values with 0s to leave a trail of unpooled wells
-    pool_vols = np.nan_to_num(vol_sample)
+        # Destination well cycling logic
+        running_tot = 0
+        d = 1
 
-    running_tot = 0
-    d = 1
-    for i in range(rows):
-        for j in range(cols):
-            if source_well_names is None:
-                well_name = "%s%d" % (chr(ord("A") + i), j + 1)
-            else:
-                well_name = source_well_names[i][j]
+        if dest_plate_shape is None:
+            dest_plate_shape = (16, 24)
 
-            # Machine will round, so just give it enough info to do the
-            # correct rounding.
-            val = "%.2f" % pool_vols[i][j]
-
+        for i, pool_row in formatted_df[[pooling_vol_column]].iterrows():
+            pool_vol = pool_row[pooling_vol_column]
             # test to see if we will exceed total vol per well
-            if running_tot + pool_vols[i][j] > max_vol_per_well:
+            if running_tot + pool_vol > max_vol_per_well:
                 d += 1
-                running_tot = pool_vols[i][j]
+                running_tot = pool_vol
             else:
-                running_tot += pool_vols[i][j]
+                running_tot += pool_vol
 
             dest = "%s%d" % (
                 chr(ord("A") + int(np.floor(d / dest_plate_shape[0]))),
-                (d % dest_plate_shape[1]),
-            )
+                (d % dest_plate_shape[1]))
 
-            contents.append(",".join(["1", "384LDV_AQ_B2", well_name, "", val,
-                                      "NormalizedDNA", dest]))
+            # writing picklist from row iterations
+            contents.append(",".join([formatted_df.loc[i, 'Compressed' +
+                                                       ' Plate Name'],
+                                      "384LDV_AQ_B2",
+                                      formatted_df.loc[i, 'Library Well'],
+                                      "",
+                                      "%.2f" % pool_vol,
+                                      "NormalizedDNA",
+                                      dest]))
+
+    elif isinstance(main_input, np.ndarray):
+        # # For LEGACY support, this code block is unaltered # #
+        if dest_plate_shape is None:
+            dest_plate_shape = (16, 24)
+
+        contents = [
+            "Source Plate Name,Source Plate Type,Source Well,"
+            "Concentration,Transfer Volume,Destination Plate Name,"
+            "Destination Well"
+        ]
+        # Write the sample transfer volumes
+        rows, cols = main_input.shape
+
+        # replace NaN values with 0s to leave a trail of unpooled wells
+        pool_vols = np.nan_to_num(main_input)
+
+        running_tot = 0
+        d = 1
+        for i in range(rows):
+            for j in range(cols):
+                if source_well_names is None:
+                    well_name = "%s%d" % (chr(ord("A") + i), j + 1)
+                else:
+                    well_name = source_well_names[i][j]
+
+                # Machine will round, so just give it enough info to do the
+                # correct rounding.
+                val = "%.2f" % pool_vols[i][j]
+
+                # test to see if we will exceed total vol per well
+                if running_tot + pool_vols[i][j] > max_vol_per_well:
+                    d += 1
+                    running_tot = pool_vols[i][j]
+                else:
+                    running_tot += pool_vols[i][j]
+
+                dest = "%s%d" % (
+                    chr(ord("A") + int(np.floor(d / dest_plate_shape[0]))),
+                    (d % dest_plate_shape[1]),
+                )
+
+                contents.append(",".join(["1", "384LDV_AQ_B2",
+                                          well_name, "", val,
+                                          "NormalizedDNA", dest]))
 
     return "\n".join(contents)
 
