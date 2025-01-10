@@ -964,7 +964,9 @@ def format_pooling_echo_pick_list(
     main_input : 2d numpy array of floats OR pd.DataFrame
         2d array specifies the per well sample volume,
         in nL (Legacy)
-        pandas DataFrame contains pooling volumes
+        pandas DataFrame contains pooling volumes and must
+        contain the following columns ['Compressed Plate Name',
+        'Library Well']
     pooling_vol_column : a string
         specifies the pandas dataframe column header
         that contains the pooling volumes.
@@ -974,6 +976,18 @@ def format_pooling_echo_pick_list(
     # Logic checks for pandas DataFrame as input
     # or np.array as input for legacy support
     if isinstance(main_input, pd.DataFrame):
+        required_columns = ['Compressed Plate Name',
+                            'Library Well',
+                            pooling_vol_column]
+        if not all(column in main_input.columns for
+                   column in required_columns):
+            raise ValueError(
+                "Your input dataframe does not have the "
+                "required columns ['Compressed Plate Name'",
+                "'Library Well','%s']. Perhaps you are running "
+                "this module out of sequential order."
+                % pooling_vol_column
+                )
         formatted_df = main_input[['Compressed Plate Name',
                                    'Library Well',
                                    pooling_vol_column,
@@ -993,8 +1007,8 @@ def format_pooling_echo_pick_list(
         if dest_plate_shape is None:
             dest_plate_shape = (16, 24)
 
-        for i, pool_vol in formatted_df[[pooling_vol_column]].iterrows():
-            pool_vol = float(pool_vol)
+        for i, pool_row in formatted_df[[pooling_vol_column]].iterrows():
+            pool_vol = pool_row[pooling_vol_column]
             # test to see if we will exceed total vol per well
             if running_tot + pool_vol > max_vol_per_well:
                 d += 1
@@ -1018,7 +1032,6 @@ def format_pooling_echo_pick_list(
 
     elif isinstance(main_input, np.ndarray):
         # # For LEGACY support, this code block is unaltered # #
-        # # ################################################ # #
         if dest_plate_shape is None:
             dest_plate_shape = (16, 24)
 
@@ -1061,8 +1074,6 @@ def format_pooling_echo_pick_list(
                 contents.append(",".join(["1", "384LDV_AQ_B2",
                                           well_name, "", val,
                                           "NormalizedDNA", dest]))
-        # # ################################################ # #
-        # # ################################################ # #
 
     return "\n".join(contents)
 
