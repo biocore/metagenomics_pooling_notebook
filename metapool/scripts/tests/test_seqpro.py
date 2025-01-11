@@ -289,6 +289,9 @@ class SeqproTests(unittest.TestCase):
         stdout, stderr = proc.communicate()
         return_code = proc.returncode
 
+        self.assertEqual("", stderr)
+        self.assertEqual(0, return_code)
+
         tmp = []
 
         # remove trailing whitespace before splitting each line into pairs.
@@ -316,8 +319,6 @@ class SeqproTests(unittest.TestCase):
             ),
             stdout,
         )
-        self.assertEqual("", stderr)
-        self.assertEqual(0, return_code)
 
     def test_legacy_run(self):
         runner = CliRunner()
