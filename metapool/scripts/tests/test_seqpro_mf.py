@@ -107,6 +107,9 @@ class SeqproAmpliconTests(unittest.TestCase):
         stdout, stderr = proc.communicate()
         return_code = proc.returncode
 
+        self.assertEqual('', stderr)
+        self.assertEqual(0, return_code)
+
         tmp = []
 
         # remove trailing whitespace before splitting each line into pairs.
@@ -122,8 +125,6 @@ class SeqproAmpliconTests(unittest.TestCase):
         self.assertEqual(('11052\tmetagenomics_pooling_notebook/metapool/tests'
                           '/VFTEST/230207_M05314_0346_000000000-KVMGL.ABTX_202'
                           '30208_ABTX_11052.1.tsv'), stdout)
-        self.assertEqual('', stderr)
-        self.assertEqual(0, return_code)
 
 
 if __name__ == '__main__':
