@@ -165,8 +165,8 @@ def _check_for_missing_df_ids(subset_df, superset_df, id_col,
                          f'{", ".join(missing_vals)}')
 
 
-def get_set_fp(set_fbase, set_id):
-    return f"{set_fbase}{SET_SUFFIX}_{set_id}.txt"
+def get_set_fp(set_fbase, set_id, extension="txt"):
+    return f"{set_fbase}{SET_SUFFIX}_{set_id}.{extension}"
 
 
 def warn_if_fp_exists(fp):
