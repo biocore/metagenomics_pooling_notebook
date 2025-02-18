@@ -146,73 +146,11 @@
    }
   },
   {
-   "LaneNumber" : 3,
+   "LaneNumber" : 1,
    "TotalClustersRaw" : 14419084,
    "TotalClustersPF" : 6957975,
    "Yield" : 2101308450,
    "DemuxResults" : [
-    {
-     "SampleId" : "sample1",
-     "SampleName" : "sample1",
-     "IndexMetrics" : [
-      {
-       "IndexSequence" : "AGGTCACT+CTCCTGAA",
-       "MismatchCounts" : {
-        "0" : 8951,
-        "1" : 398
-       }
-      }
-     ],
-     "NumberReads" : 100000,
-     "Yield" : 2823398,
-     "ReadMetrics" : [
-      {
-       "ReadNumber" : 1,
-       "Yield" : 1411699,
-       "YieldQ30" : 1254547,
-       "QualityScoreSum" : 50473229,
-       "TrimmedBases" : 355996
-      },
-      {
-       "ReadNumber" : 2,
-       "Yield" : 1411699,
-       "YieldQ30" : 1116239,
-       "QualityScoreSum" : 47100820,
-       "TrimmedBases" : 72281
-      }
-     ]
-    },
-    {
-     "SampleId" : "sample2",
-     "SampleName" : "sample2",
-     "IndexMetrics" : [
-      {
-       "IndexSequence" : "AGGTCACT+CTCCTGAA",
-       "MismatchCounts" : {
-        "0" : 8951,
-        "1" : 398
-       }
-      }
-     ],
-     "NumberReads" : 2300000,
-     "Yield" : 2823398,
-     "ReadMetrics" : [
-      {
-       "ReadNumber" : 1,
-       "Yield" : 1411699,
-       "YieldQ30" : 1254547,
-       "QualityScoreSum" : 50473229,
-       "TrimmedBases" : 355996
-      },
-      {
-       "ReadNumber" : 2,
-       "Yield" : 1411699,
-       "YieldQ30" : 1116239,
-       "QualityScoreSum" : 47100820,
-       "TrimmedBases" : 72281
-      }
-     ]
-    },
     {
      "SampleId" : "sample3",
      "SampleName" : "sample3",
@@ -225,7 +163,7 @@
        }
       }
      ],
-     "NumberReads" : 300000,
+     "NumberReads" : 100000,
      "Yield" : 2823398,
      "ReadMetrics" : [
       {
@@ -256,7 +194,7 @@
        }
       }
      ],
-     "NumberReads" : 400000,
+     "NumberReads" : 2300000,
      "Yield" : 2823398,
      "ReadMetrics" : [
       {
@@ -278,6 +216,68 @@
     {
      "SampleId" : "sample5",
      "SampleName" : "sample5",
+     "IndexMetrics" : [
+      {
+       "IndexSequence" : "AGGTCACT+CTCCTGAA",
+       "MismatchCounts" : {
+        "0" : 8951,
+        "1" : 398
+       }
+      }
+     ],
+     "NumberReads" : 300000,
+     "Yield" : 2823398,
+     "ReadMetrics" : [
+      {
+       "ReadNumber" : 1,
+       "Yield" : 1411699,
+       "YieldQ30" : 1254547,
+       "QualityScoreSum" : 50473229,
+       "TrimmedBases" : 355996
+      },
+      {
+       "ReadNumber" : 2,
+       "Yield" : 1411699,
+       "YieldQ30" : 1116239,
+       "QualityScoreSum" : 47100820,
+       "TrimmedBases" : 72281
+      }
+     ]
+    },
+    {
+     "SampleId" : "sample6",
+     "SampleName" : "sample6",
+     "IndexMetrics" : [
+      {
+       "IndexSequence" : "AGGTCACT+CTCCTGAA",
+       "MismatchCounts" : {
+        "0" : 8951,
+        "1" : 398
+       }
+      }
+     ],
+     "NumberReads" : 400000,
+     "Yield" : 2823398,
+     "ReadMetrics" : [
+      {
+       "ReadNumber" : 1,
+       "Yield" : 1411699,
+       "YieldQ30" : 1254547,
+       "QualityScoreSum" : 50473229,
+       "TrimmedBases" : 355996
+      },
+      {
+       "ReadNumber" : 2,
+       "Yield" : 1411699,
+       "YieldQ30" : 1116239,
+       "QualityScoreSum" : 47100820,
+       "TrimmedBases" : 72281
+      }
+     ]
+    },
+    {
+     "SampleId" : "sample7",
+     "SampleName" : "sample7",
      "IndexMetrics" : [
       {
        "IndexSequence" : "AGGTCACT+CTCCTGAA",

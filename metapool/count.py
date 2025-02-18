@@ -328,6 +328,10 @@ def run_counts(run_dir, metadata):
     ratio = out['quality_filtered_reads_r1r2'] / out['raw_reads_r1r2']
     out['fraction_passing_quality_filter'] = ratio
 
-    out.fillna(value='NA', inplace=True)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        # Ignore FutureWarning. 'NA' will soon be unable to be assigned to
+        # a float column.
+        out.fillna(value='NA', inplace=True)
 
     return out

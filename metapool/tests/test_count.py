@@ -118,7 +118,7 @@ class TestCount(TestCase):
     def test_parse_fastp_counts(self):
         obs = _parse_fastp_counts(
             os.path.join(self.run_dir, 'Trojecp_666', 'json',
-                         'sample3_S457_L003_R1_001.json'))
+                         'sample5_S457_L001_R1_001.json'))
 
         self.assertEqual(obs, 4692)
 
@@ -189,30 +189,30 @@ class TestCount(TestCase):
 
 RUN_STATS = {
     'raw_reads_r1r2': {('sample1', '1'): 10000, ('sample2', '1'): 100000,
-                       ('sample1', '3'): 100000, ('sample2', '3'): 2300000,
-                       ('sample3', '3'): 300000, ('sample4', '3'): 400000,
-                       ('sample5', '3'): 567000},
+                       ('sample3', '1'): 100000, ('sample4', '1'): 2300000,
+                       ('sample5', '1'): 300000, ('sample6', '1'): 400000,
+                       ('sample7', '1'): 567000},
     'total_biological_reads_r1r2': {('sample1', '1'): 10800.0,
-                                    ('sample2', '1'): 61404.0,
-                                    ('sample1', '3'): 335996.0,
-                                    ('sample2', '3'): 18374.0,
-                                    ('sample3', '3'): 4692.0,
-                                    ('sample4', '3'): 960.0,
-                                    ('sample5', '3'): 30846196.0},
+                                    ('sample2', '1'): 18374.0,
+                                    ('sample3', '1'): 335996.0,
+                                    ('sample4', '1'): 61404.0,
+                                    ('sample5', '1'): 4692.0,
+                                    ('sample6', '1'): 960.0,
+                                    ('sample7', '1'): 30846196.0},
     'quality_filtered_reads_r1r2': {('sample1', '1'): 16.0,
                                     ('sample2', '1'): 16.0,
-                                    ('sample1', '3'): 16.0,
-                                    ('sample2', '3'): 16.0,
-                                    ('sample3', '3'): 16.0,
-                                    ('sample4', '3'): 16.0,
-                                    ('sample5', '3'): 16.0},
+                                    ('sample3', '1'): 16.0,
+                                    ('sample4', '1'): 16.0,
+                                    ('sample5', '1'): 16.0,
+                                    ('sample6', '1'): 16.0,
+                                    ('sample7', '1'): 16.0},
     'fraction_passing_quality_filter': {('sample1', '1'): 0.0016,
                                         ('sample2', '1'): 0.00016,
-                                        ('sample1', '3'): 0.00016,
-                                        ('sample2', '3'): 0.00000695652,
-                                        ('sample3', '3'): 0.00005333333,
-                                        ('sample4', '3'): 0.00004,
-                                        ('sample5', '3'): 0.00002821869}}
+                                        ('sample3', '1'): 0.00016,
+                                        ('sample4', '1'): 0.00000695652,
+                                        ('sample5', '1'): 0.00005333333,
+                                        ('sample6', '1'): 0.00004,
+                                        ('sample7', '1'): 0.00002821869}}
 
 
 class TestBCLConvertCount(TestCase):
@@ -292,6 +292,10 @@ class TestBCLConvertCount(TestCase):
         obs = raw_read_counts(self.run_dir, self.ss)
 
         exp = self.stats[['raw_reads_r1r2']] * 2
+
+        exp.to_csv('exp.csv', sep=',', index=True)
+        obs.to_csv('obs.csv', sep=',', index=True)
+
         pd.testing.assert_frame_equal(obs.sort_index(), exp)
 
     def tearDown(self):

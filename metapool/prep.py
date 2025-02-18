@@ -10,6 +10,10 @@ from string import ascii_letters, digits
 from metapool.mp_strings import get_short_name_and_id
 from metapool.plate import PlateReplication
 from collections import Counter
+from string import ascii_letters, digits
+from os import sep
+from os.path import join, split, abspath, exists
+from collections import defaultdict
 
 
 REQUIRED_MF_COLUMNS = {'sample_name', 'barcode', 'primer', 'primer_plate',
@@ -185,6 +189,12 @@ def get_run_prefix(run_path, project, sample_id, lane):
     search_me = '%s_S*_L*%s_R*.fastq.gz' % (sample_id, lane)
 
     results = glob(os.path.join(path, search_me))
+
+    with open('found_files.log', 'a') as f:
+        f.write("SEARCHING: %s\n" % os.path.join(path, "FFFF", search_me))
+        for item in results:
+            f.write("%s\n" % item)
+        f.write("\n")
 
     # at this stage there should only be two files forward and reverse
     if len(results) == 2:
@@ -453,6 +463,22 @@ def preparations_for_run(run_path, sheet, generated_prep_columns,
     run_date, instrument_code = parse_illumina_run_id(run_id)
     instrument_model, run_center = get_model_and_center(instrument_code)
 
+    s = "/home/charlie/BIG_MACHINE/metagenomics_pooling_notebook/foo.log"
+
+    def log_me(msg):
+        f = open(s, 'a')
+        f.write(msg + '\n')
+        f.close()
+
+    # NB: For now it is safe to use the working directory as the search
+    # root, but in the future it would be better to give the path to the
+    # NuQCJob subdirectory specifically and pass the run_id to this function
+    # rather than run_path.
+
+    # metapool/tests/data/runs/200318_A00953_0082_AH5TWYDSXY/Project_1111/filtered_sequences/FFFF/sample1_S*_L*1_R*.fastq.gz
+
+    fastq_files_found = _find_filtered_files(run_path)
+
     output = {}
 
     # well_description is no longer a required column, since the sample-name
@@ -483,8 +509,35 @@ def preparations_for_run(run_path, sheet, generated_prep_columns,
 
     all_columns = sorted(carried_prep_columns + generated_prep_columns)
 
+    from json import dumps
+
     for project, project_sheet in sheet.groupby('sample_project'):
         project_name, qiita_id = get_short_name_and_id(project)
+
+        # since sample-names could be duplicated across projects, associate
+        # sample-names to files on a project-by-project basis.
+
+        """
+
+        log_me("FOO: %s" % dumps(fastq_files_found, indent=2))
+        sample_files = fastq_files_found[project]
+        log_me("SAMPLE_FILES: %s" % sample_files)
+
+        log_me("COLUMNS: %s" % sheet.columns)
+        sample_ids = sheet.index.tolist()
+        log_me("SAMPLE_IDS: %s" % sample_ids)
+
+        results, unmapped_samples = _map_files_to_sample_ids(sample_ids,
+                                                             sample_files)
+
+        log_me("MAPPING RESULTS: %s" % results)
+        log_me("UNMAPPED SAMPLES: %s" % unmapped_samples)
+
+        """
+
+
+        # TODO: make sure to put unmapped_samples into failed_samples.log
+
 
         # if the Qiita ID is not found then make for an easy find/replace
         if qiita_id == project:
@@ -938,3 +991,138 @@ def demux_pre_prep(pre_prep):
         res.append(pre_prep[pre_prep['quad'] == quad].drop(['quad'], axis=1))
 
     return res
+
+def _map_files_to_sample_ids(sample_ids, sample_files):
+    # create a mapping of sample_ids to fastq filepaths.
+    # organize processing by file to ensure each file is mapped and errors are
+    # reported.
+    results = defaultdict(list)
+
+    for sample_file in sample_files:
+        # make no assumptions about the naming format of fastq files, other
+        # than their names will begin with a valid sample_id. This is to
+        # support non-Illumina generated fastq files.
+        _, file_name = split(sample_file)
+
+        # for each sample_file, find the subset of sample_ids that match the
+        # beginning of the file's name and assume that the longest matching
+        # sample_id is the best and proper match. Ex: myfile_sre.fastq.gz
+        # should match both the sample_ids [myfile_sre, myfile] but we want to
+        # ensure myfile_sre is the correct match, and myfile_sre.fastq.gz is
+        # not associated with myfile and myfile.fastq.gz is not associated with
+        # myfile_sre.fastq.gz.
+        matches = [s_id for s_id in sample_ids if file_name.startswith(s_id)]
+
+        # sort the matches so the longest matching sample_id will be first.
+        matches = sorted(matches, key=len, reverse=True)
+
+        if not matches:
+            # if no sample_ids could be matched to this file, then something
+            # is wrong.
+            raise ValueError(f"{sample_file} could not be matched to any "
+                             "sample-id")
+
+        # map sample_ids to a list of matching sample_files. We should expect
+        # two matches for R1 and R2 files.
+        results[matches[0]].append(sample_file)
+
+    unmatched_sample_ids = set(sample_ids) - set(list(results.keys()))
+
+    # after all possible sample_files have been matched to sample_ids, ensure
+    # that the number of matching files for each sample_id is 2 and only 2,
+    # assuming that one is an R1 file and the other is an R2 file.
+    msgs = []
+    for sample_id in results:
+        count = len(results[sample_id])
+        if count != 2:
+            msgs.append(f"{sample_id} matched an unexpected number of samples "
+                        f"({results[sample_id]})")
+    if msgs:
+        raise ValueError("\n".join(msgs))
+
+    return results, unmatched_sample_ids
+
+
+def _find_filtered_files(fp):
+    # assume that only fastq.gz files are desired and it's okay to ignore
+    # other odd files that we find.
+
+    # assume that all desired fastq.gz files will be stored in a directory
+    # named 'filtered_sequences'. This will automatically ignore files in
+    # 'only-adapter-filtered', 'zerofiles' and possibly other directories
+    # in the future as well.
+
+    # we expect the filepaths to be of the form:
+    # <project_name_w_qiita_id>/filtered_sequences/<fastq_file>
+    # However, we intentionally search across all directories to locate
+    # any fastq files w/in a filtered_sequences subdirectory, even if
+    # they don't match our expectation so that no potentially desirable
+    # file is silently filtered out.
+    files = glob(f"{fp}/**/filtered_sequences/*.fastq.gz", recursive=True)
+
+    by_project = defaultdict(list)
+
+    for fastq_fp in files:
+        # generate the full path to each file for reference.
+        full_path = abspath(fastq_fp)
+
+        # process the relative path of each file to ensure each is of the
+        # the expected form. Report anything out of the ordinary so that no
+        # files are silently missed.
+
+        # remove fp from the beginning of the file's path. The remaining path
+        # should be of the form:
+        # <project_name_w_qiita_id>/filtered_sequences/<fastq_file>
+        tmp = fastq_fp.replace(fp, '')
+        # remove any leading and/or trailing '/' characters from the
+        # remaining path.
+        # use os.sep instead of '/' to be more platform independent.
+        tmp = tmp.strip(sep)
+        tmp = tmp.split(sep)
+
+        if len(tmp) != 3 or tmp[1] != 'filtered_sequences':
+            raise ValueError(f"{fastq_fp} appears to be stored in an "
+                             "unexpected location")
+
+        # where tmp[0] is the project_name, keep a list of all associated with
+        # that project.
+        by_project[tmp[0]].append(full_path)
+
+    # convert to standard dict before returning.
+    return dict(by_project)
+
+
+def _foo_get_run_prefix(file_name):
+    # aka forward, reverse, and indexed reads
+    orientations = ['R1', 'R2', 'I1', 'I2']
+
+    results = []
+
+    # assume orientation is always present in the file's name.
+    # assume that it is of one of the four forms above.
+    # assume that it is always the right-most occurance of the four
+    # orientations above.
+    # assume that orientation is encapsulated with either '_' or '.'
+    # e.g.: '_R1_', '.I2.'.
+    # assume users can and will include any or all of the four
+    # orientation as part of their filenames as well. e.g.:
+    # ABC_7_04_1776_R1_SRE_S3_L007_R2_001.trimmed.fastq.gz
+    for o in orientations:
+        variations = [f"_{o}_", f".{o}."]
+        for v in variations:
+            # rfind searches from the end of the string, rather than
+            # its beginning. It returns the position in the string
+            # where the substring begins.
+            results.append((file_name.rfind(v), o))
+
+    # the orientation will be the substring found with the maximum
+    # found value for pos. That is, it will be the substring that
+    # begins at the rightest most position in the file name.
+    results.sort(reverse=True)
+
+    pos, orientation = results[0]
+
+    # if no orientations were found, then return None.
+    return None if pos == -1 else file_name[0:pos]
+
+

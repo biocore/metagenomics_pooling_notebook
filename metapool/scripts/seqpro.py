@@ -38,6 +38,7 @@ def format_preparation_files(run_dir, sample_sheet, output_dir, verbose):
     df_sheet = sample_sheet_to_dataframe(sample_sheet)
 
     stats = run_counts(run_dir, sample_sheet)
+
     stats['sample_name'] = \
         df_sheet.set_index('lane', append=True)['sample_name']
 
