@@ -415,7 +415,7 @@ class MetricsTest(unittest.TestCase):
         self.run = os.path.join(
             data_dir, "runs", "240124_LH00444_0046_A223N22LT4"
         )
-        self.sheet = os.path.join(data_dir, "good_metatv10_sheet.csv")
+        self.sheet = os.path.join(data_dir, "good_test_counts.csv")
         self.delete_these = []
 
     def tearDown(self):
@@ -505,7 +505,6 @@ class MetricsTest(unittest.TestCase):
         }
 
         exp = pd.DataFrame(exp, dtype=str)
-
         self.assertTrue(obs.equals(exp))
 
 
