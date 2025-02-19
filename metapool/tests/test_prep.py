@@ -21,8 +21,6 @@ class TestPrep(TestCase):
     def setUp(self):
         data_dir = join(dirname(__file__), 'data')
         self.good_run = join(data_dir, 'runs', '191103_D32611_0365_G00DHB5YXX')
-        self.good_run_new_version = join(
-            data_dir, 'runs', '191104_D32611_0365_G00DHB5YXZ')
         self.OKish_run_new_version = join(
             data_dir, 'runs', '191104_D32611_0365_OK15HB5YXZ')
 
@@ -284,62 +282,9 @@ class TestPrep(TestCase):
         obs = remove_qiita_id('project_')
         self.assertEqual(obs, 'project_')
 
-    def atest_get_run_prefix(self):
-        # project 1
-        obs = get_run_prefix(self.good_run, 'Baz_12345', 'sample_1', '1')
-        self.assertEqual('sample_1_S11_L001', obs)
-
-        obs = get_run_prefix(self.good_run, 'Baz_12345', 'sample_1', '3')
-        self.assertEqual('sample_1_S11_L003', obs)
-
-        obs = get_run_prefix(self.good_run, "Baz_12345", "sample_2", "1")
-        self.assertEqual("sample_2_S10_L001", obs)
-
-        # project 2
-        obs = get_run_prefix(self.good_run, 'FooBar_666', 'sample_31', '3')
-        self.assertEqual('sample_31_S13_L003', obs)
-
-        obs = get_run_prefix(self.good_run, 'FooBar_666', 'sample_32', '3')
-        self.assertEqual('sample_32_S19_L003', obs)
-
-        obs = get_run_prefix(self.good_run, 'FooBar_666', 'sample_34', '3')
-        self.assertEqual('sample_34_S33_L003', obs)
-
-    def atest_get_run_prefix_fastp_minimap(self):
-        obs = get_run_prefix(self.good_run_new_version, 'Baz_12345', 'sample1',
-                             '1')
-        self.assertEqual('sample1_S11_L001', obs)
-
-        obs = get_run_prefix(self.good_run_new_version, 'Baz_12345', 'sample1',
-                             '3')
-        self.assertEqual('sample1_S11_L003', obs)
-
-        obs = get_run_prefix(self.good_run_new_version, 'Baz_12345', 'sample2',
-                             '1')
-        self.assertEqual('sample2_S10_L001', obs)
-
-        obs = get_run_prefix(self.good_run_new_version, 'Baz_12345',
-                             'sample44', '3')
-        self.assertIsNone(obs)
-
-        obs = get_run_prefix(self.good_run_new_version, 'Baz_12345', 'sample2',
-                             '3')
-        self.assertIsNone(obs)
-
-        # project 2
-        obs = get_run_prefix(self.good_run_new_version, 'FooBar_666',
-                             'sample31', '3')
-        self.assertEqual('sample31_S13_L003', obs)
-
-        obs = get_run_prefix(self.good_run_new_version, 'FooBar_666',
-                             'sample32', '3')
-        self.assertEqual('sample32_S19_L003', obs)
-
-        obs = get_run_prefix(self.good_run_new_version, 'FooBar_666',
-                             'sample34', '3')
-        self.assertIsNone(obs)
-
     def atest_get_run_prefix_more_than_forward_and_reverse(self):
+        # TODO reimplement this test using a filename for the
+        # new version. The old version is deprecated.
         message = (r'There are 3 matches for sample "sample31" in lane 3\. '
                    r'Only two matches are allowed \(forward and reverse\): '
                    '(.*)metapool/tests/data/runs/191104_D32611_0365_OK15HB5YXZ'

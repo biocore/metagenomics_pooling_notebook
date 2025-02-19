@@ -138,85 +138,6 @@ def remove_qiita_id(project_name):
     return get_short_name_and_id(project_name)[0]
 
 
-def get_run_prefix(run_path, project, sample_id, lane):
-    """For a sample find the run prefix
-
-    Parameters
-    ----------
-    run_path: str
-        Base path for the run
-    project: str
-        Name of the project
-    sample_id: str
-        Sample ID (was sample_name). Changed to reflect name used for files.
-    lane: str
-        Lane number
-
-    Returns
-    -------
-    str
-        The run prefix of the sequence file in the lane, only if the sequence
-        file is not empty.
-    """
-    base = join(run_path, project)
-    path = base
-
-    qc = join(base, 'trimmed_sequences')
-    hf = join(base, 'filtered_sequences')
-
-    if _exists_and_has_files(qc) and _exists_and_has_files(hf):
-        path = hf
-    elif _exists_and_has_files(qc):
-        path = qc
-    elif _exists_and_has_files(hf):
-        path = hf
-    else:
-        path = base
-
-    search_me = '%s_S*_L*%s_R*.fastq.gz' % (sample_id, lane)
-
-    results = glob(join(path, search_me))
-
-    with open('found_files.log', 'a') as f:
-        f.write("SEARCHING: %s\n" % join(path, "FFFF", search_me))
-        for item in results:
-            f.write("%s\n" % item)
-        f.write("\n")
-
-    # at this stage there should only be two files forward and reverse
-    if len(results) == 2:
-        forward, reverse = sorted(results)
-        # TODO: Replace w/a test that checks for number of sequences in
-        # a file or assume that files have already been filtered.
-        # is_nonempty_gz_file(forward) and is_nonempty_gz_file(reverse):
-        if True:
-            f, r = basename(forward), basename(reverse)
-            if len(f) != len(r):
-                raise ValueError("Forward and reverse sequences filenames "
-                                 "don't match f:%s r:%s" % (f, r))
-
-            # The first character that's different is the number in R1/R2. We
-            # find this position this way because sometimes filenames are
-            # written as _R1_.. or _R1.trimmed... and splitting on _R1 might
-            # catch some substrings not part of R1/R2.
-            for i in range(len(f)):
-                if f[i] != r[i]:
-                    i -= 2
-                    break
-
-            return f[:i]
-        else:
-            return None
-    elif len(results) > 2:
-        warnings.warn(('There are %d matches for sample "%s" in lane %s. Only'
-                       ' two matches are allowed (forward and reverse): %s') %
-                      (len(results),
-                       sample_id,
-                       lane,
-                       ', '.join(sorted(results))))
-    return None
-
-
 def get_run_prefix_mf(run_path, project):
     search_path = join(run_path, project, 'amplicon',
                        '*_SMPL1_S*R?_*.fastq.gz')
@@ -459,7 +380,7 @@ def preparations_for_run(run_path, sheet, generated_prep_columns,
     s = "/home/charlie/BIG_MACHINE/metagenomics_pooling_notebook/foo.log"
 
     def log_me(msg):
-        f = open(s, 'w')
+        f = open(s, 'a')
         f.write(msg + '\n')
         f.close()
 
@@ -467,8 +388,6 @@ def preparations_for_run(run_path, sheet, generated_prep_columns,
     # root, but in the future it would be better to give the path to the
     # NuQCJob subdirectory specifically and pass the run_id to this function
     # rather than run_path.
-
-    # metapool/tests/data/runs/200318_A00953_0082_AH5TWYDSXY/Project_1111/filtered_sequences/FFFF/sample1_S*_L*1_R*.fastq.gz
 
     fastq_files_found = _find_filtered_files(run_path)
 
@@ -516,15 +435,11 @@ def preparations_for_run(run_path, sheet, generated_prep_columns,
         sample_ids = sheet.index.tolist()
         log_me("SAMPLE_IDS: %s" % sample_ids)
 
-        """
+        mapped, unmapped = _map_files_to_sample_ids(sample_ids,
+                                                    sample_files)
 
-        results, unmapped_samples = _map_files_to_sample_ids(sample_ids,
-                                                             sample_files)
-
-        log_me("MAPPING RESULTS: %s" % results)
-        log_me("UNMAPPED SAMPLES: %s" % unmapped_samples)
-
-        """
+        log_me("MAPPING RESULTS: %s" % mapped)
+        log_me("UNMAPPED SAMPLES: %s" % unmapped)
 
         # TODO: make sure to put unmapped_samples into failed_samples.log
 
@@ -537,12 +452,14 @@ def preparations_for_run(run_path, sheet, generated_prep_columns,
             data = []
 
             for well_id_col, sample in lane_sheet.iterrows():
-                if isinstance(sample, pd.core.series.Series):
-                    sample_id = well_id_col
-                else:
-                    sample_id = sample.sample_id
-
-                run_prefix = get_run_prefix(run_path, project, sample_id, lane)
+                sample_name = sample.sample_name
+                log_me("SAMPLE: %s" % sample_name)
+                associated_files = mapped[sample_name]
+                log_me("ASSOCIATED_FILES: %s" % associated_files)
+                file_name = basename(associated_files[0])
+                log_me("FILE_NAME: %s" % file_name)
+                run_prefix = get_run_prefix(file_name)
+                log_me("RUN_PREFIX: %s" % run_prefix)
 
                 # ignore the sample if there's no file
                 if run_prefix is not None:
@@ -1082,7 +999,8 @@ def _find_filtered_files(fp):
     return dict(by_project)
 
 
-def _foo_get_run_prefix(file_name):
+def get_run_prefix(file_name):
+    # TODO: Modified from util.py. Try to consolidate these functions.
     # aka forward, reverse, and indexed reads
     orientations = ['R1', 'R2', 'I1', 'I2']
 
