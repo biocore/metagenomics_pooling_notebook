@@ -7,7 +7,6 @@ from shutil import copy, copytree, rmtree
 from os.path import join, exists
 from subprocess import Popen, PIPE
 import pandas as pd
-import warnings
 from glob import glob
 from os.path import basename
 
@@ -37,7 +36,7 @@ class SeqproTests(unittest.TestCase):
         )
 
     def tearDown(self):
-        #rmtree(self.vf_test_dir, ignore_errors=True)
+        rmtree(self.vf_test_dir, ignore_errors=True)
         pass
 
     def test_fastp_run(self):
@@ -173,7 +172,8 @@ class SeqproTests(unittest.TestCase):
                         "raw_reads_r1r2": 2300000,
                         "total_biological_reads_r1r2": 61404.0,
                         "quality_filtered_reads_r1r2": 16.0,
-                        "fraction_passing_quality_filter": 6.956521739130435e-06
+                        "fraction_passing_quality_filter":
+                        6.956521739130435e-06
                       }
                     },
                 "200318_A00953_0082_AH5TWYDSXY.Trojecp_666.1.tsv": {
@@ -391,7 +391,7 @@ class SeqproBCLConvertTests(unittest.TestCase):
             self.assertEqual(sorted([basename(x) for x
                                      in glob("./*.tsv")]), exp_preps)
 
-            for prep, exp_lines in zip(exp_preps, [5,4]):
+            for prep, exp_lines in zip(exp_preps, [5, 4]):
                 with open(prep) as f:
                     lines = f.readlines()
                     lines = [x.strip() for x in lines]

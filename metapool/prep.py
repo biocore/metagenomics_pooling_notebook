@@ -1,19 +1,16 @@
-import re
-import os
-import gzip
-import warnings
-import pandas as pd
-
-from glob import glob
+from collections import Counter, defaultdict
 from datetime import datetime
-from string import ascii_letters, digits
+from glob import glob
 from metapool.mp_strings import get_short_name_and_id
 from metapool.plate import PlateReplication
-from collections import Counter
+from os import sep, listdir
+from os.path import (basename, isdir, join, split, abspath, exists,
+                     normpath)
 from string import ascii_letters, digits
-from os import sep
-from os.path import join, split, abspath, exists
-from collections import defaultdict
+from gzip import open as gz_open
+import pandas as pd
+import re
+import warnings
 
 
 REQUIRED_MF_COLUMNS = {'sample_name', 'barcode', 'primer', 'primer_plate',
@@ -139,7 +136,7 @@ def parse_illumina_run_id(run_id):
 
 def is_nonempty_gz_file(name):
     """Taken from https://stackoverflow.com/a/37878550/379593"""
-    with gzip.open(name, 'rb') as f:
+    with gz_open(name, 'rb') as f:
         try:
             file_content = f.read(1)
             return len(file_content) > 0
@@ -171,11 +168,11 @@ def get_run_prefix(run_path, project, sample_id, lane):
         The run prefix of the sequence file in the lane, only if the sequence
         file is not empty.
     """
-    base = os.path.join(run_path, project)
+    base = join(run_path, project)
     path = base
 
-    qc = os.path.join(base, 'trimmed_sequences')
-    hf = os.path.join(base, 'filtered_sequences')
+    qc = join(base, 'trimmed_sequences')
+    hf = join(base, 'filtered_sequences')
 
     if _exists_and_has_files(qc) and _exists_and_has_files(hf):
         path = hf
@@ -188,10 +185,10 @@ def get_run_prefix(run_path, project, sample_id, lane):
 
     search_me = '%s_S*_L*%s_R*.fastq.gz' % (sample_id, lane)
 
-    results = glob(os.path.join(path, search_me))
+    results = glob(join(path, search_me))
 
     with open('found_files.log', 'a') as f:
-        f.write("SEARCHING: %s\n" % os.path.join(path, "FFFF", search_me))
+        f.write("SEARCHING: %s\n" % join(path, "FFFF", search_me))
         for item in results:
             f.write("%s\n" % item)
         f.write("\n")
@@ -200,7 +197,7 @@ def get_run_prefix(run_path, project, sample_id, lane):
     if len(results) == 2:
         forward, reverse = sorted(results)
         if is_nonempty_gz_file(forward) and is_nonempty_gz_file(reverse):
-            f, r = os.path.basename(forward), os.path.basename(reverse)
+            f, r = basename(forward), basename(reverse)
             if len(f) != len(r):
                 raise ValueError("Forward and reverse sequences filenames "
                                  "don't match f:%s r:%s" % (f, r))
@@ -228,15 +225,15 @@ def get_run_prefix(run_path, project, sample_id, lane):
 
 
 def get_run_prefix_mf(run_path, project):
-    search_path = os.path.join(run_path, project, 'amplicon',
-                               '*_SMPL1_S*R?_*.fastq.gz')
+    search_path = join(run_path, project, 'amplicon',
+                       '*_SMPL1_S*R?_*.fastq.gz')
     results = glob(search_path)
 
     # at this stage there should only be two files forward and reverse
     if len(results) == 2:
         forward, reverse = sorted(results)
         if is_nonempty_gz_file(forward) and is_nonempty_gz_file(reverse):
-            f, r = os.path.basename(forward), os.path.basename(reverse)
+            f, r = basename(forward), basename(reverse)
             if len(f) != len(r):
                 raise ValueError("Forward and reverse sequences filenames "
                                  "don't match f:%s r:%s" % (f, r))
@@ -263,12 +260,12 @@ def get_run_prefix_mf(run_path, project):
 
 
 def _file_list(path):
-    return [f for f in os.listdir(path)
-            if not os.path.isdir(os.path.join(path, f))]
+    return [f for f in listdir(path)
+            if not isdir(join(path, f))]
 
 
 def _exists_and_has_files(path):
-    return os.path.exists(path) and len(_file_list(path))
+    return exists(path) and len(_file_list(path))
 
 
 def get_machine_code(instrument_model):
@@ -459,7 +456,7 @@ def preparations_for_run(run_path, sheet, generated_prep_columns,
         Dictionary keyed by run identifier, project name and lane. Values are
         preparations represented as DataFrames.
     """
-    _, run_id = os.path.split(os.path.normpath(run_path))
+    _, run_id = split(normpath(run_path))
     run_date, instrument_code = parse_illumina_run_id(run_id)
     instrument_model, run_center = get_model_and_center(instrument_code)
 
@@ -508,8 +505,6 @@ def preparations_for_run(run_path, sheet, generated_prep_columns,
                          ', '.join(not_present))
 
     all_columns = sorted(carried_prep_columns + generated_prep_columns)
-
-    from json import dumps
 
     for project, project_sheet in sheet.groupby('sample_project'):
         project_name, qiita_id = get_short_name_and_id(project)
@@ -1076,7 +1071,7 @@ def _find_filtered_files(fp):
         tmp = fastq_fp.replace(fp, '')
         # remove any leading and/or trailing '/' characters from the
         # remaining path.
-        # use os.sep instead of '/' to be more platform independent.
+        # use sep instead of '/' to be more platform independent.
         tmp = tmp.strip(sep)
         tmp = tmp.split(sep)
 
@@ -1124,5 +1119,3 @@ def _foo_get_run_prefix(file_name):
 
     # if no orientations were found, then return None.
     return None if pos == -1 else file_name[0:pos]
-
-

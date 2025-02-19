@@ -54,15 +54,15 @@ class TestCount(TestCase):
             run = os.path.join(tmp, 'funky-rerun-with-repeated-samples')
             shutil.copytree(self.run_dir, run)
 
-            # sample 3 exists, but not with cell number S458, so this should
+            # sample 5 exists, but not with cell number S458, so this should
             # raise an error because if this happense something else went wrong
             fake = os.path.join(run, 'Trojecp_666', 'json',
-                                'sample3_S458_L003_R1_001.json')
+                                'sample5_S458_L001_R1_001.json')
             with open(fake, 'w') as f:
                 f.write(json.dumps({}))
 
             msg = ('Multiple matches found for the same samples in the same '
-                   'lane, only one match is expected: sample3 in lane 3')
+                   'lane, only one match is expected: sample5 in lane 1')
             with self.assertRaisesRegex(ValueError, msg):
                 _parsefier(run, self.ss, 'json', '.json', 'halloween',
                            lambda x: 1)
@@ -290,11 +290,7 @@ class TestBCLConvertCount(TestCase):
 
     def test_raw_read_counts(self):
         obs = raw_read_counts(self.run_dir, self.ss)
-
         exp = self.stats[['raw_reads_r1r2']] * 2
-
-        exp.to_csv('exp.csv', sep=',', index=True)
-        obs.to_csv('obs.csv', sep=',', index=True)
 
         pd.testing.assert_frame_equal(obs.sort_index(), exp)
 
