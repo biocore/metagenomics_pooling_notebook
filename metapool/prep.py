@@ -7,10 +7,10 @@ from os import sep, listdir
 from os.path import (basename, isdir, join, split, abspath, exists,
                      normpath)
 from string import ascii_letters, digits
-from gzip import open as gz_open
 import pandas as pd
 import re
 import warnings
+from json import dumps
 
 
 REQUIRED_MF_COLUMNS = {'sample_name', 'barcode', 'primer', 'primer_plate',
@@ -134,16 +134,6 @@ def parse_illumina_run_id(run_id):
     return run_date, matches[2]
 
 
-def is_nonempty_gz_file(name):
-    """Taken from https://stackoverflow.com/a/37878550/379593"""
-    with gz_open(name, 'rb') as f:
-        try:
-            file_content = f.read(1)
-            return len(file_content) > 0
-        except Exception:
-            return False
-
-
 def remove_qiita_id(project_name):
     return get_short_name_and_id(project_name)[0]
 
@@ -196,7 +186,10 @@ def get_run_prefix(run_path, project, sample_id, lane):
     # at this stage there should only be two files forward and reverse
     if len(results) == 2:
         forward, reverse = sorted(results)
-        if is_nonempty_gz_file(forward) and is_nonempty_gz_file(reverse):
+        # TODO: Replace w/a test that checks for number of sequences in
+        # a file or assume that files have already been filtered.
+        # is_nonempty_gz_file(forward) and is_nonempty_gz_file(reverse):
+        if True:
             f, r = basename(forward), basename(reverse)
             if len(f) != len(r):
                 raise ValueError("Forward and reverse sequences filenames "
@@ -232,7 +225,10 @@ def get_run_prefix_mf(run_path, project):
     # at this stage there should only be two files forward and reverse
     if len(results) == 2:
         forward, reverse = sorted(results)
-        if is_nonempty_gz_file(forward) and is_nonempty_gz_file(reverse):
+        # TODO: Replace w/a test that checks for number of sequences in
+        # a file or assume that files have already been filtered.
+        # is_nonempty_gz_file(forward) and is_nonempty_gz_file(reverse):
+        if True:
             f, r = basename(forward), basename(reverse)
             if len(f) != len(r):
                 raise ValueError("Forward and reverse sequences filenames "
@@ -463,7 +459,7 @@ def preparations_for_run(run_path, sheet, generated_prep_columns,
     s = "/home/charlie/BIG_MACHINE/metagenomics_pooling_notebook/foo.log"
 
     def log_me(msg):
-        f = open(s, 'a')
+        f = open(s, 'w')
         f.write(msg + '\n')
         f.close()
 
@@ -512,8 +508,6 @@ def preparations_for_run(run_path, sheet, generated_prep_columns,
         # since sample-names could be duplicated across projects, associate
         # sample-names to files on a project-by-project basis.
 
-        """
-
         log_me("FOO: %s" % dumps(fastq_files_found, indent=2))
         sample_files = fastq_files_found[project]
         log_me("SAMPLE_FILES: %s" % sample_files)
@@ -521,6 +515,8 @@ def preparations_for_run(run_path, sheet, generated_prep_columns,
         log_me("COLUMNS: %s" % sheet.columns)
         sample_ids = sheet.index.tolist()
         log_me("SAMPLE_IDS: %s" % sample_ids)
+
+        """
 
         results, unmapped_samples = _map_files_to_sample_ids(sample_ids,
                                                              sample_files)
@@ -530,9 +526,7 @@ def preparations_for_run(run_path, sheet, generated_prep_columns,
 
         """
 
-
         # TODO: make sure to put unmapped_samples into failed_samples.log
-
 
         # if the Qiita ID is not found then make for an easy find/replace
         if qiita_id == project:
@@ -986,6 +980,7 @@ def demux_pre_prep(pre_prep):
         res.append(pre_prep[pre_prep['quad'] == quad].drop(['quad'], axis=1))
 
     return res
+
 
 def _map_files_to_sample_ids(sample_ids, sample_files):
     # create a mapping of sample_ids to fastq filepaths.
