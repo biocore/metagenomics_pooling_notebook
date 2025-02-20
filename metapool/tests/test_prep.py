@@ -1,8 +1,7 @@
 from os.path import join, dirname
-
-import pandas
 import pandas as pd
-
+from random import choice, randint, shuffle
+from string import ascii_letters, digits
 from unittest import TestCase, main
 from metapool.sample_sheet import (MetagenomicSampleSheetv90,
                                    MetagenomicSampleSheetv100,
@@ -14,7 +13,8 @@ from metapool.prep import (preparations_for_run, remove_qiita_id,
                            _check_invalid_names, agp_transform, parse_prep,
                            generate_qiita_prep_file, qiita_scrub_name,
                            preparations_for_run_mapping_file, demux_pre_prep,
-                           pre_prep_needs_demuxing)
+                           pre_prep_needs_demuxing,
+                           _map_files_to_sample_ids)
 
 
 class TestPrep(TestCase):
@@ -234,7 +234,7 @@ class TestPrep(TestCase):
     def test_preparations_for_run_mf(self):
         # mf has a header w/mixed case. This will test whether mapping-file
         # headers are properly converted to all lower-case.
-        mf = pandas.read_csv(self.mf, delimiter='\t')
+        mf = pd.read_csv(self.mf, delimiter='\t')
 
         # obs will be a dictionary of dataframes, with the keys being
         # a triplet of strings, rather than a single string.
@@ -1382,6 +1382,350 @@ class TestPrep(TestCase):
         self.assertEqual(qiita_scrub_name('{}/<>'), '.')
         self.assertEqual(qiita_scrub_name('th!s.has.happened'),
                          'th.s.has.happened')
+
+    def test_map_files_to_sample_ids(self):
+        characters = ascii_letters + digits
+
+        # sample_ids, including one where a file won't be found (DUMMY_SAMPLE)
+        # and one that is a superset of another (LS_1_19_2014_SRE).
+        gsample_ids = ["LS_1_19_2014", 'DUMMY_SAMPLE', "LS_3_24_2015",
+                       "LS_6_29_2015", "LS_8_10_2013", "T_LS_7_15_15B",
+                       "LS_1_19_2014_SRE"]
+
+        # add additional randomly generated sample-ids in order to increase
+        # the search space for matches.
+        extras = []
+        for i in range(0, 100):
+            fn = ''.join(choice(characters) for _ in range(randint(6, 14)))
+            extras.append(fn)
+
+        extra_r1_files = [f"{x}_R1.trimmed.fastq.gz" for x in extras]
+        extra_r2_files = [f"{x}_R2.trimmed.fastq.gz" for x in extras]
+
+        gsample_ids += extras
+
+        # The comparison _map_files_to_sample_ids() uses is m*n,
+        # however for the relatively small number of sample_files
+        # (roughly 2 times n) and the even smaller number of sample_ids,
+        # this shouldn't be a problem.
+
+        # The total time taken to process 1000 samples and the associated
+        # number of R1 and R2 files is approximately half a second a
+
+        # the mean total time taken on a 2018 macbook pro to process 1000
+        # samples and the associated number of R1 and R2 files was
+        # 0.559894 seconds across 8 runs.
+
+        # the mean total time taken on a 2021 AMD Ryzen 5 6-core CPU desktop
+        # was 0.082016 seconds across 8 runs.
+
+        # the mean times for 3000 samples on the same macbook pro was
+        # 5.2093678 seconds (5 runs) and 0.718948 (8 runs) on the desktop.
+        # Although the time taken to process 3000 samples starts to increase
+        # significantly on the macbook pro, it should be noted that 3000
+        # samples is well outside the expected size of samples for a single
+        # sample-sheet or single SPP run.
+
+        #gsample_ids.append("LS_1_19_20144")
+        #gsample_ids.append("LS_1_19_2014_SREE")
+
+        gsample_path = ("/your_working_dir/NuQCJob/Your_Project_12345/"
+                        "filtered_sequences")
+
+        # create a set of matching filenames for the sample-ids and give them
+        # full paths.
+        gsample_filenames = ["LS_1_19_2014_S36_L007_R2_001.trimmed.fastq.gz",
+                             "T_LS_7_15_15B_S27_L007_R1_001.trimmed.fastq.gz",
+                             "LS_8_10_2013_S31_L007_R2_001.trimmed.fastq.gz",
+                             "LS_6_29_2015_S32_L007_R1_001.trimmed.fastq.gz",
+                             "LS_3_24_2015_S37_L007_R2_001.trimmed.fastq.gz",
+                             "LS_3_24_2015_S37_L007_R1_001.trimmed.fastq.gz",
+                             "T_LS_7_15_15B_S27_L007_R2_001.trimmed.fastq.gz",
+                             "LS_8_10_2013_S31_L007_R1_001.trimmed.fastq.gz",
+                             "LS_6_29_2015_S32_L007_R2_001.trimmed.fastq.gz",
+                             "LS_1_19_2014_S36_L007_R1_001.trimmed.fastq.gz",
+                             "LS_1_19_2014_SRE_S36_L007_R2_001.trimmed.fastq"
+                             ".gz",
+                             "LS_1_19_2014_SRE_S36_L007_R1_001.trimmed.fastq"
+                             ".gz"]
+
+        gsample_filenames += extra_r1_files
+        gsample_filenames += extra_r2_files
+
+        # add the full path to the filenames and randomize their order.
+        gsample_files = [join(gsample_path, filename) for filename in
+                         gsample_filenames]
+        shuffle(gsample_files)
+
+        # uncomment to record wallclock time taken.
+        # from time import time
+        # t = time()
+        obs, unmatched_samples = _map_files_to_sample_ids(gsample_ids,
+                                                          gsample_files)
+        # t = time() - t
+
+        # after all possible sample_files have been matched to sample_ids, ensure
+        # that the number of matching files for each sample_id is 2 and only 2,
+        # assuming that one is an R1 file and the other is an R2 file.
+        msgs = []
+        for sample_id in obs:
+            count = len(obs[sample_id])
+            if count != 2:
+                msgs.append(f"{sample_id} matched an unexpected number of "
+                            f"samples ({obs[sample_id]})")
+
+        if msgs:
+            raise ValueError("\n".join(msgs))
+
+        exp = {
+            "LS_1_19_2014": ["/your_working_dir/NuQCJob/Your_Project_12345/"
+                             "filtered_sequences/LS_1_19_2014_S36_L007_R2_001"
+                             ".trimmed.fastq.gz",
+                             "/your_working_dir/NuQCJob/Your_Project_12345/"
+                             "filtered_sequences/LS_1_19_2014_S36_L007_R1_001"
+                             ".trimmed.fastq.gz"],
+            "LS_1_19_2014_SRE": ["/your_working_dir/NuQCJob/Your_Project_12345"
+                                 "/filtered_sequences/LS_1_19_2014_SRE_S36_"
+                                 "L007_R2_001.trimmed.fastq.gz",
+                                 "/your_working_dir/NuQCJob/Your_Project_12345"
+                                 "/filtered_sequences/LS_1_19_2014_SRE_S36_"
+                                 "L007_R1_001.trimmed.fastq.gz"],
+            "LS_3_24_2015": ["/your_working_dir/NuQCJob/Your_Project_12345/"
+                             "filtered_sequences/LS_3_24_2015_S37_L007_R1_001"
+                             ".trimmed.fastq.gz",
+                             "/your_working_dir/NuQCJob/Your_Project_12345/"
+                             "filtered_sequences/LS_3_24_2015_S37_L007_R2_001"
+                             ".trimmed.fastq.gz"],
+            "LS_6_29_2015": ["/your_working_dir/NuQCJob/Your_Project_12345/"
+                             "filtered_sequences/LS_6_29_2015_S32_L007_R2_001"
+                             ".trimmed.fastq.gz",
+                             "/your_working_dir/NuQCJob/Your_Project_12345/"
+                             "filtered_sequences/LS_6_29_2015_S32_L007_R1_001"
+                             ".trimmed.fastq.gz"],
+            "T_LS_7_15_15B": ["/your_working_dir/NuQCJob/Your_Project_12345/"
+                              "filtered_sequences/T_LS_7_15_15B_S27_L007_R2_"
+                              "001.trimmed.fastq.gz",
+                              "/your_working_dir/NuQCJob/Your_Project_12345/"
+                              "filtered_sequences/T_LS_7_15_15B_S27_L007_R1_"
+                              "001.trimmed.fastq.gz"],
+            "LS_8_10_2013": ["/your_working_dir/NuQCJob/Your_Project_12345/"
+                             "filtered_sequences/LS_8_10_2013_S31_L007_R1_001"
+                             ".trimmed.fastq.gz",
+                             "/your_working_dir/NuQCJob/Your_Project_12345/"
+                             "filtered_sequences/LS_8_10_2013_S31_L007_R2_001"
+                             ".trimmed.fastq.gz"]
+            }
+
+        # obs is populated much like exp is above, where a sample-id has been
+        # mapped to exactly two fastq files. Obs will also contain mappings
+        # for the many randomly generated sample-ids that were added as well.
+
+        # we first want to ensure that all of the sample-ids found above in
+        # exp are also found in obs.
+        self.assertEqual(set(exp.keys()) - set(obs.keys()), set())
+
+        # we then want to ensure that for each of the above sample-ids found
+        # in exp, the set of fastq files found by _map_files_to_sample_ids()
+        # is exactly the same. Note that this also tests that the function can
+        # correctly match 'LS_1_19_2014' and 'LS_1_19_2014_SRE' to their
+        # respective fastq files.
+        for sample_id in exp:
+            self.assertEqual(set(exp[sample_id]), set(obs[sample_id]))
+
+        # confirm that the unmatched_samples list contains the set of
+        # sample-ids that did not match any fastq files in gsample_filenames.
+        # this models the case where a sample from a sample-sheet did not
+        # successfully process and therefore no fastq files were generated.
+        self.assertEqual(set(unmatched_samples), {'DUMMY_SAMPLE'})
+
+    def test_map_files_to_sample_ids_more(self):
+        characters = ascii_letters + digits
+
+        # create real files for ABC and ABCDEF, but not for these other
+        # similarly named variants.
+
+        gsample_ids = ["ABC", "ABCC", "BABC", "AABC", "ABCDEF", "XYZ", "DEF"]
+
+        gsample_path = "/some_dir/some_project/something_else"
+
+        gsample_filenames = ["ABC_S36_L007_R2_001.trimmed.fastq.gz",
+                             "ABC_S36_L007_R1_001.trimmed.fastq.gz",
+                             "ABCDEF_S37_L007_R2_001.trimmed.fastq.gz",
+                             "ABCDEF_S37_L007_R1_001.trimmed.fastq.gz"]
+
+        gsample_files = [join(gsample_path, filename) for filename in
+                         gsample_filenames]
+
+        shuffle(gsample_files)
+
+        obs, unmatched_samples = _map_files_to_sample_ids(gsample_ids,
+                                                          gsample_files)
+
+        exp = {
+            "ABC": ["/some_dir/some_project/something_else/ABC_S36_L007_R1_"
+                    "001.trimmed.fastq.gz",
+                    "/some_dir/some_project/something_else/ABC_S36_L007_R2_"
+                    "001.trimmed.fastq.gz"],
+            "ABCDEF": ["/some_dir/some_project/something_else/ABCDEF_S37_L007"
+                       "_R1_001.trimmed.fastq.gz",
+                       "/some_dir/some_project/something_else/ABCDEF_S37_L007"
+                       "_R2_001.trimmed.fastq.gz"]
+        }
+
+        exp_unmatched = {'ABCC', 'AABC', 'XYZ', 'BABC', 'DEF'}
+
+        # demonstrate that the function can correctly match 'ABC' and
+        # 'ABCDEF'.
+        self.assertEqual(set(obs.keys()), set(exp.keys()))
+        self.assertEqual(set(unmatched_samples), exp_unmatched)
+
+        # now create files for those samples that were not found in the
+        # previous test and ensure that the function can correctly match
+        # all sample-ids to their respective fastq files.
+        gsample_filenames += ["ABCC_S38_L007_R2_001.trimmed.fastq.gz",
+                              "ABCC_S38_L007_R1_001.trimmed.fastq.gz",
+                              "BABC_S39_L007_R2_001.trimmed.fastq.gz",
+                              "BABC_S39_L007_R1_001.trimmed.fastq.gz",
+                              "AABC_S40_L007_R2_001.trimmed.fastq.gz",
+                              "AABC_S40_L007_R1_001.trimmed.fastq.gz"]
+
+        # recreate the filepaths based on the old and new filenames.
+        gsample_files = [join(gsample_path, filename) for filename in
+                         gsample_filenames]
+
+        shuffle(gsample_files)
+
+        obs, unmatched_samples = _map_files_to_sample_ids(gsample_ids,
+                                                          gsample_files)
+
+        exp = {
+            "BABC": ["/some_dir/some_project/something_else/BABC_S39_L007_R2"
+                     "_001.trimmed.fastq.gz",
+                     "/some_dir/some_project/something_else/BABC_S39_L007_R1"
+                     "_001.trimmed.fastq.gz"],
+            "ABCC": [ "/some_dir/some_project/something_else/ABCC_S38_L007_R1"
+                     "_001.trimmed.fastq.gz",
+                     "/some_dir/some_project/something_else/ABCC_S38_L007_R2"
+                     "_001.trimmed.fastq.gz" ],
+            "ABC": [ "/some_dir/some_project/something_else/ABC_S36_L007_R1"
+                    "_001.trimmed.fastq.gz",
+                    "/some_dir/some_project/something_else/ABC_S36_L007_R2_"
+                    "001.trimmed.fastq.gz" ],
+            "AABC": [ "/some_dir/some_project/something_else/AABC_S40_L007_"
+                     "R1_001.trimmed.fastq.gz",
+                     "/some_dir/some_project/something_else/AABC_S40_L007_R2"
+                     "_001.trimmed.fastq.gz" ],
+            "ABCDEF": [ "/some_dir/some_project/something_else/ABCDEF_S37_"
+                       "L007_R2_001.trimmed.fastq.gz",
+                       "/some_dir/some_project/something_else/ABCDEF_S37_"
+                       "L007_R1_001.trimmed.fastq.gz" ]
+            }
+
+        exp_unmatched = {'DEF', 'XYZ'}
+
+        self.assertEqual(set(obs.keys()), set(exp.keys()))
+        self.assertEqual(set(unmatched_samples), exp_unmatched)
+
+    def test_map_files_to_sample_ids_errors(self):
+        characters = ascii_letters + digits
+
+        # create real files for ABC and ABCDEF, but not for these other
+        # similarly named variants.
+
+        gsample_ids = ["ABC", "ABCC", "BABC"]
+
+        gsample_path = "/some_dir"
+
+        # create a condition where some samples won't have files, and
+        # also create one or more pairs of fastq files that don't aren't
+        # in the gsample_ids list.
+        gsample_filenames = ["ABC_S36_L007_R2_001.trimmed.fastq.gz",
+                             "ABC_S36_L007_R1_001.trimmed.fastq.gz",
+                             "ABCDEF_S37_L007_R2_001.trimmed.fastq.gz",
+                             "ABCDEF_S37_L007_R1_001.trimmed.fastq.gz"]
+
+        gsample_files = [join(gsample_path, filename) for filename in
+                         gsample_filenames]
+
+        shuffle(gsample_files)
+
+        # because _map_files_to_sample_ids() is sample-file centric
+        # rather than sample-id centric, no files passed to the function
+        # will be silently ignored. In this case, 'ABC' is the best match
+        # for all four sample-files in gsample_filenames. However, since
+        # there are four matching files instead of the two that
+        # _map_files_to_sample_ids() expects, the function will raise an
+        # error. Similarly if only one read file made it through processing,
+        # a similar error would be raised.
+        msg = (r"ABC matched an unexpected number of samples \(\['/some_dir/A"
+               r"BCDEF_S37_L007_R1_001.trimmed.fastq.gz', '/some_dir/ABCDEF_S"
+               r"37_L007_R2_001.trimmed.fastq.gz', '/some_dir/ABC_S36_L007_R1"
+               r"_001.trimmed.fastq.gz', '/some_dir/ABC_S36_L007_R2_001.trimm"
+               r"ed.fastq.gz'\]\)")
+
+        with self.assertRaisesRegex(ValueError, msg):
+            _map_files_to_sample_ids(gsample_ids, gsample_files)
+
+        gsample_filenames = ["ABC_S36_L007_R2_001.trimmed.fastq.gz",
+                             "ABC_S36_L007_R1_001.trimmed.fastq.gz",
+                             "ABC_S36_L007_I1_001.trimmed.fastq.gz"]
+
+        gsample_files = [join(gsample_path, filename) for filename in
+                         gsample_filenames]
+
+        shuffle(gsample_files)
+
+        # NB: This situation also applies to I1 and I2 files, since
+        # _map_files_to_sample_ids() makes no assumptions about the naming
+        # format of files. (This is to support non-Illumina-style names.)
+        # It is up to the caller to ensure that the files passed include only
+        # fastq.gz files and that they are R1 and R2 files.
+        msg = (r"ABC matched an unexpected number of samples \(\['/some_dir/AB"
+               r"C_S36_L007_I1_001.trimmed.fastq.gz', '/some_dir/ABC_S36_L007_"
+               r"R1_001.trimmed.fastq.gz', '/some_dir/ABC_S36_L007_R2_001.trim"
+               r"med.fastq.gz'\]\)")
+
+        with self.assertRaisesRegex(ValueError, msg):
+            _map_files_to_sample_ids(gsample_ids, gsample_files)
+
+
+        # model a situation where one or more files are not fastq.gz files.
+        gsample_filenames = ["ABC_S36_L007_R2_001.trimmed.fastq.gz",
+                             "ABC_S36_L007_R1_001.trimmed.fastq.gz",
+                             "not_a_fastq_file.txt", 'notafile']
+
+        gsample_files = [join(gsample_path, filename) for filename in
+                         gsample_filenames]
+
+        shuffle(gsample_files)
+
+        msg = (r"One or more files are not fastq.gz files: /some_dir/notafile,"
+               r" /some_dir/not_a_fastq_file.txt")
+
+        with self.assertRaisesRegex(ValueError, msg):
+            _map_files_to_sample_ids(gsample_ids, gsample_files)
+
+        # In instances where a fastq file cannot be matched to ANY sample-
+        # name, an error will also be raised.
+        gsample_filenames = ["ABC_S36_L007_R2_001.trimmed.fastq.gz",
+                             "ABC_S36_L007_R1_001.trimmed.fastq.gz",
+                             "UNMATCHABLE.fastq.gz"]
+
+        gsample_files = [join(gsample_path, filename) for filename in
+                         gsample_filenames]
+
+        shuffle(gsample_files)
+
+        msg = (r"/some_dir/UNMATCHABLE.fastq.gz could not be matched to any "
+               r"sample-id")
+
+        with self.assertRaisesRegex(ValueError, msg):
+            _map_files_to_sample_ids(gsample_ids, gsample_files)
+
+    def test_outstanding_tests(self):
+        # test get_run_prefix() new version
+        # test _find_filtered_files()
+        self.assertTrue(False)
 
 
 class TestPrePrepReplicates(TestCase):

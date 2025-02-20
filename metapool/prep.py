@@ -905,6 +905,12 @@ def _map_files_to_sample_ids(sample_ids, sample_files):
     # reported.
     results = defaultdict(list)
 
+    not_fastqs = [x for x in sample_files if not x.endswith('.fastq.gz')]
+
+    if not_fastqs:
+        raise ValueError("One or more files are not fastq.gz files: %s" %
+                         ', '.join(not_fastqs))
+
     for sample_file in sample_files:
         # make no assumptions about the naming format of fastq files, other
         # than their names will begin with a valid sample_id. This is to
@@ -937,13 +943,14 @@ def _map_files_to_sample_ids(sample_ids, sample_files):
 
     # after all possible sample_files have been matched to sample_ids, ensure
     # that the number of matching files for each sample_id is 2 and only 2,
-    # assuming that one is an R1 file and the other is an R2 file.
+    # _assuming_ that one is an R1 file and the other is an R2 file.
     msgs = []
     for sample_id in results:
         count = len(results[sample_id])
         if count != 2:
+            msg = sorted(results[sample_id])
             msgs.append(f"{sample_id} matched an unexpected number of samples "
-                        f"({results[sample_id]})")
+                        f"({msg})")
     if msgs:
         raise ValueError("\n".join(msgs))
 
