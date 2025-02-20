@@ -1722,6 +1722,10 @@ class TestPrep(TestCase):
         with self.assertRaisesRegex(ValueError, msg):
             _map_files_to_sample_ids(gsample_ids, gsample_files)
 
+    def test_find_filtered_files(self):
+        pass
+
+
     def test_outstanding_tests(self):
         # test get_run_prefix() new version
         # test _find_filtered_files()

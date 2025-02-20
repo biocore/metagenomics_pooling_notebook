@@ -377,7 +377,7 @@ def preparations_for_run(run_path, sheet, generated_prep_columns,
     run_date, instrument_code = parse_illumina_run_id(run_id)
     instrument_model, run_center = get_model_and_center(instrument_code)
 
-    s = "/home/charlie/BIG_MACHINE/metagenomics_pooling_notebook/foo.log"
+    s = "./running.log"
 
     def log_me(msg):
         f = open(s, 'a')
@@ -389,7 +389,7 @@ def preparations_for_run(run_path, sheet, generated_prep_columns,
     # NuQCJob subdirectory specifically and pass the run_id to this function
     # rather than run_path.
 
-    fastq_files_found = _find_filtered_files(run_path)
+    fastq_files_found, run_prefix_mapping = _find_filtered_files(run_path)
 
     output = {}
 
@@ -451,15 +451,32 @@ def preparations_for_run(run_path, sheet, generated_prep_columns,
             # this is the portion of the loop that creates the prep
             data = []
 
-            for well_id_col, sample in lane_sheet.iterrows():
+            for _, sample in lane_sheet.iterrows():
                 sample_name = sample.sample_name
                 log_me("SAMPLE: %s" % sample_name)
                 associated_files = mapped[sample_name]
                 log_me("ASSOCIATED_FILES: %s" % associated_files)
-                file_name = basename(associated_files[0])
-                log_me("FILE_NAME: %s" % file_name)
-                run_prefix = get_run_prefix(file_name)
-                log_me("RUN_PREFIX: %s" % run_prefix)
+
+                # run-prefix is a column value in the prep-info file and is
+                # programmatically defined as the part of the filename up to
+                # the orientation indicator (assuming it's present). e.g.:
+                # my_sample_S001_L001_R1_001.gz -> 'my_sample_S001_L001'.
+
+                # we assume that the run-prefixes for all files
+                # associated with a sample are the same. Notify the user if
+                # this assertion isn't true as it's an indicator of a larger
+                # error.
+                run_prefixes = list(set([run_prefix_mapping[x] for x in
+                                         associated_files]))
+
+                log_me("RUN_PREFIXES: %s" % run_prefixes)
+
+                if len(run_prefixes) != 1:
+                    raise ValueError(f'The files associated with {sample_name}'
+                                     f" ({', '.join(associated_files)}) do not"
+                                     " share the same run-prefix")
+
+                run_prefix = run_prefixes[0]
 
                 # ignore the sample if there's no file
                 if run_prefix is not None:
@@ -976,9 +993,19 @@ def _find_filtered_files(fp):
 
     by_project = defaultdict(list)
 
+    run_prefix_mapping = {}
+
     for fastq_fp in files:
         # generate the full path to each file for reference.
         full_path = abspath(fastq_fp)
+
+        # determine the run_prefix and orientation of the file.
+        # We do not want to silently ignore the file if its orientation is not
+        # R1 or R2.
+        run_prefix, orientation = get_run_prefix(basename(fastq_fp))
+        if orientation not in ['R1', 'R2']:
+            raise ValueError(f"{fastq_fp} does not appear to be a forward or"
+                             "reverse read file")
 
         # process the relative path of each file to ensure each is of the
         # the expected form. Report anything out of the ordinary so that no
@@ -1001,14 +1028,14 @@ def _find_filtered_files(fp):
         # where tmp[0] is the project_name, keep a list of all associated with
         # that project.
         by_project[tmp[0]].append(full_path)
+        run_prefix_mapping[full_path] = run_prefix
 
     # convert to standard dict before returning.
-    return dict(by_project)
+    return dict(by_project), run_prefix_mapping
 
 
 def get_run_prefix(file_name):
-    # TODO: Modified from util.py. Try to consolidate these functions.
-    # aka forward, reverse, and indexed reads
+    # Modified from mg-scripts/util.py:determine_orientation().
     orientations = ['R1', 'R2', 'I1', 'I2']
 
     results = []
@@ -1038,4 +1065,4 @@ def get_run_prefix(file_name):
     pos, orientation = results[0]
 
     # if no orientations were found, then return None.
-    return None if pos == -1 else file_name[0:pos]
+    return (None, None) if pos == -1 else (file_name[0:pos], orientation)
