@@ -451,10 +451,16 @@ def preparations_for_run(run_path, sheet, generated_prep_columns,
             # this is the portion of the loop that creates the prep
             data = []
 
-            for _, sample in lane_sheet.iterrows():
+            for sample_id, sample in lane_sheet.iterrows():
                 sample_name = sample.sample_name
-                log_me("SAMPLE: %s" % sample_name)
-                associated_files = mapped[sample_name]
+                log_me("SAMPLE_ID: %s" % sample_id)
+                log_me("SAMPLE_NAME: %s" % sample_name)
+
+                if sample_id in unmapped:
+                    # TODO: DO NOT JUST SKIP!!! LOG THEM!
+                    continue
+
+                associated_files = mapped[sample_id]
                 log_me("ASSOCIATED_FILES: %s" % associated_files)
 
                 # run-prefix is a column value in the prep-info file and is

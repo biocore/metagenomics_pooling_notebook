@@ -43,7 +43,7 @@ class TestPrep(TestCase):
         "Convenience method to check the output of a whole run"
 
         exp = {('191103_D32611_0365_G00DHB5YXX', 'Baz_12345', '3'),
-               ('191103_D32611_0365_G00DHB5YXX', 'File_Parsing_Tests_666',
+               ('191103_D32611_0365_G00DHB5YXX', 'FooBar_666',
                 '3')}
         self.assertEqual(set(obs.keys()), exp)
 
@@ -59,9 +59,30 @@ class TestPrep(TestCase):
                  'Illumina', 'UCSDMI', '2019-11-03', 'sample_1_S11_L003',
                  'sequencing by synthesis', 'UCSD', 'Baz',
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
-                 'File_Parsing_Tests_666_p1', 'A3', 'iTru7_107_09', 'GCCTTGTT',
+                 'FooBar_666_p1', 'A3', 'iTru7_107_09', 'GCCTTGTT',
                  'iTru5_01_A', 'AACACCAC', '3', 'Baz_12345',
-                 'File_Parsing_Tests_666_p1.sample.1.A3'],
+                 'FooBar_666_p1.sample.1.A3'],
+
+                ['sample.2', 'Eqiiperiment', 'Knight Lab Kapa HP',
+                 'Illumina', 'UCSDMI', '2019-11-03', 'sample_2_S10_L003',
+                 'sequencing by synthesis', 'UCSD', 'Baz',
+                 'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
+                 'FooBar_666_p1', 'A4', 'iTru7_107_10', 'AACTTGCC',
+                 'iTru5_01_A', 'CGTATCTC', '3', 'Baz_12345',
+                 'FooBar_666_p1.sample.2.A4'],
+
+                ['sample.3', 'Eqiiperiment', 'Knight Lab Kapa HP',
+                 'Illumina', 'UCSDMI', '2019-11-03', 'sample_3_S12_L003',
+                 'sequencing by synthesis', 'UCSD', 'Baz',
+                 'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
+                 'FooBar_666_p1', 'A1', 'iTru7_107_07', 'CCGACTAT',
+                 'iTru5_01_A', 'ACCGACAA', '3', 'Baz_12345',
+                 'FooBar_666_p1.sample.3.A1'],
+
+                # sample.4 is not present because we did not create a file
+                # for it. It represents a file that failed to pass through
+                # processing.
+
                 ['sample.44', 'Eqiiperiment', 'Knight Lab Kapa HP',
                  'Illumina', 'UCSDMI', '2019-11-03', 'sample_44_S14_L003',
                  'sequencing by synthesis', 'UCSD', 'Baz',
@@ -81,58 +102,54 @@ class TestPrep(TestCase):
         # make sure the columns are in the same order before comparing
         obs_df = obs_df[exp.columns].copy()
 
+        # make sure the sample names are in the same order before comparing
+        obs_df = obs_df.sort_values(by='sample_name')
+        exp = exp.sort_values(by='sample_name')
+        # remove the integer indexes because they're not equal and not
+        # important.
+        obs_df.set_index('sample_name', inplace=True)
+        exp.set_index('sample_name', inplace=True)
+
         pd.testing.assert_frame_equal(obs_df, exp)
 
-        data = [['sample.1', 'Eqiiperiment', 'Knight Lab Kapa HP',
-                 'Illumina', 'UCSDMI', '2019-11-03', 'sample_1_S11_L001',
-                 'sequencing by synthesis', 'UCSD', 'Baz',
-                 'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
-                 'File_Parsing_Tests_666_p1', 'A1', 'iTru7_107_07', 'CCGACTAT',
-                 'iTru5_01_A', 'ACCGACAA', '1', 'Baz_12345',
-                 'File_Parsing_Tests_666_p1.sample.1.A1'],
-                ['sample.2', 'Eqiiperiment', 'Knight Lab Kapa HP',
-                 'Illumina', 'UCSDMI', '2019-11-03', 'sample_2_S10_L001',
-                 'sequencing by synthesis', 'UCSD', 'Baz',
-                 'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
-                 'File_Parsing_Tests_666_p1', 'A2', 'iTru7_107_08', 'CCGACTAT',
-                 'iTru5_01_A', 'CTTCGCAA', '1', 'Baz_12345',
-                 'File_Parsing_Tests_666_p1.sample.2.A2']]
-        exp = pd.DataFrame(columns=columns, data=data)
-        obs_df = obs[('191103_D32611_0365_G00DHB5YXX', 'Baz_12345', '1')]
-
-        # make sure the columns are in the same order before comparing
-        obs_df = obs_df[exp.columns].copy()
-        pd.testing.assert_frame_equal(obs_df, exp)
+        # now check the second prep-info output for the run.
 
         data = [['sample.31', 'SomethingWitty', 'Knight Lab Kapa HP',
                  'Illumina', 'UCSDMI', '2019-11-03', 'sample_31_S13_L003',
-                 'sequencing by synthesis', 'UCSD', 'File_Parsing_Tests',
+                 'sequencing by synthesis', 'UCSD', 'FooBar',
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
-                 'File_Parsing_Tests_666_p1', 'A5', 'iTru7_107_11', 'CAATGTGG',
-                 'iTru5_01_A', 'GGTACGAA', '3', 'File_Parsing_Tests_666',
-                 'File_Parsing_Tests_666_p1.sample.31.A5'],
+                 'FooBar_666_p1', 'A5', 'iTru7_107_11', 'CAATGTGG',
+                 'iTru5_01_A', 'GGTACGAA', '3', 'FooBar_666',
+                 'FooBar_666_p1.sample.31.A5'],
                 ['sample.32', 'SomethingWitty', 'Knight Lab Kapa HP',
                  'Illumina', 'UCSDMI', '2019-11-03', 'sample_32_S19_L003',
-                 'sequencing by synthesis', 'UCSD', 'File_Parsing_Tests',
+                 'sequencing by synthesis', 'UCSD', 'FooBar',
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
-                 'File_Parsing_Tests_666_p1', 'B6', 'iTru7_107_12', 'AAGGCTGA',
-                 'iTru5_01_A', 'CGATCGAT', '3', 'File_Parsing_Tests_666',
-                 'File_Parsing_Tests_666_p1.sample.32.B6'],
+                 'FooBar_666_p1', 'B6', 'iTru7_107_12', 'AAGGCTGA',
+                 'iTru5_01_A', 'CGATCGAT', '3', 'FooBar_666',
+                 'FooBar_666_p1.sample.32.B6'],
                 ['sample.34', 'SomethingWitty', 'Knight Lab Kapa HP',
                  'Illumina', 'UCSDMI', '2019-11-03', 'sample_34_S33_L003',
-                 'sequencing by synthesis', 'UCSD', 'File_Parsing_Tests',
+                 'sequencing by synthesis', 'UCSD', 'FooBar',
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
-                 'File_Parsing_Tests_666_p1', 'B8', 'iTru7_107_13', 'TTACCGAG',
-                 'iTru5_01_A', 'AAGACACC', '3', 'File_Parsing_Tests_666',
-                 'File_Parsing_Tests_666_p1.sample.34.B8']
+                 'FooBar_666_p1', 'B8', 'iTru7_107_13', 'TTACCGAG',
+                 'iTru5_01_A', 'AAGACACC', '3', 'FooBar_666',
+                 'FooBar_666_p1.sample.34.B8']
                 ]
 
         exp = pd.DataFrame(columns=columns, data=data)
         obs_df = obs[('191103_D32611_0365_G00DHB5YXX',
-                      'File_Parsing_Tests_666', '3')]
+                      'FooBar_666', '3')]
 
         # make sure the columns are in the same order before comparing
         obs_df = obs_df[exp.columns].copy()
+
+        obs_df = obs_df.sort_values(by='sample_name')
+        exp = exp.sort_values(by='sample_name')
+
+        obs_df.set_index('sample_name', inplace=True)
+        exp.set_index('sample_name', inplace=True)
+
         pd.testing.assert_frame_equal(obs_df, exp)
 
     def _check_run_230207_M05314_0346_000000000_KVMGL(self, obs):
@@ -204,7 +221,7 @@ class TestPrep(TestCase):
 
         pd.testing.assert_frame_equal(obs_df, exp_df)
 
-    def atest_preparations_for_run(self):
+    def test_preparations_for_run(self):
         sheet = MetagenomicSampleSheetv100(self.ss)
 
         # obs will be a dictionary of dataframes, with the keys being
@@ -215,7 +232,7 @@ class TestPrep(TestCase):
                                    sheet.CARRIED_PREP_COLUMNS)
         self._check_run_191103_D32611_0365_G00DHB5YXX(obs)
 
-    def atest_preparations_for_run_missing_columns(self):
+    def test_preparations_for_run_missing_columns(self):
         # Check that warnings are raised whenever we overwrite the
         # "well_description" column with the "description" column
         sheet = MetagenomicSampleSheetv100(self.ss)
@@ -242,7 +259,7 @@ class TestPrep(TestCase):
 
         self._check_run_191103_D32611_0365_G00DHB5YXX(obs)
 
-    def atest_preparations_for_run_mf(self):
+    def test_preparations_for_run_mf(self):
         # mf has a header w/mixed case. This will test whether mapping-file
         # headers are properly converted to all lower-case.
         mf = pd.read_csv(self.mf, delimiter='\t')
@@ -368,9 +385,9 @@ class TestPrep(TestCase):
                  'Illumina', 'UCSDMI', '2019-11-03', 'sample1_S11_L003',
                  'sequencing by synthesis', 'UCSD', 'Baz_12345',
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
-                 'File_Parsing_Tests_666_p1', 'A3', 'iTru7_107_09', 'GCCTTGTT',
+                 'FooBar_666_p1', 'A3', 'iTru7_107_09', 'GCCTTGTT',
                  'iTru5_01_A', 'AACACCAC', '3', 'Baz_12345',
-                 'File_Parsing_Tests_666_p1.sample1.A3'],
+                 'FooBar_666_p1.sample1.A3'],
                 ['importantsample44', 'EXPERIMENT_DESC', 'LIBRARY_PROTOCOL',
                  'Illumina', 'UCSDMI', '2019-11-03', 'sample44_S14_L003',
                  'sequencing by synthesis', 'UCSD', 'Baz_12345',
@@ -403,9 +420,9 @@ class TestPrep(TestCase):
                  'UCSDMI', '2019-11-03', 'sample1_S11_L003',
                  'sequencing by synthesis', 'UCSD', 'Baz_12345',
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
-                 'File_Parsing_Tests_666_p1', 'A3', 'iTru7_107_09', 'GCCTTGTT',
+                 'FooBar_666_p1', 'A3', 'iTru7_107_09', 'GCCTTGTT',
                  'iTru5_01_A', 'AACACCAC', '3', 'Baz_12345',
-                 'File_Parsing_Tests_666_p1.sample1.A3'],
+                 'FooBar_666_p1.sample1.A3'],
                 ['867530.9', 'EXPERIMENT_DESC', 'LIBRARY_PROTOCOL', 'Illumina',
                  'UCSDMI', '2019-11-03', 'sample44_S14_L003',
                  'sequencing by synthesis', 'UCSD', 'Baz_12345',
@@ -444,9 +461,9 @@ class TestPrep(TestCase):
                  'Illumina', 'UCSDMI', '2019-11-03', 'sample1_S11_L003',
                  'sequencing by synthesis', 'UCSD', 'Baz_12345',
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
-                 'File_Parsing_Tests_666_p1', 'A3', 'iTru7_107_09', 'GCCTTGTT',
+                 'FooBar_666_p1', 'A3', 'iTru7_107_09', 'GCCTTGTT',
                  'iTru5_01_A', 'AACACCAC', '3', 'Baz_12345',
-                 'File_Parsing_Tests_666_p1.sample1.A3'],
+                 'FooBar_666_p1.sample1.A3'],
                 ['importantsample44', 'EXPERIMENT_DESC', 'LIBRARY_PROTOCOL',
                  'Illumina', 'UCSDMI', '2019-11-03', 'sample44_S14_L003',
                  'sequencing by synthesis', 'UCSD', 'Baz_12345',
