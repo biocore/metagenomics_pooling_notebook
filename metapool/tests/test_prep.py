@@ -237,18 +237,18 @@ class TestPrep(TestCase):
 
         us_exp = {
             "Baz": [
-            "sample_31",
-            "sample_32",
-            "sample_34",
-            "sample_4"
-            ],
+                    "sample_31",
+                    "sample_32",
+                    "sample_34",
+                    "sample_4"
+                ],
             "FooBar": [
-            "sample_1",
-            "sample_2",
-            "sample_3",
-            "sample_4",
-            "sample_44"
-            ],
+                    "sample_1",
+                    "sample_2",
+                    "sample_3",
+                    "sample_4",
+                    "sample_44"
+                ],
         }
 
         self.assertDictEqual(us_exp, us)
