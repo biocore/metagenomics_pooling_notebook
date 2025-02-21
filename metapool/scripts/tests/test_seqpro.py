@@ -37,10 +37,8 @@ class SeqproTests(unittest.TestCase):
 
     def tearDown(self):
         rmtree(self.vf_test_dir, ignore_errors=True)
-        pass
 
     def test_fastp_run(self):
-        self.maxDiff = None
         runner = CliRunner()
 
         with runner.isolated_filesystem():

@@ -10,7 +10,7 @@ from string import ascii_letters, digits
 import pandas as pd
 import re
 import warnings
-from json import dumps
+import gzip
 
 
 REQUIRED_MF_COLUMNS = {'sample_name', 'barcode', 'primer', 'primer_plate',
@@ -146,10 +146,7 @@ def get_run_prefix_mf(run_path, project):
     # at this stage there should only be two files forward and reverse
     if len(results) == 2:
         forward, reverse = sorted(results)
-        # TODO: Replace w/a test that checks for number of sequences in
-        # a file or assume that files have already been filtered.
-        # is_nonempty_gz_file(forward) and is_nonempty_gz_file(reverse):
-        if True:
+        if is_nonempty_gz_file(forward) and is_nonempty_gz_file(reverse):
             f, r = basename(forward), basename(reverse)
             if len(f) != len(r):
                 raise ValueError("Forward and reverse sequences filenames "
@@ -369,20 +366,15 @@ def preparations_for_run(run_path, sheet, generated_prep_columns,
 
     Returns
     -------
-    dict
-        Dictionary keyed by run identifier, project name and lane. Values are
-        preparations represented as DataFrames.
+    (dict, dict)
+        A dict keyed by run indentifier, project name and lane. Values are
+        preparations represented as DataFrames. A second dict lists all
+        samples that could not be mapped to a file. This dict is organized
+        by project name.
     """
     _, run_id = split(normpath(run_path))
     run_date, instrument_code = parse_illumina_run_id(run_id)
     instrument_model, run_center = get_model_and_center(instrument_code)
-
-    s = "./running.log"
-
-    def log_me(msg):
-        f = open(s, 'a')
-        f.write(msg + '\n')
-        f.close()
 
     # NB: For now it is safe to use the working directory as the search
     # root, but in the future it would be better to give the path to the
@@ -421,27 +413,24 @@ def preparations_for_run(run_path, sheet, generated_prep_columns,
 
     all_columns = sorted(carried_prep_columns + generated_prep_columns)
 
+    failed_samples_by_project = {}
+
     for project, project_sheet in sheet.groupby('sample_project'):
         project_name, qiita_id = get_short_name_and_id(project)
 
         # since sample-names could be duplicated across projects, associate
         # sample-names to files on a project-by-project basis.
-
-        log_me("FOO: %s" % dumps(fastq_files_found, indent=2))
         sample_files = fastq_files_found[project]
-        log_me("SAMPLE_FILES: %s" % sample_files)
-
-        log_me("COLUMNS: %s" % sheet.columns)
         sample_ids = sheet.index.tolist()
-        log_me("SAMPLE_IDS: %s" % sample_ids)
-
         mapped, unmapped = _map_files_to_sample_ids(sample_ids,
                                                     sample_files)
 
-        log_me("MAPPING RESULTS: %s" % mapped)
-        log_me("UNMAPPED SAMPLES: %s" % unmapped)
-
-        # TODO: make sure to put unmapped_samples into failed_samples.log
+        # if there are unmapped samples, store them for an eventual write
+        # to a file. unmapped is a set for easy comparison. However since
+        # this data is meant to be written as json output to a file, it
+        # should be converted to a list. The list is sorted to make it
+        # reliable for testing.
+        failed_samples_by_project[project_name] = sorted(list(unmapped))
 
         # if the Qiita ID is not found then make for an easy find/replace
         if qiita_id == project:
@@ -453,15 +442,15 @@ def preparations_for_run(run_path, sheet, generated_prep_columns,
 
             for sample_id, sample in lane_sheet.iterrows():
                 sample_name = sample.sample_name
-                log_me("SAMPLE_ID: %s" % sample_id)
-                log_me("SAMPLE_NAME: %s" % sample_name)
 
                 if sample_id in unmapped:
-                    # TODO: DO NOT JUST SKIP!!! LOG THEM!
+                    # sample_ids that couldn't be matched to a pair of fastq
+                    # files don't get entries in the prep file and therefore
+                    # further processing is skipped. These sample_ids are
+                    # recorded in the failed_samples_by_project dict, however.
                     continue
 
                 associated_files = mapped[sample_id]
-                log_me("ASSOCIATED_FILES: %s" % associated_files)
 
                 # run-prefix is a column value in the prep-info file and is
                 # programmatically defined as the part of the filename up to
@@ -474,8 +463,6 @@ def preparations_for_run(run_path, sheet, generated_prep_columns,
                 # error.
                 run_prefixes = list(set([run_prefix_mapping[x] for x in
                                          associated_files]))
-
-                log_me("RUN_PREFIXES: %s" % run_prefixes)
 
                 if len(run_prefixes) != 1:
                     raise ValueError(f'The files associated with {sample_name}'
@@ -506,7 +493,7 @@ def preparations_for_run(run_path, sheet, generated_prep_columns,
 
             output[(run_id, project, lane)] = prep
 
-    return output
+    return output, failed_samples_by_project
 
 
 def extract_run_date_from_run_id(run_id):
@@ -1085,3 +1072,13 @@ def get_run_prefix(file_name):
         raise ValueError(f"Could not determine orientation of {file_name}")
 
     return file_name[0:pos], orientation
+
+
+def is_nonempty_gz_file(name):
+    """Taken from https://stackoverflow.com/a/37878550/379593"""
+    with gzip.open(name, 'rb') as f:
+        try:
+            file_content = f.read(1)
+            return len(file_content) > 0
+        except Exception:
+            return False

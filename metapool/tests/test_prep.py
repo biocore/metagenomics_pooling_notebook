@@ -225,12 +225,33 @@ class TestPrep(TestCase):
         sheet = MetagenomicSampleSheetv100(self.ss)
 
         # obs will be a dictionary of dataframes, with the keys being
-        # a triplet of strings, rather than a single string.
-        obs = preparations_for_run(self.good_run,
-                                   sample_sheet_to_dataframe(sheet),
-                                   sheet.GENERATED_PREP_COLUMNS,
-                                   sheet.CARRIED_PREP_COLUMNS)
+        # a triplet of strings, rather than a single string. us is short for
+        # 'unmapped samples' and contains all of the samples that couldn't
+        # be mapped to a pair of fastq files. The samples are organized and
+        # keyed by project.
+        obs, us = preparations_for_run(self.good_run,
+                                       sample_sheet_to_dataframe(sheet),
+                                       sheet.GENERATED_PREP_COLUMNS,
+                                       sheet.CARRIED_PREP_COLUMNS)
         self._check_run_191103_D32611_0365_G00DHB5YXX(obs)
+
+        us_exp = {
+            "Baz": [
+            "sample_31",
+            "sample_32",
+            "sample_34",
+            "sample_4"
+            ],
+            "FooBar": [
+            "sample_1",
+            "sample_2",
+            "sample_3",
+            "sample_4",
+            "sample_44"
+            ],
+        }
+
+        self.assertDictEqual(us_exp, us)
 
     def test_preparations_for_run_missing_columns(self):
         # Check that warnings are raised whenever we overwrite the
@@ -241,9 +262,9 @@ class TestPrep(TestCase):
         ss.drop('well_description', axis=1, inplace=True)
 
         with self.assertWarns(UserWarning) as cm:
-            obs = preparations_for_run(self.good_run, ss,
-                                       sheet.GENERATED_PREP_COLUMNS,
-                                       sheet.CARRIED_PREP_COLUMNS)
+            obs, us = preparations_for_run(self.good_run, ss,
+                                           sheet.GENERATED_PREP_COLUMNS,
+                                           sheet.CARRIED_PREP_COLUMNS)
 
             self.assertEqual(str(cm.warnings[0].message), "'well_description' "
                                                           "is not present in s"
