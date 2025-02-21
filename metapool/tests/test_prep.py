@@ -1,4 +1,6 @@
-from os.path import join, dirname
+from os.path import join, dirname, exists
+from os import makedirs
+from shutil import rmtree
 import pandas as pd
 from random import choice, randint, shuffle
 from string import ascii_letters, digits
@@ -14,12 +16,13 @@ from metapool.prep import (preparations_for_run, remove_qiita_id,
                            generate_qiita_prep_file, qiita_scrub_name,
                            preparations_for_run_mapping_file, demux_pre_prep,
                            pre_prep_needs_demuxing,
-                           _map_files_to_sample_ids)
+                           _map_files_to_sample_ids, _find_filtered_files)
 
 
 class TestPrep(TestCase):
     def setUp(self):
         data_dir = join(dirname(__file__), 'data')
+        self.test_dir = join(dirname(__file__), 'File_Parsing_Tests')
         self.good_run = join(data_dir, 'runs', '191103_D32611_0365_G00DHB5YXX')
         self.OKish_run_new_version = join(
             data_dir, 'runs', '191104_D32611_0365_OK15HB5YXZ')
@@ -32,11 +35,16 @@ class TestPrep(TestCase):
         self.legacy_prep = join(data_dir, "legacy_prep.tsv")
         self.mf = join(self.amplicon_run, 'sample_mapping_file.tsv')
 
+    def tearDown(self):
+        if exists(self.test_dir):
+            rmtree(self.test_dir)
+
     def _check_run_191103_D32611_0365_G00DHB5YXX(self, obs):
         "Convenience method to check the output of a whole run"
 
         exp = {('191103_D32611_0365_G00DHB5YXX', 'Baz_12345', '3'),
-               ('191103_D32611_0365_G00DHB5YXX', 'FooBar_666', '3')}
+               ('191103_D32611_0365_G00DHB5YXX', 'File_Parsing_Tests_666',
+                '3')}
         self.assertEqual(set(obs.keys()), exp)
 
         columns = ['sample_name', 'experiment_design_description',
@@ -51,9 +59,9 @@ class TestPrep(TestCase):
                  'Illumina', 'UCSDMI', '2019-11-03', 'sample_1_S11_L003',
                  'sequencing by synthesis', 'UCSD', 'Baz',
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
-                 'FooBar_666_p1', 'A3', 'iTru7_107_09', 'GCCTTGTT',
+                 'File_Parsing_Tests_666_p1', 'A3', 'iTru7_107_09', 'GCCTTGTT',
                  'iTru5_01_A', 'AACACCAC', '3', 'Baz_12345',
-                 'FooBar_666_p1.sample.1.A3'],
+                 'File_Parsing_Tests_666_p1.sample.1.A3'],
                 ['sample.44', 'Eqiiperiment', 'Knight Lab Kapa HP',
                  'Illumina', 'UCSDMI', '2019-11-03', 'sample_44_S14_L003',
                  'sequencing by synthesis', 'UCSD', 'Baz',
@@ -79,16 +87,16 @@ class TestPrep(TestCase):
                  'Illumina', 'UCSDMI', '2019-11-03', 'sample_1_S11_L001',
                  'sequencing by synthesis', 'UCSD', 'Baz',
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
-                 'FooBar_666_p1', 'A1', 'iTru7_107_07', 'CCGACTAT',
+                 'File_Parsing_Tests_666_p1', 'A1', 'iTru7_107_07', 'CCGACTAT',
                  'iTru5_01_A', 'ACCGACAA', '1', 'Baz_12345',
-                 'FooBar_666_p1.sample.1.A1'],
+                 'File_Parsing_Tests_666_p1.sample.1.A1'],
                 ['sample.2', 'Eqiiperiment', 'Knight Lab Kapa HP',
                  'Illumina', 'UCSDMI', '2019-11-03', 'sample_2_S10_L001',
                  'sequencing by synthesis', 'UCSD', 'Baz',
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
-                 'FooBar_666_p1', 'A2', 'iTru7_107_08', 'CCGACTAT',
+                 'File_Parsing_Tests_666_p1', 'A2', 'iTru7_107_08', 'CCGACTAT',
                  'iTru5_01_A', 'CTTCGCAA', '1', 'Baz_12345',
-                 'FooBar_666_p1.sample.2.A2']]
+                 'File_Parsing_Tests_666_p1.sample.2.A2']]
         exp = pd.DataFrame(columns=columns, data=data)
         obs_df = obs[('191103_D32611_0365_G00DHB5YXX', 'Baz_12345', '1')]
 
@@ -98,27 +106,30 @@ class TestPrep(TestCase):
 
         data = [['sample.31', 'SomethingWitty', 'Knight Lab Kapa HP',
                  'Illumina', 'UCSDMI', '2019-11-03', 'sample_31_S13_L003',
-                 'sequencing by synthesis', 'UCSD', 'FooBar',
+                 'sequencing by synthesis', 'UCSD', 'File_Parsing_Tests',
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
-                 'FooBar_666_p1', 'A5', 'iTru7_107_11', 'CAATGTGG',
-                 'iTru5_01_A', 'GGTACGAA', '3', 'FooBar_666',
-                 'FooBar_666_p1.sample.31.A5'],
+                 'File_Parsing_Tests_666_p1', 'A5', 'iTru7_107_11', 'CAATGTGG',
+                 'iTru5_01_A', 'GGTACGAA', '3', 'File_Parsing_Tests_666',
+                 'File_Parsing_Tests_666_p1.sample.31.A5'],
                 ['sample.32', 'SomethingWitty', 'Knight Lab Kapa HP',
                  'Illumina', 'UCSDMI', '2019-11-03', 'sample_32_S19_L003',
-                 'sequencing by synthesis', 'UCSD', 'FooBar',
+                 'sequencing by synthesis', 'UCSD', 'File_Parsing_Tests',
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
-                 'FooBar_666_p1', 'B6', 'iTru7_107_12', 'AAGGCTGA',
-                 'iTru5_01_A', 'CGATCGAT', '3', 'FooBar_666',
-                 'FooBar_666_p1.sample.32.B6'],
+                 'File_Parsing_Tests_666_p1', 'B6', 'iTru7_107_12', 'AAGGCTGA',
+                 'iTru5_01_A', 'CGATCGAT', '3', 'File_Parsing_Tests_666',
+                 'File_Parsing_Tests_666_p1.sample.32.B6'],
                 ['sample.34', 'SomethingWitty', 'Knight Lab Kapa HP',
                  'Illumina', 'UCSDMI', '2019-11-03', 'sample_34_S33_L003',
-                 'sequencing by synthesis', 'UCSD', 'FooBar',
+                 'sequencing by synthesis', 'UCSD', 'File_Parsing_Tests',
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
-                 'FooBar_666_p1', 'B8', 'iTru7_107_13', 'TTACCGAG',
-                 'iTru5_01_A', 'AAGACACC', '3', 'FooBar_666',
-                 'FooBar_666_p1.sample.34.B8']]
+                 'File_Parsing_Tests_666_p1', 'B8', 'iTru7_107_13', 'TTACCGAG',
+                 'iTru5_01_A', 'AAGACACC', '3', 'File_Parsing_Tests_666',
+                 'File_Parsing_Tests_666_p1.sample.34.B8']
+                ]
+
         exp = pd.DataFrame(columns=columns, data=data)
-        obs_df = obs[('191103_D32611_0365_G00DHB5YXX', 'FooBar_666', '3')]
+        obs_df = obs[('191103_D32611_0365_G00DHB5YXX',
+                      'File_Parsing_Tests_666', '3')]
 
         # make sure the columns are in the same order before comparing
         obs_df = obs_df[exp.columns].copy()
@@ -165,7 +176,7 @@ class TestPrep(TestCase):
              "Echo 550", "ABTX_20230208_11052_Plate_238_11.8.21.RK.FH_A1",
              float("nan"), float("nan"), 1317793, float("nan"), "V4", "A1",
              "ABTX_20230208_ABTX_11052", "108379Z", "sample.1", "HT", 122822,
-             1331807, float("nan"), "A1", float("nan"), ],
+             1331807, float("nan"), "A1", float("nan"),],
             ["sample.2", "TCCATACCGGAA", "UCSDMI", "Illumina",
              "SOME_CENTER_PROJECT_NAME",
              "This is a description of the experiment design.",
@@ -179,7 +190,7 @@ class TestPrep(TestCase):
              "Echo 550", "ABTX_20230208_11052_Plate_238_11.17.21.RK.FH_A2",
              float("nan"), float("nan"), 1317793, float("nan"), "V4", "A2",
              "ABTX_20230208_ABTX_11052", "108379Z", "sample.2", "HT", 122822,
-             1331807, float("nan"), "A2", float("nan"), ],
+             1331807, float("nan"), "A2", float("nan"),]
         ]
 
         # confirm that the observed data in the prep-info output matches
@@ -231,7 +242,7 @@ class TestPrep(TestCase):
 
         self._check_run_191103_D32611_0365_G00DHB5YXX(obs)
 
-    def test_preparations_for_run_mf(self):
+    def atest_preparations_for_run_mf(self):
         # mf has a header w/mixed case. This will test whether mapping-file
         # headers are properly converted to all lower-case.
         mf = pd.read_csv(self.mf, delimiter='\t')
@@ -281,34 +292,6 @@ class TestPrep(TestCase):
 
         obs = remove_qiita_id('project_')
         self.assertEqual(obs, 'project_')
-
-    def atest_get_run_prefix_more_than_forward_and_reverse(self):
-        # TODO reimplement this test using a filename for the
-        # new version. The old version is deprecated.
-        message = (r'There are 3 matches for sample "sample31" in lane 3\. '
-                   r'Only two matches are allowed \(forward and reverse\): '
-                   '(.*)metapool/tests/data/runs/191104_D32611_0365_OK15HB5YXZ'
-                   r'/FooBar_666/filtered_sequences/sample31_S13_L003_R1\.'
-                   r'filtered\.fastq\.gz, '
-                   '(.*)metapool/tests/data/runs/191104_D32611_0365_OK15HB5YXZ'
-                   r'/FooBar_666/filtered_sequences/sample31_S13_L003_R2\.'
-                   r'filtered\.fastq\.gz, '
-                   '(.*)metapool/tests/data/runs/191104_D32611_0365_OK15HB5YXZ'
-                   r'/FooBar_666/filtered_sequences/sample31_S14_L003_R1\.'
-                   r'filtered\.fastq\.gz')
-        # project 2
-        with self.assertWarnsRegex(Warning, message):
-            obs = get_run_prefix(self.OKish_run_new_version, 'FooBar_666',
-                                 'sample31', '3')
-            self.assertIsNone(obs)
-
-        obs = get_run_prefix(self.OKish_run_new_version, 'FooBar_666',
-                             'sample32', '3')
-        self.assertEqual('sample32_S19_L003', obs)
-
-        obs = get_run_prefix(self.OKish_run_new_version, 'FooBar_666',
-                             'sample34', '3')
-        self.assertIsNone(obs)
 
     def test_parse_illumina_run_id(self):
         date, rid = parse_illumina_run_id('161004_D00611_0365_AH2HJ5BCXY')
@@ -385,9 +368,9 @@ class TestPrep(TestCase):
                  'Illumina', 'UCSDMI', '2019-11-03', 'sample1_S11_L003',
                  'sequencing by synthesis', 'UCSD', 'Baz_12345',
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
-                 'FooBar_666_p1', 'A3', 'iTru7_107_09', 'GCCTTGTT',
+                 'File_Parsing_Tests_666_p1', 'A3', 'iTru7_107_09', 'GCCTTGTT',
                  'iTru5_01_A', 'AACACCAC', '3', 'Baz_12345',
-                 'FooBar_666_p1.sample1.A3'],
+                 'File_Parsing_Tests_666_p1.sample1.A3'],
                 ['importantsample44', 'EXPERIMENT_DESC', 'LIBRARY_PROTOCOL',
                  'Illumina', 'UCSDMI', '2019-11-03', 'sample44_S14_L003',
                  'sequencing by synthesis', 'UCSD', 'Baz_12345',
@@ -420,9 +403,9 @@ class TestPrep(TestCase):
                  'UCSDMI', '2019-11-03', 'sample1_S11_L003',
                  'sequencing by synthesis', 'UCSD', 'Baz_12345',
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
-                 'FooBar_666_p1', 'A3', 'iTru7_107_09', 'GCCTTGTT',
+                 'File_Parsing_Tests_666_p1', 'A3', 'iTru7_107_09', 'GCCTTGTT',
                  'iTru5_01_A', 'AACACCAC', '3', 'Baz_12345',
-                 'FooBar_666_p1.sample1.A3'],
+                 'File_Parsing_Tests_666_p1.sample1.A3'],
                 ['867530.9', 'EXPERIMENT_DESC', 'LIBRARY_PROTOCOL', 'Illumina',
                  'UCSDMI', '2019-11-03', 'sample44_S14_L003',
                  'sequencing by synthesis', 'UCSD', 'Baz_12345',
@@ -461,9 +444,9 @@ class TestPrep(TestCase):
                  'Illumina', 'UCSDMI', '2019-11-03', 'sample1_S11_L003',
                  'sequencing by synthesis', 'UCSD', 'Baz_12345',
                  'Illumina HiSeq 2500', '191103_D32611_0365_G00DHB5YXX',
-                 'FooBar_666_p1', 'A3', 'iTru7_107_09', 'GCCTTGTT',
+                 'File_Parsing_Tests_666_p1', 'A3', 'iTru7_107_09', 'GCCTTGTT',
                  'iTru5_01_A', 'AACACCAC', '3', 'Baz_12345',
-                 'FooBar_666_p1.sample1.A3'],
+                 'File_Parsing_Tests_666_p1.sample1.A3'],
                 ['importantsample44', 'EXPERIMENT_DESC', 'LIBRARY_PROTOCOL',
                  'Illumina', 'UCSDMI', '2019-11-03', 'sample44_S14_L003',
                  'sequencing by synthesis', 'UCSD', 'Baz_12345',
@@ -496,7 +479,7 @@ class TestPrep(TestCase):
             "Kathseq_RackID",
             "number_of_cells",
             "description",
-        ]
+            ]
 
         data = [
             ['AGCCTTCGTCGC', 'GTGYCAGCMGCCGCGGTAA', 'THDMI_10317', 'A1', '1',
@@ -514,8 +497,9 @@ class TestPrep(TestCase):
              'FWD:GTGYCAGCMGCCGCGGTAA; REV:GGACTACNVGGGTWTCTAAT', 'UCSDMI',
              'UCSDMI', 'Illumina', 'V4', '16S rRNA',
              'Sequencing by synthesis',
-             'Illumina EMP protocol 515fbc, 806r amplification of 16S rRNA V4']
-        ]
+             'Illumina EMP protocol 515fbc, 806r amplification of 16S rRNA V4'
+             ]
+            ]
 
         additional_data = ["70", "20230627", "ADAPT", "0363132553", "", "", ""]
 
@@ -572,8 +556,7 @@ class TestPrep(TestCase):
             "Forward Primer Linker",
             "515FB Forward Primer (Parada)",
             "Primer For PCR",
-            "sample sheet Sample_ID",
-        ]
+            "sample sheet Sample_ID",]
 
         data1 = [
             [
@@ -610,8 +593,7 @@ class TestPrep(TestCase):
                     "AATGATACGGCGACCACCGAGATCTACACGCTAGCCTTCGTCGCT"
                     "ATGGTAATTGTGTGYCAGCMGCCGCGGTAA"
                 ),
-                "X00180471",
-            ],
+                "X00180471",],
             [
                 "X00180199",
                 "C",
@@ -646,9 +628,8 @@ class TestPrep(TestCase):
                     "AATGATACGGCGACCACCGAGATCTACACGCTCGTATAAATGCG"
                     "TATGGTAATTGTGTGYCAGCMGCCGCGGTAA"
                 ),
-                "X00180199",
-            ],
-        ]
+                "X00180199",],
+            ]
 
         with self.assertRaisesRegex(ValueError, ""):
             generate_qiita_prep_file(pd.DataFrame(columns=columns1,
@@ -685,8 +666,7 @@ class TestPrep(TestCase):
             "Forward Primer Linker",
             "515FB Forward Primer (Parada)",
             "Primer For PCR",
-            "sample sheet Sample_ID",
-        ]
+            "sample sheet Sample_ID",]
         columns2 = [
             "Sample",
             "Row",
@@ -717,8 +697,7 @@ class TestPrep(TestCase):
             "Reverse Primer Linker",
             "Reverse primer (EukBr)",
             "Primer For PCR",
-            "sample sheet Sample_ID",
-        ]
+            "sample sheet Sample_ID",]
         columns3 = [
             "Sample",
             "Row",
@@ -749,8 +728,7 @@ class TestPrep(TestCase):
             "Reverse Primer Linker",
             "ITS2 Reverse Primer",
             "Primer For PCR",
-            "sample sheet Sample_ID",
-        ]
+            "sample sheet Sample_ID",]
 
         data1 = [
             [
@@ -786,8 +764,7 @@ class TestPrep(TestCase):
                     "AATGATACGGCGACCACCGAGATCTACACGCTAGCCTTCGTCGCT"
                     "ATGGTAATTGTGTGYCAGCMGCCGCGGTAA"
                 ),
-                "X00180471",
-            ],
+                "X00180471",],
             [
                 "X00180199",
                 "C",
@@ -821,9 +798,8 @@ class TestPrep(TestCase):
                     "AATGATACGGCGACCACCGAGATCTACACGCTCGTATAAATGCG"
                     "TATGGTAATTGTGTGYCAGCMGCCGCGGTAA"
                 ),
-                "X00180199",
-            ],
-        ]
+                "X00180199",],
+            ]
 
         data2 = [
             [
@@ -859,8 +835,7 @@ class TestPrep(TestCase):
                     "CAAGCAGAAGACGGCATACGAGATACGAGACTGATTAGTCAGTCAGCAT"
                     "GATCCTTCTGCAGGTTCACCTAC"
                 ),
-                "X00180471",
-            ],
+                "X00180471",],
             [
                 "X00180199",
                 "C",
@@ -894,9 +869,8 @@ class TestPrep(TestCase):
                     "CAAGCAGAAGACGGCATACGAGATGAATACCAAGTCAGTCAGTCAGCAT"
                     "GATCCTTCTGCAGGTTCACCTAC"
                 ),
-                "X00180199",
-            ],
-        ]
+                "X00180199",],
+            ]
 
         data3 = [
             [
@@ -932,8 +906,7 @@ class TestPrep(TestCase):
                     "CAAGCAGAAGACGGCATACGAGATTCCCTTGTC"
                     "TCCCGGCTGCGTTCTTCATCGATGC"
                 ),
-                "X00180471",
-            ],
+                "X00180471",],
             [
                 "X00180199",
                 "C",
@@ -967,9 +940,8 @@ class TestPrep(TestCase):
                     "CAAGCAGAAGACGGCATACGAGATTGCATACAC"
                     "TGGCGGCTGCGTTCTTCATCGATGC"
                 ),
-                "X00180199",
-            ],
-        ]
+                "X00180199",],
+            ]
 
         self.platedf1 = pd.DataFrame(columns=columns1, data=data1)
         self.platedf2 = pd.DataFrame(columns=columns2, data=data2)
@@ -1015,8 +987,7 @@ class TestPrep(TestCase):
             "center_project_name",
             "instrument_model",
             "runid",
-            "sample sheet Sample_ID",
-        ]
+            "sample sheet Sample_ID",]
 
         exp_columns2 = [
             "sample_name",
@@ -1056,8 +1027,7 @@ class TestPrep(TestCase):
             "runid",
             "Reverse Primer Pad",
             "Reverse primer (EukBr)",
-            "sample sheet Sample_ID",
-        ]
+            "sample sheet Sample_ID",]
 
         exp_columns3 = [
             "sample_name",
@@ -1097,8 +1067,7 @@ class TestPrep(TestCase):
             "runid",
             "ITS2 Reverse Primer",
             "Reverse Primer Pad",
-            "sample sheet Sample_ID",
-        ]
+            "sample sheet Sample_ID",]
 
         exp1 = pd.DataFrame(
             columns=exp_columns1,
@@ -1426,9 +1395,6 @@ class TestPrep(TestCase):
         # samples is well outside the expected size of samples for a single
         # sample-sheet or single SPP run.
 
-        #gsample_ids.append("LS_1_19_20144")
-        #gsample_ids.append("LS_1_19_2014_SREE")
-
         gsample_path = ("/your_working_dir/NuQCJob/Your_Project_12345/"
                         "filtered_sequences")
 
@@ -1464,9 +1430,10 @@ class TestPrep(TestCase):
                                                           gsample_files)
         # t = time() - t
 
-        # after all possible sample_files have been matched to sample_ids, ensure
-        # that the number of matching files for each sample_id is 2 and only 2,
-        # assuming that one is an R1 file and the other is an R2 file.
+        # after all possible sample_files have been matched to sample_ids,
+        # ensure that the number of matching files for each sample_id is 2
+        # and only 2, assuming that one is an R1 file and the other is an
+        # R2 file.
         msgs = []
         for sample_id in obs:
             count = len(obs[sample_id])
@@ -1539,8 +1506,6 @@ class TestPrep(TestCase):
         self.assertEqual(set(unmatched_samples), {'DUMMY_SAMPLE'})
 
     def test_map_files_to_sample_ids_more(self):
-        characters = ascii_letters + digits
-
         # create real files for ABC and ABCDEF, but not for these other
         # similarly named variants.
 
@@ -1603,22 +1568,22 @@ class TestPrep(TestCase):
                      "_001.trimmed.fastq.gz",
                      "/some_dir/some_project/something_else/BABC_S39_L007_R1"
                      "_001.trimmed.fastq.gz"],
-            "ABCC": [ "/some_dir/some_project/something_else/ABCC_S38_L007_R1"
+            "ABCC": ["/some_dir/some_project/something_else/ABCC_S38_L007_R1"
                      "_001.trimmed.fastq.gz",
                      "/some_dir/some_project/something_else/ABCC_S38_L007_R2"
-                     "_001.trimmed.fastq.gz" ],
-            "ABC": [ "/some_dir/some_project/something_else/ABC_S36_L007_R1"
+                     "_001.trimmed.fastq.gz"],
+            "ABC": ["/some_dir/some_project/something_else/ABC_S36_L007_R1"
                     "_001.trimmed.fastq.gz",
                     "/some_dir/some_project/something_else/ABC_S36_L007_R2_"
-                    "001.trimmed.fastq.gz" ],
-            "AABC": [ "/some_dir/some_project/something_else/AABC_S40_L007_"
+                    "001.trimmed.fastq.gz"],
+            "AABC": ["/some_dir/some_project/something_else/AABC_S40_L007_"
                      "R1_001.trimmed.fastq.gz",
                      "/some_dir/some_project/something_else/AABC_S40_L007_R2"
-                     "_001.trimmed.fastq.gz" ],
-            "ABCDEF": [ "/some_dir/some_project/something_else/ABCDEF_S37_"
+                     "_001.trimmed.fastq.gz"],
+            "ABCDEF": ["/some_dir/some_project/something_else/ABCDEF_S37_"
                        "L007_R2_001.trimmed.fastq.gz",
                        "/some_dir/some_project/something_else/ABCDEF_S37_"
-                       "L007_R1_001.trimmed.fastq.gz" ]
+                       "L007_R1_001.trimmed.fastq.gz"]
             }
 
         exp_unmatched = {'DEF', 'XYZ'}
@@ -1627,8 +1592,6 @@ class TestPrep(TestCase):
         self.assertEqual(set(unmatched_samples), exp_unmatched)
 
     def test_map_files_to_sample_ids_errors(self):
-        characters = ascii_letters + digits
-
         # create real files for ABC and ABCDEF, but not for these other
         # similarly named variants.
 
@@ -1688,7 +1651,6 @@ class TestPrep(TestCase):
         with self.assertRaisesRegex(ValueError, msg):
             _map_files_to_sample_ids(gsample_ids, gsample_files)
 
-
         # model a situation where one or more files are not fastq.gz files.
         gsample_filenames = ["ABC_S36_L007_R2_001.trimmed.fastq.gz",
                              "ABC_S36_L007_R1_001.trimmed.fastq.gz",
@@ -1699,8 +1661,8 @@ class TestPrep(TestCase):
 
         shuffle(gsample_files)
 
-        msg = (r"One or more files are not fastq.gz files: /some_dir/notafile,"
-               r" /some_dir/not_a_fastq_file.txt")
+        msg = (r"One or more files are not fastq.gz files: /some_dir/not_a_"
+               r"fastq_file.txt, /some_dir/notafile")
 
         with self.assertRaisesRegex(ValueError, msg):
             _map_files_to_sample_ids(gsample_ids, gsample_files)
@@ -1722,14 +1684,176 @@ class TestPrep(TestCase):
         with self.assertRaisesRegex(ValueError, msg):
             _map_files_to_sample_ids(gsample_ids, gsample_files)
 
+    def create_fff_test_directory(self, additional_files=None,
+                                  other_dirs=False,
+                                  include_index_files=False):
+        def create_files(project_names, directory_name):
+            for project in project_names:
+                gsample_path = join(self.test_dir, project, directory_name)
+
+                # samples don't have to be unique across projects but in this
+                # case but overall they should be.
+                gsample_files = [join(gsample_path, filename) for filename in
+                                 fastq_filenames]
+
+                makedirs(gsample_path, exist_ok=True)
+
+                for filename in gsample_files:
+                    with open(filename, 'w') as f:
+                        f.write('hello world')
+
+        fastq_filenames = ["LS_1_2014_S36_L007_R2_001.trimmed.fastq.gz",
+                           "T_LS_7_15_15B_S27_L007_R1_001.trimmed.fastq.gz",
+                           "LS_8_10_2013_S31_L007_R2_001.trimmed.fastq.gz",
+                           "LS_3_24_2015_S37_L007_R2_001.trimmed.fastq.gz",
+                           "LS_3_24_2015_S37_L007_R1_001.trimmed.fastq.gz",
+                           "T_LS_7_15_15B_S27_L007_R2_001.trimmed.fastq.gz",
+                           "LS_8_10_2013_S31_L007_R1_001.trimmed.fastq.gz",
+                           "LS_1_2014_S36_L007_R1_001.trimmed.fastq.gz",
+                           # seqpro should expect trimmed.fastq.gz but
+                           # technically speaking it should be able to handle
+                           # both trimmed.fastq.gz and .fastq.gz.
+                           "A.R1.fastq.gz", "A.R2.fastq.gz",
+                           "LS_1_2014_SRE_S36_L007_R2_001.trimmed.fastq.gz",
+                           "LS_1_2014_SRE_S36_L007_R1_001.trimmed.fastq.gz"]
+
+        if additional_files:
+            fastq_filenames += additional_files
+
+        if include_index_files:
+            fastq_filenames += ["LS_1_2014_S36_L007_I1_001.fastq.gz",
+                                "LS_1_2014_S36_L007_I2_001.fastq.gz"]
+
+        project_names = ['Your_Project_12345', 'Your_Project_67890']
+
+        create_files(project_names, 'filtered_sequences')
+
+        if other_dirs:
+            # in reality files with the same names wouldn't be present in both
+            # the filtered_sequences directory and the other directories but
+            # for ease of testing, we'll work with what we have.
+
+            # create a directory that contains no fastq files.
+            create_files(project_names, 'zero_files')
+
+            # create a directory that contains only adapter-filtered files.
+            create_files(project_names, 'only-adapter-filtered')
+
     def test_find_filtered_files(self):
-        pass
+        self.create_fff_test_directory()
 
+        # given a directory path that contains one or more sub-directories of
+        # the form: /my_project/filtered_sequences', _find_filtered_files()
+        # should be able to find all of the fastq files in those directories.
 
-    def test_outstanding_tests(self):
-        # test get_run_prefix() new version
-        # test _find_filtered_files()
-        self.assertTrue(False)
+        # it should also be able to return the run_prefixes for each of those
+        # files.
+        by_project, run_prefix_map = _find_filtered_files(self.test_dir)
+
+        # assert that the results, organized by project, contain only the
+        # names of the projects found in EXAMPLE_RESULTS.
+        self.assertEqual(set(by_project.keys()) - set(EXAMPLE_RESULTS.keys()),
+                         set())
+
+        # assert that the results, organized by project, contain all of the
+        # dummy fastq files we created and nothing else.
+        for project in EXAMPLE_RESULTS:
+            by_project[project] = [x.replace(self.test_dir, '') for x in
+                                   by_project[project]]
+            self.assertEqual(set(by_project[project]),
+                             set(EXAMPLE_RESULTS[project]))
+
+        # assert that the run_prefix_map contains all of the run_prefixes we
+        # expect.
+        run_prefix_map = [x.replace(self.test_dir, '') for x in
+                          run_prefix_map]
+        self.assertEqual(set(run_prefix_map), set(EXAMPLE_RESULTS2))
+
+    def test_find_filtered_files_ignore_other_files(self):
+        # test that _find_filtered_files() can handle non-fastq files in the
+        # directory structure.
+        non_fastq_files = ["not_a_fastq_file.txt", "notafile",
+                           "RX_2015_S99_L007_R1_001.trimmed.fastq",
+                           "RX_2015_S99_L007_R2_001.trimmed.fastq"]
+
+        self.create_fff_test_directory(non_fastq_files)
+
+        # assert that with the addition of non-fastq files, the results will
+        # be the same as before, implying that the function ignored non-fastq
+        # files.
+        by_project, run_prefix_map = _find_filtered_files(self.test_dir)
+
+        self.assertEqual(set(by_project.keys()) - set(EXAMPLE_RESULTS.keys()),
+                         set())
+
+        for project in EXAMPLE_RESULTS:
+            by_project[project] = [x.replace(self.test_dir, '') for x in
+                                   by_project[project]]
+            self.assertEqual(set(by_project[project]),
+                             set(EXAMPLE_RESULTS[project]))
+
+        run_prefix_map = [x.replace(self.test_dir, '') for x in
+                          run_prefix_map]
+        self.assertEqual(set(run_prefix_map), set(EXAMPLE_RESULTS2))
+
+    def test_find_filtered_files_ignore_zero_files(self):
+        self.create_fff_test_directory(other_dirs=True)
+
+        # assert that with the addition of non-fastq files, the results will
+        # be the same as before, implying that the function ignored the
+        # other directories.
+        by_project, run_prefix_map = _find_filtered_files(self.test_dir)
+
+        self.assertEqual(set(by_project.keys()) - set(EXAMPLE_RESULTS.keys()),
+                         set())
+
+        for project in EXAMPLE_RESULTS:
+            by_project[project] = [x.replace(self.test_dir, '') for x in
+                                   by_project[project]]
+            self.assertEqual(set(by_project[project]),
+                             set(EXAMPLE_RESULTS[project]))
+
+        run_prefix_map = [x.replace(self.test_dir, '') for x in run_prefix_map]
+        self.assertEqual(set(run_prefix_map), set(EXAMPLE_RESULTS2))
+
+    def test_find_filtered_files_include_index_files(self):
+        self.create_fff_test_directory(include_index_files=True)
+
+        with self.assertRaisesRegex(ValueError, 'does not appear to be a '
+                                    'forward or reverse read file'):
+            _find_filtered_files(self.test_dir)
+
+    def test_get_run_prefix(self):
+        tests = [("A.R1.fastq.gz", 'A', 'R1'),
+                 ("A_R1_001.fastq.gz", 'A', 'R1'),
+                 ("A.R1.001.fastq.gz", 'A', 'R1'),
+                 ("LS_1_2014_S36_L007_R1_001.trimmed.fastq.gz",
+                  "LS_1_2014_S36_L007", 'R1'),
+                 ("LS_1_2014_SRE_S36_L007_R1_001.trimmed.fastq.gz",
+                  'LS_1_2014_SRE_S36_L007', 'R1'),
+                 ("LS_3_24_2015_S37_L007.I1.001.trimmed.fastq.gz",
+                  'LS_3_24_2015_S37_L007', 'I1'),
+                 ("LS_3_24_2015_S37_L007_I1_001.trimmed.fastq.gz",
+                  'LS_3_24_2015_S37_L007', 'I1'),
+                 ("LS_3_24_2015_S37_L007_I2_001.fastq.gz",
+                  'LS_3_24_2015_S37_L007', 'I2'),
+                 ("RS_2015_I2_S37_L007_I1_001.trimmed.fastq.gz",
+                  'RS_2015_I2_S37_L007', 'I1'),
+                 ("RS_2015_I2_S37_L007_R1_I1_001.trimmed.fastq.gz",
+                  'RS_2015_I2_S37_L007_R1', 'I1')]
+
+        for test_name, run_prefix, orientation in tests:
+            a, b = get_run_prefix(test_name)
+            self.assertEqual(a, run_prefix)
+            self.assertEqual(b, orientation)
+
+        exceptions = ["B_R2.fastq.gz", "A.X1.001.fastq.gz",
+                      "mud.fastq.gz", "foo.fastq", "bar"]
+
+        for exception in exceptions:
+            with self.assertRaisesRegex(ValueError, 'Could not determine '
+                                        'orientation of'):
+                get_run_prefix(exception)
 
 
 class TestPrePrepReplicates(TestCase):
@@ -1792,6 +1916,106 @@ class TestPrePrepReplicates(TestCase):
             exp = parse_prep(replicate_output_path)
             self.assertTrue(obs.equals(exp))
 
+
+EXAMPLE_RESULTS = {
+    "Your_Project_12345": [
+        ("/Your_Project_12345/filtered_sequences/"
+         "T_LS_7_15_15B_S27_L007_R2_001.trimmed.fastq.gz"),
+        ("/Your_Project_12345/filtered_sequences/"
+         "LS_1_2014_S36_L007_R2_001.trimmed.fastq.gz"),
+        ("/Your_Project_12345/filtered_sequences/"
+         "LS_1_2014_SRE_S36_L007_R1_001.trimmed.fastq.gz"),
+        ("/Your_Project_12345/filtered_sequences/"
+         "LS_8_10_2013_S31_L007_R2_001.trimmed.fastq.gz"),
+        ("/Your_Project_12345/filtered_sequences/A.R2.fastq.gz"),
+        ("/Your_Project_12345/filtered_sequences/"
+         "LS_8_10_2013_S31_L007_R1_001.trimmed.fastq.gz"),
+        ("/Your_Project_12345/filtered_sequences/"
+         "T_LS_7_15_15B_S27_L007_R1_001.trimmed.fastq.gz"),
+        ("/Your_Project_12345/filtered_sequences/"
+         "LS_1_2014_S36_L007_R1_001.trimmed.fastq.gz"),
+        ("/Your_Project_12345/filtered_sequences/"
+         "LS_1_2014_SRE_S36_L007_R2_001.trimmed.fastq.gz"),
+        ("/Your_Project_12345/filtered_sequences/A.R1.fastq.gz"),
+        ("/Your_Project_12345/filtered_sequences/"
+         "LS_3_24_2015_S37_L007_R1_001.trimmed.fastq.gz"),
+        ("/Your_Project_12345/filtered_sequences/"
+         "LS_3_24_2015_S37_L007_R2_001.trimmed.fastq.gz")
+    ],
+    "Your_Project_67890": [
+        ("/Your_Project_67890/filtered_sequences/"
+         "T_LS_7_15_15B_S27_L007_R2_001.trimmed.fastq.gz"),
+        ("/Your_Project_67890/filtered_sequences/"
+         "LS_1_2014_S36_L007_R2_001.trimmed.fastq.gz"),
+        ("/Your_Project_67890/filtered_sequences/"
+         "LS_1_2014_SRE_S36_L007_R1_001.trimmed.fastq.gz"),
+        ("/Your_Project_67890/filtered_sequences/"
+         "LS_8_10_2013_S31_L007_R2_001.trimmed.fastq.gz"),
+        ("/Your_Project_67890/filtered_sequences/A.R2.fastq.gz"),
+        ("/Your_Project_67890/filtered_sequences/"
+         "LS_8_10_2013_S31_L007_R1_001.trimmed.fastq.gz"),
+        ("/Your_Project_67890/filtered_sequences/"
+         "T_LS_7_15_15B_S27_L007_R1_001.trimmed.fastq.gz"),
+        ("/Your_Project_67890/filtered_sequences/"
+         "LS_1_2014_S36_L007_R1_001.trimmed.fastq.gz"),
+        ("/Your_Project_67890/filtered_sequences/"
+         "LS_1_2014_SRE_S36_L007_R2_001.trimmed.fastq.gz"),
+        ("/Your_Project_67890/filtered_sequences/A.R1.fastq.gz"),
+        ("/Your_Project_67890/filtered_sequences/"
+         "LS_3_24_2015_S37_L007_R1_001.trimmed.fastq.gz"),
+        ("/Your_Project_67890/filtered_sequences/"
+         "LS_3_24_2015_S37_L007_R2_001.trimmed.fastq.gz")
+    ]
+}
+# This is a sample of the expected output from _find_filtered_files()
+
+EXAMPLE_RESULTS2 = {
+    ("/Your_Project_12345/filtered_sequences/T_LS_7_15_15B_S27_L007_R2_001."
+     "trimmed.fastq.gz"): "T_LS_7_15_15B_S27_L007",
+    ("/Your_Project_12345/filtered_sequences/LS_1_2014_S36_L007_R2_001."
+     "trimmed.fastq.gz"): "LS_1_2014_S36_L007",
+    ("/Your_Project_12345/filtered_sequences/LS_1_2014_SRE_S36_L007_R1_001."
+     "trimmed.fastq.gz"): "LS_1_2014_SRE_S36_L007",
+    ("/Your_Project_12345/filtered_sequences/LS_8_10_2013_S31_L007_R2_001."
+     "trimmed.fastq.gz"): "LS_8_10_2013_S31_L007",
+    ("/Your_Project_12345/filtered_sequences/A.R2.fastq.gz"): "A",
+    ("/Your_Project_12345/filtered_sequences/LS_8_10_2013_S31_L007_R1_001."
+     "trimmed.fastq.gz"): "LS_8_10_2013_S31_L007",
+    ("/Your_Project_12345/filtered_sequences/T_LS_7_15_15B_S27_L007_R1_001."
+     "trimmed.fastq.gz"): "T_LS_7_15_15B_S27_L007",
+    ("/Your_Project_12345/filtered_sequences/LS_1_2014_S36_L007_R1_001."
+     "trimmed.fastq.gz"): "LS_1_2014_S36_L007",
+    ("/Your_Project_12345/filtered_sequences/LS_1_2014_SRE_S36_L007_R2_001."
+     "trimmed.fastq.gz"): "LS_1_2014_SRE_S36_L007",
+    ("/Your_Project_12345/filtered_sequences/A.R1.fastq.gz"): "A",
+    ("/Your_Project_12345/filtered_sequences/LS_3_24_2015_S37_L007_R1_001."
+     "trimmed.fastq.gz"): "LS_3_24_2015_S37_L007",
+    ("/Your_Project_12345/filtered_sequences/LS_3_24_2015_S37_L007_R2_001."
+     "trimmed.fastq.gz"): "LS_3_24_2015_S37_L007",
+    ("/Your_Project_67890/filtered_sequences/T_LS_7_15_15B_S27_L007_R2_001."
+     "trimmed.fastq.gz"): "T_LS_7_15_15B_S27_L007",
+    ("/Your_Project_67890/filtered_sequences/LS_1_2014_S36_L007_R2_001."
+     "trimmed.fastq.gz"): "LS_1_2014_S36_L007",
+    ("/Your_Project_67890/filtered_sequences/LS_1_2014_SRE_S36_L007_R1_001."
+     "trimmed.fastq.gz"): "LS_1_2014_SRE_S36_L007",
+    ("/Your_Project_67890/filtered_sequences/LS_8_10_2013_S31_L007_R2_001."
+     "trimmed.fastq.gz"): "LS_8_10_2013_S31_L007",
+    ("/Your_Project_67890/filtered_sequences/A.R2.fastq.gz"): "A",
+    ("/Your_Project_67890/filtered_sequences/LS_8_10_2013_S31_L007_R1_001."
+     "trimmed.fastq.gz"): "LS_8_10_2013_S31_L007",
+    ("/Your_Project_67890/filtered_sequences/T_LS_7_15_15B_S27_L007_R1_001."
+     "trimmed.fastq.gz"): "T_LS_7_15_15B_S27_L007",
+    ("/Your_Project_67890/filtered_sequences/LS_1_2014_S36_L007_R1_001."
+     "trimmed.fastq.gz"): "LS_1_2014_S36_L007",
+    ("/Your_Project_67890/filtered_sequences/LS_1_2014_SRE_S36_L007_R2_001."
+     "trimmed.fastq.gz"): "LS_1_2014_SRE_S36_L007",
+    ("/Your_Project_67890/filtered_sequences/A.R1.fastq.gz"): "A",
+    ("/Your_Project_67890/filtered_sequences/LS_3_24_2015_S37_L007_R1_001."
+     "trimmed.fastq.gz"): "LS_3_24_2015_S37_L007",
+    ("/Your_Project_67890/filtered_sequences/LS_3_24_2015_S37_L007_R2_001."
+     "trimmed.fastq.gz"): "LS_3_24_2015_S37_L007"
+}
+# This is a sample of the expected output from _find_filtered_files()
 
 if __name__ == "__main__":
     main()

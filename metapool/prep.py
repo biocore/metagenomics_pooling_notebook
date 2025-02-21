@@ -926,7 +926,7 @@ def _map_files_to_sample_ids(sample_ids, sample_files):
 
     if not_fastqs:
         raise ValueError("One or more files are not fastq.gz files: %s" %
-                         ', '.join(not_fastqs))
+                         ', '.join(sorted(not_fastqs)))
 
     for sample_file in sample_files:
         # make no assumptions about the naming format of fastq files, other
@@ -995,6 +995,8 @@ def _find_filtered_files(fp):
 
     run_prefix_mapping = {}
 
+    count = 0
+
     for fastq_fp in files:
         # generate the full path to each file for reference.
         full_path = abspath(fastq_fp)
@@ -1004,7 +1006,7 @@ def _find_filtered_files(fp):
         # R1 or R2.
         run_prefix, orientation = get_run_prefix(basename(fastq_fp))
         if orientation not in ['R1', 'R2']:
-            raise ValueError(f"{fastq_fp} does not appear to be a forward or"
+            raise ValueError(f"{fastq_fp} does not appear to be a forward or "
                              "reverse read file")
 
         # process the relative path of each file to ensure each is of the
@@ -1021,6 +1023,8 @@ def _find_filtered_files(fp):
         tmp = tmp.strip(sep)
         tmp = tmp.split(sep)
 
+        # tmp[1] != 'filtered_sequences' doesn't appear to be possible given
+        # the glob statement above, but we'll keep it here for safety.
         if len(tmp) != 3 or tmp[1] != 'filtered_sequences':
             raise ValueError(f"{fastq_fp} appears to be stored in an "
                              "unexpected location")
@@ -1029,6 +1033,12 @@ def _find_filtered_files(fp):
         # that project.
         by_project[tmp[0]].append(full_path)
         run_prefix_mapping[full_path] = run_prefix
+        count += 1
+
+    if count == 0:
+        raise ValueError(f"No fastq.gz files were found in {fp}. Please "
+                         "ensure that the path is correct and that the "
+                         "directory contains fastq.gz files.")
 
     # convert to standard dict before returning.
     return dict(by_project), run_prefix_mapping
@@ -1064,5 +1074,8 @@ def get_run_prefix(file_name):
 
     pos, orientation = results[0]
 
-    # if no orientations were found, then return None.
-    return (None, None) if pos == -1 else (file_name[0:pos], orientation)
+    # if no orientations were found, raise an Error.
+    if pos == -1:
+        raise ValueError(f"Could not determine orientation of {file_name}")
+
+    return file_name[0:pos], orientation
