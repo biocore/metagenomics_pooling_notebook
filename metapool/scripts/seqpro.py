@@ -49,17 +49,22 @@ def format_preparation_files(run_dir, sample_sheet, output_dir, verbose):
     # preparation_for_run().
     c_prep_columns = [x.lower() for x in sample_sheet.CARRIED_PREP_COLUMNS]
     # returns a map of (run, project_name, lane) -> preparation frame
-    preps, us = preparations_for_run(run_dir,
-                                     df_sheet,
-                                     sample_sheet.GENERATED_PREP_COLUMNS,
-                                     c_prep_columns)
+    preps, us, uf = preparations_for_run(run_dir,
+                                         df_sheet,
+                                         sample_sheet.GENERATED_PREP_COLUMNS,
+                                         c_prep_columns)
 
     os.makedirs(output_dir, exist_ok=True)
 
-    with open(os.path.join(output_dir, 'unmatched.json'), 'w') as f:
+    with open(os.path.join(output_dir, 'unmatched_samples.json'), 'w') as f:
         # json.dumps() is used to ensure that the output is a string
         # representation of the object. Otherwise, we get a TypeError.
         f.write(dumps(us, indent=2, sort_keys=True))
+
+    with open(os.path.join(output_dir, 'unmatched_files.json'), 'w') as f:
+        # json.dumps() is used to ensure that the output is a string
+        # representation of the object. Otherwise, we get a TypeError.
+        f.write(dumps(uf, indent=2, sort_keys=True))
 
     for (run, project, lane), df in preps.items():
         fp = os.path.join(output_dir, f'{run}.{project}.{lane}.tsv')

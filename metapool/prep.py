@@ -366,11 +366,12 @@ def preparations_for_run(run_path, sheet, generated_prep_columns,
 
     Returns
     -------
-    (dict, dict)
+    (dict, dict, dict)
         A dict keyed by run indentifier, project name and lane. Values are
         preparations represented as DataFrames. A second dict lists all
         samples that could not be mapped to a file. This dict is organized
-        by project name.
+        by project name. A third dict lists all of the files that could
+        not be mapped to a file. it is similarly organized.
     """
     _, run_id = split(normpath(run_path))
     run_date, instrument_code = parse_illumina_run_id(run_id)
@@ -414,6 +415,7 @@ def preparations_for_run(run_path, sheet, generated_prep_columns,
     all_columns = sorted(carried_prep_columns + generated_prep_columns)
 
     failed_samples_by_project = {}
+    failed_files_by_project = {}
 
     for project, project_sheet in sheet.groupby('sample_project'):
         project_name, qiita_id = get_short_name_and_id(project)
@@ -421,16 +423,21 @@ def preparations_for_run(run_path, sheet, generated_prep_columns,
         # since sample-names could be duplicated across projects, associate
         # sample-names to files on a project-by-project basis.
         sample_files = fastq_files_found[project]
-        sample_ids = sheet.index.tolist()
-        mapped, unmapped = _map_files_to_sample_ids(sample_ids,
-                                                    sample_files)
+        # sample_ids = sheet.index.tolist()
+        # sample_ids = sorted(project_sheet['sample_id'])
+        sample_ids = sorted(project_sheet.index)
+
+        mapped, u_ids, u_files = _map_files_to_sample_ids(sample_ids,
+                                                          sample_files)
 
         # if there are unmapped samples, store them for an eventual write
         # to a file. unmapped is a set for easy comparison. However since
         # this data is meant to be written as json output to a file, it
         # should be converted to a list. The list is sorted to make it
         # reliable for testing.
-        failed_samples_by_project[project_name] = sorted(list(unmapped))
+        failed_samples_by_project[project_name] = sorted(u_ids)
+
+        failed_files_by_project[project_name] = sorted(u_files)
 
         # if the Qiita ID is not found then make for an easy find/replace
         if qiita_id == project:
@@ -441,9 +448,7 @@ def preparations_for_run(run_path, sheet, generated_prep_columns,
             data = []
 
             for sample_id, sample in lane_sheet.iterrows():
-                sample_name = sample.sample_name
-
-                if sample_id in unmapped:
+                if sample_id in u_ids:
                     # sample_ids that couldn't be matched to a pair of fastq
                     # files don't get entries in the prep file and therefore
                     # further processing is skipped. These sample_ids are
@@ -493,7 +498,7 @@ def preparations_for_run(run_path, sheet, generated_prep_columns,
 
             output[(run_id, project, lane)] = prep
 
-    return output, failed_samples_by_project
+    return output, failed_samples_by_project, failed_files_by_project
 
 
 def extract_run_date_from_run_id(run_id):
@@ -921,6 +926,7 @@ def _map_files_to_sample_ids(sample_ids, sample_files):
         raise ValueError("One or more files are not fastq.gz files: %s" %
                          ', '.join(sorted(not_fastqs)))
 
+    unmatched_sample_files = []
     for sample_file in sample_files:
         # make no assumptions about the naming format of fastq files, other
         # than their names will begin with a valid sample_id. This is to
@@ -939,15 +945,15 @@ def _map_files_to_sample_ids(sample_ids, sample_files):
         # sort the matches so the longest matching sample_id will be first.
         matches = sorted(matches, key=len, reverse=True)
 
-        if not matches:
+        if matches:
+            # map sample_ids to a list of matching sample_files. We should expect
+            # two matches for R1 and R2 files.
+            results[matches[0]].append(sample_file)
+        else:
             # if no sample_ids could be matched to this file, then something
-            # is wrong.
-            raise ValueError(f"{sample_file} could not be matched to any "
-                             "sample-id")
-
-        # map sample_ids to a list of matching sample_files. We should expect
-        # two matches for R1 and R2 files.
-        results[matches[0]].append(sample_file)
+            # is potentially wrong, or it could just be that the sample-sheet
+            # belongs to a set of replicates.
+            unmatched_sample_files.append(sample_file)
 
     unmatched_sample_ids = set(sample_ids) - set(list(results.keys()))
 
@@ -964,7 +970,7 @@ def _map_files_to_sample_ids(sample_ids, sample_files):
     if msgs:
         raise ValueError("\n".join(msgs))
 
-    return results, unmatched_sample_ids
+    return results, unmatched_sample_ids, unmatched_sample_files
 
 
 def _find_filtered_files(fp):
