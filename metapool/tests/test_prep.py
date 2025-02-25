@@ -229,29 +229,36 @@ class TestPrep(TestCase):
         # 'unmapped samples' and contains all of the samples that couldn't
         # be mapped to a pair of fastq files. The samples are organized and
         # keyed by project.
-        obs, us = preparations_for_run(self.good_run,
-                                       sample_sheet_to_dataframe(sheet),
-                                       sheet.GENERATED_PREP_COLUMNS,
-                                       sheet.CARRIED_PREP_COLUMNS)
+
+        obs, us, uf = preparations_for_run(self.good_run,
+                                           sample_sheet_to_dataframe(sheet),
+                                           sheet.GENERATED_PREP_COLUMNS,
+                                           sheet.CARRIED_PREP_COLUMNS)
+
         self._check_run_191103_D32611_0365_G00DHB5YXX(obs)
 
+        # samples in baz: sample_1, sample_2, sample_3 sample_4, sample_44
+        # samples in foobar: sample_31, sample_32, sample_34
+
+        # files in 191103_D32611_0365_G00DHB5YXX/Baz_12345/filtered_sequences:
+        # sample_1, 2, 3, and 44 (both sample_4 files should be missing)
+
+        # files in FooBar_666:
+        # sample_31, 32, 34 (all files that should be present are, no files
+        # are missing)
+
         us_exp = {
-            "Baz": [
-                    "sample_31",
-                    "sample_32",
-                    "sample_34",
-                    "sample_4"
-                ],
-            "FooBar": [
-                    "sample_1",
-                    "sample_2",
-                    "sample_3",
-                    "sample_4",
-                    "sample_44"
-                ],
+            "Baz": ["sample_4"],
+            "FooBar": [],
+        }
+
+        uf_exp = {
+            'Baz': [],
+            'FooBar': []
         }
 
         self.assertDictEqual(us_exp, us)
+        self.assertDictEqual(uf_exp, uf)
 
     def test_preparations_for_run_missing_columns(self):
         # Check that warnings are raised whenever we overwrite the
@@ -262,9 +269,9 @@ class TestPrep(TestCase):
         ss.drop('well_description', axis=1, inplace=True)
 
         with self.assertWarns(UserWarning) as cm:
-            obs, us = preparations_for_run(self.good_run, ss,
-                                           sheet.GENERATED_PREP_COLUMNS,
-                                           sheet.CARRIED_PREP_COLUMNS)
+            obs, _, _ = preparations_for_run(self.good_run, ss,
+                                             sheet.GENERATED_PREP_COLUMNS,
+                                             sheet.CARRIED_PREP_COLUMNS)
 
             self.assertEqual(str(cm.warnings[0].message), "'well_description' "
                                                           "is not present in s"
@@ -1464,9 +1471,18 @@ class TestPrep(TestCase):
         # uncomment to record wallclock time taken.
         # from time import time
         # t = time()
-        obs, unmatched_samples = _map_files_to_sample_ids(gsample_ids,
-                                                          gsample_files)
+        obs, u_samples, u_files = _map_files_to_sample_ids(gsample_ids,
+                                                           gsample_files)
+
         # t = time() - t
+
+        # confirm that the unmatched_samples list contains the set of
+        # sample-ids that did not match any fastq files in gsample_filenames.
+        # this models the case where a sample from a sample-sheet did not
+        # successfully process and therefore no fastq files were generated.
+        # There shouldn't be any unmatched files.
+        self.assertEqual(u_samples, {'DUMMY_SAMPLE'})
+        self.assertEqual(u_files, [])
 
         # after all possible sample_files have been matched to sample_ids,
         # ensure that the number of matching files for each sample_id is 2
@@ -1537,12 +1553,6 @@ class TestPrep(TestCase):
         for sample_id in exp:
             self.assertEqual(set(exp[sample_id]), set(obs[sample_id]))
 
-        # confirm that the unmatched_samples list contains the set of
-        # sample-ids that did not match any fastq files in gsample_filenames.
-        # this models the case where a sample from a sample-sheet did not
-        # successfully process and therefore no fastq files were generated.
-        self.assertEqual(set(unmatched_samples), {'DUMMY_SAMPLE'})
-
     def test_map_files_to_sample_ids_more(self):
         # create real files for ABC and ABCDEF, but not for these other
         # similarly named variants.
@@ -1561,8 +1571,8 @@ class TestPrep(TestCase):
 
         shuffle(gsample_files)
 
-        obs, unmatched_samples = _map_files_to_sample_ids(gsample_ids,
-                                                          gsample_files)
+        obs, u_samples, u_files = _map_files_to_sample_ids(gsample_ids,
+                                                           gsample_files)
 
         exp = {
             "ABC": ["/some_dir/some_project/something_else/ABC_S36_L007_R1_"
@@ -1580,7 +1590,10 @@ class TestPrep(TestCase):
         # demonstrate that the function can correctly match 'ABC' and
         # 'ABCDEF'.
         self.assertEqual(set(obs.keys()), set(exp.keys()))
-        self.assertEqual(set(unmatched_samples), exp_unmatched)
+        self.assertEqual(set(u_samples), exp_unmatched)
+
+        # there shouldn't be any unmatched files.
+        self.assertEqual(u_files, [])
 
         # now create files for those samples that were not found in the
         # previous test and ensure that the function can correctly match
@@ -1598,8 +1611,8 @@ class TestPrep(TestCase):
 
         shuffle(gsample_files)
 
-        obs, unmatched_samples = _map_files_to_sample_ids(gsample_ids,
-                                                          gsample_files)
+        obs, u_samples, u_files = _map_files_to_sample_ids(gsample_ids,
+                                                           gsample_files)
 
         exp = {
             "BABC": ["/some_dir/some_project/something_else/BABC_S39_L007_R2"
@@ -1627,7 +1640,10 @@ class TestPrep(TestCase):
         exp_unmatched = {'DEF', 'XYZ'}
 
         self.assertEqual(set(obs.keys()), set(exp.keys()))
-        self.assertEqual(set(unmatched_samples), exp_unmatched)
+        self.assertEqual(set(u_samples), exp_unmatched)
+
+        # there shouldn't be any unmatched files.
+        self.assertEqual(u_files, [])
 
     def test_map_files_to_sample_ids_errors(self):
         # create real files for ABC and ABCDEF, but not for these other
@@ -1705,8 +1721,9 @@ class TestPrep(TestCase):
         with self.assertRaisesRegex(ValueError, msg):
             _map_files_to_sample_ids(gsample_ids, gsample_files)
 
-        # In instances where a fastq file cannot be matched to ANY sample-
-        # name, an error will also be raised.
+        # confirm that an error will be raised when a fastq file cannot be
+        # matched to a sample-name.
+
         gsample_filenames = ["ABC_S36_L007_R2_001.trimmed.fastq.gz",
                              "ABC_S36_L007_R1_001.trimmed.fastq.gz",
                              "UNMATCHABLE.fastq.gz"]
@@ -1719,8 +1736,29 @@ class TestPrep(TestCase):
         msg = (r"/some_dir/UNMATCHABLE.fastq.gz could not be matched to any "
                r"sample-id")
 
-        with self.assertRaisesRegex(ValueError, msg):
-            _map_files_to_sample_ids(gsample_ids, gsample_files)
+        matched, u_samples, u_files = _map_files_to_sample_ids(gsample_ids,
+                                                               gsample_files)
+
+        exp = {
+            'ABC': {
+                '/some_dir/ABC_S36_L007_R1_001.trimmed.fastq.gz',
+                '/some_dir/ABC_S36_L007_R2_001.trimmed.fastq.gz'
+                }
+            }
+
+        # confirm that matching results are as expected.
+        self.assertIn('ABC', matched)
+        # convert list of unmatched files into a set for easier comparison.
+        matched['ABC'] = set(matched['ABC'])
+        self.assertDictEqual(matched, exp)
+
+        # confirm that the other samples defined in sample_ids shouldn't
+        # be matched.
+        self.assertEqual(u_samples, {'ABCC', 'BABC'})
+
+        # confirm that the file we created to intentionally never match
+        # a sample id was found.
+        self.assertEqual(u_files, ['/some_dir/UNMATCHABLE.fastq.gz'])
 
     def create_fff_test_directory(self, additional_files=None,
                                   other_dirs=False,

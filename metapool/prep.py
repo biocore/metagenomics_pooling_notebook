@@ -470,7 +470,7 @@ def preparations_for_run(run_path, sheet, generated_prep_columns,
                                          associated_files]))
 
                 if len(run_prefixes) != 1:
-                    raise ValueError(f'The files associated with {sample_name}'
+                    raise ValueError(f'The files associated with {sample_id}'
                                      f" ({', '.join(associated_files)}) do not"
                                      " share the same run-prefix")
 
@@ -946,8 +946,8 @@ def _map_files_to_sample_ids(sample_ids, sample_files):
         matches = sorted(matches, key=len, reverse=True)
 
         if matches:
-            # map sample_ids to a list of matching sample_files. We should expect
-            # two matches for R1 and R2 files.
+            # map sample_ids to a list of matching sample_files. We should
+            # expect two matches for R1 and R2 files.
             results[matches[0]].append(sample_file)
         else:
             # if no sample_ids could be matched to this file, then something
