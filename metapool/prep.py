@@ -1,15 +1,16 @@
-import re
-import os
-import gzip
-import warnings
-import pandas as pd
-
-from glob import glob
+from collections import Counter, defaultdict
 from datetime import datetime
-from string import ascii_letters, digits
+from glob import glob
 from metapool.mp_strings import get_short_name_and_id
 from metapool.plate import PlateReplication
-from collections import Counter
+from os import sep, listdir
+from os.path import (basename, isdir, join, split, abspath, exists,
+                     normpath)
+from string import ascii_letters, digits
+import pandas as pd
+import re
+import warnings
+import gzip
 
 
 REQUIRED_MF_COLUMNS = {'sample_name', 'barcode', 'primer', 'primer_plate',
@@ -133,100 +134,20 @@ def parse_illumina_run_id(run_id):
     return run_date, matches[2]
 
 
-def is_nonempty_gz_file(name):
-    """Taken from https://stackoverflow.com/a/37878550/379593"""
-    with gzip.open(name, 'rb') as f:
-        try:
-            file_content = f.read(1)
-            return len(file_content) > 0
-        except Exception:
-            return False
-
-
 def remove_qiita_id(project_name):
     return get_short_name_and_id(project_name)[0]
 
 
-def get_run_prefix(run_path, project, sample_id, lane):
-    """For a sample find the run prefix
-
-    Parameters
-    ----------
-    run_path: str
-        Base path for the run
-    project: str
-        Name of the project
-    sample_id: str
-        Sample ID (was sample_name). Changed to reflect name used for files.
-    lane: str
-        Lane number
-
-    Returns
-    -------
-    str
-        The run prefix of the sequence file in the lane, only if the sequence
-        file is not empty.
-    """
-    base = os.path.join(run_path, project)
-    path = base
-
-    qc = os.path.join(base, 'trimmed_sequences')
-    hf = os.path.join(base, 'filtered_sequences')
-
-    if _exists_and_has_files(qc) and _exists_and_has_files(hf):
-        path = hf
-    elif _exists_and_has_files(qc):
-        path = qc
-    elif _exists_and_has_files(hf):
-        path = hf
-    else:
-        path = base
-
-    search_me = '%s_S*_L*%s_R*.fastq.gz' % (sample_id, lane)
-
-    results = glob(os.path.join(path, search_me))
-
-    # at this stage there should only be two files forward and reverse
-    if len(results) == 2:
-        forward, reverse = sorted(results)
-        if is_nonempty_gz_file(forward) and is_nonempty_gz_file(reverse):
-            f, r = os.path.basename(forward), os.path.basename(reverse)
-            if len(f) != len(r):
-                raise ValueError("Forward and reverse sequences filenames "
-                                 "don't match f:%s r:%s" % (f, r))
-
-            # The first character that's different is the number in R1/R2. We
-            # find this position this way because sometimes filenames are
-            # written as _R1_.. or _R1.trimmed... and splitting on _R1 might
-            # catch some substrings not part of R1/R2.
-            for i in range(len(f)):
-                if f[i] != r[i]:
-                    i -= 2
-                    break
-
-            return f[:i]
-        else:
-            return None
-    elif len(results) > 2:
-        warnings.warn(('There are %d matches for sample "%s" in lane %s. Only'
-                       ' two matches are allowed (forward and reverse): %s') %
-                      (len(results),
-                       sample_id,
-                       lane,
-                       ', '.join(sorted(results))))
-    return None
-
-
 def get_run_prefix_mf(run_path, project):
-    search_path = os.path.join(run_path, project, 'amplicon',
-                               '*_SMPL1_S*R?_*.fastq.gz')
+    search_path = join(run_path, project, 'amplicon',
+                       '*_SMPL1_S*R?_*.fastq.gz')
     results = glob(search_path)
 
     # at this stage there should only be two files forward and reverse
     if len(results) == 2:
         forward, reverse = sorted(results)
         if is_nonempty_gz_file(forward) and is_nonempty_gz_file(reverse):
-            f, r = os.path.basename(forward), os.path.basename(reverse)
+            f, r = basename(forward), basename(reverse)
             if len(f) != len(r):
                 raise ValueError("Forward and reverse sequences filenames "
                                  "don't match f:%s r:%s" % (f, r))
@@ -253,12 +174,12 @@ def get_run_prefix_mf(run_path, project):
 
 
 def _file_list(path):
-    return [f for f in os.listdir(path)
-            if not os.path.isdir(os.path.join(path, f))]
+    return [f for f in listdir(path)
+            if not isdir(join(path, f))]
 
 
 def _exists_and_has_files(path):
-    return os.path.exists(path) and len(_file_list(path))
+    return exists(path) and len(_file_list(path))
 
 
 def get_machine_code(instrument_model):
@@ -445,13 +366,23 @@ def preparations_for_run(run_path, sheet, generated_prep_columns,
 
     Returns
     -------
-    dict
-        Dictionary keyed by run identifier, project name and lane. Values are
-        preparations represented as DataFrames.
+    (dict, dict, dict)
+        A dict keyed by run indentifier, project name and lane. Values are
+        preparations represented as DataFrames. A second dict lists all
+        samples that could not be mapped to a file. This dict is organized
+        by project name. A third dict lists all of the files that could
+        not be mapped to a file. it is similarly organized.
     """
-    _, run_id = os.path.split(os.path.normpath(run_path))
+    _, run_id = split(normpath(run_path))
     run_date, instrument_code = parse_illumina_run_id(run_id)
     instrument_model, run_center = get_model_and_center(instrument_code)
+
+    # NB: For now it is safe to use the working directory as the search
+    # root, but in the future it would be better to give the path to the
+    # NuQCJob subdirectory specifically and pass the run_id to this function
+    # rather than run_path.
+
+    fastq_files_found, run_prefix_mapping = _find_filtered_files(run_path)
 
     output = {}
 
@@ -483,8 +414,30 @@ def preparations_for_run(run_path, sheet, generated_prep_columns,
 
     all_columns = sorted(carried_prep_columns + generated_prep_columns)
 
+    failed_samples_by_project = {}
+    failed_files_by_project = {}
+
     for project, project_sheet in sheet.groupby('sample_project'):
         project_name, qiita_id = get_short_name_and_id(project)
+
+        # since sample-names could be duplicated across projects, associate
+        # sample-names to files on a project-by-project basis.
+        sample_files = fastq_files_found[project]
+        # sample_ids = sheet.index.tolist()
+        # sample_ids = sorted(project_sheet['sample_id'])
+        sample_ids = sorted(project_sheet.index)
+
+        mapped, u_ids, u_files = _map_files_to_sample_ids(sample_ids,
+                                                          sample_files)
+
+        # if there are unmapped samples, store them for an eventual write
+        # to a file. unmapped is a set for easy comparison. However since
+        # this data is meant to be written as json output to a file, it
+        # should be converted to a list. The list is sorted to make it
+        # reliable for testing.
+        failed_samples_by_project[project_name] = sorted(u_ids)
+
+        failed_files_by_project[project_name] = sorted(u_files)
 
         # if the Qiita ID is not found then make for an easy find/replace
         if qiita_id == project:
@@ -494,13 +447,34 @@ def preparations_for_run(run_path, sheet, generated_prep_columns,
             # this is the portion of the loop that creates the prep
             data = []
 
-            for well_id_col, sample in lane_sheet.iterrows():
-                if isinstance(sample, pd.core.series.Series):
-                    sample_id = well_id_col
-                else:
-                    sample_id = sample.sample_id
+            for sample_id, sample in lane_sheet.iterrows():
+                if sample_id in u_ids:
+                    # sample_ids that couldn't be matched to a pair of fastq
+                    # files don't get entries in the prep file and therefore
+                    # further processing is skipped. These sample_ids are
+                    # recorded in the failed_samples_by_project dict, however.
+                    continue
 
-                run_prefix = get_run_prefix(run_path, project, sample_id, lane)
+                associated_files = mapped[sample_id]
+
+                # run-prefix is a column value in the prep-info file and is
+                # programmatically defined as the part of the filename up to
+                # the orientation indicator (assuming it's present). e.g.:
+                # my_sample_S001_L001_R1_001.gz -> 'my_sample_S001_L001'.
+
+                # we assume that the run-prefixes for all files
+                # associated with a sample are the same. Notify the user if
+                # this assertion isn't true as it's an indicator of a larger
+                # error.
+                run_prefixes = list(set([run_prefix_mapping[x] for x in
+                                         associated_files]))
+
+                if len(run_prefixes) != 1:
+                    raise ValueError(f'The files associated with {sample_id}'
+                                     f" ({', '.join(associated_files)}) do not"
+                                     " share the same run-prefix")
+
+                run_prefix = run_prefixes[0]
 
                 # ignore the sample if there's no file
                 if run_prefix is not None:
@@ -524,7 +498,7 @@ def preparations_for_run(run_path, sheet, generated_prep_columns,
 
             output[(run_id, project, lane)] = prep
 
-    return output
+    return output, failed_samples_by_project, failed_files_by_project
 
 
 def extract_run_date_from_run_id(run_id):
@@ -938,3 +912,179 @@ def demux_pre_prep(pre_prep):
         res.append(pre_prep[pre_prep['quad'] == quad].drop(['quad'], axis=1))
 
     return res
+
+
+def _map_files_to_sample_ids(sample_ids, sample_files):
+    # create a mapping of sample_ids to fastq filepaths.
+    # organize processing by file to ensure each file is mapped and errors are
+    # reported.
+    results = defaultdict(list)
+
+    not_fastqs = [x for x in sample_files if not x.endswith('.fastq.gz')]
+
+    if not_fastqs:
+        raise ValueError("One or more files are not fastq.gz files: %s" %
+                         ', '.join(sorted(not_fastqs)))
+
+    unmatched_sample_files = []
+    for sample_file in sample_files:
+        # make no assumptions about the naming format of fastq files, other
+        # than their names will begin with a valid sample_id. This is to
+        # support non-Illumina generated fastq files.
+        _, file_name = split(sample_file)
+
+        # for each sample_file, find the subset of sample_ids that match the
+        # beginning of the file's name and assume that the longest matching
+        # sample_id is the best and proper match. Ex: myfile_sre.fastq.gz
+        # should match both the sample_ids [myfile_sre, myfile] but we want to
+        # ensure myfile_sre is the correct match, and myfile_sre.fastq.gz is
+        # not associated with myfile and myfile.fastq.gz is not associated with
+        # myfile_sre.fastq.gz.
+        matches = [s_id for s_id in sample_ids if file_name.startswith(s_id)]
+
+        # sort the matches so the longest matching sample_id will be first.
+        matches = sorted(matches, key=len, reverse=True)
+
+        if matches:
+            # map sample_ids to a list of matching sample_files. We should
+            # expect two matches for R1 and R2 files.
+            results[matches[0]].append(sample_file)
+        else:
+            # if no sample_ids could be matched to this file, then something
+            # is potentially wrong, or it could just be that the sample-sheet
+            # belongs to a set of replicates.
+            unmatched_sample_files.append(sample_file)
+
+    unmatched_sample_ids = set(sample_ids) - set(list(results.keys()))
+
+    # after all possible sample_files have been matched to sample_ids, ensure
+    # that the number of matching files for each sample_id is 2 and only 2,
+    # _assuming_ that one is an R1 file and the other is an R2 file.
+    msgs = []
+    for sample_id in results:
+        count = len(results[sample_id])
+        if count != 2:
+            msg = sorted(results[sample_id])
+            msgs.append(f"{sample_id} matched an unexpected number of samples "
+                        f"({msg})")
+    if msgs:
+        raise ValueError("\n".join(msgs))
+
+    return results, unmatched_sample_ids, unmatched_sample_files
+
+
+def _find_filtered_files(fp):
+    # assume that only fastq.gz files are desired and it's okay to ignore
+    # other odd files that we find.
+
+    # assume that all desired fastq.gz files will be stored in a directory
+    # named 'filtered_sequences'. This will automatically ignore files in
+    # 'only-adapter-filtered', 'zerofiles' and possibly other directories
+    # in the future as well.
+
+    # we expect the filepaths to be of the form:
+    # <project_name_w_qiita_id>/filtered_sequences/<fastq_file>
+    # However, we intentionally search across all directories to locate
+    # any fastq files w/in a filtered_sequences subdirectory, even if
+    # they don't match our expectation so that no potentially desirable
+    # file is silently filtered out.
+    files = glob(f"{fp}/**/filtered_sequences/*.fastq.gz", recursive=True)
+
+    by_project = defaultdict(list)
+
+    run_prefix_mapping = {}
+
+    count = 0
+
+    for fastq_fp in files:
+        # generate the full path to each file for reference.
+        full_path = abspath(fastq_fp)
+
+        # determine the run_prefix and orientation of the file.
+        # We do not want to silently ignore the file if its orientation is not
+        # R1 or R2.
+        run_prefix, orientation = get_run_prefix(basename(fastq_fp))
+        if orientation not in ['R1', 'R2']:
+            raise ValueError(f"{fastq_fp} does not appear to be a forward or "
+                             "reverse read file")
+
+        # process the relative path of each file to ensure each is of the
+        # the expected form. Report anything out of the ordinary so that no
+        # files are silently missed.
+
+        # remove fp from the beginning of the file's path. The remaining path
+        # should be of the form:
+        # <project_name_w_qiita_id>/filtered_sequences/<fastq_file>
+        tmp = fastq_fp.replace(fp, '')
+        # remove any leading and/or trailing '/' characters from the
+        # remaining path.
+        # use sep instead of '/' to be more platform independent.
+        tmp = tmp.strip(sep)
+        tmp = tmp.split(sep)
+
+        # tmp[1] != 'filtered_sequences' doesn't appear to be possible given
+        # the glob statement above, but we'll keep it here for safety.
+        if len(tmp) != 3 or tmp[1] != 'filtered_sequences':
+            raise ValueError(f"{fastq_fp} appears to be stored in an "
+                             "unexpected location")
+
+        # where tmp[0] is the project_name, keep a list of all associated with
+        # that project.
+        by_project[tmp[0]].append(full_path)
+        run_prefix_mapping[full_path] = run_prefix
+        count += 1
+
+    if count == 0:
+        raise ValueError(f"No fastq.gz files were found in {fp}. Please "
+                         "ensure that the path is correct and that the "
+                         "directory contains fastq.gz files.")
+
+    # convert to standard dict before returning.
+    return dict(by_project), run_prefix_mapping
+
+
+def get_run_prefix(file_name):
+    # Modified from mg-scripts/util.py:determine_orientation().
+    orientations = ['R1', 'R2', 'I1', 'I2']
+
+    results = []
+
+    # assume orientation is always present in the file's name.
+    # assume that it is of one of the four forms above.
+    # assume that it is always the right-most occurance of the four
+    # orientations above.
+    # assume that orientation is encapsulated with either '_' or '.'
+    # e.g.: '_R1_', '.I2.'.
+    # assume users can and will include any or all of the four
+    # orientation as part of their filenames as well. e.g.:
+    # ABC_7_04_1776_R1_SRE_S3_L007_R2_001.trimmed.fastq.gz
+    for o in orientations:
+        variations = [f"_{o}_", f".{o}."]
+        for v in variations:
+            # rfind searches from the end of the string, rather than
+            # its beginning. It returns the position in the string
+            # where the substring begins.
+            results.append((file_name.rfind(v), o))
+
+    # the orientation will be the substring found with the maximum
+    # found value for pos. That is, it will be the substring that
+    # begins at the rightest most position in the file name.
+    results.sort(reverse=True)
+
+    pos, orientation = results[0]
+
+    # if no orientations were found, raise an Error.
+    if pos == -1:
+        raise ValueError(f"Could not determine orientation of {file_name}")
+
+    return file_name[0:pos], orientation
+
+
+def is_nonempty_gz_file(name):
+    """Taken from https://stackoverflow.com/a/37878550/379593"""
+    with gzip.open(name, 'rb') as f:
+        try:
+            file_content = f.read(1)
+            return len(file_content) > 0
+        except Exception:
+            return False

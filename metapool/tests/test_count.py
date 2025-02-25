@@ -54,15 +54,15 @@ class TestCount(TestCase):
             run = os.path.join(tmp, 'funky-rerun-with-repeated-samples')
             shutil.copytree(self.run_dir, run)
 
-            # sample 3 exists, but not with cell number S458, so this should
+            # sample 5 exists, but not with cell number S458, so this should
             # raise an error because if this happense something else went wrong
             fake = os.path.join(run, 'Trojecp_666', 'json',
-                                'sample3_S458_L003_R1_001.json')
+                                'sample5_S458_L001_R1_001.json')
             with open(fake, 'w') as f:
                 f.write(json.dumps({}))
 
             msg = ('Multiple matches found for the same samples in the same '
-                   'lane, only one match is expected: sample3 in lane 3')
+                   'lane, only one match is expected: sample5 in lane 1')
             with self.assertRaisesRegex(ValueError, msg):
                 _parsefier(run, self.ss, 'json', '.json', 'halloween',
                            lambda x: 1)
@@ -118,7 +118,7 @@ class TestCount(TestCase):
     def test_parse_fastp_counts(self):
         obs = _parse_fastp_counts(
             os.path.join(self.run_dir, 'Trojecp_666', 'json',
-                         'sample3_S457_L003_R1_001.json'))
+                         'sample5_S457_L001_R1_001.json'))
 
         self.assertEqual(obs, 4692)
 
@@ -189,30 +189,30 @@ class TestCount(TestCase):
 
 RUN_STATS = {
     'raw_reads_r1r2': {('sample1', '1'): 10000, ('sample2', '1'): 100000,
-                       ('sample1', '3'): 100000, ('sample2', '3'): 2300000,
-                       ('sample3', '3'): 300000, ('sample4', '3'): 400000,
-                       ('sample5', '3'): 567000},
+                       ('sample3', '1'): 100000, ('sample4', '1'): 2300000,
+                       ('sample5', '1'): 300000, ('sample6', '1'): 400000,
+                       ('sample7', '1'): 567000},
     'total_biological_reads_r1r2': {('sample1', '1'): 10800.0,
-                                    ('sample2', '1'): 61404.0,
-                                    ('sample1', '3'): 335996.0,
-                                    ('sample2', '3'): 18374.0,
-                                    ('sample3', '3'): 4692.0,
-                                    ('sample4', '3'): 960.0,
-                                    ('sample5', '3'): 30846196.0},
+                                    ('sample2', '1'): 18374.0,
+                                    ('sample3', '1'): 335996.0,
+                                    ('sample4', '1'): 61404.0,
+                                    ('sample5', '1'): 4692.0,
+                                    ('sample6', '1'): 960.0,
+                                    ('sample7', '1'): 30846196.0},
     'quality_filtered_reads_r1r2': {('sample1', '1'): 16.0,
                                     ('sample2', '1'): 16.0,
-                                    ('sample1', '3'): 16.0,
-                                    ('sample2', '3'): 16.0,
-                                    ('sample3', '3'): 16.0,
-                                    ('sample4', '3'): 16.0,
-                                    ('sample5', '3'): 16.0},
+                                    ('sample3', '1'): 16.0,
+                                    ('sample4', '1'): 16.0,
+                                    ('sample5', '1'): 16.0,
+                                    ('sample6', '1'): 16.0,
+                                    ('sample7', '1'): 16.0},
     'fraction_passing_quality_filter': {('sample1', '1'): 0.0016,
                                         ('sample2', '1'): 0.00016,
-                                        ('sample1', '3'): 0.00016,
-                                        ('sample2', '3'): 0.00000695652,
-                                        ('sample3', '3'): 0.00005333333,
-                                        ('sample4', '3'): 0.00004,
-                                        ('sample5', '3'): 0.00002821869}}
+                                        ('sample3', '1'): 0.00016,
+                                        ('sample4', '1'): 0.00000695652,
+                                        ('sample5', '1'): 0.00005333333,
+                                        ('sample6', '1'): 0.00004,
+                                        ('sample7', '1'): 0.00002821869}}
 
 
 class TestBCLConvertCount(TestCase):
@@ -290,8 +290,8 @@ class TestBCLConvertCount(TestCase):
 
     def test_raw_read_counts(self):
         obs = raw_read_counts(self.run_dir, self.ss)
-
         exp = self.stats[['raw_reads_r1r2']] * 2
+
         pd.testing.assert_frame_equal(obs.sort_index(), exp)
 
     def tearDown(self):

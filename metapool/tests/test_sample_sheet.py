@@ -50,8 +50,6 @@ class BaseTests(unittest.TestCase):
     def setUp(self):
         data_dir = join(dirname(__file__), 'data')
         self.data_dir = data_dir
-        self.ss = join(data_dir, 'runs', '191103_D32611_0365_G00DHB5YXX',
-                       'sample-sheet.csv')
 
         self.alt_ss = join(data_dir,
                            'good-sample-sheet-with-alt-col-names.csv')
@@ -149,8 +147,7 @@ class KLSampleSheetTests(BaseTests):
 
     def test_sample_sheet_roundtripping(self):
         # testing with all the sheets we have access to
-        sheets = [self.ss, self.good_ss,
-                  self.no_project_ss, self.ok_ss,
+        sheets = [self.good_ss, self.no_project_ss, self.ok_ss,
                   self.scrubbable_ss, self.bad_project_name_ss,
                   self.with_comments, self.with_comments_and_new_lines,
                   self.with_new_lines]
@@ -255,73 +252,100 @@ class KLSampleSheetTests(BaseTests):
             self.assertIsNone(sheet.Contact)
 
     def test_parse(self):
-        sheet = MetagenomicSampleSheetv100(self.ss)
+        sheet = MetagenomicSampleSheetv100(self.good_ss)
 
         exp = {
             'IEMFileVersion': '4',
             'SheetType': 'standard_metag',
             'SheetVersion': '100',
-            'Investigator Name': 'Caballero',
+            'Investigator Name': 'Knight',
             'Experiment Name': 'RKL0042',
             'Date': '2/26/20',
             'Workflow': 'GenerateFASTQ',
             'Application': 'FASTQ Only',
             'Assay': 'Metagenomic',
             'Description': '',
-            'Chemistry': 'Default'
-        }
+            'Chemistry': 'Default'}
 
         self.assertEqual(sheet.Header, exp)
         self.assertEqual(sheet.Reads, [150, 150])
-        self.assertEqual(sheet.Settings, {'ReverseComplement': '0'})
 
-        data = (
-            '1,sample_1,sample.1,FooBar_666_p1,A1,iTru7_107_07,CCGACTAT,'
-            'iTru5_01_A,ACCGACAA,Baz_12345,pool1,importantsample1,'
-            'KnightLabKapaHP,Eqiiperiment\n'
-            '1,sample_2,sample.2,FooBar_666_p1,A2,iTru7_107_08,CCGACTAT,'
-            'iTru5_01_A,CTTCGCAA,Baz_12345,pool1,importantsample2,'
-            'KnightLabKapaHP,Eqiiperiment\n'
-            '3,sample_1,sample.1,FooBar_666_p1,A3,iTru7_107_09,GCCTTGTT,'
-            'iTru5_01_A,AACACCAC,Baz_12345,pool1,importantsample1,'
-            'KnightLabKapaHP,Eqiiperiment\n'
-            '3,sample_2,sample.2,FooBar_666_p1,A4,iTru7_107_10,AACTTGCC,'
-            'iTru5_01_A,CGTATCTC,Baz_12345,pool1,importantsample2,'
-            'KnightLabKapaHP,Eqiiperiment\n'
-            '3,sample_31,sample.31,FooBar_666_p1,A5,iTru7_107_11,CAATGTGG,'
-            'iTru5_01_A,GGTACGAA,FooBar_666,pool1,importantsample31,'
-            'KnightLabKapaHP,SomethingWitty\n'
-            '3,sample_32,sample.32,FooBar_666_p1,B6,iTru7_107_12,AAGGCTGA,'
-            'iTru5_01_A,CGATCGAT,FooBar_666,pool1,importantsample32,'
-            'KnightLabKapaHP,SomethingWitty\n'
-            '3,sample_34,sample.34,FooBar_666_p1,B8,iTru7_107_13,TTACCGAG,'
-            'iTru5_01_A,AAGACACC,FooBar_666,pool1,importantsample34,'
-            'KnightLabKapaHP,SomethingWitty\n'
-            '3,sample_44,sample.44,Baz_p3,B99,iTru7_107_14,GTCCTAAG,'
-            'iTru5_01_A,CATCTGCT,Baz_12345,pool1,importantsample44,'
-            'KnightLabKapaHP,Eqiiperiment\n'
-        )
-        keys = ['Lane', 'Sample_ID', 'Sample_Name', 'Sample_Plate',
-                'well_id_384', 'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
-                'Sample_Project', 'syndna_pool_number', 'Well_description',
-                'library_construction_protocol', 'experiment_design_protocol']
+        exp = {'ReverseComplement': '0', 'MaskShortReads': '1',
+               'OverrideCycles': 'Y151;I8N2;I8N2;Y151'}
 
-        for sample, line in zip(sheet.samples, data.split()):
-            values = line.strip().split(',')
-            exp = sample_sheet.Sample(dict(zip(keys, values)))
-            self.assertEqual(sample, exp)
+        self.assertEqual(sheet.Settings, exp)
+
+        # a selection of samples from good-sample-sheet.csv.
+        # one sample from each project.
+
+        exp = [
+            {
+                "Lane": "1",
+                "Sample_ID": "3A",
+                "Sample_Name": "3A",
+                "Sample_Plate": "Gerwick_tubes",
+                "well_id_384": "I23",
+                "I7_Index_ID": "iTru7_201_03",
+                "index": "GATAGGCT",
+                "I5_Index_ID": "iTru5_09_H",
+                "index2": "AGAAGGAC",
+                "Sample_Project": "Gerwick_6123",
+                "Well_description": "Desc_for_3A"
+            }, {
+                "Lane": "1",
+                "Sample_ID": "JM-MEC__Staphylococcus_aureusstrain_BERTI-"
+                "B0387",
+                "Sample_Name": "JM-MEC__Staphylococcus_aureusstrain_BERTI-"
+                "B0387",
+                "Sample_Plate": "Feist_11661_P43",
+                "well_id_384": "B10",
+                "I7_Index_ID": "iTru7_102_03",
+                "index": "CGTTGCAA",
+                "I5_Index_ID": "iTru5_121_C",
+                "index2": "CTATGCCT",
+                "Sample_Project": "Feist_11661",
+                "Well_description": "Desc_for_JM-MEC__Staphylococcus "
+                "aureusstrain BERTI-B0387"
+            }, {
+                "Lane": "1",
+                "Sample_ID": "EP981129A02",
+                "Sample_Name": "EP981129A02",
+                "Sample_Plate": "NYU_BMS_Melanoma_13059_P4",
+                "well_id_384": "H4",
+                "I7_Index_ID": "iTru7_115_08",
+                "index": "TGGTACAG",
+                "I5_Index_ID": "iTru5_124_A",
+                "index2": "GTACGATC",
+                "Sample_Project": "NYU_BMS_Melanoma_13059",
+                "Well_description": "Desc_for_EP981129A02"
+            }
+        ]
+
+        obs = {}
+
+        for sample in sheet.samples:
+            # sample-names can be duplicated across projects, hence the need
+            # to store each sample in a truly unique value.
+            key = f"{sample.Sample_Name}_{sample.Sample_Project}"
+            obs[key] = sample.to_json()
+
+        for sample in exp:
+            key = f'{sample["Sample_Name"]}_{sample["Sample_Project"]}'
+            self.assertDictEqual(obs[key], sample)
 
         # check for Bioinformatics
         exp = pd.DataFrame(
             columns=['Sample_Project', 'QiitaID', 'BarcodesAreRC',
                      'ForwardAdapter', 'ReverseAdapter', 'HumanFiltering',
                      'library_construction_protocol',
-                     'experiment_design_description', 'contains_replicates'],
+                     'experiment_design_description'],
             data=[
-                ['Baz_12345', '100', False, 'AACC', 'GGTT', False,
-                 'Knight Lab Kapa HP', 'Eqiiperiment', False],
-                ['FooBar_666', '666', False, 'AACC', 'GGTT', False,
-                 'Knight Lab Kapa HP', 'SomethingWitty', False]
+                ['NYU_BMS_Melanoma_13059', '13059', False, 'AACC', 'GGTT',
+                 False, 'Knight Lab Kapa HP', 'Eqiiperiment'],
+                ['Feist_11661', '11661', False, 'AACC', 'GGTT', False,
+                 'Knight Lab Kapa HP', 'Eqiiperiment'],
+                ['Gerwick_6123', '6123', False, 'AACC', 'GGTT', False,
+                 'Knight Lab Kapa HP', 'Eqiiperiment']
             ]
         )
 
@@ -331,10 +355,10 @@ class KLSampleSheetTests(BaseTests):
         exp = pd.DataFrame(
             columns=['Email', 'Sample_Project'],
             data=[
-                ['test@lol.com', 'Baz_12345'],
-                ['tester@rofl.com', 'FooBar_666']
+                ['test@lol.com', 'Feist_11661']
             ]
         )
+
         pd.testing.assert_frame_equal(sheet.Contact, exp)
 
     def test_parse_with_comments(self):
@@ -1882,20 +1906,33 @@ class ValidateSampleSheetTests(BaseTests):
         self.assertStdOutEqual(message)
 
     def test_sample_sheet_to_dataframe(self):
-        ss = MetagenomicSampleSheetv100(self.ss)
+        ss = MetagenomicSampleSheetv100(self.good_ss)
         obs = sample_sheet_to_dataframe(ss)
 
-        columns = ['lane', 'sample_name', 'sample_plate', 'well_id_384',
-                   'i7_index_id', 'index', 'i5_index_id', 'index2',
-                   'sample_project', 'well_description',
-                   'library_construction_protocol',
-                   'experiment_design_description']
-        index = ['sample_1', 'sample_2', 'sample_1', 'sample_2', 'sample_31',
-                 'sample_32', 'sample_34', 'sample_44']
+        # first, confirm that the function returns a DataFrame
 
-        exp = pd.DataFrame(index=index, data=DF_DATA, columns=columns)
-        exp.index.name = 'sample_id'
-        pd.testing.assert_frame_equal(obs, exp)
+        self.assertTrue(isinstance(obs, pd.DataFrame))
+
+        # confirm that function returns the [Data] section of the sample-sheet
+        # as a DataFrame.
+
+        exp_columms = {'lane', 'sample_name', 'sample_plate', 'well_id_384',
+                       'i7_index_id', 'index', 'i5_index_id', 'index2',
+                       'sample_project', 'well_description',
+                       'library_construction_protocol',
+                       'experiment_design_description'}
+
+        self.assertEqual(set(obs.columns), exp_columms)
+
+        obs = obs['sample_name'].to_list()
+
+        # since good-sample-sheet.csv contains many samples, just check for
+        # the below three.
+        exp_sample_names = ["3A", "EP981129A02",
+                            "JM-MEC__Staphylococcus_aureusstrain_BERTI-B0387"]
+
+        for sample in exp_sample_names:
+            self.assertIn(sample, obs)
 
     def test_boolean_column_handling(self):
         sheet = MetagenomicSampleSheetv100(self.good_w_bools)
@@ -3006,33 +3043,6 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
 
         self.assertEqual(obs_columns, exp_columns)
         self.assertTrue(sheet.validate_and_scrub_sample_sheet())
-
-
-DF_DATA = [
-    ['1', 'sample.1', 'FooBar_666_p1', 'A1', 'iTru7_107_07', 'CCGACTAT',
-     'iTru5_01_A', 'ACCGACAA', 'Baz_12345', 'importantsample1',
-     'Knight Lab Kapa HP', 'Eqiiperiment'],
-    ['1', 'sample.2', 'FooBar_666_p1', 'A2', 'iTru7_107_08', 'CCGACTAT',
-     'iTru5_01_A', 'CTTCGCAA', 'Baz_12345', 'importantsample2',
-     'Knight Lab Kapa HP', 'Eqiiperiment'],
-    ['3', 'sample.1', 'FooBar_666_p1', 'A3', 'iTru7_107_09', 'GCCTTGTT',
-     'iTru5_01_A', 'AACACCAC', 'Baz_12345', 'importantsample1',
-     'Knight Lab Kapa HP', 'Eqiiperiment'],
-    ['3', 'sample.2', 'FooBar_666_p1', 'A4', 'iTru7_107_10', 'AACTTGCC',
-     'iTru5_01_A', 'CGTATCTC', 'Baz_12345', 'importantsample2',
-     'Knight Lab Kapa HP', 'Eqiiperiment'],
-    ['3', 'sample.31', 'FooBar_666_p1', 'A5', 'iTru7_107_11', 'CAATGTGG',
-     'iTru5_01_A', 'GGTACGAA', 'FooBar_666', 'importantsample31',
-     'Knight Lab Kapa HP', 'SomethingWitty'],
-    ['3', 'sample.32', 'FooBar_666_p1', 'B6', 'iTru7_107_12', 'AAGGCTGA',
-     'iTru5_01_A', 'CGATCGAT', 'FooBar_666', 'importantsample32',
-     'Knight Lab Kapa HP', 'SomethingWitty'],
-    ['3', 'sample.34', 'FooBar_666_p1', 'B8', 'iTru7_107_13', 'TTACCGAG',
-     'iTru5_01_A', 'AAGACACC', 'FooBar_666', 'importantsample34',
-     'Knight Lab Kapa HP', 'SomethingWitty'],
-    ['3', 'sample.44', 'Baz_12345_p3', 'B99', 'iTru7_107_14', 'GTCCTAAG',
-     'iTru5_01_A', 'CATCTGCT', 'Baz_12345', 'importantsample44',
-     'Knight Lab Kapa HP', 'Eqiiperiment']]
 
 
 if __name__ == '__main__':
