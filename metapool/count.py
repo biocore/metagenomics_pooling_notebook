@@ -5,6 +5,8 @@ from os.path import join, abspath, basename, exists
 from glob import glob
 from subprocess import Popen, PIPE
 from json import load
+import numpy as np
+from pandas.api.types import is_numeric_dtype
 
 
 # first group is the sample name from the sample sheet, second group is the
@@ -328,10 +330,23 @@ def run_counts(run_dir, metadata):
     ratio = out['quality_filtered_reads_r1r2'] / out['raw_reads_r1r2']
     out['fraction_passing_quality_filter'] = ratio
 
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        # Ignore FutureWarning. 'NA' will soon be unable to be assigned to
-        # a float column.
-        out.fillna(value='NA', inplace=True)
+    # replace None values with nan or 'NA' as appropriate.
+    # this change was made to remove a pair of FutureWarnings:
+    # FutureWarning: Setting an item of incompatible dtype is deprecated and
+    # will raise an error in a future version of pandas. Value 'NA' has dtype
+    # incompatible with float64, please explicitly cast to a compatible dtype
+    # first.
+    #
+    # FutureWarning: A value is trying to be set on a copy of a DataFrame or
+    # Series through chained assignment using an inplace method.
+    # The behavior will change in pandas 3.0. This inplace method will never
+    # work because the intermediate object on which we are setting values
+    # always behaves as a copy.
+
+    for column in set(out.columns):
+        if is_numeric_dtype(out[column]):
+            out[column] = out[column].fillna(np.nan)
+        else:
+            out[column] = out[column].fillna('NA')
 
     return out
