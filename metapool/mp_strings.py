@@ -41,6 +41,7 @@ PM_COMPRESSED_PLATE_NAME_KEY = "Compressed Plate Name"
 PM_WELL_KEY = 'Well'
 PM_LIB_WELL_KEY = 'Library Well'
 PM_BLANK_KEY = "Blank"
+PM_DILUTED_KEY = "Diluted"
 PLATE_NAME_DELIMITER = "_"
 
 # Currently used to describe sample context (only)

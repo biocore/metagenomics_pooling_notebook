@@ -9,10 +9,11 @@ import warnings
 from random import choices
 from configparser import ConfigParser
 from qiita_client import QiitaClient
-from .mp_strings import SAMPLE_NAME_KEY, PM_PROJECT_NAME_KEY, \
+from .mp_strings import SAMPLE_NAME_KEY, PM_PROJECT_NAME_KEY, PM_WELL_KEY, \
     PM_PROJECT_PLATE_KEY, PM_COMPRESSED_PLATE_NAME_KEY, PM_BLANK_KEY, \
-    PLATE_NAME_DELIMITER, SAMPLE_DNA_CONC_KEY, NORMALIZED_DNA_VOL_KEY, \
-    SYNDNA_POOL_MASS_NG_KEY, SYNDNA_POOL_NUM_KEY, TUBECODE_KEY, \
+    PM_DILUTED_KEY, PLATE_NAME_DELIMITER, SAMPLE_DNA_CONC_KEY, \
+    NORMALIZED_DNA_VOL_KEY, SYNDNA_POOL_MASS_NG_KEY, SYNDNA_POOL_NUM_KEY, \
+    TUBECODE_KEY, \
     get_qiita_id_from_project_name, \
     get_plate_num_from_plate_name, get_main_project_from_plate_name
 from .plate import _validate_well_id_96, PlateReplication
@@ -319,7 +320,7 @@ def read_plate_map_csv(f, sep="\t", qiita_oauth2_conf_fp=None):
             "values: %s" % ",".join(invalid_well_ids)
         )
 
-    plate_df["Well"] = plate_df["Row"] + plate_df["Col"].map(str)
+    plate_df[PM_WELL_KEY] = plate_df["Row"] + plate_df["Col"].map(str)
 
     # remove any leading and/or trailing whitespace before determining if
     # any of the sample-names are invalid or duplicates.
@@ -461,12 +462,12 @@ def read_pico_csv(f, sep='\t', plate_reader='SpectraMax_i3x',
         columns={
             "Concentration": conc_col_name,
             "[Concentration]": conc_col_name,
-            "Wells": "Well",
+            "Wells": PM_WELL_KEY,
         },
         inplace=True,
     )
 
-    pico_df = pico_df[["Well", conc_col_name]].copy()
+    pico_df = pico_df[[PM_WELL_KEY, conc_col_name]].copy()
 
     # coerce oddball concentrations to np.nan
     pico_df[conc_col_name] = pd.to_numeric(pico_df[conc_col_name],
@@ -477,6 +478,134 @@ def read_pico_csv(f, sep='\t', plate_reader='SpectraMax_i3x',
                                          min_conc, max_conc)
 
     return pico_df
+
+
+# No reason this *couldn't* be public, but hasn't been needed yet.
+def _read_and_label_pico_csv(a_fp, name_suffix, plate_reader):
+    """
+    Reads a pico quant file and renames concentration column with suffix
+
+    Parameters:
+    a_fp : str
+        Filepath to pico quant file
+    name_suffix : str
+        Suffix to add to concentration column name
+    plate_reader : str
+        Plate reader used to generate quant file; see read_pico_csv for
+        supported values
+
+    Returns:
+    a_df : pandas DataFrame
+        A DataFrame relating well location and DNA concentration, with the
+        concentration column renamed to include the suffix.
+
+    This method supports loading multiple dilutions of the same plate into a
+    dataframe by differentiating the concentration columns with a suffix.
+    """
+
+    a_df = read_pico_csv(a_fp, plate_reader=plate_reader)
+    suffixed_names = {x: f"{x}_{name_suffix}" for x in a_df.columns}
+    suffixed_names.pop(PM_WELL_KEY)  # Don't actually want to rename that :)
+    a_df.rename(columns=suffixed_names, inplace=True)
+    return a_df
+
+
+def load_concentrations(plate_df, conc_dict, plate_reader):
+    """
+    Loads concentration data from multiple pico quant files into a single df
+
+    Parameters:
+    plate_df : pandas DataFrame
+        A DataFrame of plate info, containing a column of well locations
+    conc_dict : dict
+        Dictionary containing suffixes and filepaths for concentration file(s)
+    plate_reader : str
+        Plate reader used to generate quant file(s); see read_pico_csv for
+        supported values.  Must be the same for all files.
+
+    Returns:
+    a_df : pandas DataFrame
+        An expansion of the input plate_df, with one concentration column added
+        for each entry in conc_dict.
+    """
+
+    a_df = plate_df.copy()
+    for curr_dilution_suffix, curr_conc_fp in conc_dict.items():
+        curr_conc_df = _read_and_label_pico_csv(
+            curr_conc_fp, curr_dilution_suffix, plate_reader=plate_reader)
+        a_df = pd.merge(a_df, curr_conc_df, on=PM_WELL_KEY)
+    # next dilution suffix
+    return a_df
+
+
+def select_sample_dilutions(
+        a_plate_df, dilution_suffixes_in_order, a_mask_func, a_col_name_func):
+    """
+    Selects the correct source of each sample based on input dilutions
+
+    Parameters:
+    a_plate_df : pandas DataFrame
+        A DataFrame of plate info, containing a column of well locations
+    dilution_suffixes_in_order : list of str
+        List of dilution suffix(es) in order from most to least preferred for
+        use. NOTE THAT the suffix for the undiluted plate must be the LAST ONE.
+    a_mask_func : function
+        A function to generate a mask that is true for samples that meet the
+        user's (arbitrary) criteria, based on the input DataFrame and a
+        particular concentration column name.
+    a_col_name_func : function
+        A function to generate the (existing) column name of a concentration
+        column in the plate dataframe based on its dilution suffix.
+
+    Returns:
+    a_plate_df : pandas DataFrame
+        An expansion of the input plate_df; for each sample, the concentration
+        column is set to the sample's concentration in the most preferred
+        concentration that meets the user's criteria. Likewise, the plate name
+        and project plate columns are set to those for the selected dilution,
+        and the 'Diluted' column is set to true if the selected dilution is
+        NOT the undiluted one.
+    """
+
+    if PM_DILUTED_KEY in a_plate_df.columns:
+        # function has already been applied to data
+        warnings.warn('Dilution operation was already performed')
+        return a_plate_df
+
+    # return a copy of the input data. Do not overwrite input data by default.
+    df = a_plate_df.copy()
+
+    # first time through the loop is the undiluted case
+    is_undiluted = True
+
+    # loop over the dictionary keys/items in reverse order
+    reverse_order_keys = list(reversed(dilution_suffixes_in_order))
+    for curr_dilution_suffix in reverse_order_keys:
+        curr_conc_key = a_col_name_func(curr_dilution_suffix)
+        curr_is_undiluted = is_undiluted
+        if is_undiluted:
+            # make a mask including ALL rows; this is the fallback case
+            dilution_mask = pd.Series(True, index=df.index)
+            # going forward, all future suffixes will be for dilutions
+            is_undiluted = False
+        else:
+            # make a mask for samples with curr concentration >= threshold
+            dilution_mask = a_mask_func(a_plate_df, curr_conc_key)
+        # endif is_undiluted
+
+        # set the concentration & supporting cols for the qualifying rows
+        df.loc[dilution_mask, SAMPLE_DNA_CONC_KEY] = \
+            a_plate_df.loc[dilution_mask, curr_conc_key]
+        df.loc[dilution_mask, PM_DILUTED_KEY] = not curr_is_undiluted
+        df.loc[dilution_mask, PM_PROJECT_PLATE_KEY] = a_plate_df.loc[
+            dilution_mask,
+            PM_PROJECT_PLATE_KEY].astype(str) + "_" + curr_dilution_suffix
+        df.loc[dilution_mask, PM_COMPRESSED_PLATE_NAME_KEY] = a_plate_df.loc[
+            dilution_mask, PM_COMPRESSED_PLATE_NAME_KEY].astype(str) + \
+                "_" + curr_dilution_suffix
+    # next dilution_suffix
+
+    return df
 
 
 def calculate_norm_vol(dna_concs, ng=5, min_vol=2.5, max_vol=3500,
@@ -1150,9 +1279,10 @@ def combine_dfs(qpcr_df, dna_picklist, index_picklist):
     combined_df: Pandas DataFrame
         new DataFrame with the relevant columns
     """
-    combined_df = pd.DataFrame({"Well": qpcr_df["Pos"], "Cp": qpcr_df["Cp"]})
+    combined_df = pd.DataFrame(
+        {PM_WELL_KEY: qpcr_df["Pos"], "Cp": qpcr_df["Cp"]})
 
-    combined_df.set_index("Well", inplace=True)
+    combined_df.set_index(PM_WELL_KEY, inplace=True)
 
     b = dna_picklist.loc[
         dna_picklist["Source Plate Name"] !=
@@ -1194,9 +1324,9 @@ def parse_dna_conc_csv(fp):
 
 
 def add_dna_conc(combined_df, dna_df):
-    new_df = combined_df.set_index("Well")
+    new_df = combined_df.set_index(PM_WELL_KEY)
 
-    new_df["pico_conc"] = dna_df.set_index("Well")["pico_conc"]
+    new_df["pico_conc"] = dna_df.set_index(PM_WELL_KEY)["pico_conc"]
 
     new_df.reset_index(inplace=True)
 
@@ -1617,7 +1747,7 @@ def add_syndna(plate_df, syndna_pool_number=None, syndna_concentration=None,
     ----------
     plate_df : pd.DataFrame
         Growing plate dataframe with calculated gDNA input normalization values
-        including INPUT_DNA_KEY and NORMALIZED_DNA_VOL_KEY columns.
+        including SAMPLE_DNA_CONC_KEY and NORMALIZED_DNA_VOL_KEY columns.
     syndna_pool_number : str (Default:None)
         String formatted name for synDNA pool. Typically a number.
     syndna_concentration : float (Default:None)
@@ -1628,7 +1758,8 @@ def add_syndna(plate_df, syndna_pool_number=None, syndna_concentration=None,
     Returns
     -------
     plate_df : pd.DataFrame
-        returns a pandas dataframe with extra columns"""
+        returns a copy of the input pandas dataframe with INPUT_DNA_KEY,
+         SYNDNA_VOL_KEY, SYNDNA_POOL_MASS_NG_KEY columns added"""
 
     result = plate_df.copy()
     result[SYNDNA_POOL_NUM_KEY] = syndna_pool_number
@@ -1646,12 +1777,14 @@ def add_syndna(plate_df, syndna_pool_number=None, syndna_concentration=None,
                 "calculating synDNA addition"
             )
 
-        result[INPUT_DNA_KEY] = result[SAMPLE_DNA_CONC_KEY] * \
-            result[NORMALIZED_DNA_VOL_KEY] / 1000
-        # synDNA volume is in nL
         if syndna_concentration is None:
             raise Exception("Specify the concentration of the synDNA"
                             " spike-in pool")
+
+        result[INPUT_DNA_KEY] = result[SAMPLE_DNA_CONC_KEY] * \
+            result[NORMALIZED_DNA_VOL_KEY] / 1000
+        # synDNA volume is in nL
+
         # The 1000 multiplier is to transform µL to nL because the Echo
         # dispenser uses nL as the volume unit but concentrations are
         # reported in ng/µL.
@@ -1735,8 +1868,8 @@ def strip_tubecode_leading_zeroes(a_df, tubecode_col="TubeCode"):
     return a_df
 
 
-def compress_plates(compression_layout, sample_accession_df, well_col="Well",
-                    preserve_leading_zeroes=False):
+def compress_plates(compression_layout, sample_accession_df,
+                    well_col=PM_WELL_KEY, preserve_leading_zeroes=False):
     """
     Takes the plate map file output from
     VisionMate of up to 4 racks containing
