@@ -2,10 +2,9 @@ experiment_name: RKLtest
 studies:
 - Email: r@gmail.com
   HumanFiltering: 'True'
-  Project Abbreviation: WellcomeLeap
-  Project Name: Wellcome_Leap_15538
+  Project Abbreviation: TestProjA
+  Project Name: TestProjA_10002
   experiment_design_description: plasma sequencing
-  qiita_id: '15538'
-  qiita_metadata_fp: ./test_data/Plate_Maps/15538_20241004-110731.txt
-  sample_accession_fp: ./test_data/Plate_Maps/Tellseq_Wellcome Leap - 15538 - Sample
-    Accession.csv
+  qiita_id: '10002'
+  qiita_metadata_fp: ./test_data/Plate_Maps/10002_20241004-110731.txt
+  sample_accession_fp: ./test_data/Plate_Maps/Tellseq_TestProjA - 10002 - Sample Accession.csv
