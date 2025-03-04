@@ -13,6 +13,7 @@ from .mp_strings import SAMPLE_NAME_KEY, PM_PROJECT_NAME_KEY, \
     PM_PROJECT_PLATE_KEY, PM_COMPRESSED_PLATE_NAME_KEY, PM_BLANK_KEY, \
     PLATE_NAME_DELIMITER, SAMPLE_DNA_CONC_KEY, NORMALIZED_DNA_VOL_KEY, \
     SYNDNA_POOL_MASS_NG_KEY, SYNDNA_POOL_NUM_KEY, TUBECODE_KEY, \
+    EXTRACTED_GDNA_CONC_KEY, PM_WELL_KEY, \
     get_qiita_id_from_project_name, \
     get_plate_num_from_plate_name, get_main_project_from_plate_name
 from .plate import _validate_well_id_96, PlateReplication
@@ -1675,6 +1676,33 @@ def estimate_read_depth(
     plt.show()
 
     return plate_df
+
+
+def add_undiluted_gdna_concs(a_plate_df, undiluted_gdna_conc_fp):
+    """Adds EXTRACTED_GDNA_CONC_KEY to plate_df from concentrations file.
+
+    Parameters:
+    a_plate_df : pd.DataFrame
+        Plate dataframe containing PM_WELL_KEY.
+    undiluted_gdna_conc_fp : str
+        Filepath to the undiluted gDNA concentrations file.
+
+    Returns:
+    working_df : pd.DataFrame
+        Copy of input plate dataframe with EXTRACTED_GDNA_CONC_KEY added.
+    """
+    working_df = a_plate_df.copy()
+
+    # makes a two-column df holding PM_WELL_KEY and SAMPLE_DNA_CONC_KEY
+    sample_concs_df = read_pico_csv(
+        undiluted_gdna_conc_fp, plate_reader='SpectraMax_i3x')
+    # rename the concentration column to EXTRACTED_GDNA_CONC_KEY
+    sample_concs_df.rename(
+        columns={SAMPLE_DNA_CONC_KEY: EXTRACTED_GDNA_CONC_KEY},
+        inplace=True)
+    # now merge EXTRACTED_GDNA_CONC_KEY into working_df on PM_WELL_KEY
+    working_df = pd.merge(working_df, sample_concs_df, on=PM_WELL_KEY)
+    return working_df
 
 
 def add_syndna(plate_df, syndna_pool_number=None, syndna_concentration=None,

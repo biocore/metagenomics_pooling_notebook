@@ -286,8 +286,6 @@ def record_gdna_dilution(plate_df, diluted_mask, diluted_conc_key):
         warnings.warn('Dilution operation was already performed')
         return plate_df
 
-    plate_df[EXTRACTED_GDNA_CONC_KEY] = plate_df[SAMPLE_DNA_CONC_KEY].copy()
-
     # return a copy of the input data. Do not overwrite input data by default.
     df = plate_df.copy()
     df['Diluted'] = True

@@ -4,6 +4,7 @@ import numpy as np
 import numpy.testing as npt
 import os
 from io import StringIO
+from pandas.testing import assert_frame_equal
 from metapool.metapool import (read_plate_map_csv, read_pico_csv,
                                calculate_norm_vol, format_dna_norm_picklist,
                                format_index_picklist,
@@ -28,8 +29,8 @@ from metapool.metapool import (read_plate_map_csv, read_pico_csv,
                                add_controls, compress_plates,
                                read_visionmate_file,
                                generate_override_cycles_value, TUBECODE_KEY,
-                               is_absquant)
-from metapool.mp_strings import SYNDNA_POOL_NUM_KEY
+                               is_absquant, add_undiluted_gdna_concs)
+from metapool.mp_strings import SYNDNA_POOL_NUM_KEY, EXTRACTED_GDNA_CONC_KEY
 from xml.etree.ElementTree import ParseError
 
 
@@ -1458,6 +1459,31 @@ class Tests(TestCase):
         exp = ['A', 'b', 'C', 'D', 'e']
 
         self.assertEqual(obs, exp)
+
+    def test_add_undiluted_gdna_concs(self):
+        input_pico_fp = os.path.join(os.path.dirname(__file__), 'data',
+                                     'pico_spectramax.txt')
+
+        # doesn't really matter what columns are in here other than Well;
+        # just have some more here to prove they aren't affected
+        input_plate_df = pd.DataFrame(
+            {'Sample': ['sample_1', 'sample_2', 'sample_3', 'sample_4'],
+             'Well': ['A1', 'B1', 'A2', 'B2'],
+             'Sample DNA Concentration': [20, 10, 5, 1],
+             'Normalized DNA volume': [250.0, 500.0, 1000.0, 3500.0],
+             'Normalized water volume': [3250.0, 3000.0, 2500.0, 0.0],
+             'Diluted': [False, False, False, False],
+             'syndna_pool_number': [None, None, None, None]
+             })
+
+        exp_plate_df = input_plate_df.copy()
+        # Note different well order between input_plate_df and input_pico_csv
+        # to show that we are doing a merge, not just a concat
+        exp_plate_df[EXTRACTED_GDNA_CONC_KEY] = [0.0, 15.924, 41.053, 4.745]
+
+        obs_plate_df = add_undiluted_gdna_concs(
+            input_plate_df, input_pico_fp)
+        assert_frame_equal(exp_plate_df, obs_plate_df)
 
     def test_add_syndna_no_spikein(self):
         # tests running the add_syndna() function
