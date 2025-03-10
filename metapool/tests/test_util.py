@@ -35,10 +35,10 @@ class NotebookSupportTests(TestCase):
                 'Email': 'r@gmail.com'
             },
             {
-                'Project Name': 'CHILD_15510',
-                'Project Abbreviation': 'CHILD',
-                'sample_accession_fp': './child_sa.tsv',
-                'qiita_metadata_fp': './child_metadata.txt',
+                'Project Name': 'TestProjB_10001',
+                'Project Abbreviation': 'TestProjB',
+                'sample_accession_fp': './TestProjB_sa.tsv',
+                'qiita_metadata_fp': './TestProjB_metadata.txt',
                 'experiment_design_description': 'whole genome sequencing',
                 'HumanFiltering': 'True',
                 'Email': 'l@ucsd.edu'
@@ -82,8 +82,8 @@ class NotebookSupportTests(TestCase):
             {
                 # bottom right plate
                 'Plate Position': 4,  # as int
-                'Plate map file': './CHILD_1000_plate_map.tsv',
-                'Project Name': 'CHILD_15510',
+                'Plate map file': './TestProjB_1000_plate_map.tsv',
+                'Project Name': 'TestProjB_10001',
                 'Project Plate': 'Plate_1000',  # Plate_#
                 'Plate elution volume': 70
             },
@@ -248,8 +248,8 @@ class NotebookSupportTests(TestCase):
             {'sample_name': '12986.41B.Month6.1', 'qiita_study_id': '12986'},
             {'sample_name': '12986.41B.Month6.10', 'qiita_study_id': '12986'},
             {'sample_name': '14577.41B.Month6.13', 'qiita_study_id': '14577'},
-            {'sample_name': '15510.20001CC.B.FW2', 'qiita_study_id': '15510'},
-            {'sample_name': '15510.20001CF.A.FW2', 'qiita_study_id': '15510'}
+            {'sample_name': '10001.20001CC.B.FW2', 'qiita_study_id': '10001'},
+            {'sample_name': '10001.20001CF.A.FW2', 'qiita_study_id': '10001'}
         ])
 
         exp_df = pandas.DataFrame([
@@ -267,12 +267,12 @@ class NotebookSupportTests(TestCase):
              'Project Abbreviation': 'MARMO'},
             {'sample_name': '20001CC.B.FW2',
              'TubeCode': '0363134233',
-             'Project Name': 'CHILD_15510',
-             'Project Abbreviation': 'CHILD'},
+             'Project Name': 'TestProjB_10001',
+             'Project Abbreviation': 'TestProjB'},
             {'sample_name': '20001CF.A.FW2',
              'TubeCode': '0363134234',
-             'Project Name': 'CHILD_15510',
-             'Project Abbreviation': 'CHILD'}
+             'Project Name': 'TestProjB_10001',
+             'Project Abbreviation': 'TestProjB'}
             ])
 
         obs_df = extend_sample_accession_df(
@@ -290,8 +290,8 @@ class NotebookSupportTests(TestCase):
             {'sample_name': '41B.Month6.1', 'qiita_study_id': '12986'},
             {'sample_name': '41B.Month6.10', 'qiita_study_id': '12986'},
             {'sample_name': '41B.Month6.13', 'qiita_study_id': '14577'},
-            {'sample_name': '20001CC.B.FW2', 'qiita_study_id': '15510'},
-            {'sample_name': '20001CF.A.FW2', 'qiita_study_id': '15510'}
+            {'sample_name': '20001CC.B.FW2', 'qiita_study_id': '10001'},
+            {'sample_name': '20001CF.A.FW2', 'qiita_study_id': '10001'}
         ])
 
         # return nothing: all sample names in samp_acc_df are in metadata_df
@@ -338,9 +338,9 @@ class NotebookSupportTests(TestCase):
             {
                 # bottom right plate
                 'Plate Position': 4,  # as int
-                'Plate map file': './CHILD_1000_plate_map.tsv',
-                'Project Name': 'CHILD_15510',
-                'Project Abbreviation': 'CHILD',
+                'Plate map file': './TestProjB_1000_plate_map.tsv',
+                'Project Name': 'TestProjB_10001',
+                'Project Abbreviation': 'TestProjB',
                 'Project Plate': 'Plate_1000',  # Plate_#
                 'Plate elution volume': 70
             },

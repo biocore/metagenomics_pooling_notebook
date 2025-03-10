@@ -10,7 +10,7 @@ from collections import OrderedDict
 from string import ascii_uppercase
 from metapool.mp_strings import EXPT_DESIGN_DESC_KEY, PM_PROJECT_NAME_KEY, \
     PM_PROJECT_PLATE_KEY, PM_PROJECT_ABBREV_KEY, \
-    PM_COMPRESSED_PLATE_NAME_KEY, SAMPLE_DNA_CONC_KEY, EXTRACTED_GDNA_CONC_KEY
+    PM_COMPRESSED_PLATE_NAME_KEY, SAMPLE_DNA_CONC_KEY
 
 EXPECTED_COLUMNS = {
     'Plate Position', 'Plate map file', 'Plate elution volume',
@@ -285,8 +285,6 @@ def record_gdna_dilution(plate_df, diluted_mask, diluted_conc_key):
         # function has already been applied to data
         warnings.warn('Dilution operation was already performed')
         return plate_df
-
-    plate_df[EXTRACTED_GDNA_CONC_KEY] = plate_df[SAMPLE_DNA_CONC_KEY].copy()
 
     # return a copy of the input data. Do not overwrite input data by default.
     df = plate_df.copy()
