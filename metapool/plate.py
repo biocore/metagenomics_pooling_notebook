@@ -10,7 +10,7 @@ from collections import OrderedDict
 from string import ascii_uppercase
 from metapool.mp_strings import EXPT_DESIGN_DESC_KEY, PM_PROJECT_NAME_KEY, \
     PM_PROJECT_PLATE_KEY, PM_PROJECT_ABBREV_KEY, \
-    PM_COMPRESSED_PLATE_NAME_KEY, SAMPLE_DNA_CONC_KEY
+    PM_COMPRESSED_PLATE_NAME_KEY, SAMPLE_DNA_CONC_KEY, EXTRACTED_GDNA_CONC_KEY
 
 EXPECTED_COLUMNS = {
     'Plate Position', 'Plate map file', 'Plate elution volume',
