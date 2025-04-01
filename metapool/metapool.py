@@ -13,7 +13,7 @@ from .mp_strings import SAMPLE_NAME_KEY, PM_PROJECT_NAME_KEY, PM_WELL_KEY, \
     PM_PROJECT_PLATE_KEY, PM_COMPRESSED_PLATE_NAME_KEY, PM_BLANK_KEY, \
     PLATE_NAME_DELIMITER, SAMPLE_DNA_CONC_KEY, NORMALIZED_DNA_VOL_KEY, \
     SYNDNA_POOL_MASS_NG_KEY, SYNDNA_POOL_NUM_KEY, TUBECODE_KEY, \
-    EXTRACTED_GDNA_CONC_KEY, \
+    EXTRACTED_GDNA_CONC_KEY, PM_DILUTED_KEY, \
     get_qiita_id_from_project_name, \
     get_plate_num_from_plate_name, get_main_project_from_plate_name
 from .plate import _validate_well_id_96, PlateReplication

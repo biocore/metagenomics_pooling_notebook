@@ -17,6 +17,8 @@ Chemistry,Default,,,,,,,
 ,,,,,,,,
 [Settings],,,,,,,,
 ReverseComplement,0,,,,,,,
+MaskShortReads,1,,,,,,,
+OverrideCycles,Y151;I8N2;I8N2;Y151,,,,,,,
 ,,,,,,,,
 [Data],,,,,,,,
 Sample_ID,Sample_Name,Sample_Plate,well_id_384,barcode_id,Sample_Project,Well_description,Lane,
@@ -119,7 +121,7 @@ KATHARO_TestProjA_4_12H_7,KATHARO.TestProjA.4.12H.7,TestProjA_10002_Plate_4_undi
 ,,,,,,,,
 [Bioinformatics],,,,,,,,
 Sample_Project,QiitaID,BarcodesAreRC,ForwardAdapter,ReverseAdapter,HumanFiltering,library_construction_protocol,experiment_design_description,contains_replicates
-TestProjA_10002,10002,True,GATCGGAAGAGCACACGTCTGAACTCCAGTCAC,GATCGGAAGAGCGTCGTGTAGGGAAAGGAGTGT,True,Knight Lab Kapa HyperPlus,plasma sequencing,False
+TestProjA_10002,10002,False,GATCGGAAGAGCACACGTCTGAACTCCAGTCAC,GATCGGAAGAGCGTCGTGTAGGGAAAGGAGTGT,True,Knight Lab Kapa HyperPlus,plasma sequencing,False
 ,,,,,,,,
 [Contact],,,,,,,,
 Sample_Project,Email,,,,,,,
