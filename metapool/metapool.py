@@ -582,7 +582,8 @@ def select_sample_dilutions(
     def _default_col_name_func(x):
         return f"{SAMPLE_DNA_CONC_KEY}_{x}"
 
-    a_col_name_func = _default_col_name_func if None else a_col_name_func
+    a_col_name_func = _default_col_name_func if a_col_name_func is None \
+        else a_col_name_func
 
     # return a copy of the input data. Do not overwrite input data by default.
     df = a_plate_df.copy()
