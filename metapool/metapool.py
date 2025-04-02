@@ -9,11 +9,11 @@ import warnings
 from random import choices
 from configparser import ConfigParser
 from qiita_client import QiitaClient
-from .mp_strings import SAMPLE_NAME_KEY, PM_PROJECT_NAME_KEY, PM_WELL_KEY, \
+from .mp_strings import SAMPLE_NAME_KEY, PM_PROJECT_NAME_KEY, \
     PM_PROJECT_PLATE_KEY, PM_COMPRESSED_PLATE_NAME_KEY, PM_BLANK_KEY, \
     PLATE_NAME_DELIMITER, SAMPLE_DNA_CONC_KEY, NORMALIZED_DNA_VOL_KEY, \
     SYNDNA_POOL_MASS_NG_KEY, SYNDNA_POOL_NUM_KEY, TUBECODE_KEY, \
-    EXTRACTED_GDNA_CONC_KEY, PM_DILUTED_KEY, \
+    EXTRACTED_GDNA_CONC_KEY, PM_WELL_KEY, PM_DILUTED_KEY, \
     get_qiita_id_from_project_name, \
     get_plate_num_from_plate_name, get_main_project_from_plate_name
 from .plate import _validate_well_id_96, PlateReplication
@@ -516,7 +516,7 @@ def load_concentrations(plate_df, conc_dict, plate_reader):
 
     Parameters:
     plate_df : pandas DataFrame
-        A DataFrame of plate info, containing a column of well locations
+        A DataFrame of plate info, containing a PM_WELL_KEY column of well locations
     conc_dict : dict
         Dictionary containing suffixes and filepaths for concentration file(s)
     plate_reader : str
@@ -539,23 +539,30 @@ def load_concentrations(plate_df, conc_dict, plate_reader):
 
 
 def select_sample_dilutions(
-        a_plate_df, dilution_suffixes_in_order, a_mask_func, a_col_name_func):
+        a_plate_df, dilution_suffixes_in_order, a_mask_func,
+        a_col_name_func=None):
     """
     Selects the correct source of each sample based on input dilutions
 
     Parameters:
     a_plate_df : pandas DataFrame
-        A DataFrame of plate info, containing a column of well locations
+        A DataFrame of plate info, containing at least PM_WELL_KEY,
+        PM_PROJECT_PLATE_KEY, and PM_COMPRESSED_PLATE_NAME_KEY columns
     dilution_suffixes_in_order : list of str
         List of dilution suffix(es) in order from most to least preferred for
-        use. NOTE THAT the suffix for the undiluted plate must be the LAST ONE.
+        use. NOTE THAT the suffix for the base dilution plate must be the
+        LAST ONE.  The base dilution plate doesn't have to be *undiluted*,
+        but it must be the one that will be used when no other dilution meets
+        the user's criteria.
     a_mask_func : function
         A function to generate a mask that is true for samples that meet the
-        user's (arbitrary) criteria, based on the input DataFrame and a
-        particular concentration column name.
+        user's (arbitrary) criteria, taking as parameters a DataFrame and a
+        particular dilution's (full) concentration column name.
     a_col_name_func : function
         A function to generate the (existing) column name of a concentration
-        column in the plate dataframe based on its dilution suffix.
+        column in the plate dataframe based on its dilution suffix. If None,
+        defaults to SAMPLE_DNA_CONC_KEY_<suffix>, which matches what is
+        produced by _read_and_label_pico_csv.
 
     Returns:
     a_plate_df : pandas DataFrame
@@ -564,7 +571,7 @@ def select_sample_dilutions(
         concentration that meets the user's criteria. Likewise, the plate name
         and project plate columns are set to those for the selected dilution,
         and the 'Diluted' column is set to true if the selected dilution is
-        NOT the undiluted one.
+        NOT the base dilution.
     """
 
     if PM_DILUTED_KEY in a_plate_df.columns:
@@ -572,37 +579,40 @@ def select_sample_dilutions(
         warnings.warn('Dilution operation was already performed')
         return a_plate_df
 
+    if a_col_name_func is None:
+        a_col_name_func = lambda x: f"{SAMPLE_DNA_CONC_KEY}_{x}"
+
     # return a copy of the input data. Do not overwrite input data by default.
     df = a_plate_df.copy()
 
-    # first time through the loop is the undiluted case
-    is_undiluted = True
+    # first time through the loop is the base dilution case
+    is_base_dilution = True
 
     # loop over the dictionary keys/items in reverse order
     reverse_order_keys = list(reversed(dilution_suffixes_in_order))
     for curr_dilution_suffix in reverse_order_keys:
         curr_conc_key = a_col_name_func(curr_dilution_suffix)
-        curr_is_undiluted = is_undiluted
-        if is_undiluted:
+        curr_is_base_dilution = is_base_dilution
+        if is_base_dilution:
             # make a mask including ALL rows; this is the fallback case
             dilution_mask = pd.Series(True, index=df.index)
-            # going forward, all future suffixes will be for dilutions
-            is_undiluted = False
+            # going forward, all future suffixes will be for further dilutions
+            is_base_dilution = False
         else:
             # make a mask for samples with curr concentration >= threshold
             dilution_mask = a_mask_func(a_plate_df, curr_conc_key)
-        # endif is_undiluted
+        # endif is_base_dilution
 
         # set the concentration & supporting cols for the qualifying rows
         df.loc[dilution_mask, SAMPLE_DNA_CONC_KEY] = \
             a_plate_df.loc[dilution_mask, curr_conc_key]
-        df.loc[dilution_mask, PM_DILUTED_KEY] = not curr_is_undiluted
+        df.loc[dilution_mask, PM_DILUTED_KEY] = not curr_is_base_dilution
         df.loc[dilution_mask, PM_PROJECT_PLATE_KEY] = a_plate_df.loc[
             dilution_mask,
             PM_PROJECT_PLATE_KEY].astype(str) + "_" + curr_dilution_suffix
         df.loc[dilution_mask, PM_COMPRESSED_PLATE_NAME_KEY] = a_plate_df.loc[
-            dilution_mask, PM_COMPRESSED_PLATE_NAME_KEY].astype(str) + \
-                "_" + curr_dilution_suffix
+            dilution_mask, PM_COMPRESSED_PLATE_NAME_KEY].astype(
+            str) + "_" + curr_dilution_suffix
     # next dilution_suffix
 
     return df
