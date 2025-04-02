@@ -31,7 +31,7 @@ from metapool.metapool import (read_plate_map_csv, read_pico_csv,
                                generate_override_cycles_value, TUBECODE_KEY,
                                is_absquant, add_undiluted_gdna_concs,
                                _read_and_label_pico_csv, load_concentrations,
-                                select_sample_dilutions)
+                               select_sample_dilutions)
 from metapool.mp_strings import SYNDNA_POOL_NUM_KEY, EXTRACTED_GDNA_CONC_KEY, \
     PM_PROJECT_PLATE_KEY, PM_COMPRESSED_PLATE_NAME_KEY
 from xml.etree.ElementTree import ParseError
@@ -659,7 +659,7 @@ class Tests(TestCase):
         pd.testing.assert_frame_equal(exp_pico_df, obs_pico_df)
 
     def test_load_concentrations(self):
-        """Test that multiple concentration files are loaded, merged, and labeled"""
+        """Test multiple concentration files are loaded, merged, and labeled"""
 
         pico_csv_1 = '''Results
 
@@ -726,6 +726,7 @@ class Tests(TestCase):
         pd.testing.assert_frame_equal(exp_pico_df, obs_pico_df)
 
     def test_select_sample_dilutions_no_name_func(self):
+        """Test correct dilution is selected if no name_func is provided"""
         input_df = pd.DataFrame({
             'sample_name': ["Abe", "Bob", "Cat", "Dan"],
             'Well': ['A1', 'A2', 'B1', 'B2'],
@@ -774,6 +775,7 @@ class Tests(TestCase):
         pd.testing.assert_frame_equal(exp_pico_df, obs_pico_df)
 
     def test_select_sample_dilutions_w_name_func(self):
+        """Test that correct dilution is selected if a name_func is provided"""
         input_df = pd.DataFrame({
             'sample_name': ["Abe", "Bob", "Cat", "Dan"],
             'Well': ['A1', 'A2', 'B1', 'B2'],
@@ -823,7 +825,6 @@ class Tests(TestCase):
             input_df, conc_list, mask_func, name_func)
 
         pd.testing.assert_frame_equal(exp_pico_df, obs_pico_df)
-
 
     def test_calculate_norm_vol(self):
         dna_concs = np.array([[2, 7.89],

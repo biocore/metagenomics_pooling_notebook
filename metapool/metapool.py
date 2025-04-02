@@ -516,7 +516,7 @@ def load_concentrations(plate_df, conc_dict, plate_reader):
 
     Parameters:
     plate_df : pandas DataFrame
-        A DataFrame of plate info, containing a PM_WELL_KEY column of well locations
+        A DataFrame of plate info, containing a PM_WELL_KEY column
     conc_dict : dict
         Dictionary containing suffixes and filepaths for concentration file(s)
     plate_reader : str
@@ -579,8 +579,10 @@ def select_sample_dilutions(
         warnings.warn('Dilution operation was already performed')
         return a_plate_df
 
-    if a_col_name_func is None:
-        a_col_name_func = lambda x: f"{SAMPLE_DNA_CONC_KEY}_{x}"
+    def _default_col_name_func(x):
+        return f"{SAMPLE_DNA_CONC_KEY}_{x}"
+
+    a_col_name_func = _default_col_name_func if None else a_col_name_func
 
     # return a copy of the input data. Do not overwrite input data by default.
     df = a_plate_df.copy()
