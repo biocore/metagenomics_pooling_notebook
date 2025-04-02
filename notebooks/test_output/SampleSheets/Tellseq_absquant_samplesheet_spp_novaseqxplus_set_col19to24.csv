@@ -1,0 +1,164 @@
+[Header],,,,,,,,,,,
+IEMFileVersion,4,,,,,,,,,,
+SheetType,tellseq_absquant,,,,,,,,,,
+SheetVersion,10,,,,,,,,,,
+Investigator Name,Knight,,,,,,,,,,
+Experiment Name,RKLtest,,,,,,,,,,
+Date,2025-04-01,,,,,,,,,,
+Workflow,GenerateFASTQ,,,,,,,,,,
+Application,FASTQ Only,,,,,,,,,,
+Assay,Metagenomic,,,,,,,,,,
+Description,,,,,,,,,,,
+Chemistry,Default,,,,,,,,,,
+,,,,,,,,,,,
+[Reads],,,,,,,,,,,
+151,,,,,,,,,,,
+151,,,,,,,,,,,
+,,,,,,,,,,,
+[Settings],,,,,,,,,,,
+ReverseComplement,0,,,,,,,,,,
+MaskShortReads,1,,,,,,,,,,
+OverrideCycles,Y151;I8N2;I8N2;Y151,,,,,,,,,,
+,,,,,,,,,,,
+[Data],,,,,,,,,,,
+Sample_ID,Sample_Name,Sample_Plate,well_id_384,barcode_id,Sample_Project,Well_description,mass_syndna_input_ng,extracted_gdna_concentration_ng_ul,vol_extracted_elution_ul,syndna_pool_number,Lane
+01LJ01593_V8,01LJ01593.V8,TestProjA_10002_Plate_1_2to1dilution,A19,C501,TestProjA_10002,TestProjA_10002_Plate_1_2to1dilution.01LJ01593.V8.A19,0.3748344375,6.333,70,1,1
+01LJ01300_V5,01LJ01300.V5,TestProjA_10002_Plate_3_10to1dilution,B19,C509,TestProjA_10002,TestProjA_10002_Plate_3_10to1dilution.01LJ01300.V5.B19,0.374810025,65.469,70,1,1
+01LJ02603_V8,01LJ02603.V8,TestProjA_10002_Plate_1_2to1dilution,C19,C502,TestProjA_10002,TestProjA_10002_Plate_1_2to1dilution.01LJ02603.V8.C19,0.375387125,13.558,70,1,1
+01LJ01344_V5,01LJ01344.V5,TestProjA_10002_Plate_3_2to1dilution,D19,C510,TestProjA_10002,TestProjA_10002_Plate_3_2to1dilution.01LJ01344.V5.D19,0.37498725,5.004,70,1,1
+01LJ04170_V5,01LJ04170.V5,TestProjA_10002_Plate_1_2to1dilution,E19,C503,TestProjA_10002,TestProjA_10002_Plate_1_2to1dilution.01LJ04170.V5.E19,0.3747861249999999,10.447,70,1,1
+01LJ01518_V8,01LJ01518.V8,TestProjA_10002_Plate_3_10to1dilution,F19,C511,TestProjA_10002,TestProjA_10002_Plate_3_10to1dilution.01LJ01518.V8.F19,0.374947375,15.422,70,1,1
+01LJ04621_V8,01LJ04621.V8,TestProjA_10002_Plate_1_10to1dilution,G19,C504,TestProjA_10002,TestProjA_10002_Plate_1_10to1dilution.01LJ04621.V8.G19,0.3749301875,15.065,70,1,1
+01LJ01714_V5,01LJ01714.V5,TestProjA_10002_Plate_3_10to1dilution,H19,C512,TestProjA_10002,TestProjA_10002_Plate_3_10to1dilution.01LJ01714.V5.H19,0.3750608,27.578,70,1,1
+01LJ05491_V5,01LJ05491.V5,TestProjA_10002_Plate_1_2to1dilution,I19,C505,TestProjA_10002,TestProjA_10002_Plate_1_2to1dilution.01LJ05491.V5.I19,0.37519425,6.924,70,1,1
+01LJ01806_V5,01LJ01806.V5,TestProjA_10002_Plate_3_2to1dilution,J19,C513,TestProjA_10002,TestProjA_10002_Plate_3_2to1dilution.01LJ01806.V5.J19,0.3749143125,11.739,70,1,1
+01LJ05719_V8,01LJ05719.V8,TestProjA_10002_Plate_1_2to1dilution,K19,C506,TestProjA_10002,TestProjA_10002_Plate_1_2to1dilution.01LJ05719.V8.K19,0.3752281875,10.369,70,1,1
+01LJ01941_V5,01LJ01941.V5,TestProjA_10002_Plate_3_2to1dilution,L19,C514,TestProjA_10002,TestProjA_10002_Plate_3_2to1dilution.01LJ01941.V5.L19,0.37522875,13.962,70,1,1
+01LJ06270_V8,01LJ06270.V8,TestProjA_10002_Plate_1_10to1dilution,M19,C507,TestProjA_10002,TestProjA_10002_Plate_1_10to1dilution.01LJ06270.V8.M19,0.3748474125,27.537,70,1,1
+01LJ02190_V8,01LJ02190.V8,TestProjA_10002_Plate_3_10to1dilution,N19,C515,TestProjA_10002,TestProjA_10002_Plate_3_10to1dilution.01LJ02190.V8.N19,0.3752109750000001,48.571,70,1,1
+01LJ00176_V5,01LJ00176.V5,TestProjA_10002_Plate_1_2to1dilution,O19,C508,TestProjA_10002,TestProjA_10002_Plate_1_2to1dilution.01LJ00176.V5.O19,0.37519725,6.626,70,1,1
+01LJ02258_V8,01LJ02258.V8,TestProjA_10002_Plate_3_10to1dilution,P19,C516,TestProjA_10002,TestProjA_10002_Plate_3_10to1dilution.01LJ02258.V8.P19,0.3746428875000001,65.583,70,1,1
+01LJ00310_V8,01LJ00310.V8,TestProjA_10002_Plate_2_10to1dilution,A20,C517,TestProjA_10002,TestProjA_10002_Plate_2_10to1dilution.01LJ00310.V8.A20,0.3751672,64.684,70,1,1
+01LJ02338_V8,01LJ02338.V8,TestProjA_10002_Plate_4_undiluted,B20,C525,TestProjA_10002,TestProjA_10002_Plate_4_undiluted.01LJ02338.V8.B20,0.06725,0.269,70,1,1
+01LJ00438_V5,01LJ00438.V5,TestProjA_10002_Plate_2_undiluted,C20,C518,TestProjA_10002,TestProjA_10002_Plate_2_undiluted.01LJ00438.V5.C20,0.3750285,2.618,70,1,1
+01LJ02358_V5,01LJ02358.V5,TestProjA_10002_Plate_4_undiluted,D20,C526,TestProjA_10002,TestProjA_10002_Plate_4_undiluted.01LJ02358.V5.D20,0.0665,0.266,70,1,1
+01LJ00503_V8,01LJ00503.V8,TestProjA_10002_Plate_2_10to1dilution,E20,C519,TestProjA_10002,TestProjA_10002_Plate_2_10to1dilution.01LJ00503.V8.E20,0.375015475,71.602,70,1,1
+01LJ02503_V5,01LJ02503.V5,TestProjA_10002_Plate_4_undiluted,F20,C527,TestProjA_10002,TestProjA_10002_Plate_4_undiluted.01LJ02503.V5.F20,0.06675,0.267,70,1,1
+01LJ00544_V5,01LJ00544.V5,TestProjA_10002_Plate_2_10to1dilution,G20,C520,TestProjA_10002,TestProjA_10002_Plate_2_10to1dilution.01LJ00544.V5.G20,0.3750635625,18.579,70,1,1
+01LJ02691_V5,01LJ02691.V5,TestProjA_10002_Plate_4_undiluted,H20,C528,TestProjA_10002,TestProjA_10002_Plate_4_undiluted.01LJ02691.V5.H20,0.06675,0.267,70,1,1
+01LJ00586_V5,01LJ00586.V5,TestProjA_10002_Plate_2_10to1dilution,I20,C521,TestProjA_10002,TestProjA_10002_Plate_2_10to1dilution.01LJ00586.V5.I20,0.3747268125,61.305,70,1,1
+01LJ02814_V5,01LJ02814.V5,TestProjA_10002_Plate_4_undiluted,J20,C529,TestProjA_10002,TestProjA_10002_Plate_4_undiluted.01LJ02814.V5.J20,0.0675,0.27,70,1,1
+01LJ00619_V8,01LJ00619.V8,TestProjA_10002_Plate_2_10to1dilution,K20,C522,TestProjA_10002,TestProjA_10002_Plate_2_10to1dilution.01LJ00619.V8.K20,0.37467495,62.316,70,1,1
+01LJ02927_V5,01LJ02927.V5,TestProjA_10002_Plate_4_undiluted,L20,C530,TestProjA_10002,TestProjA_10002_Plate_4_undiluted.01LJ02927.V5.L20,0.06675,0.267,70,1,1
+01LJ00845_V5,01LJ00845.V5,TestProjA_10002_Plate_2_10to1dilution,M20,C523,TestProjA_10002,TestProjA_10002_Plate_2_10to1dilution.01LJ00845.V5.M20,0.3747529,68.762,70,1,1
+01LJ03225_V5,01LJ03225.V5,TestProjA_10002_Plate_4_undiluted,N20,C531,TestProjA_10002,TestProjA_10002_Plate_4_undiluted.01LJ03225.V5.N20,0.06675,0.267,70,1,1
+01LJ01024_V5,01LJ01024.V5,TestProjA_10002_Plate_2_10to1dilution,O20,C524,TestProjA_10002,TestProjA_10002_Plate_2_10to1dilution.01LJ01024.V5.O20,0.3749769875,33.973,70,1,1
+01LJ03357_V5,01LJ03357.V5,TestProjA_10002_Plate_4_undiluted,P20,C532,TestProjA_10002,TestProjA_10002_Plate_4_undiluted.01LJ03357.V5.P20,0.0905,0.362,70,1,1
+BLANK_TestProjA_1_A11,BLANK.TestProjA.1.A11,TestProjA_10002_Plate_1_2to1dilution,A21,C533,TestProjA_10002,TestProjA_10002_Plate_1_2to1dilution.BLANK.TestProjA.1.A11.A21,0.3749685,10.968,70,1,1
+BLANK_TestProjA_3_A11,BLANK.TestProjA.3.A11,TestProjA_10002_Plate_3_10to1dilution,B21,C541,TestProjA_10002,TestProjA_10002_Plate_3_10to1dilution.BLANK.TestProjA.3.A11.B21,0.37505825,63.035,70,1,1
+BLANK_TestProjA_1_B11,BLANK.TestProjA.1.B11,TestProjA_10002_Plate_1_10to1dilution,C21,C534,TestProjA_10002,TestProjA_10002_Plate_1_10to1dilution.BLANK.TestProjA.1.B11.C21,0.3749167125,33.363,70,1,1
+BLANK_TestProjA_3_B11,BLANK.TestProjA.3.B11,TestProjA_10002_Plate_3_10to1dilution,D21,C542,TestProjA_10002,TestProjA_10002_Plate_3_10to1dilution.BLANK.TestProjA.3.B11.D21,0.375199875,32.31,70,1,1
+BLANK_TestProjA_1_C11,BLANK.TestProjA.1.C11,TestProjA_10002_Plate_1_2to1dilution,E21,C535,TestProjA_10002,TestProjA_10002_Plate_1_2to1dilution.BLANK.TestProjA.1.C11.E21,0.3749091875000001,12.217,70,1,1
+BLANK_TestProjA_3_C11,BLANK.TestProjA.3.C11,TestProjA_10002_Plate_3_10to1dilution,F21,C543,TestProjA_10002,TestProjA_10002_Plate_3_10to1dilution.BLANK.TestProjA.3.C11.F21,0.3749296875,79.985,70,1,1
+BLANK_TestProjA_1_D11,BLANK.TestProjA.1.D11,TestProjA_10002_Plate_1_2to1dilution,G21,C536,TestProjA_10002,TestProjA_10002_Plate_1_2to1dilution.BLANK.TestProjA.1.D11.G21,0.37517025,6.279,70,1,1
+BLANK_TestProjA_3_D11,BLANK.TestProjA.3.D11,TestProjA_10002_Plate_3_10to1dilution,H21,C544,TestProjA_10002,TestProjA_10002_Plate_3_10to1dilution.BLANK.TestProjA.3.D11.H21,0.3749571,77.112,70,1,1
+BLANK_TestProjA_1_E11,BLANK.TestProjA.1.E11,TestProjA_10002_Plate_1_2to1dilution,I21,C537,TestProjA_10002,TestProjA_10002_Plate_1_2to1dilution.BLANK.TestProjA.1.E11.I21,0.3754365,14.723,70,1,1
+BLANK_TestProjA_3_E11,BLANK.TestProjA.3.E11,TestProjA_10002_Plate_3_2to1dilution,J21,C545,TestProjA_10002,TestProjA_10002_Plate_3_2to1dilution.BLANK.TestProjA.3.E11.J21,0.3752937499999999,9.685,70,1,1
+BLANK_TestProjA_1_F11,BLANK.TestProjA.1.F11,TestProjA_10002_Plate_1_2to1dilution,K21,C538,TestProjA_10002,TestProjA_10002_Plate_1_2to1dilution.BLANK.TestProjA.1.F11.K21,0.37525275,9.396,70,1,1
+BLANK_TestProjA_3_F11,BLANK.TestProjA.3.F11,TestProjA_10002_Plate_3_2to1dilution,L21,C546,TestProjA_10002,TestProjA_10002_Plate_3_2to1dilution.BLANK.TestProjA.3.F11.L21,0.37521,11.37,70,1,1
+BLANK_TestProjA_1_G11,BLANK.TestProjA.1.G11,TestProjA_10002_Plate_1_2to1dilution,M21,C539,TestProjA_10002,TestProjA_10002_Plate_1_2to1dilution.BLANK.TestProjA.1.G11.M21,0.3752453125,9.455,70,1,1
+BLANK_TestProjA_3_G11,BLANK.TestProjA.3.G11,TestProjA_10002_Plate_3_10to1dilution,N21,C547,TestProjA_10002,TestProjA_10002_Plate_3_10to1dilution.BLANK.TestProjA.3.G11.N21,0.375413125,67.49,70,1,1
+BLANK_TestProjA_1_H11,BLANK.TestProjA.1.H11,TestProjA_10002_Plate_1_2to1dilution,O21,C540,TestProjA_10002,TestProjA_10002_Plate_1_2to1dilution.BLANK.TestProjA.1.H11.O21,0.375137875,7.154,70,1,1
+BLANK_TestProjA_3_H11,BLANK.TestProjA.3.H11,TestProjA_10002_Plate_3_10to1dilution,P21,C548,TestProjA_10002,TestProjA_10002_Plate_3_10to1dilution.BLANK.TestProjA.3.H11.P21,0.3751256250000001,61.245,70,1,1
+BLANK_TestProjA_2_A11,BLANK.TestProjA.2.A11,TestProjA_10002_Plate_2_10to1dilution,A22,C549,TestProjA_10002,TestProjA_10002_Plate_2_10to1dilution.BLANK.TestProjA.2.A11.A22,0.3751566,41.226,70,1,1
+BLANK_TestProjA_4_A11,BLANK.TestProjA.4.A11,TestProjA_10002_Plate_4_undiluted,B22,C557,TestProjA_10002,TestProjA_10002_Plate_4_undiluted.BLANK.TestProjA.4.A11.B22,0.066,0.264,70,1,1
+BLANK_TestProjA_2_B11,BLANK.TestProjA.2.B11,TestProjA_10002_Plate_2_2to1dilution,C22,C550,TestProjA_10002,TestProjA_10002_Plate_2_2to1dilution.BLANK.TestProjA.2.B11.C22,0.3751359375,14.325,70,1,1
+BLANK_TestProjA_4_B11,BLANK.TestProjA.4.B11,TestProjA_10002_Plate_4_undiluted,D22,C558,TestProjA_10002,TestProjA_10002_Plate_4_undiluted.BLANK.TestProjA.4.B11.D22,0.067,0.268,70,1,1
+BLANK_TestProjA_2_C11,BLANK.TestProjA.2.C11,TestProjA_10002_Plate_2_undiluted,E22,C551,TestProjA_10002,TestProjA_10002_Plate_2_undiluted.BLANK.TestProjA.2.C11.E22,0.07875,0.315,70,1,1
+BLANK_TestProjA_4_C11,BLANK.TestProjA.4.C11,TestProjA_10002_Plate_4_undiluted,F22,C559,TestProjA_10002,TestProjA_10002_Plate_4_undiluted.BLANK.TestProjA.4.C11.F22,0.067,0.268,70,1,1
+BLANK_TestProjA_2_D11,BLANK.TestProjA.2.D11,TestProjA_10002_Plate_2_10to1dilution,G22,C552,TestProjA_10002,TestProjA_10002_Plate_2_10to1dilution.BLANK.TestProjA.2.D11.G22,0.3750390250000001,65.509,70,1,1
+BLANK_TestProjA_4_D11,BLANK.TestProjA.4.D11,TestProjA_10002_Plate_4_undiluted,H22,C560,TestProjA_10002,TestProjA_10002_Plate_4_undiluted.BLANK.TestProjA.4.D11.H22,0.06725,0.269,70,1,1
+BLANK_TestProjA_2_E11,BLANK.TestProjA.2.E11,TestProjA_10002_Plate_2_10to1dilution,I22,C553,TestProjA_10002,TestProjA_10002_Plate_2_10to1dilution.BLANK.TestProjA.2.E11.I22,0.3751711625,67.751,70,1,1
+BLANK_TestProjA_4_E11,BLANK.TestProjA.4.E11,TestProjA_10002_Plate_4_undiluted,J22,C561,TestProjA_10002,TestProjA_10002_Plate_4_undiluted.BLANK.TestProjA.4.E11.J22,0.06675,0.267,70,1,1
+BLANK_TestProjA_2_F11,BLANK.TestProjA.2.F11,TestProjA_10002_Plate_2_10to1dilution,K22,C554,TestProjA_10002,TestProjA_10002_Plate_2_10to1dilution.BLANK.TestProjA.2.F11.K22,0.3751413624999999,57.383,70,1,1
+BLANK_TestProjA_4_F11,BLANK.TestProjA.4.F11,TestProjA_10002_Plate_4_undiluted,L22,C562,TestProjA_10002,TestProjA_10002_Plate_4_undiluted.BLANK.TestProjA.4.F11.L22,0.06625,0.265,70,1,1
+BLANK_TestProjA_2_G11,BLANK.TestProjA.2.G11,TestProjA_10002_Plate_2_10to1dilution,M22,C555,TestProjA_10002,TestProjA_10002_Plate_2_10to1dilution.BLANK.TestProjA.2.G11.M22,0.375291,72.52,70,1,1
+BLANK_TestProjA_4_G11,BLANK.TestProjA.4.G11,TestProjA_10002_Plate_4_undiluted,N22,C563,TestProjA_10002,TestProjA_10002_Plate_4_undiluted.BLANK.TestProjA.4.G11.N22,0.067,0.268,70,1,1
+BLANK_TestProjA_2_H11,BLANK.TestProjA.2.H11,TestProjA_10002_Plate_2_10to1dilution,O22,C556,TestProjA_10002,TestProjA_10002_Plate_2_10to1dilution.BLANK.TestProjA.2.H11.O22,0.375100075,21.542,70,1,1
+BLANK_TestProjA_4_H11,BLANK.TestProjA.4.H11,TestProjA_10002_Plate_4_undiluted,P22,C564,TestProjA_10002,TestProjA_10002_Plate_4_undiluted.BLANK.TestProjA.4.H11.P22,0.0665,0.266,70,1,1
+KATHARO_TestProjA_1_12A_600000,KATHARO.TestProjA.1.12A.600000,TestProjA_10002_Plate_1_10to1dilution,A23,C565,TestProjA_10002,TestProjA_10002_Plate_1_10to1dilution.KATHARO.TestProjA.1.12A.600000.A23,0.37523025,42.22,70,1,1
+KATHARO_TestProjA_3_12A_600000,KATHARO.TestProjA.3.12A.600000,TestProjA_10002_Plate_3_10to1dilution,B23,C573,TestProjA_10002,TestProjA_10002_Plate_3_10to1dilution.KATHARO.TestProjA.3.12A.600000.B23,0.3748294124999999,35.571,70,1,1
+KATHARO_TestProjA_1_12B_120000,KATHARO.TestProjA.1.12B.120000,TestProjA_10002_Plate_1_2to1dilution,C23,C566,TestProjA_10002,TestProjA_10002_Plate_1_2to1dilution.KATHARO.TestProjA.1.12B.120000.C23,0.375132,8.256,70,1,1
+KATHARO_TestProjA_3_12B_120000,KATHARO.TestProjA.3.12B.120000,TestProjA_10002_Plate_3_10to1dilution,D23,C574,TestProjA_10002,TestProjA_10002_Plate_3_10to1dilution.KATHARO.TestProjA.3.12B.120000.D23,0.374832,54.72,70,1,1
+KATHARO_TestProjA_1_12C_24000,KATHARO.TestProjA.1.12C.24000,TestProjA_10002_Plate_1_2to1dilution,E23,C567,TestProjA_10002,TestProjA_10002_Plate_1_2to1dilution.KATHARO.TestProjA.1.12C.24000.E23,0.375129875,9.467,70,1,1
+KATHARO_TestProjA_3_12C_24000,KATHARO.TestProjA.3.12C.24000,TestProjA_10002_Plate_3_2to1dilution,F23,C575,TestProjA_10002,TestProjA_10002_Plate_3_2to1dilution.KATHARO.TestProjA.3.12C.24000.F23,0.37497,6.465,70,1,1
+KATHARO_TestProjA_1_12D_4800,KATHARO.TestProjA.1.12D.4800,TestProjA_10002_Plate_1_2to1dilution,G23,C568,TestProjA_10002,TestProjA_10002_Plate_1_2to1dilution.KATHARO.TestProjA.1.12D.4800.G23,0.375135,10.68,70,1,1
+KATHARO_TestProjA_3_12D_4800,KATHARO.TestProjA.3.12D.4800,TestProjA_10002_Plate_3_10to1dilution,H23,C576,TestProjA_10002,TestProjA_10002_Plate_3_10to1dilution.KATHARO.TestProjA.3.12D.4800.H23,0.375463275,80.313,70,1,1
+KATHARO_TestProjA_1_12E_960,KATHARO.TestProjA.1.12E.960,TestProjA_10002_Plate_1_10to1dilution,I23,C569,TestProjA_10002,TestProjA_10002_Plate_1_10to1dilution.KATHARO.TestProjA.1.12E.960.I23,0.3748926000000001,30.792,70,1,1
+KATHARO_TestProjA_3_12E_960,KATHARO.TestProjA.3.12E.960,TestProjA_10002_Plate_3_undiluted,J23,C577,TestProjA_10002,TestProjA_10002_Plate_3_undiluted.KATHARO.TestProjA.3.12E.960.J23,0.067,0.268,70,1,1
+KATHARO_TestProjA_1_12F_192,KATHARO.TestProjA.1.12F.192,TestProjA_10002_Plate_1_2to1dilution,K23,C570,TestProjA_10002,TestProjA_10002_Plate_1_2to1dilution.KATHARO.TestProjA.1.12F.192.K23,0.3751103125,7.205,70,1,1
+KATHARO_TestProjA_3_12F_192,KATHARO.TestProjA.3.12F.192,TestProjA_10002_Plate_3_undiluted,L23,C578,TestProjA_10002,TestProjA_10002_Plate_3_undiluted.KATHARO.TestProjA.3.12F.192.L23,0.0665,0.266,70,1,1
+KATHARO_TestProjA_1_12G_38,KATHARO.TestProjA.1.12G.38,TestProjA_10002_Plate_1_2to1dilution,M23,C571,TestProjA_10002,TestProjA_10002_Plate_1_2to1dilution.KATHARO.TestProjA.1.12G.38.M23,0.3749671875,11.975,70,1,1
+KATHARO_TestProjA_3_12G_38,KATHARO.TestProjA.3.12G.38,TestProjA_10002_Plate_3_undiluted,N23,C579,TestProjA_10002,TestProjA_10002_Plate_3_undiluted.KATHARO.TestProjA.3.12G.38.N23,0.0665,0.266,70,1,1
+KATHARO_TestProjA_1_12H_7,KATHARO.TestProjA.1.12H.7,TestProjA_10002_Plate_1_2to1dilution,O23,C572,TestProjA_10002,TestProjA_10002_Plate_1_2to1dilution.KATHARO.TestProjA.1.12H.7.O23,0.37497075,5.676,70,1,1
+KATHARO_TestProjA_3_12H_7,KATHARO.TestProjA.3.12H.7,TestProjA_10002_Plate_3_2to1dilution,P23,C580,TestProjA_10002,TestProjA_10002_Plate_3_2to1dilution.KATHARO.TestProjA.3.12H.7.P23,0.374976,3.906,70,1,1
+KATHARO_TestProjA_2_12A_600000,KATHARO.TestProjA.2.12A.600000,TestProjA_10002_Plate_2_10to1dilution,A24,C581,TestProjA_10002,TestProjA_10002_Plate_2_10to1dilution.KATHARO.TestProjA.2.12A.600000.A24,0.37505535,67.124,70,1,1
+KATHARO_TestProjA_4_12A_600000,KATHARO.TestProjA.4.12A.600000,TestProjA_10002_Plate_4_undiluted,B24,C589,TestProjA_10002,TestProjA_10002_Plate_4_undiluted.KATHARO.TestProjA.4.12A.600000.B24,0.06725,0.269,70,1,1
+KATHARO_TestProjA_2_12B_120000,KATHARO.TestProjA.2.12B.120000,TestProjA_10002_Plate_2_10to1dilution,C24,C582,TestProjA_10002,TestProjA_10002_Plate_2_10to1dilution.KATHARO.TestProjA.2.12B.120000.C24,0.3754088000000001,72.194,70,1,1
+KATHARO_TestProjA_4_12B_120000,KATHARO.TestProjA.4.12B.120000,TestProjA_10002_Plate_4_undiluted,D24,C590,TestProjA_10002,TestProjA_10002_Plate_4_undiluted.KATHARO.TestProjA.4.12B.120000.D24,0.0665,0.266,70,1,1
+KATHARO_TestProjA_2_12C_24000,KATHARO.TestProjA.2.12C.24000,TestProjA_10002_Plate_2_10to1dilution,E24,C583,TestProjA_10002,TestProjA_10002_Plate_2_10to1dilution.KATHARO.TestProjA.2.12C.24000.E24,0.3746886,56.771,70,1,1
+KATHARO_TestProjA_4_12C_24000,KATHARO.TestProjA.4.12C.24000,TestProjA_10002_Plate_4_undiluted,F24,C591,TestProjA_10002,TestProjA_10002_Plate_4_undiluted.KATHARO.TestProjA.4.12C.24000.F24,0.067,0.268,70,1,1
+KATHARO_TestProjA_2_12D_4800,KATHARO.TestProjA.2.12D.4800,TestProjA_10002_Plate_2_10to1dilution,G24,C584,TestProjA_10002,TestProjA_10002_Plate_2_10to1dilution.KATHARO.TestProjA.2.12D.4800.G24,0.3747096374999999,73.653,70,1,1
+KATHARO_TestProjA_4_12D_4800,KATHARO.TestProjA.4.12D.4800,TestProjA_10002_Plate_4_undiluted,H24,C592,TestProjA_10002,TestProjA_10002_Plate_4_undiluted.KATHARO.TestProjA.4.12D.4800.H24,0.06725,0.269,70,1,1
+KATHARO_TestProjA_2_12E_960,KATHARO.TestProjA.2.12E.960,TestProjA_10002_Plate_2_10to1dilution,I24,C585,TestProjA_10002,TestProjA_10002_Plate_2_10to1dilution.KATHARO.TestProjA.2.12E.960.I24,0.3752355,67.61,70,1,1
+KATHARO_TestProjA_4_12E_960,KATHARO.TestProjA.4.12E.960,TestProjA_10002_Plate_4_undiluted,J24,C593,TestProjA_10002,TestProjA_10002_Plate_4_undiluted.KATHARO.TestProjA.4.12E.960.J24,0.0665,0.266,70,1,1
+KATHARO_TestProjA_2_12F_192,KATHARO.TestProjA.2.12F.192,TestProjA_10002_Plate_2_10to1dilution,K24,C586,TestProjA_10002,TestProjA_10002_Plate_2_10to1dilution.KATHARO.TestProjA.2.12F.192.K24,0.375062625,44.19,70,1,1
+KATHARO_TestProjA_4_12F_192,KATHARO.TestProjA.4.12F.192,TestProjA_10002_Plate_4_undiluted,L24,C594,TestProjA_10002,TestProjA_10002_Plate_4_undiluted.KATHARO.TestProjA.4.12F.192.L24,0.06725,0.269,70,1,1
+KATHARO_TestProjA_2_12G_38,KATHARO.TestProjA.2.12G.38,TestProjA_10002_Plate_2_10to1dilution,M24,C587,TestProjA_10002,TestProjA_10002_Plate_2_10to1dilution.KATHARO.TestProjA.2.12G.38.M24,0.3749438,29.876,70,1,1
+KATHARO_TestProjA_4_12G_38,KATHARO.TestProjA.4.12G.38,TestProjA_10002_Plate_4_undiluted,N24,C595,TestProjA_10002,TestProjA_10002_Plate_4_undiluted.KATHARO.TestProjA.4.12G.38.N24,0.067,0.268,70,1,1
+KATHARO_TestProjA_2_12H_7,KATHARO.TestProjA.2.12H.7,TestProjA_10002_Plate_2_2to1dilution,O24,C588,TestProjA_10002,TestProjA_10002_Plate_2_2to1dilution.KATHARO.TestProjA.2.12H.7.O24,0.3750915,3.598,70,1,1
+KATHARO_TestProjA_4_12H_7,KATHARO.TestProjA.4.12H.7,TestProjA_10002_Plate_4_undiluted,P24,C596,TestProjA_10002,TestProjA_10002_Plate_4_undiluted.KATHARO.TestProjA.4.12H.7.P24,0.0665,0.266,70,1,1
+,,,,,,,,,,,
+[Bioinformatics],,,,,,,,,,,
+Sample_Project,QiitaID,BarcodesAreRC,ForwardAdapter,ReverseAdapter,HumanFiltering,library_construction_protocol,experiment_design_description,contains_replicates,,,
+TestProjA_10002,10002,False,GATCGGAAGAGCACACGTCTGAACTCCAGTCAC,GATCGGAAGAGCGTCGTGTAGGGAAAGGAGTGT,True,Knight Lab Kapa HyperPlus,plasma sequencing,False,,,
+,,,,,,,,,,,
+[Contact],,,,,,,,,,,
+Sample_Project,Email,,,,,,,,,,
+TestProjA_10002,r@gmail.com,,,,,,,,,,
+,,,,,,,,,,,
+[SampleContext],,,,,,,,,,,
+sample_name,sample_type,primary_qiita_study,secondary_qiita_studies,,,,,,,,
+BLANK.TestProjA.1.A11,control blank,10002,,,,,,,,,
+BLANK.TestProjA.3.A11,control blank,10002,,,,,,,,,
+BLANK.TestProjA.1.B11,control blank,10002,,,,,,,,,
+BLANK.TestProjA.3.B11,control blank,10002,,,,,,,,,
+BLANK.TestProjA.1.C11,control blank,10002,,,,,,,,,
+BLANK.TestProjA.3.C11,control blank,10002,,,,,,,,,
+BLANK.TestProjA.1.D11,control blank,10002,,,,,,,,,
+BLANK.TestProjA.3.D11,control blank,10002,,,,,,,,,
+BLANK.TestProjA.1.E11,control blank,10002,,,,,,,,,
+BLANK.TestProjA.3.E11,control blank,10002,,,,,,,,,
+BLANK.TestProjA.1.F11,control blank,10002,,,,,,,,,
+BLANK.TestProjA.3.F11,control blank,10002,,,,,,,,,
+BLANK.TestProjA.1.G11,control blank,10002,,,,,,,,,
+BLANK.TestProjA.3.G11,control blank,10002,,,,,,,,,
+BLANK.TestProjA.1.H11,control blank,10002,,,,,,,,,
+BLANK.TestProjA.3.H11,control blank,10002,,,,,,,,,
+BLANK.TestProjA.2.A11,control blank,10002,,,,,,,,,
+BLANK.TestProjA.4.A11,control blank,10002,,,,,,,,,
+BLANK.TestProjA.2.B11,control blank,10002,,,,,,,,,
+BLANK.TestProjA.4.B11,control blank,10002,,,,,,,,,
+BLANK.TestProjA.2.C11,control blank,10002,,,,,,,,,
+BLANK.TestProjA.4.C11,control blank,10002,,,,,,,,,
+BLANK.TestProjA.2.D11,control blank,10002,,,,,,,,,
+BLANK.TestProjA.4.D11,control blank,10002,,,,,,,,,
+BLANK.TestProjA.2.E11,control blank,10002,,,,,,,,,
+BLANK.TestProjA.4.E11,control blank,10002,,,,,,,,,
+BLANK.TestProjA.2.F11,control blank,10002,,,,,,,,,
+BLANK.TestProjA.4.F11,control blank,10002,,,,,,,,,
+BLANK.TestProjA.2.G11,control blank,10002,,,,,,,,,
+BLANK.TestProjA.4.G11,control blank,10002,,,,,,,,,
+BLANK.TestProjA.2.H11,control blank,10002,,,,,,,,,
+BLANK.TestProjA.4.H11,control blank,10002,,,,,,,,,
+,,,,,,,,,,,
