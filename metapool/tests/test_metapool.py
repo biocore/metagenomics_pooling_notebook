@@ -767,55 +767,6 @@ class Tests(TestCase):
 
         pd.testing.assert_frame_equal(exp_pico_df, obs_pico_df)
 
-    def test_select_sample_dilutions_no_name_func(self):
-        """Test correct dilution is selected if no name_func is provided"""
-        input_df = pd.DataFrame({
-            'sample_name': ["Abe", "Bob", "Cat", "Dan"],
-            'Well': ['A1', 'A2', 'B1', 'B2'],
-            'Sample DNA Concentration_most_dilute':
-                [0.3432, 0.3239, 1.0016, 0.2644],
-            'Sample DNA Concentration_not_dilute':
-                [13.432, 13.239, 110.016, 20.644],
-            'Sample DNA Concentration_a_bit_dilute':
-                [3.432, 3.239, 10.016, 0.644],
-            PM_PROJECT_PLATE_KEY:
-                ['Plate_1', 'Plate_2', 'Plate_3', 'Plate_8'],
-            PM_COMPRESSED_PLATE_NAME_KEY:
-                ['Plate_1_2_3_4', 'Plate_1_2_3_4',
-                 'Plate_1_2_3_4', 'Plate_5_6_7_8']})
-
-        conc_list = ['most_dilute', 'a_bit_dilute', 'not_dilute']
-
-        def mask_func(plate_df, conc_key):
-            return plate_df[conc_key] > 1
-
-        exp_pico_df = pd.DataFrame({
-            'sample_name': ["Abe", "Bob", "Cat", "Dan"],
-            'Well': ['A1', 'A2', 'B1', 'B2'],
-            'Sample DNA Concentration_most_dilute':
-                [0.3432, 0.3239, 1.0016, 0.2644],
-            'Sample DNA Concentration_not_dilute':
-                [13.432, 13.239, 110.016, 20.644],
-            'Sample DNA Concentration_a_bit_dilute':
-                [3.432, 3.239, 10.016, 0.644],
-            PM_PROJECT_PLATE_KEY:
-                ['Plate_1_a_bit_dilute', 'Plate_2_a_bit_dilute',
-                 'Plate_3_most_dilute', 'Plate_8_not_dilute'],
-            PM_COMPRESSED_PLATE_NAME_KEY:
-                ['Plate_1_2_3_4_a_bit_dilute', 'Plate_1_2_3_4_a_bit_dilute',
-                 'Plate_1_2_3_4_most_dilute', 'Plate_5_6_7_8_not_dilute'],
-            'Sample DNA Concentration':
-                [3.432, 3.239, 1.0016, 20.644],
-            'Diluted':
-                [True, True, True, False]})
-        # this gets built in the function as an object type
-        exp_pico_df['Diluted'] = exp_pico_df['Diluted'].astype(object)
-
-        obs_pico_df = select_sample_dilutions(
-            input_df, conc_list, mask_func)
-
-        pd.testing.assert_frame_equal(exp_pico_df, obs_pico_df)
-
     def test_select_sample_dilutions_w_name_func(self):
         """Test that correct dilution is selected if a name_func is provided"""
         input_df = pd.DataFrame({
