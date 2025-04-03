@@ -16,7 +16,7 @@ from .mp_strings import SAMPLE_NAME_KEY, PM_PROJECT_NAME_KEY, \
     EXTRACTED_GDNA_CONC_KEY, PM_WELL_KEY, PM_DILUTED_KEY, \
     get_qiita_id_from_project_name, \
     get_plate_num_from_plate_name, get_main_project_from_plate_name
-from .plate import _validate_well_id_96, PlateReplication
+from .plate import _validate_well_id_96, PlateReplication, PlateRemapper
 
 from string import ascii_letters, digits
 import glob
@@ -1978,7 +1978,8 @@ def strip_tubecode_leading_zeroes(a_df, tubecode_col="TubeCode"):
 
 
 def compress_plates(compression_layout, sample_accession_df,
-                    well_col=PM_WELL_KEY, preserve_leading_zeroes=False):
+                    well_col=PM_WELL_KEY, preserve_leading_zeroes=False,
+                    arbitrary_mapping_df=None):
     """
     Takes the plate map file output from
     VisionMate of up to 4 racks containing
@@ -2010,7 +2011,14 @@ def compress_plates(compression_layout, sample_accession_df,
     and well_id_96 indicates 96 well positions.
     """
     compressed_plate_df = pd.DataFrame([])
-    well_mapper = PlateReplication(well_col)
+
+    if arbitrary_mapping_df is not None:
+        well_mapper = PlateRemapper(arbitrary_mapping_df)
+        plate_identifier_col = PM_PROJECT_PLATE_KEY
+    else:
+        well_mapper = PlateReplication(well_col)
+        well_mapper._reset()
+        plate_identifier_col = "Plate Position"
 
     for plate_dict_index in range(len(compression_layout)):
         idx = compression_layout[plate_dict_index]
@@ -2032,19 +2040,15 @@ def compress_plates(compression_layout, sample_accession_df,
             # If "Project Plate" is not present but "Sample Plate" is, use
             # "Sample Plate" for "Project Plate" in plate_map
             plate_map[PM_PROJECT_PLATE_KEY] = idx["Sample Plate"]
-
         # assume it is okay if neither is found.
 
         # Assign 384 well from compressed plate position
-        well_mapper._reset()
-
-        for well_96_id in plate_map["LocationCell"]:
-            well_384_id = well_mapper.get_384_well_location(
-                well_96_id, idx["Plate Position"])
-            col = "LocationCell"
-            plate_map.loc[plate_map[col] == well_96_id, well_col] = well_384_id
+        plate_map = _assign_compressed_wells_for_single_plate(
+            plate_map, well_mapper, idx[plate_identifier_col],
+            well_384_col=well_col, well_96_col="LocationCell")
 
         compressed_plate_df = pd.concat([compressed_plate_df, plate_map])
+    # next plate index in compression layout dict
 
     if not preserve_leading_zeroes:
         sample_accession_df = \
@@ -2077,6 +2081,22 @@ def compress_plates(compression_layout, sample_accession_df,
                                                             list(diff)]
 
     return compressed_plate_df_merged
+
+
+def _assign_compressed_wells_for_single_plate(
+        plate_map, well_mapper, plate_id_for_mapper, well_384_col,
+        well_96_col="LocationCell"):
+    output_map = plate_map.copy()
+
+    for well_96_id in plate_map[well_96_col]:
+        well_384_id = well_mapper.get_384_well_location(
+            well_96_id, plate_id_for_mapper)
+
+        output_map.loc[
+            output_map[well_96_col] == well_96_id, well_384_col] = well_384_id
+    # next well_96_id
+
+    return output_map
 
 
 def _merge_accession_to_compressed_plate_df(

@@ -10,7 +10,8 @@ from collections import OrderedDict
 from string import ascii_uppercase
 from metapool.mp_strings import EXPT_DESIGN_DESC_KEY, PM_PROJECT_NAME_KEY, \
     PM_PROJECT_PLATE_KEY, PM_PROJECT_ABBREV_KEY, \
-    PM_COMPRESSED_PLATE_NAME_KEY, SAMPLE_DNA_CONC_KEY
+    PM_COMPRESSED_PLATE_NAME_KEY, SAMPLE_DNA_CONC_KEY, PM_WELL_KEY, \
+    PM_LIB_WELL_KEY
 
 EXPECTED_COLUMNS = {
     'Plate Position', 'Plate map file', 'Plate elution volume',
@@ -722,3 +723,52 @@ class PlateReplication:
         result.reset_index(drop=True, inplace=True)
 
         return result
+
+
+class PlateRemapper:
+    def __init__(self, a_df):
+        """ Initialize a PlateRemapper object
+
+        Parameters
+        ----------
+        a_df : pd.DataFrame
+            A pandas DataFrame containing
+            the mapping between 96-well plate name and position and
+            corresponding 384-well location. Must contain columns
+            PM_PROJECT_PLATE_KEY, PM_WELL_KEY (96-well position), and
+            PM_LIB_WELL_KEY (384-well position).  Note this can only handle
+            a *single* 384-well plate.
+        """
+
+        # if any of the columns PM_PROJECT_PLATE_KEY, PM_WELL_KEY, or
+        # PM_LIB_WELL_KEY are NOT in a_df, raise a ValueError saying which
+        # columns are missing
+        required_cols = [PM_PROJECT_PLATE_KEY, PM_WELL_KEY, PM_LIB_WELL_KEY]
+        missing_required_cols = set(required_cols) - set(a_df.columns)
+        if len(missing_required_cols) > 0:
+            raise ValueError(
+                f"Input dataframe lacks required columns: "
+                f"{missing_required_cols}")
+
+        self._df = a_df
+
+
+    def get_384_well_location(self, well_96_id, plate_name):
+        """ Translate 96-well location + a plate name into 384-well location
+
+        Parameters
+        ----------
+        well_96_id : str
+            A 96-well plate ID such as "A1", "H12", etc.
+        plate_name : str
+            The name of the plate to search in the dataframe, e.g. "Plate_16"
+
+        Returns
+        -------
+        str
+            The 384-well location corresponding to the 96-well location on
+            the specified plate according to the remapper's dataframe.
+        """
+        return self._df.loc[(self._df[PM_PROJECT_PLATE_KEY] == plate_name) &
+                            (self._df[PM_WELL_KEY] == well_96_id),
+                            PM_LIB_WELL_KEY]

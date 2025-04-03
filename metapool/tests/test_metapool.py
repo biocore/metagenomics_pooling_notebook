@@ -108,6 +108,7 @@ class Tests(TestCase):
                                            dtype={TUBECODE_KEY: str})
         self.metadata = pd.read_csv(metadata_fp, sep='\t')
         self.fp = path
+        self.data_dir = os.path.join(path, 'data')
         self.plates = [p1, p2, p3, p4]
         self.runinfos = [("metapool/tests/data/runinfo_files/RunInfo1.xml",
                           "Y151;I8N4;Y151", 8),
@@ -320,6 +321,47 @@ class Tests(TestCase):
                                        well_col='Well')
         plate_df_exp = pd.read_csv(self.comp_plate_multi_proj_on_plate_exp_fp,
                                    dtype={TUBECODE_KEY: str}, sep='\t')
+
+        pd.testing.assert_frame_equal(plate_df_obs, plate_df_exp)
+
+    def test_compress_plates_alt_layout_multiple_projects(self):
+        # this mimics the situation in which the lab wants to compress
+        # the input 96-well plates into a format other than the
+        # standard 4-plate-interleaved one.
+        # this can happen when, e.g., they have fewer than 4 plates and
+        # want to compress them into just one side of a 384-well plate.
+
+        # project name for *samples* now comes from sample accession rather
+        # than the compression dict, to allow for multiple projects on the same
+        # 96-well plate.  However, project name for *blanks* still comes from
+        # the compression dict, set to the "main" project of the 96-well plate.
+
+        compression = [
+            {'Plate Position': 1,  # as int
+             'Plate map file': self.plates[0],
+             'Project Plate': 'Plate_16',
+             'Project Name': 'Celeste_Adaptation_12986',
+             'Project Abbreviation': 'ADAPT',
+             'Plate elution volume': 70},
+            {'Plate Position': 2,
+             'Plate map file': self.plates[3],
+             'Project Plate': 'Plate_42',
+             'Project Name': 'TMI_10317',
+             'Project Abbreviation': 'TMI',
+             'Plate elution volume': 70}
+        ]
+
+        arbitrary_remapping_df = pd.read_csv(
+            os.path.join(self.data_dir, "arbitrary_remapping.csv"))
+
+        plate_df_obs = compress_plates(
+            compression, self.sa_augmented_df, well_col='Well',
+            arbitrary_mapping_df=arbitrary_remapping_df)
+        plate_df_exp = pd.read_csv(
+            os.path.join(self.data_dir,
+                         "compress_plates_arbitrary_remapping_multiple_"
+                         "projects_on_one_plate_expected_out.tsv"),
+            dtype={TUBECODE_KEY: str}, sep='\t')
 
         pd.testing.assert_frame_equal(plate_df_obs, plate_df_exp)
 
