@@ -539,8 +539,7 @@ def load_concentrations(plate_df, conc_dict, plate_reader):
 
 
 def select_sample_dilutions(
-        a_plate_df, dilution_suffixes_in_order, a_mask_func,
-        a_col_name_func=None):
+        a_plate_df, dilution_suffixes_in_order, a_mask_func, a_col_name_func):
     """
     Selects the correct source of each sample based on input dilutions
 
@@ -560,9 +559,9 @@ def select_sample_dilutions(
         particular dilution's (full) concentration column name.
     a_col_name_func : function
         A function to generate the (existing) column name of a concentration
-        column in the plate dataframe based on its dilution suffix. If None,
-        defaults to SAMPLE_DNA_CONC_KEY_<suffix>, which matches what is
-        produced by _read_and_label_pico_csv.
+        column in the plate dataframe based on its dilution suffix, for example
+        generating "SAMPLE_DNA_CONC_KEY_<suffix>" (which matches what is
+        produced by _read_and_label_pico_csv).
 
     Returns:
     a_plate_df : pandas DataFrame
@@ -579,12 +578,6 @@ def select_sample_dilutions(
         warnings.warn('Dilution operation was already performed')
         return a_plate_df
 
-    def _default_col_name_func(x):
-        return f"{SAMPLE_DNA_CONC_KEY}_{x}"
-
-    a_col_name_func = _default_col_name_func if a_col_name_func is None \
-        else a_col_name_func
-
     # return a copy of the input data. Do not overwrite input data by default.
     df = a_plate_df.copy()
 
@@ -599,7 +592,10 @@ def select_sample_dilutions(
         if is_base_dilution:
             # make a mask including ALL rows; this is the fallback case
             dilution_mask = pd.Series(True, index=df.index)
-            # going forward, all future suffixes will be for further dilutions
+            # all *future* times through this loop (but _not_ the rest of
+            # *this* time through the loop) will be further dilutions, which
+            # trigger a different way of selecting the mask and set a
+            # True value for the PM_DILUTED_KEY column.
             is_base_dilution = False
         else:
             # make a mask for samples with curr concentration >= threshold
