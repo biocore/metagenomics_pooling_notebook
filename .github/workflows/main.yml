@@ -7,11 +7,11 @@ on:
   pull_request:
     branches:
       - master
-      - dev
+      - beta
   push:
     branches: 
       - master
-      - dev
+      - beta
 
 jobs:
   # name of job

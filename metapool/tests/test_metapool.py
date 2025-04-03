@@ -29,8 +29,11 @@ from metapool.metapool import (read_plate_map_csv, read_pico_csv,
                                add_controls, compress_plates,
                                read_visionmate_file,
                                generate_override_cycles_value, TUBECODE_KEY,
-                               is_absquant, add_undiluted_gdna_concs)
-from metapool.mp_strings import SYNDNA_POOL_NUM_KEY, EXTRACTED_GDNA_CONC_KEY
+                               is_absquant, add_undiluted_gdna_concs,
+                               _read_and_label_pico_csv, load_concentrations,
+                               select_sample_dilutions)
+from metapool.mp_strings import SYNDNA_POOL_NUM_KEY, EXTRACTED_GDNA_CONC_KEY, \
+    PM_PROJECT_PLATE_KEY, PM_COMPRESSED_PLATE_NAME_KEY
 from xml.etree.ElementTree import ParseError
 
 
@@ -623,6 +626,156 @@ class Tests(TestCase):
                                       'Wells': 'Well'}, inplace=True)
 
         self.assertEqual(any(check_for_neg[conc_col_name] < 0), True)
+
+    def test___read_and_label_pico_csv(self):
+        """Test that pico values are read into a DataFrame and labeled
+
+        Note: not testing all the possible plate readers as those are tested
+        in the read_pico_csv function tests."""
+
+        # Test a normal sheet
+        pico_csv = '''Results
+
+        Well ID\tWell\t[Blanked-RFU]\t[Concentration]
+        SPL1\tA1\t5243.000\t3.432
+        SPL2\tA2\t4949.000\t3.239
+        SPL3\tB1\t15302.000\t10.016
+        SPL4\tB2\t4039.000\t2.644
+
+        Curve2 Fitting Results
+
+        Curve Name\tCurve Formula\tA\tB\tR2\tFit F Prob
+        Curve2\tY=A*X+B\t1.53E+003\t0\t0.995\t?????
+        '''
+        exp_pico_df = pd.DataFrame({'Well': ['A1', 'A2', 'B1', 'B2'],
+                                    'Sample DNA Concentration_some_dilution':
+                                    [3.432, 3.239, 10.016, 2.644]})
+        pico_csv_f = StringIO(pico_csv)
+
+        obs_pico_df = _read_and_label_pico_csv(
+            pico_csv_f, "some_dilution",
+            plate_reader='Synergy_HT')
+
+        pd.testing.assert_frame_equal(exp_pico_df, obs_pico_df)
+
+    def test_load_concentrations(self):
+        """Test multiple concentration files are loaded, merged, and labeled"""
+
+        pico_csv_1 = '''Results
+
+        Well ID\tWell\t[Blanked-RFU]\t[Concentration]
+        SPL1\tA1\t5243.000\t13.432
+        SPL2\tA2\t4949.000\t13.239
+        SPL3\tB1\t15302.000\t110.016
+        SPL4\tB2\t4039.000\t20.644
+
+        Curve2 Fitting Results
+
+        Curve Name\tCurve Formula\tA\tB\tR2\tFit F Prob
+        Curve2\tY=A*X+B\t1.53E+003\t0\t0.995\t?????
+        '''
+
+        pico_csv_2 = '''Results
+
+        Well ID\tWell\t[Blanked-RFU]\t[Concentration]
+        SPL1\tA1\t5243.000\t3.432
+        SPL2\tA2\t4949.000\t3.239
+        SPL3\tB1\t15302.000\t10.016
+        SPL4\tB2\t4039.000\t2.644
+
+        Curve2 Fitting Results
+
+        Curve Name\tCurve Formula\tA\tB\tR2\tFit F Prob
+        Curve2\tY=A*X+B\t1.53E+003\t0\t0.995\t?????
+        '''
+
+        pico_csv_3 = '''Results
+
+        Well ID\tWell\t[Blanked-RFU]\t[Concentration]
+        SPL1\tA1\t5243.000\t0.3432
+        SPL2\tA2\t4949.000\t0.3239
+        SPL3\tB1\t15302.000\t1.0016
+        SPL4\tB2\t4039.000\t0.2644
+
+        Curve2 Fitting Results
+
+        Curve Name\tCurve Formula\tA\tB\tR2\tFit F Prob
+        Curve2\tY=A*X+B\t1.53E+003\t0\t0.995\t?????
+        '''
+
+        conc_dict = {"most_dilute": StringIO(pico_csv_3),
+                     "not_dilute": StringIO(pico_csv_1),
+                     "a_bit_dilute": StringIO(pico_csv_2)}
+
+        input_df = pd.DataFrame({'sample_name': ["Abe", "Bob", "Cat", "Dan"],
+                                 'Well': ['A1', 'A2', 'B1', 'B2']})
+
+        exp_pico_df = pd.DataFrame({
+            'sample_name': ["Abe", "Bob", "Cat", "Dan"],
+            'Well': ['A1', 'A2', 'B1', 'B2'],
+            'Sample DNA Concentration_most_dilute':
+                [0.3432, 0.3239, 1.0016, 0.2644],
+            'Sample DNA Concentration_not_dilute':
+                [13.432, 13.239, 110.016, 20.644],
+            'Sample DNA Concentration_a_bit_dilute':
+                [3.432, 3.239, 10.016, 2.644]})
+
+        obs_pico_df = load_concentrations(input_df, conc_dict,
+                                          plate_reader='Synergy_HT')
+
+        pd.testing.assert_frame_equal(exp_pico_df, obs_pico_df)
+
+    def test_select_sample_dilutions_w_name_func(self):
+        """Test that correct dilution is selected if a name_func is provided"""
+        input_df = pd.DataFrame({
+            'sample_name': ["Abe", "Bob", "Cat", "Dan"],
+            'Well': ['A1', 'A2', 'B1', 'B2'],
+            'gDNA_most_dilute':
+                [0.3432, 0.3239, 1.0016, 0.2644],
+            'gDNA_not_dilute':
+                [13.432, 13.239, 110.016, 20.644],
+            'gDNA_a_bit_dilute':
+                [3.432, 3.239, 10.016, 0.644],
+            PM_PROJECT_PLATE_KEY:
+                ['Plate_1', 'Plate_2', 'Plate_3', 'Plate_8'],
+            PM_COMPRESSED_PLATE_NAME_KEY:
+                ['Plate_1_2_3_4', 'Plate_1_2_3_4',
+                 'Plate_1_2_3_4', 'Plate_5_6_7_8']})
+
+        conc_list = ['most_dilute', 'a_bit_dilute', 'not_dilute']
+
+        def name_func(suffix):
+            return f"gDNA_{suffix}"
+
+        def mask_func(plate_df, conc_key):
+            return plate_df[conc_key] > 1
+
+        exp_pico_df = pd.DataFrame({
+            'sample_name': ["Abe", "Bob", "Cat", "Dan"],
+            'Well': ['A1', 'A2', 'B1', 'B2'],
+            'gDNA_most_dilute':
+                [0.3432, 0.3239, 1.0016, 0.2644],
+            'gDNA_not_dilute':
+                [13.432, 13.239, 110.016, 20.644],
+            'gDNA_a_bit_dilute':
+                [3.432, 3.239, 10.016, 0.644],
+            PM_PROJECT_PLATE_KEY:
+                ['Plate_1_a_bit_dilute', 'Plate_2_a_bit_dilute',
+                 'Plate_3_most_dilute', 'Plate_8_not_dilute'],
+            PM_COMPRESSED_PLATE_NAME_KEY:
+                ['Plate_1_2_3_4_a_bit_dilute', 'Plate_1_2_3_4_a_bit_dilute',
+                 'Plate_1_2_3_4_most_dilute', 'Plate_5_6_7_8_not_dilute'],
+            'Sample DNA Concentration':
+                [3.432, 3.239, 1.0016, 20.644],
+            'Diluted':
+                [True, True, True, False]})
+        # this gets built in the function as an object type
+        exp_pico_df['Diluted'] = exp_pico_df['Diluted'].astype(object)
+
+        obs_pico_df = select_sample_dilutions(
+            input_df, conc_list, mask_func, name_func)
+
+        pd.testing.assert_frame_equal(exp_pico_df, obs_pico_df)
 
     def test_calculate_norm_vol(self):
         dna_concs = np.array([[2, 7.89],
