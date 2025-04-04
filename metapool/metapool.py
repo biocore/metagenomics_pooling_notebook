@@ -16,7 +16,8 @@ from .mp_strings import SAMPLE_NAME_KEY, PM_PROJECT_NAME_KEY, \
     EXTRACTED_GDNA_CONC_KEY, PM_WELL_KEY, PM_DILUTED_KEY, \
     get_qiita_id_from_project_name, \
     get_plate_num_from_plate_name, get_main_project_from_plate_name
-from .plate import _validate_well_id_96, PlateReplication, PlateRemapper
+from .plate import _validate_well_id_96, PlateReplication, PlateRemapper, \
+    merge_plate_dfs
 
 from string import ascii_letters, digits
 import glob
@@ -533,8 +534,13 @@ def load_concentrations(plate_df, conc_dict, plate_reader):
     for curr_dilution_suffix, curr_conc_fp in conc_dict.items():
         curr_conc_df = _read_and_label_pico_csv(
             curr_conc_fp, curr_dilution_suffix, plate_reader=plate_reader)
-        a_df = pd.merge(a_df, curr_conc_df, on=PM_WELL_KEY)
+
+        a_df = merge_plate_dfs(
+            a_df, curr_conc_df, wells_col=PM_WELL_KEY,
+            plate_df_one_name="plate_df",
+            plate_df_two_name=f"{curr_dilution_suffix} conc_df")
     # next dilution suffix
+
     return a_df
 
 
@@ -1839,7 +1845,10 @@ def add_undiluted_gdna_concs(a_plate_df, undiluted_gdna_conc_fp):
         columns={SAMPLE_DNA_CONC_KEY: EXTRACTED_GDNA_CONC_KEY},
         inplace=True)
     # now merge EXTRACTED_GDNA_CONC_KEY into working_df on PM_WELL_KEY
-    working_df = pd.merge(working_df, sample_concs_df, on=PM_WELL_KEY)
+    working_df = merge_plate_dfs(working_df, sample_concs_df,
+                                 wells_col=PM_WELL_KEY,
+                                 plate_df_one_name="working_df",
+                                 plate_df_two_name="sample_concs_df")
     return working_df
 
 
@@ -1974,8 +1983,6 @@ def strip_tubecode_leading_zeroes(a_df, tubecode_col="TubeCode"):
 
 
 def compress_plates(compression_layout, sample_accession_df,
-                    well_col=PM_WELL_KEY, preserve_leading_zeroes=False):
-def compress_plates(compression_layout, sample_accession_df,
                     well_col=PM_WELL_KEY, preserve_leading_zeroes=False,
                     arbitrary_mapping_df=None):
     """
@@ -2090,8 +2097,13 @@ def _assign_compressed_wells_for_single_plate(
         well_384_id = well_mapper.get_384_well_location(
             well_96_id, plate_id_for_mapper)
 
-        output_map.loc[
-            output_map[well_96_col] == well_96_id, well_384_col] = well_384_id
+        well_mask = output_map[well_96_col] == well_96_id
+        if not well_mask.any():
+            raise ValueError(
+                f"Well {well_96_id} not found in {well_96_col} column of "
+                f"plate map for {plate_id_for_mapper}.")
+
+        output_map.loc[well_mask, well_384_col] = well_384_id
     # next well_96_id
 
     return output_map

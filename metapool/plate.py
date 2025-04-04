@@ -440,6 +440,46 @@ def _autopool_norm(pool_failures, total_nmol, min_conc, sample_concs,
     return plate_df
 
 
+def merge_plate_dfs(plate_df_one, plate_df_two, wells_col=PM_WELL_KEY,
+                    plate_df_one_name="plate_df_one",
+                    plate_df_two_name="plate_df_two"):
+    """
+    Merges the dilution plate dataframe with the plate dataframe
+
+    Parameters:
+    plate_df_one : pandas DataFrame
+        A DataFrame of plate info, containing at least the wells_col.  May or
+        may not contain rows for all wells in the plate.
+    plate_df_two : pandas DataFrame
+        A DataFrame of plate info, containing at least the wells_col.  May or
+        may not contain rows for all wells in the plate.
+    wells_col : str
+        The column indicating the well positions, for merging the DataFrames
+    plate_df_one_name : str
+        The name of the first DataFrame, used only in warning message
+    plate_df_two_name : str
+        The name of the second DataFrame, used only in warning message
+
+    Returns:
+    a_df : pandas DataFrame
+        A new dataframe that combines the contents of the two plate dataframes.
+    """
+
+    # warn if the wells in the two dataframes do not match;
+    # this isn't NECESSARILY an error, as in the case where the lab is
+    # prepping only half a plate, but it is worth noting
+    wells_one = set(plate_df_one[wells_col])
+    wells_two = set(plate_df_two[wells_col])
+    if wells_one != wells_two:
+        warnings.warn(
+            f"The wells in the two DataFrames do not match. "
+            f"DataFrame {plate_df_one_name} has {len(wells_one)} wells and "
+            f"DataFrame {plate_df_two_name} has {len(wells_two)} wells."
+        )
+
+    return pd.merge(plate_df_one, plate_df_two, on=wells_col)
+
+
 class PlateReplication:
     STATUS_EMPTY = 'empty'
     STATUS_SOURCE = 'source'
@@ -752,7 +792,6 @@ class PlateRemapper:
 
         self._df = a_df
 
-
     def get_384_well_location(self, well_96_id, plate_name):
         """ Translate 96-well location + a plate name into 384-well location
 
@@ -769,6 +808,15 @@ class PlateRemapper:
             The 384-well location corresponding to the 96-well location on
             the specified plate according to the remapper's dataframe.
         """
-        return self._df.loc[(self._df[PM_PROJECT_PLATE_KEY] == plate_name) &
-                            (self._df[PM_WELL_KEY] == well_96_id),
-                            PM_LIB_WELL_KEY]
+
+        well_mask = (self._df[PM_PROJECT_PLATE_KEY] == plate_name) & \
+                    (self._df[PM_WELL_KEY] == well_96_id)
+
+        if not well_mask.any():
+            raise ValueError(
+                f"{PM_WELL_KEY} {well_96_id} not found in "
+                f"{PM_PROJECT_PLATE_KEY} {plate_name}")
+
+        # get a single value from the dataframe
+        result = self._df.loc[well_mask, PM_LIB_WELL_KEY].values[0]
+        return result
