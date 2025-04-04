@@ -11,7 +11,7 @@ from string import ascii_uppercase
 from metapool.mp_strings import EXPT_DESIGN_DESC_KEY, PM_PROJECT_NAME_KEY, \
     PM_PROJECT_PLATE_KEY, PM_PROJECT_ABBREV_KEY, \
     PM_COMPRESSED_PLATE_NAME_KEY, SAMPLE_DNA_CONC_KEY, PM_WELL_KEY, \
-    PM_LIB_WELL_KEY
+    PM_WELL_ID_96_KEY, PM_WELL_ID_384_KEY
 
 EXPECTED_COLUMNS = {
     'Plate Position', 'Plate map file', 'Plate elution volume',
@@ -472,9 +472,10 @@ def merge_plate_dfs(plate_df_one, plate_df_two, wells_col=PM_WELL_KEY,
     wells_two = set(plate_df_two[wells_col])
     if wells_one != wells_two:
         warnings.warn(
-            f"The wells in the two DataFrames do not match. "
+            f"The two DataFrames do not have the same set of wells. "
             f"DataFrame {plate_df_one_name} has {len(wells_one)} wells and "
             f"DataFrame {plate_df_two_name} has {len(wells_two)} wells."
+            f"Only data for wells that are in both plates will be returned."
         )
 
     return pd.merge(plate_df_one, plate_df_two, on=wells_col)
@@ -775,15 +776,16 @@ class PlateRemapper:
             A pandas DataFrame containing
             the mapping between 96-well plate name and position and
             corresponding 384-well location. Must contain columns
-            PM_PROJECT_PLATE_KEY, PM_WELL_KEY (96-well position), and
-            PM_LIB_WELL_KEY (384-well position).  Note this can only handle
+            PM_PROJECT_PLATE_KEY, PM_WELL_ID_96_KEY (96-well position), and
+            PM_WELL_ID_384_KEY (384-well position).  Note this can only handle
             a *single* 384-well plate.
         """
 
-        # if any of the columns PM_PROJECT_PLATE_KEY, PM_WELL_KEY, or
-        # PM_LIB_WELL_KEY are NOT in a_df, raise a ValueError saying which
+        # if any of the columns PM_PROJECT_PLATE_KEY, PM_WELL_ID_96_KEY, or
+        # PM_WELL_ID_384_KEY are NOT in a_df, raise a ValueError saying which
         # columns are missing
-        required_cols = [PM_PROJECT_PLATE_KEY, PM_WELL_KEY, PM_LIB_WELL_KEY]
+        required_cols = \
+            [PM_PROJECT_PLATE_KEY, PM_WELL_ID_96_KEY, PM_WELL_ID_384_KEY]
         missing_required_cols = set(required_cols) - set(a_df.columns)
         if len(missing_required_cols) > 0:
             raise ValueError(
@@ -810,13 +812,13 @@ class PlateRemapper:
         """
 
         well_mask = (self._df[PM_PROJECT_PLATE_KEY] == plate_name) & \
-                    (self._df[PM_WELL_KEY] == well_96_id)
+                    (self._df[PM_WELL_ID_96_KEY] == well_96_id)
 
         if not well_mask.any():
             raise ValueError(
-                f"{PM_WELL_KEY} {well_96_id} not found in "
+                f"{PM_WELL_ID_96_KEY} {well_96_id} not found in "
                 f"{PM_PROJECT_PLATE_KEY} {plate_name}")
 
         # get a single value from the dataframe
-        result = self._df.loc[well_mask, PM_LIB_WELL_KEY].values[0]
+        result = self._df.loc[well_mask, PM_WELL_ID_384_KEY].values[0]
         return result

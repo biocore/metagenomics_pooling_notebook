@@ -13,7 +13,7 @@ from .mp_strings import SAMPLE_NAME_KEY, PM_PROJECT_NAME_KEY, \
     PM_PROJECT_PLATE_KEY, PM_COMPRESSED_PLATE_NAME_KEY, PM_BLANK_KEY, \
     PLATE_NAME_DELIMITER, SAMPLE_DNA_CONC_KEY, NORMALIZED_DNA_VOL_KEY, \
     SYNDNA_POOL_MASS_NG_KEY, SYNDNA_POOL_NUM_KEY, TUBECODE_KEY, \
-    EXTRACTED_GDNA_CONC_KEY, PM_WELL_KEY, PM_DILUTED_KEY, \
+    EXTRACTED_GDNA_CONC_KEY, PM_WELL_KEY, PM_DILUTED_KEY, PM_WELL_ID_96_KEY, \
     get_qiita_id_from_project_name, \
     get_plate_num_from_plate_name, get_main_project_from_plate_name
 from .plate import _validate_well_id_96, PlateReplication, PlateRemapper, \
@@ -2008,6 +2008,17 @@ def compress_plates(compression_layout, sample_accession_df,
         Contains sample names and corresponding Tube IDs
     well_col: str
         Name of column with well IDs, in 'A1,P24' format
+    preserve_leading_zeroes: bool
+        If True, leading zeroes in TubeCode are preserved. Default is False.
+        Note that leading zeroes are a frequent cause of problems, so set to
+        False unless you really know what you're doing.
+    arbitrary_mapping_df: pandas DataFrame object
+        Default is None, in which case plates are compressed according to
+        an interleaved 4-quadrant layout.
+        If not None, this DataFrame is used to map positions on the 96-well
+        plates specified in the compression layout dict to positions on the
+        compressed 384-well plate.  Dataframe must contain
+        PM_PROJECT_PLATE_KEY, PM_WELL_ID_96_KEY, and PM_WELL_ID_384_KEY columns
 
     Returns:
     plate_df: pandas DataFrame object of samples compressed into 384 format
@@ -2066,7 +2077,7 @@ def compress_plates(compression_layout, sample_accession_df,
     # Rename columns for legacy
     compressed_plate_df_merged.rename(
         columns={
-            "LocationCell": "well_id_96",
+            "LocationCell": PM_WELL_ID_96_KEY,
             "LocationColumn": "Col",
             "LocationRow": "Row",
             SAMPLE_NAME_KEY: "Sample",
@@ -2384,7 +2395,7 @@ def _load_accession_df_from_dir(
         If True, leading zeroes are preserved in TubeCode column
 
     Returns:
-    pandas DataFrame object
+        pandas DataFrame object
     """
 
     file_paths = glob.glob(f"{accession_dir}/{accession_fname_pattern}")
