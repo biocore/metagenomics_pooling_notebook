@@ -6,7 +6,8 @@ import os
 from io import StringIO
 from pandas.testing import assert_frame_equal
 from metapool.metapool import (read_plate_map_csv, read_pico_csv,
-                               calculate_norm_vol, format_dna_norm_picklist,
+                               calculate_norm_vol, add_vols_in_nl_to_plate_df,
+                               format_dna_norm_picklist,
                                format_index_picklist,
                                compute_qpcr_concentration,
                                compute_shotgun_pooling_values_eqvol,
@@ -31,9 +32,11 @@ from metapool.metapool import (read_plate_map_csv, read_pico_csv,
                                generate_override_cycles_value, TUBECODE_KEY,
                                is_absquant, add_undiluted_gdna_concs,
                                _read_and_label_pico_csv, load_concentrations,
-                               select_sample_dilutions)
+                               select_sample_dilutions,
+                               add_pool_input_dna_mass_ng_to_plate_df)
 from metapool.mp_strings import SYNDNA_POOL_NUM_KEY, EXTRACTED_GDNA_CONC_KEY, \
-    PM_PROJECT_PLATE_KEY, PM_COMPRESSED_PLATE_NAME_KEY
+    PM_PROJECT_PLATE_KEY, PM_COMPRESSED_PLATE_NAME_KEY, SAMPLE_DNA_CONC_KEY, \
+    NORMALIZED_DNA_VOL_KEY, NORMALIZED_WATER_VOL_KEY
 from xml.etree.ElementTree import ParseError
 
 
@@ -829,6 +832,24 @@ class Tests(TestCase):
         obs_vols = calculate_norm_vol(dna_concs)
 
         np.testing.assert_allclose(exp_vols, obs_vols)
+
+    def test_add_vols_in_nl_to_plate_df(self):
+        """ Test that function adds correct columns in place to the input df"""
+        working_df = pd.DataFrame({
+            'sample_name': ["Abe", "Bob", "Cat", "Dan"],
+            SAMPLE_DNA_CONC_KEY: [2, 7.89, np.nan, .0]})
+
+        add_vols_in_nl_to_plate_df(
+            working_df, target_mass_ng=5, min_vol_in_nl=2.5,
+            max_vol_in_nl=3500, instrument_resolution_in_nl=2.5)
+
+        exp_df = pd.DataFrame({
+            'sample_name': ["Abe", "Bob", "Cat", "Dan"],
+            SAMPLE_DNA_CONC_KEY: [2, 7.89, np.nan, .0],
+            NORMALIZED_DNA_VOL_KEY: [2500., 632.5, 3500., 3500.],
+            NORMALIZED_WATER_VOL_KEY: [1000, 2867.5, 0., .0]})
+
+        pd.testing.assert_frame_equal(exp_df, working_df)
 
     def test_format_dna_norm_picklist(self):
 
@@ -1680,6 +1701,38 @@ class Tests(TestCase):
             input_plate_df, input_pico_fp)
         assert_frame_equal(exp_plate_df, obs_plate_df)
 
+    def test_add_pool_input_dna_mass_ng_to_plate_df(self):
+        """ Test function adds correct Input DNA column in place to input df"""
+
+        # construct an example DataFrame
+        test_df = pd.DataFrame({'Sample': ['sample_1', 'sample_2',
+                                           'sample_3', 'sample_4',
+                                           'sample5'],
+                                'Sample DNA Concentration': [20, 10, 5, 1,
+                                                             0.5],
+                                'Normalized DNA volume': [250.0, 500.0,
+                                                          1000.0, 3500.0,
+                                                          3500.0],
+                                'Ignored column': [50.0, 0.0, 20.0, 0.0, 0.0]
+                                })
+
+        # expected results
+        exp_plate_df = pd.DataFrame({'Sample': ['sample_1', 'sample_2',
+                                                'sample_3', 'sample_4',
+                                                'sample5'],
+                                     'Sample DNA Concentration': [20, 10, 5, 1,
+                                                                  0.5],
+                                     'Normalized DNA volume': [250.0, 500.0,
+                                                               1000.0, 3500.0,
+                                                               3500.0],
+                                     'Ignored column':
+                                         [50.0, 0.0, 20.0, 0.0, 0.0],
+                                     'Input DNA': [5.0, 5.0, 5.0, 3.50, 1.75]
+                                     })
+
+        add_pool_input_dna_mass_ng_to_plate_df(test_df)
+        pd.testing.assert_frame_equal(exp_plate_df, test_df)
+
     def test_add_syndna_no_spikein(self):
         # tests running the add_syndna() function
         # with default arguments, which should just
@@ -1733,13 +1786,7 @@ class Tests(TestCase):
                                            'sample_3', 'sample_4',
                                            'sample5'],
                                 'Well': ['A1', 'B1', 'C1', 'D1', 'E1'],
-                                'Sample DNA Concentration': [20, 10, 5, 1,
-                                                             0.5],
-                                'Normalized DNA volume': [250.0, 500.0,
-                                                          1000.0, 3500.0,
-                                                          3500.0],
-                                'Normalized water volume': [3250.0, 3000.0,
-                                                            2500.0, 0.0, 0.0],
+                                'Input DNA': [5.0, 5.0, 5.0, 3.50, 1.75],
                                 'Diluted': [False, False, False, False, False]
                                 })
 
@@ -1750,15 +1797,6 @@ class Tests(TestCase):
                                                 'sample_3', 'sample_4',
                                                 'sample5'],
                                      'Well': ['A1', 'B1', 'C1', 'D1', 'E1'],
-                                     'Sample DNA Concentration': [20, 10, 5, 1,
-                                                                  0.5],
-                                     'Normalized DNA volume': [250.0, 500.0,
-                                                               1000.0, 3500.0,
-                                                               3500.0],
-                                     'Normalized water volume': [3250.0,
-                                                                 3000.0,
-                                                                 2500.0,
-                                                                 0.0, 0.0],
                                      'Diluted': [False, False, False, False,
                                                  False],
                                      'syndna_pool_number': ['pool1', 'pool1',
@@ -1776,9 +1814,27 @@ class Tests(TestCase):
                                       check_like=True,
                                       rtol=1e-3)
 
-    def test_add_syndna_pool1_noconcentration_exc(self):
+    def test_add_syndna_pool1_err_noconcentration(self):
         # testing a raised exception when user forgets to input
         # synDNA pool concentration
+
+        # construct an example DataFrame
+        test_df = pd.DataFrame({'Sample': ['sample_1', 'sample_2',
+                                           'sample_3', 'sample_4',
+                                           'sample5'],
+                                'Well': ['A1', 'B1', 'C1', 'D1', 'E1'],
+                                'Input DNA': [5.0, 5.0, 5.0, 3.50, 1.75],
+                                'Diluted': [False, False, False, False, False]
+                                })
+
+        partial_err_msg = "Specify the concentration of the synDNA"
+        with self.assertRaisesRegex(Exception, partial_err_msg):
+            add_syndna(test_df, syndna_pool_number='pool1',
+                       syndna_concentration=None)
+
+    def test_add_syndna_pool1_err_no_input_dna(self):
+        # testing a raised exception when user forgets to provide
+        # Input DNA column
 
         # construct an example DataFrame
         test_df = pd.DataFrame({'Sample': ['sample_1', 'sample_2',
@@ -1795,9 +1851,11 @@ class Tests(TestCase):
                                 'Diluted': [False, False, False, False, False]
                                 })
 
-        with self.assertRaises(Exception):
+        partial_err_msg = \
+            r"The plate dataframe \(plate_df\) must have Input DNA"
+        with self.assertRaisesRegex(Exception, partial_err_msg):
             add_syndna(test_df, syndna_pool_number='pool1',
-                       syndna_concentration=None)
+                       syndna_concentration=2.22)
 
     def test_generate_override_cycles_value(self):
         for fp, exp, adapter_length in self.runinfos:

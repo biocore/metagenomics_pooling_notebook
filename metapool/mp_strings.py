@@ -55,6 +55,7 @@ SYNDNA_POOL_NUM_KEY = "syndna_pool_number"
 SAMPLE_DNA_CONC_KEY = "Sample DNA Concentration"
 MINIPICO_LIB_CONC_KEY = 'MiniPico Library Concentration'
 NORMALIZED_DNA_VOL_KEY = "Normalized DNA volume"
+NORMALIZED_WATER_VOL_KEY = 'Normalized water volume'
 TELLSEQ_BARCODE_ID_KEY = "barcode_id"
 TELLSEQ_BARCODE_SET_ID_KEY = "barcode_set_id"
 SYNDNA_POOL_MASS_NG_KEY = "mass_syndna_input_ng"

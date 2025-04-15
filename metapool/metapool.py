@@ -14,7 +14,7 @@ from .mp_strings import SAMPLE_NAME_KEY, PM_PROJECT_NAME_KEY, \
     PLATE_NAME_DELIMITER, SAMPLE_DNA_CONC_KEY, NORMALIZED_DNA_VOL_KEY, \
     SYNDNA_POOL_MASS_NG_KEY, SYNDNA_POOL_NUM_KEY, TUBECODE_KEY, \
     EXTRACTED_GDNA_CONC_KEY, PM_WELL_KEY, PM_DILUTED_KEY, PM_WELL_ID_96_KEY, \
-    get_qiita_id_from_project_name, \
+    NORMALIZED_WATER_VOL_KEY, get_qiita_id_from_project_name, \
     get_plate_num_from_plate_name, get_main_project_from_plate_name
 from .plate import _validate_well_id_96, PlateReplication, PlateRemapper, \
     merge_plate_dfs
@@ -644,6 +644,7 @@ def calculate_norm_vol(dna_concs, ng=5, min_vol=2.5, max_vol=3500,
     sample_vols : numpy array of float
         The volumes to pool (nL)
     """
+    # mass in ng / conc in ng/uL * 1000 nL/uL = vol in nL
     sample_vols = ng / np.nan_to_num(dna_concs) * 1000
 
     sample_vols = np.clip(sample_vols, min_vol, max_vol)
@@ -651,6 +652,50 @@ def calculate_norm_vol(dna_concs, ng=5, min_vol=2.5, max_vol=3500,
     sample_vols = np.round(sample_vols / resolution) * resolution
 
     return sample_vols
+
+
+def add_vols_in_nl_to_plate_df(
+        plate_df, target_mass_ng, min_vol_in_nl, max_vol_in_nl,
+        instrument_resolution_in_nl,
+        conc_in_ng_ul_key=SAMPLE_DNA_CONC_KEY,
+        norm_sample_vol_in_nl_key=NORMALIZED_DNA_VOL_KEY,
+        norm_water_vol_in_nl_key=NORMALIZED_WATER_VOL_KEY
+):
+    """
+    Calculates nL of sample and water per well and adds to plate_df *in place*
+
+    Adds columns with names specified in norm_sample_vol_in_nl_key and
+    norm_water_vol_in_nl_key to plate_df.
+
+    Parameters
+    ----------
+    plate_df : pandas DataFrame
+        A DataFrame of plate info, containing at least the column specified in
+         conc_in_ng_ul_key
+    target_mass_ng : float
+        The desired amount of DNA mass to pool (ng)
+    max_vol_in_nl : float
+        The maximum volume that is allowable to pool (nL)
+    min_vol_in_nl : float
+        The minimum volume that is allowable to pool (nL)
+    instrument_resolution_in_nl: float
+        The resolution of the Echo instrument, in nL, which is used as a
+        rounding factor for the volumes to pool
+    conc_in_ng_ul_key : str
+        The name of column containing the sample (usually gDNA) concentrations
+    norm_sample_vol_in_nl_key : str
+        The name of column to store the calculated sample volumes
+    norm_water_vol_in_nl_key : str
+        The name of column to store the calculated water volumes
+    """
+
+    dna_vols_in_nl = calculate_norm_vol(
+        plate_df[conc_in_ng_ul_key], ng=target_mass_ng, min_vol=min_vol_in_nl,
+        max_vol=max_vol_in_nl, resolution=instrument_resolution_in_nl)
+    water_vols_in_nl = max_vol_in_nl - dna_vols_in_nl
+
+    plate_df[norm_sample_vol_in_nl_key] = dna_vols_in_nl
+    plate_df[norm_water_vol_in_nl_key] = water_vols_in_nl
 
 
 def format_dna_norm_picklist(
@@ -1852,6 +1897,40 @@ def add_undiluted_gdna_concs(a_plate_df, undiluted_gdna_conc_fp):
     return working_df
 
 
+def add_pool_input_dna_mass_ng_to_plate_df(plate_df):
+    """Calcs DNA mass to pool in ng per sample & adds to plate_df *in place*
+
+    Parameters
+    ----------
+    plate_df : pd.DataFrame
+        Plate dataframe with at least SAMPLE_DNA_CONC_KEY and
+        NORMALIZED_DNA_VOL_KEY columns.
+
+    Adds an INPUT_DNA_KEY column to plate_df, which is the mass of DNA in ng
+
+    Note that the calculated value here, which the mass of DNA (in ng)
+    *actually* put into the pooling process, is *usually* basically the
+    same as the target mass that is used upstream to calculate the
+    normalized DNA volume. That is because the normalized DNA volume is
+    *basically* calculated as target mass / concentration (so then this
+    calculation is
+    concentration * (target mass / concentration) = target mass
+    which feels a bit like a tautology). But it is not *exactly* the same
+    because (a) there is a rounding step in the normalized DNA volume
+    calculation, which introduces some difference, and more importantly
+    (b) there is a *clipping* step in the normalized DNA volume calculation,
+    which keeps the volume from being too high or too low to actually
+    physically dispense.  For samples where clipping has been applied, the
+    pooled input DNA mass calculated here can in fact be very different
+    from the target mass.
+    """
+
+    # dna conc in ng/uL * normalized dna vol in nL / 1000 nL/uL = mass in ng
+    plate_df[INPUT_DNA_KEY] = \
+        plate_df[SAMPLE_DNA_CONC_KEY] * \
+        plate_df[NORMALIZED_DNA_VOL_KEY] / 1000
+
+
 def add_syndna(plate_df, syndna_pool_number=None, syndna_concentration=None,
                syndna_percentage=5):
     """Calculates nanoliters of synDNA spike-in to add to each sample to
@@ -1860,8 +1939,7 @@ def add_syndna(plate_df, syndna_pool_number=None, syndna_concentration=None,
     Parameters
     ----------
     plate_df : pd.DataFrame
-        Growing plate dataframe with calculated gDNA input normalization values
-        including SAMPLE_DNA_CONC_KEY and NORMALIZED_DNA_VOL_KEY columns.
+        Plate dataframe with at least a INPUT_DNA_KEY column.
     syndna_pool_number : str (Default:None)
         String formatted name for synDNA pool. Typically a number.
     syndna_concentration : float (Default:None)
@@ -1871,9 +1949,9 @@ def add_syndna(plate_df, syndna_pool_number=None, syndna_concentration=None,
 
     Returns
     -------
-    plate_df : pd.DataFrame
-        returns a copy of the input pandas dataframe with INPUT_DNA_KEY,
-         SYNDNA_VOL_KEY, SYNDNA_POOL_MASS_NG_KEY columns added"""
+    result : pd.DataFrame
+        returns a copy of the input pandas dataframe with
+        SYNDNA_VOL_KEY and SYNDNA_POOL_MASS_NG_KEY columns added"""
 
     result = plate_df.copy()
     result[SYNDNA_POOL_NUM_KEY] = syndna_pool_number
@@ -1884,20 +1962,15 @@ def add_syndna(plate_df, syndna_pool_number=None, syndna_concentration=None,
         return result
 
     else:
-        if NORMALIZED_DNA_VOL_KEY not in result.columns:
+        if INPUT_DNA_KEY not in result.columns:
             raise Exception(
-                "The plate dataframe (plate_df) must have input "
-                "normalization values already calculated before "
-                "calculating synDNA addition"
+                f"The plate dataframe (plate_df) must have {INPUT_DNA_KEY} "
+                f"values already calculated before calculating synDNA addition"
             )
 
         if syndna_concentration is None:
             raise Exception("Specify the concentration of the synDNA"
                             " spike-in pool")
-
-        result[INPUT_DNA_KEY] = result[SAMPLE_DNA_CONC_KEY] * \
-            result[NORMALIZED_DNA_VOL_KEY] / 1000
-        # synDNA volume is in nL
 
         # The 1000 multiplier is to transform µL to nL because the Echo
         # dispenser uses nL as the volume unit but concentrations are
