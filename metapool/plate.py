@@ -10,7 +10,7 @@ from collections import OrderedDict
 from string import ascii_uppercase
 from metapool.mp_strings import EXPT_DESIGN_DESC_KEY, PM_PROJECT_NAME_KEY, \
     PM_PROJECT_PLATE_KEY, PM_PROJECT_ABBREV_KEY, \
-    PM_COMPRESSED_PLATE_NAME_KEY, SAMPLE_DNA_CONC_KEY, PM_WELL_KEY, \
+    PM_COMPRESSED_PLATE_NAME_KEY, SAMPLE_DNA_CONC_KEY, \
     PM_WELL_ID_96_KEY, PM_WELL_ID_384_KEY
 
 EXPECTED_COLUMNS = {
@@ -440,9 +440,8 @@ def _autopool_norm(pool_failures, total_nmol, min_conc, sample_concs,
     return plate_df
 
 
-def merge_plate_dfs(plate_df_one, plate_df_two, wells_col=PM_WELL_KEY,
-                    plate_df_one_name="plate_df_one",
-                    plate_df_two_name="plate_df_two"):
+def merge_plate_dfs(plate_df_one, plate_df_two, wells_col,
+                    plate_df_one_name, plate_df_two_name):
     """
     Merges the dilution plate dataframe with the plate dataframe
 

@@ -167,7 +167,8 @@ class PlateHelperTests(TestCase):
         expected = pd.DataFrame({'Well': ['A1', 'A2', 'B3'],
                                  'Concentration_1': [1, 2, 3],
                                  'Concentration_2': [4, 5, 6]})
-        obs = merge_plate_dfs(df1, df2)
+        obs = merge_plate_dfs(df1, df2, "Well",
+                              "df1", "df2")
         pd.testing.assert_frame_equal(expected, obs)
 
     def test_merge_plate_dfs_warn(self):
