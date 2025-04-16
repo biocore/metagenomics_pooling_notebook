@@ -5,6 +5,7 @@ import numpy.testing as npt
 import os
 from io import StringIO
 from pandas.testing import assert_frame_equal
+from metapool.plate import PlateRemapper
 from metapool.metapool import (read_plate_map_csv, read_pico_csv,
                                calculate_norm_vol, add_vols_in_nl_to_plate_df,
                                format_dna_norm_picklist,
@@ -33,7 +34,8 @@ from metapool.metapool import (read_plate_map_csv, read_pico_csv,
                                is_absquant, add_undiluted_gdna_concs,
                                _read_and_label_pico_csv, load_concentrations,
                                select_sample_dilutions,
-                               add_pool_input_dna_mass_ng_to_plate_df)
+                               add_pool_input_dna_mass_ng_to_plate_df,
+                               _assign_compressed_wells_for_96_well_plate)
 from metapool.mp_strings import SYNDNA_POOL_NUM_KEY, EXTRACTED_GDNA_CONC_KEY, \
     PM_PROJECT_PLATE_KEY, PM_COMPRESSED_PLATE_NAME_KEY, SAMPLE_DNA_CONC_KEY, \
     NORMALIZED_DNA_VOL_KEY, NORMALIZED_WATER_VOL_KEY
@@ -367,6 +369,36 @@ class Tests(TestCase):
             dtype={TUBECODE_KEY: str}, sep='\t')
 
         pd.testing.assert_frame_equal(plate_df_obs, plate_df_exp)
+
+    def test__assign_compressed_wells_for_96_well_plate(self):
+        # this sets up plate map input
+        plate_map_df = pd.read_csv(self.plates[3], sep='\t')
+
+        # this sets up mapper input, changing plate name to match what is
+        # in the test data being reused below
+        arbitrary_remapping_df = pd.read_csv(
+            os.path.join(self.data_dir, "arbitrary_remapping.csv"))
+        arbitrary_remapping_df.loc[
+            arbitrary_remapping_df[PM_PROJECT_PLATE_KEY] == 'Plate_42',
+            PM_PROJECT_PLATE_KEY
+        ] = "plate_4"
+        remapper = PlateRemapper(arbitrary_remapping_df)
+
+        # this constructs expected output by munging other test data
+        compress_df_exp = pd.read_csv(
+            os.path.join(self.data_dir,
+                         "compress_plates_arbitrary_remapping_multiple_"
+                         "projects_on_one_plate_expected_out.tsv"),
+            dtype={TUBECODE_KEY: str}, sep='\t')
+        plate_df_exp = plate_map_df.copy()
+        plate_df_exp["Well"] = compress_df_exp.loc[
+            compress_df_exp["RackID"] == 'plate_4', "Well"].reset_index(
+            drop=True)
+
+        plate_df_obs = _assign_compressed_wells_for_96_well_plate(
+            plate_map_df, remapper, "plate_4", 'Well')
+
+        pd.testing.assert_frame_equal(plate_df_exp, plate_df_obs)
 
     def test_add_controls_preserve_leading_zeroes(self):
         plate_df = pd.read_csv(

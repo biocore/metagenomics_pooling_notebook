@@ -2132,7 +2132,7 @@ def compress_plates(compression_layout, sample_accession_df,
         # assume it is okay if neither is found.
 
         # Assign 384 well from compressed plate position
-        plate_map = _assign_compressed_wells_for_single_plate(
+        plate_map = _assign_compressed_wells_for_96_well_plate(
             plate_map, well_mapper, idx[plate_identifier_col],
             well_384_col=well_col, well_96_col="LocationCell")
 
@@ -2172,7 +2172,7 @@ def compress_plates(compression_layout, sample_accession_df,
     return compressed_plate_df_merged
 
 
-def _assign_compressed_wells_for_single_plate(
+def _assign_compressed_wells_for_96_well_plate(
         plate_map, well_mapper, plate_id_for_mapper, well_384_col,
         well_96_col="LocationCell"):
     output_map = plate_map.copy()
@@ -2182,11 +2182,6 @@ def _assign_compressed_wells_for_single_plate(
             well_96_id, plate_id_for_mapper)
 
         well_mask = output_map[well_96_col] == well_96_id
-        if not well_mask.any():
-            raise ValueError(
-                f"Well {well_96_id} not found in {well_96_col} column of "
-                f"plate map for {plate_id_for_mapper}.")
-
         output_map.loc[well_mask, well_384_col] = well_384_id
     # next well_96_id
 
