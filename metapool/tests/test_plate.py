@@ -12,7 +12,7 @@ from metapool.plate import (_well_to_row_and_col, _decompress_well,
                             _validate_plate, Message, ErrorMessage,
                             WarningMessage, requires_dilution, dilute_gDNA,
                             find_threshold, autopool, _validate_well_id_96,
-                            PlateReplication)
+                            merge_plate_dfs, PlateReplication, PlateRemapper)
 from metapool.metapool import (read_plate_map_csv, read_pico_csv,
                                calculate_norm_vol, assign_index,
                                compute_pico_concentration)
@@ -155,6 +155,43 @@ class PlateHelperTests(TestCase):
         for test, exp in tests:
             obs = _validate_well_id_96(test)
             self.assertEqual(obs, exp)
+
+    def test_merge_plate_dfs_happy(self):
+        # test merge of two dfs with the same values in the Well column
+        # but with different other columns
+
+        df1 = pd.DataFrame({'Well': ['A1', 'A2', 'B3'],
+                            'Concentration_1': [1, 2, 3]})
+        df2 = pd.DataFrame({'Well': ['A1', 'A2', 'B3'],
+                            'Concentration_2': [4, 5, 6]})
+        expected = pd.DataFrame({'Well': ['A1', 'A2', 'B3'],
+                                 'Concentration_1': [1, 2, 3],
+                                 'Concentration_2': [4, 5, 6]})
+        obs = merge_plate_dfs(df1, df2)
+        pd.testing.assert_frame_equal(expected, obs)
+
+    def test_merge_plate_dfs_warn(self):
+        # test merge of two dfs with different values in the merge column;
+        # should raise a warning
+
+        df1 = pd.DataFrame({'Wells': ['A1', 'A12', 'B3'],
+                            'Concentration_1': [1, 2, 3]})
+        df2 = pd.DataFrame({'Wells': ['A1', 'A2', 'B3'],
+                            'Concentration_2': [4, 5, 6]})
+        expected_df = pd.DataFrame({'Wells': ['A1', 'B3'],
+                                    'Concentration_1': [1, 3],
+                                    'Concentration_2': [4, 6]})
+        warn_msg = (
+            "The two DataFrames do not have the same set of wells. DataFrame "
+            "con_1 has 3 unique wells and DataFrame con_2 has 3 unique "
+            "wells, with 2 shared unique wells. Only data for wells that are "
+            "shared in both plates will be returned.")
+        with self.assertWarnsRegex(UserWarning, warn_msg):
+            obs_df = merge_plate_dfs(
+                df1, df2, wells_col="Wells", plate_df_one_name="con_1",
+                plate_df_two_name="con_2")
+
+        pd.testing.assert_frame_equal(expected_df, obs_df)
 
 
 class MessageTests(TestCase):
@@ -740,6 +777,36 @@ class PlateReplicationTests(TestCase):
         }
         obs = parse_project_name("project_green_1")
         self.assertDictEqual(exp, obs)
+
+
+class PlateRemapperTests(TestCase):
+    def setUp(self):
+        data_dir = os.path.dirname(__file__)
+        input_plate_fp = os.path.join(data_dir, 'data/arbitrary_remapping.csv')
+        self.input_df = pd.read_csv(input_plate_fp, dtype=str)
+
+    def test__init__happy(self):
+        remapper = PlateRemapper(self.input_df)
+        assert_frame_equal(self.input_df, remapper._df)
+
+    def test__init__err_missing_cols(self):
+        input_df = self.input_df.copy().drop(columns=['well_id_96'])
+        err_msg = "Input dataframe lacks required columns: {'well_id_96'}"
+        with self.assertRaisesRegex(ValueError, err_msg):
+            PlateRemapper(input_df)
+
+    def test_get_384_well_location_happy(self):
+        remapper = PlateRemapper(self.input_df)
+        obs = remapper.get_384_well_location('H10', 'Plate_42')
+        self.assertEqual(obs, 'P11')
+
+    def test_get_384_well_location_err_missing_well(self):
+        remapper = PlateRemapper(self.input_df)
+
+        # wells are given without zero padding, so A1 is in there but not A01
+        err_msg = "well_id_96 'A01' not found in Project Plate 'Plate_42'"
+        with self.assertRaisesRegex(ValueError, err_msg):
+            remapper.get_384_well_location('A01', 'Plate_42')
 
 
 if __name__ == '__main__':

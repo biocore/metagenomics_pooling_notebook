@@ -470,13 +470,18 @@ def merge_plate_dfs(plate_df_one, plate_df_two, wells_col=PM_WELL_KEY,
     # prepping only half a plate, but it is worth noting
     wells_one = set(plate_df_one[wells_col])
     wells_two = set(plate_df_two[wells_col])
+    overlap_wells = wells_one.intersection(wells_two)
     if wells_one != wells_two:
-        warnings.warn(
+        warn_msg = (
             f"The two DataFrames do not have the same set of wells. "
-            f"DataFrame {plate_df_one_name} has {len(wells_one)} wells and "
-            f"DataFrame {plate_df_two_name} has {len(wells_two)} wells."
-            f"Only data for wells that are in both plates will be returned."
+            f"DataFrame {plate_df_one_name} has {len(wells_one)} unique wells "
+            f"and DataFrame {plate_df_two_name} has {len(wells_two)} unique "
+            f"wells, with {len(overlap_wells)} shared unique wells. Only data "
+            f"for wells that are shared in both plates will be returned."
         )
+
+        warnings.warn(warn_msg, UserWarning)
+    # end if merge col contents sets not the same
 
     return pd.merge(plate_df_one, plate_df_two, on=wells_col)
 
@@ -792,7 +797,7 @@ class PlateRemapper:
                 f"Input dataframe lacks required columns: "
                 f"{missing_required_cols}")
 
-        self._df = a_df
+        self._df = a_df.copy()
 
     def get_384_well_location(self, well_96_id, plate_name):
         """ Translate 96-well location + a plate name into 384-well location
@@ -816,8 +821,8 @@ class PlateRemapper:
 
         if not well_mask.any():
             raise ValueError(
-                f"{PM_WELL_ID_96_KEY} {well_96_id} not found in "
-                f"{PM_PROJECT_PLATE_KEY} {plate_name}")
+                f"{PM_WELL_ID_96_KEY} '{well_96_id}' not found in "
+                f"{PM_PROJECT_PLATE_KEY} '{plate_name}'")
 
         # get a single value from the dataframe
         result = self._df.loc[well_mask, PM_WELL_ID_384_KEY].values[0]
