@@ -13,10 +13,11 @@ from .mp_strings import SAMPLE_NAME_KEY, PM_PROJECT_NAME_KEY, \
     PM_PROJECT_PLATE_KEY, PM_COMPRESSED_PLATE_NAME_KEY, PM_BLANK_KEY, \
     PLATE_NAME_DELIMITER, SAMPLE_DNA_CONC_KEY, NORMALIZED_DNA_VOL_KEY, \
     SYNDNA_POOL_MASS_NG_KEY, SYNDNA_POOL_NUM_KEY, TUBECODE_KEY, \
-    EXTRACTED_GDNA_CONC_KEY, PM_WELL_KEY, PM_DILUTED_KEY, \
+    EXTRACTED_GDNA_CONC_KEY, PM_WELL_KEY, PM_DILUTED_KEY, PM_WELL_ID_96_KEY, \
     NORMALIZED_WATER_VOL_KEY, get_qiita_id_from_project_name, \
     get_plate_num_from_plate_name, get_main_project_from_plate_name
-from .plate import _validate_well_id_96, PlateReplication
+from .plate import _validate_well_id_96, PlateReplication, PlateRemapper, \
+    merge_plate_dfs
 
 from string import ascii_letters, digits
 import glob
@@ -533,8 +534,13 @@ def load_concentrations(plate_df, conc_dict, plate_reader):
     for curr_dilution_suffix, curr_conc_fp in conc_dict.items():
         curr_conc_df = _read_and_label_pico_csv(
             curr_conc_fp, curr_dilution_suffix, plate_reader=plate_reader)
-        a_df = pd.merge(a_df, curr_conc_df, on=PM_WELL_KEY)
+
+        a_df = merge_plate_dfs(
+            a_df, curr_conc_df, wells_col=PM_WELL_KEY,
+            plate_df_one_name="plate_df",
+            plate_df_two_name=f"{curr_dilution_suffix} conc_df")
     # next dilution suffix
+
     return a_df
 
 
@@ -1884,7 +1890,10 @@ def add_undiluted_gdna_concs(a_plate_df, undiluted_gdna_conc_fp):
         columns={SAMPLE_DNA_CONC_KEY: EXTRACTED_GDNA_CONC_KEY},
         inplace=True)
     # now merge EXTRACTED_GDNA_CONC_KEY into working_df on PM_WELL_KEY
-    working_df = pd.merge(working_df, sample_concs_df, on=PM_WELL_KEY)
+    working_df = merge_plate_dfs(working_df, sample_concs_df,
+                                 wells_col=PM_WELL_KEY,
+                                 plate_df_one_name="working_df",
+                                 plate_df_two_name="sample_concs_df")
     return working_df
 
 
@@ -2047,7 +2056,8 @@ def strip_tubecode_leading_zeroes(a_df, tubecode_col="TubeCode"):
 
 
 def compress_plates(compression_layout, sample_accession_df,
-                    well_col=PM_WELL_KEY, preserve_leading_zeroes=False):
+                    well_col=PM_WELL_KEY, preserve_leading_zeroes=False,
+                    arbitrary_mapping_df=None):
     """
     Takes the plate map file output from
     VisionMate of up to 4 racks containing
@@ -2071,6 +2081,17 @@ def compress_plates(compression_layout, sample_accession_df,
         Contains sample names and corresponding Tube IDs
     well_col: str
         Name of column with well IDs, in 'A1,P24' format
+    preserve_leading_zeroes: bool
+        If True, leading zeroes in TubeCode are preserved. Default is False.
+        Note that leading zeroes are a frequent cause of problems, so set to
+        False unless you really know what you're doing.
+    arbitrary_mapping_df: pandas DataFrame object
+        Default is None, in which case plates are compressed according to
+        an interleaved 4-quadrant layout.
+        If not None, this DataFrame is used to map positions on the 96-well
+        plates specified in the compression layout dict to positions on the
+        compressed 384-well plate.  Dataframe must contain
+        PM_PROJECT_PLATE_KEY, PM_WELL_ID_96_KEY, and PM_WELL_ID_384_KEY columns
 
     Returns:
     plate_df: pandas DataFrame object of samples compressed into 384 format
@@ -2079,7 +2100,14 @@ def compress_plates(compression_layout, sample_accession_df,
     and well_id_96 indicates 96 well positions.
     """
     compressed_plate_df = pd.DataFrame([])
-    well_mapper = PlateReplication(well_col)
+
+    if arbitrary_mapping_df is not None:
+        well_mapper = PlateRemapper(arbitrary_mapping_df)
+        plate_identifier_col = PM_PROJECT_PLATE_KEY
+    else:
+        well_mapper = PlateReplication(well_col)
+        well_mapper._reset()
+        plate_identifier_col = "Plate Position"
 
     for plate_dict_index in range(len(compression_layout)):
         idx = compression_layout[plate_dict_index]
@@ -2101,19 +2129,16 @@ def compress_plates(compression_layout, sample_accession_df,
             # If "Project Plate" is not present but "Sample Plate" is, use
             # "Sample Plate" for "Project Plate" in plate_map
             plate_map[PM_PROJECT_PLATE_KEY] = idx["Sample Plate"]
-
         # assume it is okay if neither is found.
 
         # Assign 384 well from compressed plate position
-        well_mapper._reset()
-
-        for well_96_id in plate_map["LocationCell"]:
-            well_384_id = well_mapper.get_384_well_location(
-                well_96_id, idx["Plate Position"])
-            col = "LocationCell"
-            plate_map.loc[plate_map[col] == well_96_id, well_col] = well_384_id
+        plate_map = _assign_compressed_wells_for_96_well_plate(
+            plate_map, well_mapper, idx[plate_identifier_col],
+            input_platemap_well_96_col="LocationCell",
+            output_platemap_well_384_col=well_col)
 
         compressed_plate_df = pd.concat([compressed_plate_df, plate_map])
+    # next plate index in compression layout dict
 
     if not preserve_leading_zeroes:
         sample_accession_df = \
@@ -2126,7 +2151,7 @@ def compress_plates(compression_layout, sample_accession_df,
     # Rename columns for legacy
     compressed_plate_df_merged.rename(
         columns={
-            "LocationCell": "well_id_96",
+            "LocationCell": PM_WELL_ID_96_KEY,
             "LocationColumn": "Col",
             "LocationRow": "Row",
             SAMPLE_NAME_KEY: "Sample",
@@ -2146,6 +2171,22 @@ def compress_plates(compression_layout, sample_accession_df,
                                                             list(diff)]
 
     return compressed_plate_df_merged
+
+
+def _assign_compressed_wells_for_96_well_plate(
+        plate_map, well_mapper, plate_id_for_mapper,
+        input_platemap_well_96_col, output_platemap_well_384_col):
+    output_map = plate_map.copy()
+
+    for well_96_id in plate_map[input_platemap_well_96_col]:
+        well_384_id = well_mapper.get_384_well_location(
+            well_96_id, plate_id_for_mapper)
+
+        well_mask = output_map[input_platemap_well_96_col] == well_96_id
+        output_map.loc[well_mask, output_platemap_well_384_col] = well_384_id
+    # next well_96_id
+
+    return output_map
 
 
 def _merge_accession_to_compressed_plate_df(
@@ -2423,7 +2464,7 @@ def _load_accession_df_from_dir(
         If True, leading zeroes are preserved in TubeCode column
 
     Returns:
-    pandas DataFrame object
+        pandas DataFrame object
     """
 
     file_paths = glob.glob(f"{accession_dir}/{accession_fname_pattern}")
