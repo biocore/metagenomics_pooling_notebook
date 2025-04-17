@@ -396,7 +396,7 @@ class Tests(TestCase):
             drop=True)
 
         plate_df_obs = _assign_compressed_wells_for_96_well_plate(
-            plate_map_df, remapper, "plate_4", 'Well')
+            plate_map_df, remapper, "plate_4", "LocationCell", "Well")
 
         pd.testing.assert_frame_equal(plate_df_exp, plate_df_obs)
 

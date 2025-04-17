@@ -2134,8 +2134,8 @@ def compress_plates(compression_layout, sample_accession_df,
         # Assign 384 well from compressed plate position
         plate_map = _assign_compressed_wells_for_96_well_plate(
             plate_map, well_mapper, idx[plate_identifier_col],
-            output_platemap_well_384_col=well_col,
-            input_platemap_well_96_col="LocationCell")
+            input_platemap_well_96_col="LocationCell",
+            output_platemap_well_384_col=well_col)
 
         compressed_plate_df = pd.concat([compressed_plate_df, plate_map])
     # next plate index in compression layout dict
@@ -2175,8 +2175,7 @@ def compress_plates(compression_layout, sample_accession_df,
 
 def _assign_compressed_wells_for_96_well_plate(
         plate_map, well_mapper, plate_id_for_mapper,
-        output_platemap_well_384_col,
-        input_platemap_well_96_col="LocationCell"):
+        input_platemap_well_96_col, output_platemap_well_384_col):
     output_map = plate_map.copy()
 
     for well_96_id in plate_map[input_platemap_well_96_col]:
