@@ -2313,6 +2313,11 @@ class AdditionalSampleSheetCreationTests(BaseTests):
         sheet = MetatranscriptomicSampleSheetv10(metat_fp)
         self.assertTrue(sheet.validate_and_scrub_sample_sheet())
 
+        # Metat v10 should include (and correctly parse) contains_replicates
+        self.assertTrue(
+            CONTAINS_REPLICATES_KEY in sheet.Bioinformatics.columns)
+        self.assertFalse(sheet.Bioinformatics[CONTAINS_REPLICATES_KEY].all())
+
         # confirm load_sample_sheet() returns the correct child class of
         # KLSampleSheet.
         sheet = load_sample_sheet(metat_fp)

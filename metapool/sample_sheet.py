@@ -1620,6 +1620,11 @@ class MetatranscriptomicSampleSheetv10(KLSampleSheet):
                      'total_rna_concentration_ng_ul',
                      ELUTION_VOL_KEY, 'Well_description')
 
+    _KL_ADDTL_DF_SECTIONS = MappingProxyType({
+        _BIOINFORMATICS_KEY: _BIOINFORMATICS_COLS_W_REP_SUPPORT,
+        _CONTACT_KEY: _CONTACT_COLS,
+    })
+
     _CARRIED_PREP_COLUMNS = _BASE_CARRIED_PREP_COLUMNS + (
                             'total_rna_concentration_ng_ul',
                             ELUTION_VOL_KEY)
