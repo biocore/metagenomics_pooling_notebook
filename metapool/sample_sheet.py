@@ -155,7 +155,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
     _SETTINGS = MappingProxyType({
         'ReverseComplement': '0',
         'MaskShortReads': '1',
-        'OverrideCycles': 'Y151;I8N2;I8N2;Y151'
+        'OverrideCycles': 'Y151;I8N2;N16I8;Y151'
     })
 
     _ALL_METADATA = MappingProxyType({
