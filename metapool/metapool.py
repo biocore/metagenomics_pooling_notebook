@@ -2140,6 +2140,10 @@ def compress_plates(compression_layout, sample_accession_df,
         compressed_plate_df = pd.concat([compressed_plate_df, plate_map])
     # next plate index in compression layout dict
 
+    # strip leading and/or trailing whitespace from all columns
+    sample_accession_df = sample_accession_df.map(
+        lambda x: x.strip() if isinstance(x, str) else x)
+    # if we are not preserving leading zeroes, strip those too
     if not preserve_leading_zeroes:
         sample_accession_df = \
             strip_tubecode_leading_zeroes(sample_accession_df)
@@ -2540,9 +2544,9 @@ def validate_plate_df(plate_df, metadata, sample_accession_df, blanks_dir,
     if missing_samples.empty:
         warnings.warn("All samples have associated metadata :D")
     else:
-        missing_str = ", ".join(missing_samples.astype(str))
+        missing_str = "', '".join(missing_samples.astype(str))
         warning_message = ("The following samples are missing metadata: "
-                           f"{missing_str}")
+                           f"'{missing_str}'")
         raise ValueError(warning_message)
 
     # This checks that all the tubes in our plate_df files are indeed

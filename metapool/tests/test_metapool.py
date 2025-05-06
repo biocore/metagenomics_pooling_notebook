@@ -322,8 +322,12 @@ class Tests(TestCase):
              'Plate elution volume': 70}
         ]
 
-        plate_df_obs = compress_plates(compression, self.sa_augmented_df,
-                                       well_col='Well')
+        sa_df = self.sa_augmented_df.copy()
+        # add leading and trailing space to every field of sa_df,
+        # so we can check if the code strips them correctly
+        sa_df = sa_df.map(lambda x: f" {x} " if isinstance(x, str) else x)
+
+        plate_df_obs = compress_plates(compression, sa_df, well_col='Well')
         plate_df_exp = pd.read_csv(self.comp_plate_multi_proj_on_plate_exp_fp,
                                    dtype={TUBECODE_KEY: str}, sep='\t')
 
@@ -497,7 +501,7 @@ class Tests(TestCase):
                                                '0000000000'),
                               self.metadata, self.sa_df,
                               self.blanks_dir)
-        # Raisees error for duplicate sample 41B.Month6.10
+        # Raises error for duplicate sample 41B.Month6.10
         with self.assertRaises(ValueError):
             validate_plate_df(plate_df.replace('41B.Month6.1',
                                                '41B.Month6.10'),
