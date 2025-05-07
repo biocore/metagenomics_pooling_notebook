@@ -1,4 +1,4 @@
-# metagenomics_pooling_notebook
+# kl-metapool
 
 A collection of Jupyter notebooks and modules to support the wet lab shotgun pipeline.
 
