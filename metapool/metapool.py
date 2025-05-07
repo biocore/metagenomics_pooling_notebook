@@ -2625,8 +2625,8 @@ def validate_plate_df(plate_df, metadata, sample_accession_df, blanks_dir,
     duplicated_samples = plate_df.Sample[plate_df.Sample.duplicated()]
     if len(duplicated_samples):
         raise ValueError(
-            "The following sample names are duplicated %s"
-            % ", ".join(sorted(duplicated_samples))
+            "The following sample names are duplicated: '%s'"
+            % "', '".join(sorted(duplicated_samples))
         )
 
 

@@ -136,6 +136,12 @@ class Tests(TestCase):
                              ("metapool/tests/data/good-sample-sheet.csv",
                               "syntax error: line 1, column 0", 8, ParseError)]
 
+        self.validation_plate_df = pd.read_csv(
+            self.add_controls_exp_fp_w_leading_zeroes_tubecode,
+            dtype={TUBECODE_KEY: str,
+                   'RackID': str},
+            sep='\t')
+
     def test_read_visionmate_file_err(self):
         # Raises error when tries to validate that all expected
         # columns from VisionMate file are present.
@@ -458,61 +464,6 @@ class Tests(TestCase):
 
         pd.testing.assert_frame_equal(add_controls_obs,
                                       add_controls_exp)
-
-    def test_validate_plate_df(self):
-        # Validator function. No return so just asserting
-        # that errors are raised when expected
-        plate_df = pd.read_csv(
-            self.add_controls_exp_fp_w_leading_zeroes_tubecode,
-            dtype={TUBECODE_KEY: str,
-                   'RackID': str},
-            sep='\t')
-        # Test with no errors, preserving leading zeroes
-        validate_plate_df(plate_df, self.metadata, self.sa_df,
-                          self.blanks_dir, self.katharoseq_dir,
-                          preserve_leading_zeroes=True)
-
-        # Test with no errors, not preserving leading zeroes
-        plate_df_no_zeroes = plate_df.copy()
-        plate_df_no_zeroes['TubeCode'] = \
-            plate_df_no_zeroes['TubeCode'].str.lstrip('0')
-        sa_df_no_zeroes = self.sa_df.copy()
-        sa_df_no_zeroes['TubeCode'] = \
-            sa_df_no_zeroes['TubeCode'].str.lstrip('0')
-        validate_plate_df(plate_df_no_zeroes, self.metadata, sa_df_no_zeroes,
-                          self.blanks_dir, self.katharoseq_dir)
-
-        # Test for errors
-        # Raises error for lack of katharoseq dir, tubes with no
-        # metadata
-        with self.assertRaises(ValueError):
-            validate_plate_df(plate_df, self.metadata, self.sa_df,
-                              self.blanks_dir)
-        # Raises error for sample not represented in metadata
-        with self.assertRaises(ValueError):
-            validate_plate_df(plate_df.replace('41B.Month6.1',
-                                               'not_in_metadata'),
-                              self.metadata, self.sa_df,
-                              self.blanks_dir)
-        # Raises error for TubeCode with no associated
-        # information
-        with self.assertRaises(ValueError):
-            validate_plate_df(plate_df.replace('0363132553',
-                                               '0000000000'),
-                              self.metadata, self.sa_df,
-                              self.blanks_dir)
-        # Raises error for duplicate sample 41B.Month6.10
-        with self.assertRaises(ValueError):
-            validate_plate_df(plate_df.replace('41B.Month6.1',
-                                               '41B.Month6.10'),
-                              self.metadata, self.sa_df,
-                              self.blanks_dir)
-        # Raises error for incomplete katharoseq dilution series
-        with self.assertRaises(ValueError):
-            validate_plate_df(plate_df.replace(240000.0,
-                                               1200000.0),
-                              self.metadata, self.sa_df,
-                              self.blanks_dir)
 
     def test_read_plate_map_csv(self):
         plate_map_csv = \
@@ -1902,6 +1853,78 @@ class Tests(TestCase):
         for fp, msg, adapter_length, e_type in self.bad_runinfos:
             with self.assertRaisesRegex(e_type, msg):
                 generate_override_cycles_value(fp, adapter_length)
+
+    # Validator function. No return so just asserting
+    # that errors are raised when expected
+    def test_validate_plate_df_w_leading_zeroes(self):
+        # Test with no errors, preserving leading zeroes
+        validate_plate_df(self.validation_plate_df, self.metadata, self.sa_df,
+                          self.blanks_dir, self.katharoseq_dir,
+                          preserve_leading_zeroes=True)
+
+    def test_validate_plate_df_wo_leading_zeroes(self):
+        # Test with no errors, not preserving leading zeroes
+        plate_df_no_zeroes = self.validation_plate_df.copy()
+        plate_df_no_zeroes['TubeCode'] = \
+            plate_df_no_zeroes['TubeCode'].str.lstrip('0')
+        sa_df_no_zeroes = self.sa_df.copy()
+        sa_df_no_zeroes['TubeCode'] = \
+            sa_df_no_zeroes['TubeCode'].str.lstrip('0')
+        validate_plate_df(plate_df_no_zeroes, self.metadata, sa_df_no_zeroes,
+                          self.blanks_dir, self.katharoseq_dir)
+
+    def test_validate_plate_df_err_sample_not_in_metadata(self):
+        # Raises error for sample not represented in metadata
+        err_msg = \
+            "The following samples are missing metadata: 'not_in_metadata'"
+        with self.assertRaisesRegex(ValueError, err_msg):
+            validate_plate_df(
+                self.validation_plate_df.replace(
+                    '41B.Month6.1', 'not_in_metadata'),
+                self.metadata, self.sa_df, self.blanks_dir)
+
+    def test_validate_plate_df_err_tubecode_not_in_sample_accession(self):
+        # Raises error for TubeCode with no associated sample info
+        err_msg = (
+            "The following plate_df TubeCodes are missing sample "
+            "accession information: 0000000000")
+        with self.assertRaisesRegex(ValueError, err_msg):
+            validate_plate_df(
+                self.validation_plate_df.replace('0363132553', '0000000000'),
+                self.metadata, self.sa_df, self.blanks_dir,
+                preserve_leading_zeroes=True)
+
+    def test_validate_plate_df_err_due_to_missing_katharoseq_dir(self):
+        # Raises error for TubeCodes with associated sample info caused by
+        # missing katharoseq directory
+        # NB: this is only a portion of the full message, which is very long
+        err_msg = (
+            "The following plate_df TubeCodes are missing sample "
+            "accession information: 0363159670, 0363159656, 0363159647,")
+        with self.assertRaisesRegex(ValueError, err_msg):
+            validate_plate_df(self.validation_plate_df, self.metadata,
+                              self.sa_df, self.blanks_dir,
+                              preserve_leading_zeroes=True)
+
+    def test_validate_plate_df_err_duplicate_sample(self):
+        # Raises error for duplicate sample 41B.Month6.10
+        err_msg = "The following sample names are duplicated: '41B.Month6.10'"
+        with self.assertRaisesRegex(ValueError, err_msg):
+            validate_plate_df(
+                self.validation_plate_df.replace(
+                    '41B.Month6.1', '41B.Month6.10'),
+                self.metadata, self.sa_df, self.blanks_dir,
+                self.katharoseq_dir, preserve_leading_zeroes=True)
+
+    def test_validate_plate_df_err_incomplete_katharoseq_dilution_series(self):
+        # Raises error for incomplete katharoseq dilution series
+        err_msg = ("There should be 8 dilution points of katharoseq controls "
+                   "and your plate_df only has 7")
+        with self.assertRaisesRegex(ValueError, err_msg):
+            validate_plate_df(
+                self.validation_plate_df.replace(240000.0, 1200000.0),
+                self.metadata, self.sa_df, self.blanks_dir,
+                self.katharoseq_dir, preserve_leading_zeroes=True)
 
 
 if __name__ == "__main__":
