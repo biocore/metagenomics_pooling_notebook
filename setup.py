@@ -34,7 +34,7 @@ description = 'Metagenomic pooling Jupyter notebook helper'
 with open('README.md') as f:
     long_description = f.read()
 
-keywords = 'microbiome wetlab bioinformatics',
+keywords = 'microbiome wetlab bioinformatics'
 
 base = ['qiita_client @ https://github.com/qiita-spots/qiita_client/archive/'
         'master.zip', 'biom-format >= 2.1.16', 'click >= 8.1.7',
@@ -64,13 +64,13 @@ setup(name='metapool',
       keywords=keywords,
       classifiers=classifiers,
       author="Jon Sanders",
-      maintainer="Jon Sanders",
-      url='https://github.com/tanaes/kl_metapool',
+      maintainer="Amanda Birmingham",
+      url='https://github.com/biocore/kl_metapool',
       test_suite='nose.collector',
       packages=find_packages(),
       package_data={
           'metapool': ['data/*.tsv', 'data/*.xlsx', 'tests/data/*.csv']},
-      # addingt all the notebooks fps
+      # adding all the notebooks fps
       data_files=notebooks_fp,
       install_requires=base,
       extras_require={'test': test,
