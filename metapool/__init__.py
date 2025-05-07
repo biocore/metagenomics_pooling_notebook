@@ -32,7 +32,7 @@ from .metapool import (extract_stats_metadata, sum_lanes, compress_plates,
                        strip_tubecode_leading_zeroes)
 
 
-__credits__ = ("https://github.com/biocore/metagenomics_pooling_notebook/"
+__credits__ = ("https://github.com/biocore/kl-metapool/"
                "graphs/contributors")
 
 __all__ = ['IGMManifest', 'add_controls', 'assign_emp_index', 'autopool',
