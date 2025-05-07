@@ -1,4 +1,4 @@
-# metagenomics_pooling_notebook
+# kl-metapool
 
 A collection of Jupyter notebooks and modules to support the wet lab shotgun pipeline.
 
@@ -10,7 +10,7 @@ fail without a Qiita installation.**
 To install this package, first clone the repository from GitHub:
 
 ```bash
-git clone https://github.com/biocore/metagenomics_pooling_notebook.git
+git clone https://github.com/biocore/kl-metapool.git
 ```
 
 Create a Python3 Conda environment in which to run the package:
@@ -28,7 +28,7 @@ source activate metapool
 Change directory to the downloaded repository folder and install:
 
 ```bash
-cd metagenomics_pooling_notebook
+cd kl-metapool
 pip install -e '.[all]'
 ```
 
@@ -52,7 +52,7 @@ jupyter nbextension enable toc2/main
 To run all tests, including those that depend on Qiita, type:
 
 ```bash
-cd metagenomics_pooling_notebook
+cd kl-metapool
 nosetests
 ```
 
