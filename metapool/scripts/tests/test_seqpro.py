@@ -298,8 +298,8 @@ class SeqproTests(unittest.TestCase):
             qiita_id, file_path = line.split("\t")
             # truncate full-path output to be file-system agnostic.
             file_path = re.sub(
-                "^.*metagenomics_pooling_notebook/",
-                "metagenomics_pooling_notebook/",
+                "^.*kl_metapool/",
+                "kl_metapool/",
                 file_path,
             )
             tmp.append(f"{qiita_id}\t{file_path}")
@@ -308,9 +308,9 @@ class SeqproTests(unittest.TestCase):
 
         self.assertEqual(
             (
-                "1111\tmetagenomics_pooling_notebook/metapool/tests"
+                "1111\tkl_metapool/metapool/tests"
                 "/VFTEST/200318_A00953_0082_AH5TWYDSXY.Project_1111"
-                ".1.tsv\n666\tmetagenomics_pooling_notebook"
+                ".1.tsv\n666\tkl_metapool"
                 "/metapool/tests/VFTEST/200318_A00953_0082_AH5TWYDS"
                 "XY.Trojecp_666.1.tsv"
             ),

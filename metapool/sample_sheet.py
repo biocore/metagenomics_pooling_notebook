@@ -1365,7 +1365,7 @@ class TellseqMetagSampleSheetv10(KLTellSeqSampleSheet):
     _HEADER[_ASSAY_KEY] = _METAGENOMIC
 
     # if refactoring, see:
-    # https://github.com/biocore/metagenomics_pooling_notebook/issues/263
+    # https://github.com/biocore/kl_metapool/issues/263
 
     @property
     def CARRIED_PREP_COLUMNS(self):
@@ -1380,7 +1380,7 @@ class TellseqAbsquantMetagSampleSheetv10(AbsQuantMixin, KLTellSeqSampleSheet):
     _HEADER[_ASSAY_KEY] = _METAGENOMIC
 
     # if refactoring, see:
-    # https://github.com/biocore/metagenomics_pooling_notebook/issues/263
+    # https://github.com/biocore/kl_metapool/issues/263
 
     @property
     def CARRIED_PREP_COLUMNS(self):
