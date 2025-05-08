@@ -8,7 +8,7 @@
 #   - Implements verification and logging capabilities
 #
 # Usage:
-# bash  ./deploy.sh <repo_name> <tag_name> [--dry-run] [--github-token TOKEN]
+# bash  ./deploy.sh <repo_name> <tag_name> [--dry-run]
 #############################################################
 
 # ensure error codes from upstream calls are passed through pipes
@@ -39,12 +39,10 @@ Deploy a github repo to a JupyterHub kernel environment.
 
 Options:
   --dry-run          Show what would happen without making changes
-  --github-token     GitHub API token for authentication
   --help             Show this help message and exit
 
 Example:
   $0 MyUser/my-repo 2025.05.01+testdeploy
-  $0 MyUser/my-repo 2025.05.01+testdeploy --github-token ghp_123456789
 EOF
   exit 1
 }
@@ -71,7 +69,6 @@ parse_args() {
   
   # Default values
   DRY_RUN=false
-  GITHUB_TOKEN=""
   
   # Parse optional arguments
   while [[ $# -gt 0 ]]; do
@@ -79,11 +76,6 @@ parse_args() {
       --dry-run)
         DRY_RUN=true
         log "INFO" "Dry run mode enabled - no changes will be made"
-        ;;
-      --github-token)
-        GITHUB_TOKEN="$2"
-        log "INFO" "GitHub token provided"
-        shift
         ;;
       --help)
         show_usage
@@ -187,32 +179,6 @@ EOF
   return 0
 }
 
-# Create backup of current state
-create_backup() {
-  local backup_dir="jupyterhub_backup_$(date +%Y%m%d_%H%M%S)"
-  
-  log "INFO" "Creating backup in $backup_dir"
-  
-  if [ "$DRY_RUN" = true ]; then
-    log "INFO" "DRY RUN: Would create backup in $backup_dir"
-    return
-  fi
-  
-  mkdir -p "$backup_dir"
-  
-  # Save kernel specs
-  jupyter kernelspec list --json > "$backup_dir/kernelspecs.json"
-  
-  # Save kernel to environment mapping
-  for kernel in $(jupyter kernelspec list | grep -v "Available" | awk '{print $1}'); do
-    env=$(get_kernel_env "$kernel")
-    echo "$kernel: $env" >> "$backup_dir/kernel_env_mapping.txt"
-  done
-  
-  log "INFO" "Backup created in $backup_dir"
-  BACKUP_DIR="$backup_dir"
-}
-
 # Report if deployment fails
 report() {
   local message=$1
@@ -249,12 +215,7 @@ setup_new_environment() {
   log "INFO" "Cloning repository to get requirements..."
   
   # Note that lightweight cloning (e.g. --depth 1) that leaves out full history only works for lightweight (not annotated) tags
-  if [ -n "$GITHUB_TOKEN" ]; then
-    GITHUB_URL="https://$GITHUB_TOKEN@github.com/$GITHUB_REPO"
-  else
-    GITHUB_URL="https://github.com/$GITHUB_REPO" 
-  fi
-
+  GITHUB_URL="https://github.com/$GITHUB_REPO"
   git clone --depth 1 --branch "$DEPLOY_TAG" "$GITHUB_URL" "$TEMP_DIR" || report "Failed to clone repository"
 
   
@@ -294,10 +255,6 @@ main() {
     log "ERROR" "Kernel '$DEPLOY_NAME' already exists"
     exit 1
   fi
-
-  # TODO: decide whether to make a backup for this workflow
-  # Create backup before making changes
-  # create_backup
   
   # Setup new environment
   setup_new_environment
