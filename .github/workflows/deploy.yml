@@ -27,6 +27,6 @@ jobs:
       - name: Run deploy script
         shell: bash -l {0}
         run: |
-          create --yes -n deploytest python=${{ matrix.python-version }} git jupyter
+          conda create --yes -n deploytest python=${{ matrix.python-version }} git jupyter
           conda activate deploytest
           ./deploy.sh "${{ github.repository }}" "${{ github.ref_name }}"
