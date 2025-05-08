@@ -4,7 +4,8 @@ name: Deploy on Tag
 on:
   push:
     tags:
-      - 'v*'
+      - '*'          # match any single-level tag
+      - '*/*'        # also match nested tag names like `releases/1.0.0`
 
 jobs:
   call-ci:
