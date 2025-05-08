@@ -138,7 +138,7 @@ jobs:
       - name: Check deploy script syntax
         run: bash -n ./myscript.sh
       - name: Lint bash scripts with ShellCheck
-        uses: ludeeus/action-shellcheck@v2
+        uses: ludeeus/action-shellcheck@master
 
       - name: Coveralls
         uses: AndreMiras/coveralls-python-action@develop
