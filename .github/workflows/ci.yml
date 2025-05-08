@@ -136,7 +136,7 @@ jobs:
           conda activate metapool
           flake8 metapool setup.py
       - name: Check deploy script syntax
-        run: bash -n ./myscript.sh
+        run: bash -n ./deploy.sh
       - name: Lint bash scripts with ShellCheck
         uses: ludeeus/action-shellcheck@master
 
