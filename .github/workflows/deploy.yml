@@ -17,6 +17,13 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          activate-environment: tester
+          python-version: ${{ matrix.python-version }}
+          conda-channels: anaconda, conda-forge, bioconda
+          auto-update-conda: true
+
       - name: Run deploy script
         shell: bash -l {0}
         run: |
