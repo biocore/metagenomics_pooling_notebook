@@ -138,10 +138,11 @@ jobs:
       - name: Check deploy script syntax
         run: bash -n ./deploy.sh
       - name: Lint bash scripts with ShellCheck
-        # Only fail check on warnings or errors
+        # Only check for (and thus fail on) on warnings or errors
         uses: ludeeus/action-shellcheck@master
         with:
           severity: warning
+          ignore_paths: ./qiita-dev/test_data_studies/commands.sh
 
       - name: Coveralls
         uses: AndreMiras/coveralls-python-action@develop
