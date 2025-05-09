@@ -1,17 +1,6 @@
-name: Metapool CI
-
-# Controls when the action will run.
+name: Core Metapool CI Workflow
 on:
-  # Triggers the workflow on pull request and push events, only on the master
-  # branch
-  pull_request:
-    branches:
-      - master
-      - beta
-  push:
-    branches: 
-      - master
-      - beta
+  workflow_call:
 
 jobs:
   # name of job
@@ -146,6 +135,14 @@ jobs:
         run: |
           conda activate metapool
           flake8 metapool setup.py
+      - name: Check deploy script syntax
+        run: bash -n ./deploy.sh
+      - name: Lint bash scripts with ShellCheck
+        # Only check for (and thus fail on) on warnings or errors
+        uses: ludeeus/action-shellcheck@master
+        with:
+          severity: warning
+          ignore_paths: ./qiita-dev/test_data_studies/commands.sh
 
       - name: Coveralls
         uses: AndreMiras/coveralls-python-action@develop
