@@ -118,9 +118,6 @@ verify_environment() {
   local kernel_name=$2
   
   log "INFO" "Verifying environment '$env_name' and kernel '$kernel_name'"
-
-  # TODO: remove fake fail inserted for testing
-  return 1
   
   # Check if environment exists
   if ! conda info --envs | awk '{print $1}' | grep -Fxq "$env_name"; then

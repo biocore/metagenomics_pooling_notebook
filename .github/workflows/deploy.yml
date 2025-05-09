@@ -16,8 +16,7 @@ jobs:
     strategy:
       matrix:
         python-version: ['3.9']
-    # TODO: put back in call-ci after debugging
-    # needs: call-ci
+    needs: call-ci
     steps:
       - uses: actions/checkout@v3
 
