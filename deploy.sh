@@ -42,7 +42,7 @@ Options:
   --help             Show this help message and exit
 
 Example:
-  $0 MyUser/my-repo 2025.05.01+testdeploy
+  $0 MyUser/my-repo 2025.05.1+testdeploy
 EOF
   exit 1
 }
@@ -118,6 +118,9 @@ verify_environment() {
   local kernel_name=$2
   
   log "INFO" "Verifying environment '$env_name' and kernel '$kernel_name'"
+
+  # TODO: remove fake fail inserted for testing
+  return 1
   
   # Check if environment exists
   if ! conda info --envs | awk '{print $1}' | grep -Fxq "$env_name"; then
