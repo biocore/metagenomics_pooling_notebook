@@ -1,15 +1,15 @@
 #!/bin/bash
 
-#############################################################
+#########################################################################
 # JupyterHub Environment and Kernel Deployment Script
 #
 # Purpose:
-#   Deploy a github repo to a JupyterHub kernel environment
+#   Deploy a github repo to a new conda environment and JupyterHub kernel
 #   - Implements verification and logging capabilities
 #
 # Usage:
-# bash  ./deploy.sh <repo_name> <tag_name> [--dry-run]
-#############################################################
+# bash  ./deploy.sh <repo_name> <tag_name> [kernel_prefix] [--dry-run]
+##########################################################################
 
 # ensure error codes from upstream calls are passed through pipes
 set -euo pipefail
@@ -17,25 +17,19 @@ set -euo pipefail
 # Configuration
 LOG_FILE="deployment_$(date +%Y%m%d_%H%M%S).log"
 
-# Initialize logging
-setup_logging() {
-  exec > >(tee -a "$LOG_FILE") 2>&1
-  echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] Starting deployment script"
-}
-
-# Log message with level
-log() {
-  local level=$1
-  local message=$2
-  echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $message"
-}
-
 # Function to show usage instructions
 show_usage() {
   cat << EOF
-Usage: $0 <repo_name> <tag_name> [OPTIONS]
+Usage: $0 <repo_name> <tag_name> [kernel_prefix] [OPTIONS]
 
-Deploy a github repo to a JupyterHub kernel environment.
+Deploy a github repo to a new conda environment and JupyterHub kernel.
+
+Positional arguments:
+  repo_name          GitHub repository name (e.g., MyUser/my-repo)
+  tag_name           Git tag or branch to deploy (e.g., 2025.05.1+testdeploy)
+  kernel_prefix      (Optional) Path to install the Jupyter kernel spec
+                     (e.g., /shared/local).  Necessary for installing kernels
+                     to a system-wide shared location.
 
 Options:
   --dry-run          Show what would happen without making changes
@@ -43,13 +37,8 @@ Options:
 
 Example:
   $0 MyUser/my-repo 2025.05.1+testdeploy
+  $0 MyUser/my-repo 2025.05.1+testdeploy /shared/local --dry-run
 EOF
-  exit 1
-}
-
-# Exit with error message
-error_exit() {
-  log "ERROR" "$1"
   exit 1
 }
 
@@ -65,7 +54,15 @@ parse_args() {
 
   DEPLOY_TAG=$1
   shift
-  
+
+    # Check if next arg is the optional kernel prefix (i.e., not a flag like --dry-run)
+  if [[ $# -gt 0 && "$1" != --* ]]; then
+    KERNEL_PREFIX=$1
+    shift
+  else
+    KERNEL_PREFIX=""
+  fi
+
   
   # Default values
   DRY_RUN=false
@@ -81,11 +78,31 @@ parse_args() {
         show_usage
         ;;
       *)
-        error_exit "Unknown option: $1"
+        echo "Unrecognized input: $1"
+        exit 1
         ;;
     esac
     shift
   done
+}
+
+# Log message with level
+log() {
+  local level=$1
+  local message=$2
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $message"
+}
+
+# Initialize logging
+setup_logging() {
+  exec > >(tee -a "$LOG_FILE") 2>&1
+  log "INFO" "Starting deployment script..."
+}
+
+# Exit with error message
+error_exit() {
+  log "ERROR" "$1"
+  exit 1
 }
 
 # Check dependencies
@@ -93,7 +110,7 @@ check_dependencies() {
   log "INFO" "Checking dependencies..."
   
   # NB: these are just the dependencies to run this script, not the dependencies for the lab notebooks
-  for cmd in conda jupyter jq curl git python; do
+  for cmd in conda git python; do
     if ! command -v $cmd &> /dev/null; then
       error_exit "Required command not found: $cmd"
     fi
@@ -102,22 +119,100 @@ check_dependencies() {
   log "INFO" "All dependencies are available"
 }
 
+# Format kernels directory path
+format_kernels_dir() {
+  local formatted_prefix="$1"
+  if [[ -n "$formatted_prefix" ]]; then
+    formatted_prefix=$(echo "$formatted_prefix" | sed 's:/*$::') # Remove trailing slashes
+    formatted_prefix="$formatted_prefix/share/jupyter/kernels/"
+  fi
+  echo "$formatted_prefix"
+}
+
 
 # Check if kernel exists
 kernel_exists() {
   local kernel_name=$1
-  log "INFO" "Checking if kernel '$kernel_name' exists"
-  jupyter kernelspec list --json | jq -e --arg name "$kernel_name" '.kernelspecs[$name]' > /dev/null
-  return $?
+
+  # Check if the kernels directory exists
+  local formatted_kernel_dir=$(format_kernels_dir "$KERNEL_PREFIX")
+  if [ ! -d "$formatted_kernel_dir" ]; then
+      log "ERROR" "Jupyter kernels directory not found at $formatted_kernel_dir"
+      return 1
+  fi
+
+  # Get all directories in the kernels directory
+  local found=0
+  for dir in "$formatted_kernel_dir"/*; do
+      if [ -d "$dir" ]; then
+          # Extract just the kernel name (basename)
+          local name=$(basename "$dir")
+
+          # Check if it matches the input
+          if [ "$name" = "$kernel_name" ]; then
+              echo 1 # Kernel exists
+              return 0  # Function succeeded
+          fi
+      fi
+  done
+
+  echo 0 # Kernel does not exist
+  return 0  # Function succeeded
 }
 
+# Create and set up new environment
+setup_new_environment() {
+  # Create environment name based on deploy type
+  log "INFO" "Setting up new environment '$DEPLOY_NAME'..."
+
+  local prefix_arg=""
+  local kernel_msg="DRY_RUN: Would install kernel '$DEPLOY_NAME'"
+  if [[ -n "$KERNEL_PREFIX" ]]; then
+    local formatted_kernel_dir=$(format_kernels_dir "$KERNEL_PREFIX")
+    kernel_msg="$kernel_msg into '$formatted_kernel_dir'"
+    prefix_arg="--prefix=$formatted_kernel_dir"
+  fi
+
+  if [ "$DRY_RUN" = true ]; then
+    log "INFO" "DRY RUN: Would create conda environment '$DEPLOY_NAME', then install requirements and repo '$GITHUB_REPO'"
+    log "INFO" "$kernel_msg"
+    return
+  fi
+
+  # Clone the repository to get requirements
+  TEMP_DIR=$(mktemp -d)
+  log "INFO" "Cloning repository to get requirements..."
+
+  # Note that lightweight cloning (e.g. --depth 1) that leaves out full history only works for lightweight (not annotated) tags
+  GITHUB_URL="https://github.com/$GITHUB_REPO"
+  git clone --depth 1 --branch "$DEPLOY_TAG" "$GITHUB_URL" "$TEMP_DIR" || report "Failed to clone repository"
+
+  # Create new conda environment from environment.yml
+  if [ -f "$TEMP_DIR/environment.yml" ]; then
+    log "INFO" "Found environment.yml, installing conda environment and dependencies..."
+    conda env create --file "$TEMP_DIR/environment.yml" --name "$DEPLOY_NAME"  || report "Failed to install from environment.yml"
+  else
+    report "Could not find environment.yml"
+  fi
+
+  # Install the repo
+  log "INFO" "Installing repo $GITHUB_REPO"
+  conda run -n "$DEPLOY_NAME" pip install "git+$GITHUB_URL@$DEPLOY_TAG" || rollback "Failed to install repo" "$DEPLOY_NAME"
+
+  # Install the kernel; send to a specific directory iff KERNEL_PREFIX is set
+  log "INFO" "Installing kernel $DEPLOY_NAME pointing to environment $DEPLOY_NAME..."
+  conda run -n "$DEPLOY_NAME" python -m ipykernel install --user --name="$DEPLOY_NAME" --display-name="$DEPLOY_NAME" "$prefix_arg" || rollback "Failed to install kernel" "$DEPLOY_NAME"
+
+  # Clean up
+  rm -rf "$TEMP_DIR"
+}
 
 # Verify a newly installed environment
 verify_environment() {
   local env_name=$1
   local kernel_name=$2
   
-  log "INFO" "Verifying environment '$env_name' and kernel '$kernel_name'"
+  log "INFO" "Verifying environment '$env_name' and kernel '$kernel_name'..."
   
   # Check if environment exists
   if ! conda info --envs | awk '{print $1}' | grep -Fxq "$env_name"; then
@@ -126,7 +221,11 @@ verify_environment() {
   fi
   
   # Check if kernel exists
-  if ! kernel_exists "$kernel_name"; then
+  exists=$(kernel_exists "$kernel_name")
+  if [ $? -ne 0 ]; then
+    log "ERROR" "Error checking kernel existence"
+    return 1
+  elif [ "$exists" -eq 0 ]; then
     log "ERROR" "Kernel '$kernel_name' not found"
     return 1
   fi
@@ -162,14 +261,14 @@ verify_environment() {
 }
 EOF
 
-  log "INFO" "Execute temporary notebook '$TEMP_NOTEBOOK'"
+  log "INFO" "Executing temporary notebook '$TEMP_NOTEBOOK'..."
   
   # Execute the notebook
   if ! jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=60 "$TEMP_NOTEBOOK"; then
     log "ERROR" "Kernel verification failed - kernel could not execute notebook"
 
-    log "INFO" "Removing kernel '$DEPLOY_NAME'"
-    jupyter kernelspec remove -f "$DEPLOY_NAME"
+    log "WARNING" "Removing kernel '$kernel_name' due to error ..."
+    jupyter kernelspec remove -f "$kernel_name" || log "ERROR" "Failed to clean up kernel '$kernel_name'"
     rm -r "$TEMP_DIR"
     return 1
   fi
@@ -182,9 +281,7 @@ EOF
 # Report if deployment fails
 report() {
   local message=$1
-  
-  log "ERROR" "Deployment failed: $message"
-  exit 1
+  error_exit "Deployment failed: $message"
 }
 
 # Undo creation of environment if downstream steps fail
@@ -192,51 +289,9 @@ rollback() {
     local message=$1
     local deploy_name=$2
 
-    log "WARNING" "removing conda environment $deploy_name"
+    log "WARNING" "Removing conda environment '$deploy_name' due to error..."
     conda remove -n "$deploy_name" --all -y
     report $message
-}
-
-
-# Create and set up new environment
-setup_new_environment() {
-  
-  # Create environment name based on deploy type
-  log "INFO" "Setting up new environment: $DEPLOY_NAME"
-  
-  if [ "$DRY_RUN" = true ]; then
-    log "INFO" "DRY RUN: Would create conda environment $DEPLOY_NAME and install requirements and repo $GITHUB_REPO"
-    log "INFO" "DRY RUN: Would create kernel $DEPLOY_NAME"
-    return
-  fi
-  
-  # Clone the repository to get requirements
-  TEMP_DIR=$(mktemp -d)
-  log "INFO" "Cloning repository to get requirements..."
-  
-  # Note that lightweight cloning (e.g. --depth 1) that leaves out full history only works for lightweight (not annotated) tags
-  GITHUB_URL="https://github.com/$GITHUB_REPO"
-  git clone --depth 1 --branch "$DEPLOY_TAG" "$GITHUB_URL" "$TEMP_DIR" || report "Failed to clone repository"
-
-  
-  # Create new conda environment from environment.yml
-  if [ -f "$TEMP_DIR/environment.yml" ]; then
-    log "INFO" "Found environment.yml, installing conda environment and dependencies ..."
-    conda env create --file "$TEMP_DIR/environment.yml" --name "$DEPLOY_NAME"  || report "Failed to install from environment.yml"
-  else
-    report "Could not find environment.yml"
-  fi
-
-  # Install the repo
-  log "INFO" "Installing repo $GITHUB_REPO"
-  conda run -n "$DEPLOY_NAME" pip install "git+$GITHUB_URL@$DEPLOY_TAG" || rollback "Failed to install repo" "$DEPLOY_NAME"
-
-  # Install the kernel
-  log "INFO" "Installing kernel $DEPLOY_NAME pointing to environment $DEPLOY_NAME..."
-  conda run -n "$DEPLOY_NAME" python -m ipykernel install --user --name="$DEPLOY_NAME" --display-name="$DEPLOY_NAME" || rollback "Failed to install kernel" "$DEPLOY_NAME"
-  
-  # Clean up
-  rm -rf "$TEMP_DIR"
 }
 
 # Main function
@@ -246,17 +301,23 @@ main() {
   setup_logging
   check_dependencies
   
-  log "INFO" "Starting deployment for tag '$DEPLOY_TAG'"
-  
+  log "INFO" "Starting deployment for tag '$DEPLOY_TAG'..."
+
+  # Replace literal periods (.) and plus signs (+) in the tag name with underscores (_)
   DEPLOY_NAME=$(echo "$DEPLOY_TAG" | sed 's/[.+]/_/g')
   
-  # Check for existing kernel
-  if kernel_exists $DEPLOY_NAME; then
-    log "ERROR" "Kernel '$DEPLOY_NAME' already exists"
-    exit 1
+  # Check for existing kernel iff a kernel prefix is provided
+  if [[ -n "$KERNEL_PREFIX" ]]; then
+    log "INFO" "Checking for existing kernel '$DEPLOY_NAME'..."
+    exists=$(kernel_exists "$DEPLOY_NAME")
+    if [ $? -ne 0 ]; then
+      error_exit "Error checking kernel existence"
+    elif [ "$exists" -eq 1 ]; then
+      error_exit "Kernel '$DEPLOY_NAME' already exists"
+    fi
   fi
   
-  # Setup new environment
+  # Set up new environment
   setup_new_environment
   
   # Verify the new environment and kernel
@@ -267,7 +328,7 @@ main() {
       rollback "Environment verification failed" "$DEPLOY_NAME"
     fi
   else
-    log "INFO" "DRY RUN: Would verify environment $DEPLOY_NAME and kernel $DEPLOY_NAME"
+    log "INFO" "DRY RUN: Would verify environment '$DEPLOY_NAME' and kernel '$DEPLOY_NAME'"
   fi
   
   log "INFO" "Deployment successful!"
