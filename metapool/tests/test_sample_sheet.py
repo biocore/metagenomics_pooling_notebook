@@ -1461,7 +1461,7 @@ class SampleSheetWorkflow(BaseTests):
         settings = {
             'ReverseComplement': '0',
             'MaskShortReads': '1',
-            'OverrideCycles': 'Y151;I8N2;I8N2;Y151'
+            'OverrideCycles': 'Y151;I8N2;N16I8;Y151'
         }
         self.assertEqual(obs.Settings, settings)
 
@@ -1509,7 +1509,7 @@ class SampleSheetWorkflow(BaseTests):
         self.assertDictEqual(dict(obs.Settings),
                              {'ReverseComplement': '0',
                               'MaskShortReads': '1',
-                              'OverrideCycles': 'Y151;I8N2;I8N2;Y151'})
+                              'OverrideCycles': 'Y151;I8N2;N16I8;Y151'})
 
         pd.testing.assert_frame_equal(obs.Bioinformatics, exp_bfx)
         pd.testing.assert_frame_equal(obs.Contact, exp_contact)
