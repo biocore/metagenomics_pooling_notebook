@@ -19,9 +19,9 @@ dependencies:
   - seqtk[version='>=1.4']
   - nose
   - scikit-learn
+  - biom-format
   - flake8
   - pip:
-      - biom-format
       - click
       - coverage
       - coveralls

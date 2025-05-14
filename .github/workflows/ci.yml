@@ -49,7 +49,7 @@ jobs:
         with:
           activate-environment: tester
           python-version: ${{ matrix.python-version }}
-          conda-channels: anaconda, conda-forge, bioconda
+          channels: anaconda, conda-forge, bioconda, defaults
           auto-update-conda: true
 
       - name: Install Qiita
@@ -148,7 +148,7 @@ jobs:
         uses: AndreMiras/coveralls-python-action@develop
         with:
           parallel: true
-          flag-name: Unit Test
+          flag-name: Run tests and measure coverage
 
   coveralls_finish:
     needs: build
