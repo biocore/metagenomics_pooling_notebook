@@ -166,13 +166,11 @@ setup_new_environment() {
   # Create environment name based on deploy type
   log "INFO" "Setting up new environment '$DEPLOY_NAME'..."
 
-  local prefix_arg=""
+  local formatted_kernel_dir=""
   local kernel_msg="DRY_RUN: Would install kernel '$DEPLOY_NAME'"
   if [[ -n "$KERNEL_PREFIX" ]]; then
-    local formatted_kernel_dir=""
     formatted_kernel_dir=$(format_kernels_dir "$KERNEL_PREFIX")
     kernel_msg="$kernel_msg into '$formatted_kernel_dir'"
-    prefix_arg="--prefix=$formatted_kernel_dir"
   fi
 
   if [ "$DRY_RUN" = true ]; then
@@ -203,7 +201,7 @@ setup_new_environment() {
 
   # Install the kernel; send to a specific directory iff KERNEL_PREFIX is set
   log "INFO" "Installing kernel $DEPLOY_NAME pointing to environment $DEPLOY_NAME..."
-  conda run -n "$DEPLOY_NAME" python -m ipykernel install --user --name="$DEPLOY_NAME" --display-name="$DEPLOY_NAME" "$prefix_arg" || rollback "Failed to install kernel" "$DEPLOY_NAME"
+  conda run -n "$DEPLOY_NAME" python -m ipykernel install --user --name="$DEPLOY_NAME" --display-name="$DEPLOY_NAME" ${formatted_kernel_dir:+--prefix "$formatted_kernel_dir"} || rollback "Failed to install kernel" "$DEPLOY_NAME"
 
   # Clean up
   rm -rf "$TEMP_DIR"
