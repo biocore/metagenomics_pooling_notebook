@@ -135,18 +135,19 @@ kernel_exists() {
   local kernel_name=$1
 
   # Check if the kernels directory exists
-  local formatted_kernel_dir=$(format_kernels_dir "$KERNEL_PREFIX")
+  local formatted_kernel_dir=""
+  formatted_kernel_dir=$(format_kernels_dir "$KERNEL_PREFIX")
   if [ ! -d "$formatted_kernel_dir" ]; then
       log "ERROR" "Jupyter kernels directory not found at $formatted_kernel_dir"
       return 1
   fi
 
   # Get all directories in the kernels directory
-  local found=0
   for dir in "$formatted_kernel_dir"/*; do
       if [ -d "$dir" ]; then
           # Extract just the kernel name (basename)
-          local name=$(basename "$dir")
+          local name=""
+          name=$(basename "$dir")
 
           # Check if it matches the input
           if [ "$name" = "$kernel_name" ]; then
@@ -168,7 +169,8 @@ setup_new_environment() {
   local prefix_arg=""
   local kernel_msg="DRY_RUN: Would install kernel '$DEPLOY_NAME'"
   if [[ -n "$KERNEL_PREFIX" ]]; then
-    local formatted_kernel_dir=$(format_kernels_dir "$KERNEL_PREFIX")
+    local formatted_kernel_dir=""
+    formatted_kernel_dir=$(format_kernels_dir "$KERNEL_PREFIX")
     kernel_msg="$kernel_msg into '$formatted_kernel_dir'"
     prefix_arg="--prefix=$formatted_kernel_dir"
   fi
