@@ -49,7 +49,7 @@ jobs:
         with:
           activate-environment: tester
           python-version: ${{ matrix.python-version }}
-          channels: anaconda, conda-forge, bioconda
+          channels: anaconda, conda-forge, bioconda, defaults
           auto-update-conda: true
 
       - name: Install Qiita
