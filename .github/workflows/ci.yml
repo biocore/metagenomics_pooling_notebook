@@ -148,7 +148,7 @@ jobs:
         uses: AndreMiras/coveralls-python-action@develop
         with:
           parallel: true
-          flag-name: Unit Test
+          flag-name: Run tests and measure coverage
 
   coveralls_finish:
     needs: build
