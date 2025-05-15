@@ -137,25 +137,27 @@ kernel_exists() {
   # Check if the kernels directory exists
   local formatted_kernel_dir=""
   formatted_kernel_dir=$(format_kernels_dir "$KERNEL_PREFIX")
-  if [ ! -d "$formatted_kernel_dir" ]; then
-      log "ERROR" "Jupyter kernels directory not found at $formatted_kernel_dir"
-      return 1
+  if [[ -n "$formatted_kernel_dir" ]]; then
+    if [ ! -d "$formatted_kernel_dir" ]; then
+        log "ERROR" "Jupyter kernels directory not found at $formatted_kernel_dir"
+        return 1
+    fi
+
+    # Get all directories in the kernels directory
+    for dir in "$formatted_kernel_dir"/*; do
+        if [ -d "$dir" ]; then
+            # Extract just the kernel name (basename)
+            local name=""
+            name=$(basename "$dir")
+
+            # Check if it matches the input
+            if [ "$name" = "$kernel_name" ]; then
+                echo 1 # Kernel exists
+                return 0  # Function succeeded
+            fi
+        fi
+    done
   fi
-
-  # Get all directories in the kernels directory
-  for dir in "$formatted_kernel_dir"/*; do
-      if [ -d "$dir" ]; then
-          # Extract just the kernel name (basename)
-          local name=""
-          name=$(basename "$dir")
-
-          # Check if it matches the input
-          if [ "$name" = "$kernel_name" ]; then
-              echo 1 # Kernel exists
-              return 0  # Function succeeded
-          fi
-      fi
-  done
 
   echo 0 # Kernel does not exist
   return 0  # Function succeeded
@@ -201,7 +203,7 @@ setup_new_environment() {
 
   # Install the kernel; send to a specific directory iff KERNEL_PREFIX is set
   log "INFO" "Installing kernel $DEPLOY_NAME pointing to environment $DEPLOY_NAME..."
-  conda run -n "$DEPLOY_NAME" python -m ipykernel install --user --name="$DEPLOY_NAME" --display-name="$DEPLOY_NAME" ${formatted_kernel_dir:+--prefix "$formatted_kernel_dir"} || rollback "Failed to install kernel" "$DEPLOY_NAME"
+  conda run -n "$DEPLOY_NAME" python -m ipykernel install --name="$DEPLOY_NAME" --display-name="$DEPLOY_NAME" ${prefix_arg:+--prefix="$formatted_kernel_dir"}${prefix_arg:---sys-prefix} || rollback "Failed to install kernel" "$DEPLOY_NAME"
 
   # Clean up
   rm -rf "$TEMP_DIR"
@@ -308,7 +310,7 @@ main() {
   
   # Check for existing kernel iff a kernel prefix is provided
   if [[ -n "$KERNEL_PREFIX" ]]; then
-    log "INFO" "Checking for existing kernel '$DEPLOY_NAME'..."
+    log "INFO" "Checking for pre-existing kernel '$DEPLOY_NAME'..."
     exists=$(kernel_exists "$DEPLOY_NAME")
     if [ $? -ne 0 ]; then
       error_exit "Error checking kernel existence"
