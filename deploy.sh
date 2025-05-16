@@ -58,6 +58,7 @@ parse_args() {
     # Check if next arg is the optional kernel prefix (i.e., not a flag like --dry-run)
   if [[ $# -gt 0 && "$1" != --* ]]; then
     KERNEL_PREFIX=$1
+    KERNEL_PREFIX=$(echo "$KERNEL_PREFIX" | sed 's:/*$::') # Remove trailing slashes
     shift
   else
     KERNEL_PREFIX=""
@@ -121,23 +122,25 @@ check_dependencies() {
 
 # Format kernels directory path
 format_kernels_dir() {
-  local formatted_prefix="$1"
-  if [[ -n "$formatted_prefix" ]]; then
-    formatted_prefix=$(echo "$formatted_prefix" | sed 's:/*$::') # Remove trailing slashes
-    formatted_prefix="$formatted_prefix/share/jupyter/kernels/"
+  local a_kernel_prefix="$1"
+  local kernels_dir=""
+  if [[ -n "$a_kernel_prefix" ]]; then
+    kernels_dir="$a_kernel_prefix/share/jupyter/kernels/"
   fi
-  echo "$formatted_prefix"
+  echo "$kernels_dir"
 }
 
 
 # Check if kernel exists
 kernel_exists() {
   local kernel_name=$1
+  log "INFO" "Checking if kernel '$kernel_name' exists for prefix '$KERNEL_PREFIX'..."
 
   # Check if the kernels directory exists
   local formatted_kernel_dir=""
   formatted_kernel_dir=$(format_kernels_dir "$KERNEL_PREFIX")
   if [[ -n "$formatted_kernel_dir" ]]; then
+    log "INFO" "Checking for existing kernel in $formatted_kernel_dir"
     if [ ! -d "$formatted_kernel_dir" ]; then
         log "ERROR" "Jupyter kernels directory not found at $formatted_kernel_dir"
         return 1
@@ -168,16 +171,9 @@ setup_new_environment() {
   # Create environment name based on deploy type
   log "INFO" "Setting up new environment '$DEPLOY_NAME'..."
 
-  local formatted_kernel_dir=""
-  local kernel_msg="DRY_RUN: Would install kernel '$DEPLOY_NAME'"
-  if [[ -n "$KERNEL_PREFIX" ]]; then
-    formatted_kernel_dir=$(format_kernels_dir "$KERNEL_PREFIX")
-    kernel_msg="$kernel_msg into '$formatted_kernel_dir'"
-  fi
-
   if [ "$DRY_RUN" = true ]; then
     log "INFO" "DRY RUN: Would create conda environment '$DEPLOY_NAME', then install requirements and repo '$GITHUB_REPO'"
-    log "INFO" "$kernel_msg"
+    log "INFO" "DRY_RUN: Would install kernel '$DEPLOY_NAME'"
     return
   fi
 
@@ -201,9 +197,13 @@ setup_new_environment() {
   log "INFO" "Installing repo $GITHUB_REPO"
   conda run -n "$DEPLOY_NAME" pip install "git+$GITHUB_URL@$DEPLOY_TAG" || rollback "Failed to install repo" "$DEPLOY_NAME"
 
-  # Install the kernel; send to a specific directory iff KERNEL_PREFIX is set
-  log "INFO" "Installing kernel $DEPLOY_NAME pointing to environment $DEPLOY_NAME..."
-  conda run -n "$DEPLOY_NAME" python -m ipykernel install --name="$DEPLOY_NAME" --display-name="$DEPLOY_NAME" ${prefix_arg:+--prefix="$formatted_kernel_dir"}${prefix_arg:---sys-prefix} || rollback "Failed to install kernel" "$DEPLOY_NAME"
+  # Install the kernel; send to user-specified directory iff KERNEL_PREFIX is set else to new conda env
+  if [ -z "$KERNEL_PREFIX" ]; then
+    KERNEL_PREFIX=$(conda run -n "$DEPLOY_NAME" python -c 'import sys; print(sys.prefix)')
+  fi
+
+  log "INFO" "Installing kernel $DEPLOY_NAME pointing to environment $DEPLOY_NAME in $KERNEL_PREFIX ..."
+  conda run -n "$DEPLOY_NAME" python -m ipykernel install --name="$DEPLOY_NAME" --display-name="$DEPLOY_NAME" --prefix="$KERNEL_PREFIX" || rollback "Failed to install kernel" "$DEPLOY_NAME"
 
   # Clean up
   rm -rf "$TEMP_DIR"
@@ -264,20 +264,26 @@ verify_environment() {
 EOF
 
   log "INFO" "Executing temporary notebook '$TEMP_NOTEBOOK'..."
-  
-  # Execute the notebook
+
+  # Activate the conda environment and run the notebook
+  eval "$(conda shell.bash hook)"
+  conda activate "$DEPLOY_NAME"
+
+  local return_value
   if ! jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=60 "$TEMP_NOTEBOOK"; then
     log "ERROR" "Kernel verification failed - kernel could not execute notebook"
 
     log "WARNING" "Removing kernel '$kernel_name' due to error ..."
     jupyter kernelspec remove -f "$kernel_name" || log "ERROR" "Failed to clean up kernel '$kernel_name'"
-    rm -r "$TEMP_DIR"
-    return 1
+    return_value=1
+  else
+    log "INFO" "Environment and kernel verification successful"
+    return_value=0
   fi
-   
+
+  conda deactivate
   rm -r "$TEMP_DIR"
-  log "INFO" "Environment and kernel verification successful"
-  return 0
+  return $return_value
 }
 
 # Report if deployment fails
