@@ -46,8 +46,7 @@ test = ['nose >= 1.3.7', 'pep8 >= 1.7.1', 'flake8 >= 7.1.1']
 
 coverage = ['coverage >= 7.6.8']
 
-notebook = ['jupyter >= 1.1.1', 'jupyter_contrib_nbextensions >= 0.7.0',
-            'notebook >= 6.5.7', 'watermark >= 2.5.0']
+notebook = ['jupyter >= 1.1.1', 'notebook >= 6.5.7', 'watermark >= 2.5.0']
 
 all_deps = base + test + coverage + notebook
 

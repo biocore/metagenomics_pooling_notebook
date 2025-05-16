@@ -25,7 +25,6 @@ dependencies:
       - click
       - coverage
       - coveralls
-      - jupyter_contrib_nbextensions
       - ipykernel
       - sample-sheet
       - watermark
