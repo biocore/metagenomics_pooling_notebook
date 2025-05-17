@@ -30,8 +30,8 @@ jobs:
       - name: Run deploy script
         shell: bash -l {0}
         run: |
-          conda create --yes -n deploytest python=${{ matrix.python-version }} git jupyter
-          conda activate deploytest
+          conda create --yes -n deploytest1 python=${{ matrix.python-version }} git
+          conda activate deploytest1
           bash ./deploy.sh "${{ github.repository }}" "${{ github.ref_name }}"
 
   deploy_w_prefix:
@@ -47,12 +47,14 @@ jobs:
         with:
           activate-environment: tester
           python-version: ${{ matrix.python-version }}
-          conda-channels: anaconda, conda-forge, bioconda
+          conda-channels: anaconda, conda-forge, bioconda, defaults
           auto-update-conda: true
 
       - name: Run deploy script
         shell: bash -l {0}
         run: |
-          conda create --yes -n deploytest python=${{ matrix.python-version }} git jupyter
-          conda activate deploytest
-          bash ./deploy.sh "${{ github.repository }}" "${{ github.ref_name }}" "~/.local"
+          conda create --yes -n deploytest2 python=${{ matrix.python-version }} git jupyter notebook
+          conda activate deploytest2
+          # without adding a dummy kernel, can't guarantee location exists
+          python -m ipykernel install --name="dummy" --prefix="/usr/local"  
+          bash ./deploy.sh "${{ github.repository }}" "${{ github.ref_name }}" "/usr/local"

@@ -125,7 +125,7 @@ format_kernels_dir() {
   local a_kernel_prefix="$1"
   local kernels_dir=""
   if [[ -n "$a_kernel_prefix" ]]; then
-    kernels_dir="$a_kernel_prefix/share/jupyter/kernels/"
+    kernels_dir="$a_kernel_prefix/share/jupyter/kernels"
   fi
   echo "$kernels_dir"
 }
@@ -134,15 +134,12 @@ format_kernels_dir() {
 # Check if kernel exists
 kernel_exists() {
   local kernel_name=$1
-  log "INFO" "Checking if kernel '$kernel_name' exists for prefix '$KERNEL_PREFIX'..."
 
   # Check if the kernels directory exists
   local formatted_kernel_dir=""
   formatted_kernel_dir=$(format_kernels_dir "$KERNEL_PREFIX")
   if [[ -n "$formatted_kernel_dir" ]]; then
-    log "INFO" "Checking for existing kernel in $formatted_kernel_dir"
     if [ ! -d "$formatted_kernel_dir" ]; then
-        log "ERROR" "Jupyter kernels directory not found at $formatted_kernel_dir"
         return 1
     fi
 
@@ -223,6 +220,7 @@ verify_environment() {
   fi
   
   # Check if kernel exists
+  log "INFO" "Checking if kernel '$kernel_name' exists for prefix '$KERNEL_PREFIX'..."
   exists=$(kernel_exists "$kernel_name")
   if [ $? -ne 0 ]; then
     log "ERROR" "Error checking kernel existence"
