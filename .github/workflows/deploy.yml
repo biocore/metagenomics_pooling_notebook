@@ -8,41 +8,38 @@ on:
       - '*/*'        # also match nested tag names like `releases/1.0.0`
 
 jobs:
-# TODO: comment back in
-#  call-ci:
-#    uses: ./.github/workflows/ci.yml
+  call-ci:
+    uses: ./.github/workflows/ci.yml
 
-# TODO: comment back in
-#  deploy_wo_prefix:
-#    runs-on: ubuntu-latest
-#    strategy:
-#      matrix:
-#        python-version: ['3.9']
-#    needs: call-ci
-#    steps:
-#      - uses: actions/checkout@v3
-#
-#      - uses: conda-incubator/setup-miniconda@v2
-#        with:
-#          activate-environment: tester
-#          python-version: ${{ matrix.python-version }}
-#          channels: anaconda, conda-forge, bioconda, defaults
-#          auto-update-conda: true
-#
-#      - name: Run deploy script
-#        shell: bash -l {0}
-#        run: |
-#          conda create --yes -n deploytest1 python=${{ matrix.python-version }} git
-#          conda activate deploytest1
-#          bash ./deploy.sh "${{ github.repository }}" "${{ github.ref_name }}"
+  deploy_wo_prefix:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.9']
+    needs: call-ci
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          activate-environment: tester
+          python-version: ${{ matrix.python-version }}
+          channels: anaconda, conda-forge, bioconda, defaults
+          auto-update-conda: true
+
+      - name: Run deploy script
+        shell: bash -l {0}
+        run: |
+          conda create --yes -n deploytest1 python=${{ matrix.python-version }} git
+          conda activate deploytest1
+          bash ./deploy.sh "${{ github.repository }}" "${{ github.ref_name }}"
 
   deploy_w_prefix:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ['3.9']
-    # TODO: comment back in
-    # needs: call-ci
+    needs: call-ci
     steps:
       - uses: actions/checkout@v3
 
