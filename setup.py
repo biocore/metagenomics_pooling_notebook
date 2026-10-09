@@ -18,7 +18,7 @@ base = [
     'matplotlib >= 3.9.2',
     'numpy >= 2.0.2',
     'openpyxl >= 3.1.5',
-    'pandas >= 2.2.3',
+    'pandas >= 3.0',
     # seems seqtk cannot be installed through the setup mechanism?
     # 'seqtk >= 1.4',
     'seaborn >= 0.13.2',
@@ -52,6 +52,7 @@ for fp in glob('notebooks/*.ipynb'):
 
 setup(
     name='metapool',
+    python_requires='>=3.11',
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
     packages=find_packages(),
