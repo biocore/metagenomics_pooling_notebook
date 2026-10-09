@@ -932,6 +932,18 @@ class PlateReplicationTests(TestCase):
 
         self._help_test_make_replicates("file1.tsv", obs)
 
+    def test_make_replicates_empty_text_columns(self):
+        # an input column replication writes text into, but which is entirely
+        # empty, reads as float64; replicating must still fill it with text.
+        for col in ('orig_name', 'Library Well', 'replicate'):
+            with self.subTest(col=col):
+                input_df = self.input_df.copy()
+                input_df[col] = float('nan')
+                pr = PlateReplication('Library Well')
+                obs = pr.make_replicates(input_df, {1: [2, 3, 4]},
+                                         overwrite=True)
+                self._help_test_make_replicates("file1.tsv", obs)
+
     def test_make_replicates_no_overwrite_source_quad(self):
         # replicate a valid source to empty sources 2 and 4 plus overwriting
         # source 3 with overwrites not allowed. Should return an Error.
@@ -1020,6 +1032,9 @@ class PlateReplicationTests(TestCase):
             # instead of just inferred from the record order.
             curr_exp_df = pd.read_csv(
                 curr_exp_fp, sep='\t', dtype=str, index_col=0)
+            # dtype=str also types the index column under pandas 3, but the
+            # preserved index is the input's integer row labels.
+            curr_exp_df.index = curr_exp_df.index.astype(int)
             curr_obs_df = obs[i - 1]
             assert_frame_equal(curr_exp_df, curr_obs_df)
 
