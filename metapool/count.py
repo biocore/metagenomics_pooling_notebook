@@ -7,6 +7,7 @@ from subprocess import Popen, PIPE
 from json import load
 import numpy as np
 from pandas.api.types import is_numeric_dtype
+from metapool.util import set_unique_index
 
 
 # first group is the sample name from the sample sheet, second group is the
@@ -124,8 +125,7 @@ def _parsefier(run_dir, metadata, subdir, suffix, name, funk):
     # drop columns that are no longer needed from the output.
     out.drop(columns=['path', 'Sample_Project'], inplace=True)
 
-    out.set_index(['Sample_ID', 'Lane'], inplace=True,
-                  verify_integrity=True)
+    out = set_unique_index(out, ['Sample_ID', 'Lane'])
 
     return out
 
@@ -185,7 +185,7 @@ def _bcl2fastq_counts(path):
                         'NumberReads': 'raw_reads_r1r2'},
                inplace=True)
     out = out[['Sample_ID', 'Lane', 'raw_reads_r1r2']]
-    out.set_index(['Sample_ID', 'Lane'], inplace=True, verify_integrity=True)
+    out = set_unique_index(out, ['Sample_ID', 'Lane'])
     return out
 
 
@@ -209,8 +209,8 @@ def _bclconvert_counts(path):
     # rename columns to standard values for metapool
     df.rename(columns={'SampleID': 'Sample_ID'}, inplace=True)
     # create indexes on these columns
-    df['Lane'] = df['Lane'].astype(str)
-    df.set_index(['Sample_ID', 'Lane'], inplace=True, verify_integrity=True)
+    df['Lane'] = df['Lane'].map(str)
+    df = set_unique_index(df, ['Sample_ID', 'Lane'])
 
     return df
 
@@ -223,8 +223,8 @@ def _seqcount_counts(path):
     df = df[df['raw_reads_r1r2'] != 0]
 
     # create indexes
-    df['Lane'] = df['Lane'].astype(str)
-    df.set_index(['Sample_ID', 'Lane'], inplace=True, verify_integrity=True)
+    df['Lane'] = df['Lane'].map(str)
+    df = set_unique_index(df, ['Sample_ID', 'Lane'])
 
     return df
 
@@ -311,8 +311,8 @@ def direct_sequence_counts(run_dir, metadata):
                       columns=['Sample_ID', 'Lane',
                                'quality_filtered_reads_r1r2'])
 
-    df['Lane'] = df['Lane'].astype(str)
-    df.set_index(['Sample_ID', 'Lane'], inplace=True, verify_integrity=True)
+    df['Lane'] = df['Lane'].map(str)
+    df = set_unique_index(df, ['Sample_ID', 'Lane'])
 
     return df
 

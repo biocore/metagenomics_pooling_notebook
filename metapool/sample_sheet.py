@@ -688,8 +688,8 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         # Well_description column is now defined here as the concatenation
         # of the following columns. If the column existed previously it will
         # be overwritten, otherwise it will be created here.
-        well_description = table[PM_PROJECT_PLATE_KEY].astype(str) + "." + \
-            table['Sample'].astype(str) + "." + table['Well'].astype(str)
+        well_description = table[PM_PROJECT_PLATE_KEY].map(str) + "." + \
+            table['Sample'].map(str) + "." + table['Well'].map(str)
         table['Well_description'] = well_description
 
         table = self._remap_table(table)

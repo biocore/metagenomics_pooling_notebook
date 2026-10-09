@@ -390,7 +390,7 @@ def record_gdna_dilution(plate_df, diluted_mask, diluted_conc_key):
     df = plate_df.copy()
     df['Diluted'] = True
     df[PM_PROJECT_PLATE_KEY] = \
-        df[PM_PROJECT_PLATE_KEY].astype(str) + '_diluted'
+        df[PM_PROJECT_PLATE_KEY].map(str) + '_diluted'
     df[PM_COMPRESSED_PLATE_NAME_KEY] = \
         df[PM_COMPRESSED_PLATE_NAME_KEY] + '_dilution'
     df[SAMPLE_DNA_CONC_KEY] = df[diluted_conc_key]
@@ -965,6 +965,16 @@ class PlateReplication(_WellMapper96to384):
             if not isinstance(replicates[key], list):
                 v = replicates[key]
                 replicates[key] = [v]
+
+        # replication writes text into these columns. An input column that is
+        # entirely empty reads as float64, which pandas 3 refuses text in, so
+        # hold any non-text one as str, as a text read of it would be.
+        plate_df_384 = plate_df_384.copy()
+        for col in (self.dest_well_column_name, ORIG_NAME_KEY, 'replicate',
+                    PM_SAMPLE_KEY):
+            if col in plate_df_384.columns and \
+                    not pd.api.types.is_string_dtype(plate_df_384[col]):
+                plate_df_384[col] = plate_df_384[col].astype("str")
 
         # discover which quads in plate_df contain samples, mark them as
         # source plates, and populate self.data for src_quad.
