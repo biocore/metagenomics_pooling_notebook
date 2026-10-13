@@ -31,6 +31,7 @@ dependencies:
   - pip:
       # base requirements
       - sample-sheet
+      - run-preflight @ git+https://github.com/the-miint/kl-run-preflight@03ee9e3b86132b97d42298380a43d9e52eaaad23
       # coverage requirements
       - coverage
       - coveralls

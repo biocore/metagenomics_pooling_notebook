@@ -24,7 +24,11 @@ base = [
     'seaborn >= 0.13.2',
     'scikit-learn >= 1.5.2',
     # below can't be installed by conda
-    'sample-sheet >= 0.13.0']
+    'sample-sheet >= 0.13.0',
+    # git-only; pinned to the commit Qiita-MIINT consumes, so the pre-flight
+    # this notebook writes matches the version that reads it
+    'run-preflight @ git+https://github.com/the-miint/kl-run-preflight'
+    '@03ee9e3b86132b97d42298380a43d9e52eaaad23']
 
 test = [
     'flake8 >= 7.1.1',
