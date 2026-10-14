@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 import numpy.testing as npt
 import os
+import shutil
+import tempfile
 from io import StringIO
 from pandas.testing import assert_frame_equal
 from metapool.plate import PlateRemapper
@@ -214,6 +216,56 @@ class Tests(TestCase):
 
         plate_df_obs = compress_plates(compression, self.sa_df,
                                        well_col='Well')
+        plate_df_exp = pd.read_csv(self.comp_plate_exp_fp,
+                                   dtype={TUBECODE_KEY: str}, sep='\t')
+        pd.testing.assert_frame_equal(plate_df_obs, plate_df_exp)
+
+    def _compression_layout_16_17_18_21(self):
+        return [
+            {'Plate Position': i + 1,
+             'Plate map file': plate,
+             'Project Plate': f'Plate_{n}',
+             'Project Name': 'Celeste_Adaptation_12986',
+             'Project Abbreviation': 'ADAPT',
+             'Plate elution volume': 70}
+            for i, (plate, n) in enumerate(zip(self.plates, (16, 17, 18, 21)))]
+
+    def test_compress_plates_err_tubecode_with_two_sample_names(self):
+        # The plate's first tube (0363132553, 41B.Month6.1) listed again in
+        # the sample accession file under another name. Before the check,
+        # the merge shifted every later name onto the wrong well.
+        sa_df = pd.concat(
+            [self.sa_df,
+             pd.DataFrame({'sample_name': ['41B.Month6.2'],
+                           TUBECODE_KEY: ['0363132553']})],
+            ignore_index=True)
+        err_msg = (
+            r"The following TubeCodes appear more than once in the sample "
+            r"accession file: 363132553 \(41B\.Month6\.1, 41B\.Month6\.2\)")
+        with self.assertRaisesRegex(ValueError, err_msg):
+            compress_plates(self._compression_layout_16_17_18_21(), sa_df,
+                            well_col='Well')
+
+    def test_compress_plates_err_tubecode_listed_twice_with_same_name(self):
+        # an exact duplicate row shifts the wells just the same
+        first = self.sa_df[self.sa_df[TUBECODE_KEY] == '0363132553']
+        sa_df = pd.concat([self.sa_df, first], ignore_index=True)
+        with self.assertRaisesRegex(
+                ValueError, r"appear more than once in the sample accession "
+                            r"file: 363132553 \(41B\.Month6\.1, "
+                            r"41B\.Month6\.1\)"):
+            compress_plates(self._compression_layout_16_17_18_21(), sa_df,
+                            well_col='Well')
+
+    def test_compress_plates_duplicate_tubecode_not_on_plate(self):
+        # a duplicate that no plate holds cannot shift any well
+        sa_df = pd.concat(
+            [self.sa_df,
+             pd.DataFrame({'sample_name': ['elsewhere.1', 'elsewhere.2'],
+                           TUBECODE_KEY: ['0999999999', '0999999999']})],
+            ignore_index=True)
+        plate_df_obs = compress_plates(
+            self._compression_layout_16_17_18_21(), sa_df, well_col='Well')
         plate_df_exp = pd.read_csv(self.comp_plate_exp_fp,
                                    dtype={TUBECODE_KEY: str}, sep='\t')
         pd.testing.assert_frame_equal(plate_df_obs, plate_df_exp)
@@ -493,6 +545,19 @@ class Tests(TestCase):
 
         pd.testing.assert_frame_equal(add_controls_obs,
                                       add_controls_exp)
+
+    def test_add_controls_err_blank_listed_twice(self):
+        # the same blanks scan saved twice in the blanks directory
+        plate_df = pd.read_csv(self.comp_plate_exp_fp,
+                               dtype={TUBECODE_KEY: str}, sep='\t')
+        with tempfile.TemporaryDirectory() as blanks_dir:
+            for name in ('blanks.tsv', 'blanks_copy.tsv'):
+                shutil.copy(os.path.join(self.blanks_dir, 'blanks.tsv'),
+                            os.path.join(blanks_dir, name))
+            with self.assertRaisesRegex(
+                    ValueError, "The following TubeCodes appear more than "
+                                "once in the blanks/katharoseq files: "):
+                add_controls(plate_df, blanks_dir, self.katharoseq_dir)
 
     def test_add_controls_for_katharoseq(self):
         plate_df = pd.read_csv(self.comp_plate_exp_fp,
