@@ -2182,7 +2182,7 @@ def _raise_on_ambiguous_tubecodes(plate_df, lookup_df, source):
     value_cols = [c for c in dups.columns if c != TUBECODE_KEY]
     details = []
     for tubecode, rows in dups.groupby(TUBECODE_KEY, sort=True):
-        values = rows[value_cols].astype(str).agg(" / ".join, axis=1)
+        values = rows[value_cols].map(str).agg(" / ".join, axis=1)
         details.append(f"{tubecode} ({', '.join(values)})")
     raise ValueError(
         f"The following TubeCodes appear more than once in {source}: "
