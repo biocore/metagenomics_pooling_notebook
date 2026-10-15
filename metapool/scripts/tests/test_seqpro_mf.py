@@ -1,4 +1,6 @@
 import os
+import tempfile
+from contextlib import contextmanager
 import unittest
 
 import pandas as pd
@@ -10,13 +12,28 @@ import re
 from subprocess import Popen, PIPE
 
 
+@contextmanager
+def _in_temp_dir():
+    """Run the block in a fresh temporary working directory, then restore
+    the original one (in place of the deprecated
+    CliRunner.isolated_filesystem)."""
+    cwd = os.getcwd()
+    with tempfile.TemporaryDirectory() as temp_dir:
+        os.chdir(temp_dir)
+        try:
+            yield temp_dir
+        finally:
+            os.chdir(cwd)
+
+
 class SeqproAmpliconTests(unittest.TestCase):
     def setUp(self):
         # we need to get the test data directory in the parent directory
-        # important to use abspath because we use CliRunner.isolated_filesystem
+        # important to use abspath because tests run in a temp working dir
         tests_dir = os.path.abspath(os.path.dirname(__file__))
         tests_dir = os.path.dirname(os.path.dirname(tests_dir))
         self.test_dir = os.path.join(tests_dir, 'tests')
+        self.repo_root = os.path.dirname(tests_dir)
         self.data_dir = os.path.join(self.test_dir, 'data')
         self.vf_test_dir = os.path.join(self.test_dir, 'VFTEST')
 
@@ -44,7 +61,7 @@ class SeqproAmpliconTests(unittest.TestCase):
     def test_run(self):
         runner = CliRunner()
 
-        with runner.isolated_filesystem():
+        with _in_temp_dir():
             result = runner.invoke(format_preparation_files_mf,
                                    args=[self.temp_copy,
                                          join(self.temp_copy,
@@ -115,9 +132,11 @@ class SeqproAmpliconTests(unittest.TestCase):
         # remove trailing whitespace before splitting each line into pairs.
         for line in stdout.strip().split('\n'):
             qiita_id, file_path = line.split('\t')
-            # truncate full-path output to be file-system agnostic.
-            file_path = re.sub('^.*kl-metapool/',
-                               'kl-metapool/', file_path)
+            # make the path relative to the repo root so the test doesn't
+            # depend on the name of the directory it is checked out in.
+            file_path = os.path.join(
+                'kl-metapool',
+                os.path.relpath(file_path, self.repo_root))
             tmp.append(f'{qiita_id}\t{file_path}')
 
         stdout = '\n'.join(tmp)

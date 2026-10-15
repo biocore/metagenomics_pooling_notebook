@@ -8,6 +8,18 @@ QIITA_STUDY_ID_KEY = 'qiita_study_id'
 SET_SUFFIX = '_set'
 
 
+def _missing_like(series, index):
+    """An all-missing column to stand in for series in a frame lacking it.
+
+    Text keeps its dtype (str under pandas 3), so a later concat with series
+    stays text; anything else gets an object column of missing values, which
+    holds any value.
+    """
+    if pd.api.types.is_string_dtype(series):
+        return pd.Series(None, index=index, dtype=series.dtype)
+    return pd.Series(None, index=index, dtype="object")
+
+
 def join_dfs_from_files(input_fps, req_cols_to_extract,
                         opt_cols_to_extract=None, unique_cols=None,
                         dtype=str, sep="\t"):
@@ -48,9 +60,11 @@ def join_dfs_from_files(input_fps, req_cols_to_extract,
             not_in_new = \
                 set(growing_df.columns) - set(curr_extracted_df.columns)
             for curr_missing in not_in_old:
-                growing_df[curr_missing] = None
+                growing_df[curr_missing] = _missing_like(
+                    curr_extracted_df[curr_missing], growing_df.index)
             for curr_missing in not_in_new:
-                curr_extracted_df[curr_missing] = None
+                curr_extracted_df[curr_missing] = _missing_like(
+                    growing_df[curr_missing], curr_extracted_df.index)
             growing_df = pd.concat([growing_df, curr_extracted_df],
                                    ignore_index=True)
         # end if this isn't the first file
@@ -215,3 +229,33 @@ def convert_to_bool(x):
             return False
 
     return None
+
+
+def set_unique_index(df, keys):
+    """Return df indexed by keys; raise if that index has duplicates.
+
+    Stands in for set_index(..., verify_integrity=True), which pandas 3
+    deprecates.
+
+    Parameters
+    ----------
+    df: pd.DataFrame
+        The dataframe to index.
+    keys: str or list of str
+        The column(s) to use as the index.
+
+    Returns
+    -------
+    pd.DataFrame
+        A new dataframe indexed by keys.
+
+    Raises
+    ------
+    ValueError
+        If the index built from keys contains duplicate values.
+    """
+    result = df.set_index(keys)
+    if not result.index.is_unique:
+        dups = result.index[result.index.duplicated()].unique().tolist()
+        raise ValueError(f"Index has duplicate keys: {dups}")
+    return result

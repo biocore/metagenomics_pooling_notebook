@@ -10,7 +10,7 @@ jobs:
     # we can add more versions of node.js in the future
     strategy:
       matrix:
-        python-version: ['3.10']
+        python-version: ['3.11']
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
