@@ -512,9 +512,11 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             # these sections are represented as DataFrame objects
             writer.writerow(pad_iterable(a_df.columns.tolist(), csv_width))
 
+            # write missing values as empty cells rather than as 'nan'
             for _, row in a_df.iterrows():
-                writer.writerow(pad_iterable(row.values.tolist(),
-                                             csv_width))
+                row_values = ['' if pd.isna(v) else v
+                              for v in row.values.tolist()]
+                writer.writerow(pad_iterable(row_values, csv_width))
 
         for title in self._ordered_section_keys:
             writer.writerow(pad_iterable([f'[{title}]'], csv_width))
@@ -1054,6 +1056,16 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             if column not in self.all_sample_keys:
                 msgs.append(ErrorMessage(f'The {column} column in the '
                                          f'{_DATA_KEY} section is missing'))
+
+        # every sample must have a non-empty Sample_ID
+        if SS_SAMPLE_ID_KEY in self.all_sample_keys:
+            blank_rows = [str(i) for i, sample in enumerate(self.samples, 1)
+                          if not sample.Sample_ID]
+            if blank_rows:
+                msgs.append(ErrorMessage(
+                    f'The {SS_SAMPLE_ID_KEY} column in the {_DATA_KEY} '
+                    f'section is empty in sample row(s): '
+                    f'{", ".join(blank_rows)}'))
         return msgs
 
     def _validate_header_info(self):
@@ -2202,7 +2214,7 @@ def _parse_header(fp):
 
     # remove all comments rows, whether they are at the top of the file (no
     # longer supported, technically), or not.
-    comment_rows = df.index[df[0].str.startswith("#")].tolist()
+    comment_rows = df.index[df[0].str.startswith("#", na=False)].tolist()
     df = df.drop(index=comment_rows)
     # reset the index to make it easier to post-process.
     df.reset_index(inplace=True, drop=True)
@@ -2216,7 +2228,8 @@ def _parse_header(fp):
     # identify the beginning of the following section and remove everything
     # from the start of the first section on down. Remove the now redundant
     # [Header] from the top row as well.
-    next_section_start = df.index[df[0].str.startswith("[")].tolist()[1]
+    next_section_start = \
+        df.index[df[0].str.startswith("[", na=False)].tolist()[1]
     df = df.iloc[1:next_section_start]
 
     # lastly, trim off the additional all-empty columns that are now

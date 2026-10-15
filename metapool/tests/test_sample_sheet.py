@@ -3742,6 +3742,67 @@ class MetagenomicSampleSheetv102CreationTests(SampleSheetLoadMakeAndLoadTests):
                               table, 'iSeq', [1])
 
 
+class MissingValueTests(BaseTests):
+    def setUp(self):
+        super().setUp()
+        self.sheet_fp = join(self.data_dir,
+                             'good_standard_metagv102_wo_katharoseq.csv')
+
+    @staticmethod
+    def _write(sheet):
+        out = StringIO()
+        sheet.write(out)
+        return out.getvalue().splitlines()
+
+    def test_write_sample_missing_a_data_column(self):
+        # a sample with a column the existing samples lack leaves a gap in
+        # their rows, which must be written as an empty cell, not 'nan'
+        sheet = load_sample_sheet(self.sheet_fp)
+        first = sheet.samples[0]
+        new_sample = {k: getattr(first, k) for k in sheet.all_sample_keys}
+        new_sample.update({
+            SS_SAMPLE_ID_KEY: 'NEW_SAMPLE', 'Sample_Name': 'NEW.SAMPLE',
+            'index': 'ACGTACGTAC', 'index2': 'TTGGCCAATT',
+            'katharo_description': 'a description'})
+        sheet.add_sample(sample_sheet.Sample(new_sample))
+
+        obs = [x for x in self._write(sheet)
+               if x.startswith(f'{first.Sample_ID},')]
+        self.assertEqual(len(obs), 1)
+        self.assertNotIn('nan', obs[0].split(','))
+        self.assertTrue(obs[0].endswith(',1,'))
+
+    def test_write_none_in_a_section(self):
+        sheet = load_sample_sheet(self.sheet_fp)
+        contact = sheet.Contact.copy()
+        contact.loc[contact.index[0], 'Email'] = None
+        sheet.Contact = contact
+
+        lines = self._write(sheet)
+        contact_start = next(i for i, x in enumerate(lines)
+                             if x.startswith('[Contact]'))
+        obs = lines[contact_start + 2]
+        self.assertTrue(obs.startswith(',MyProject_99999,'), obs)
+
+    def test_load_sample_sheet_blank_sample_id(self):
+        with open(self.sheet_fp) as f:
+            lines = f.read().splitlines()
+        data_header = next(i for i, x in enumerate(lines)
+                           if x.startswith('[Data]')) + 1
+        first_row = lines[data_header + 1].split(',')
+        first_row[0] = ''
+        lines[data_header + 1] = ','.join(first_row)
+
+        with tempfile.NamedTemporaryFile('w', suffix='.csv') as tmp:
+            tmp.write('\n'.join(lines) + '\n')
+            tmp.flush()
+            with self.assertRaisesRegex(
+                    ValueError,
+                    'The Sample_ID column in the Data section is empty in '
+                    r'sample row\(s\): 1'):
+                load_sample_sheet(tmp.name)
+
+
 if __name__ == '__main__':
     assert not hasattr(sys.stdout, "getvalue")
     unittest.main(module=__name__, buffer=True, exit=False)

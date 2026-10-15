@@ -1497,6 +1497,31 @@ def reformat_interleaved_to_columns(wells):
     return new_wells
 
 
+def _raise_on_missing_sample_names(counts_df, sample_column):
+    """Raise a LookupError naming the rows of counts_df whose sample name
+    in sample_column is empty or missing"""
+    names = counts_df[sample_column]
+    missing = names.isna() | (names.astype(object).map(str).str.strip() == '')
+    if missing.any():
+        rows = ', '.join(str(i) for i in counts_df.index[missing])
+        raise LookupError(
+            f'missing sample name in {sample_column} at row(s): {rows}')
+
+
+def split_trimmed_read_counts(read_counts_df, sample_column):
+    """Split read counts into raw and quality-trimmed counts
+
+    :param read_counts_df: A DataFrame of read counts, one row per file.
+    :param sample_column: The column holding each row's file or sample name;
+    names containing 'trimmed' are quality-trimmed counts.
+    :return: A (raw, trimmed) tuple of DataFrame copies.
+    """
+    _raise_on_missing_sample_names(read_counts_df, sample_column)
+    trimmed_mask = read_counts_df[sample_column].str.contains('trimmed')
+    return (read_counts_df.loc[~trimmed_mask].copy(),
+            read_counts_df.loc[trimmed_mask].copy())
+
+
 def merge_read_counts(plate_df, counts_df, reads_column_name="Filtered Reads",
                       fastqc_sample_colname=None):
     """Merges reads counts from FASTQC report or per_sample_FASTQ summary
@@ -1534,6 +1559,7 @@ def merge_read_counts(plate_df, counts_df, reads_column_name="Filtered Reads",
             raise Exception("Unsupported input file type.")
 
     if file_type != 'prep_file':
+        _raise_on_missing_sample_names(counts_df, sample_column)
         # Parse table to find sample names, and sum forward and rev reads.
         for i in counts_df.index:
             filename = counts_df.loc[i, sample_column]
