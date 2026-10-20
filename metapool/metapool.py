@@ -2164,6 +2164,13 @@ def _merge_accession_to_compressed_plate_df(
     if PM_PROJECT_NAME_KEY in sample_accession_df.columns:
         sample_merge_cols.append(PM_PROJECT_NAME_KEY)
 
+    # A TubeCode on the plate that matches more than one accession row would
+    # add rows to the merge below, and the index-aligned update() would then
+    # shift every later sample name onto the wrong well, silently.
+    _raise_on_ambiguous_tubecodes(
+        compressed_plate_df_merged, sample_accession_df[sample_merge_cols],
+        "the sample accession file")
+
     # Make a temporary df out of the tubecode column (only) from compressed_df
     # and the selected merge columns from sample accession df. In this temp df,
     # the only non-nan values in columns other than TubeCode are for
@@ -2189,6 +2196,29 @@ def _merge_accession_to_compressed_plate_df(
         dtype=placeholder_dtype)
     compressed_plate_df_merged.update(temp_merged_df)
     return compressed_plate_df_merged
+
+
+def _raise_on_ambiguous_tubecodes(plate_df, lookup_df, source):
+    """Raise if any TubeCode in plate_df appears in more than one row of
+    lookup_df, naming each such TubeCode with the values it maps to.
+
+    A duplicate that is not on the plate is ignored: it cannot affect a merge
+    against this plate.
+    """
+    on_plate = lookup_df[TUBECODE_KEY].isin(plate_df[TUBECODE_KEY])
+    dup_mask = lookup_df[TUBECODE_KEY].duplicated(keep=False)
+    dups = lookup_df[on_plate & dup_mask & lookup_df[TUBECODE_KEY].notna()]
+    if dups.empty:
+        return
+
+    value_cols = [c for c in dups.columns if c != TUBECODE_KEY]
+    details = []
+    for tubecode, rows in dups.groupby(TUBECODE_KEY, sort=True):
+        values = rows[value_cols].map(str).agg(" / ".join, axis=1)
+        details.append(f"{tubecode} ({', '.join(values)})")
+    raise ValueError(
+        f"The following TubeCodes appear more than once in {source}: "
+        f"{'; '.join(details)}")
 
 
 def _generate_compressed_plate_name(compressed_plate_df):
@@ -2280,6 +2310,10 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None,
         # Merge plate_df with controls table
         if not preserve_leading_zeroes:
             plate_df = strip_tubecode_leading_zeroes(plate_df)
+        # a TubeCode listed twice in the controls files would duplicate its
+        # well in the left merge below
+        _raise_on_ambiguous_tubecodes(
+            plate_df, controls_df, "the blanks/katharoseq files")
         plate_df = pd.merge(plate_df, controls_df, on=TUBECODE_KEY, how="left")
         return plate_df
 
