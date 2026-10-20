@@ -531,9 +531,9 @@ def select_sample_dilutions(
         df.loc[dilution_mask, PM_DILUTED_KEY] = not curr_is_base_dilution
         df.loc[dilution_mask, PM_PROJECT_PLATE_KEY] = a_plate_df.loc[
             dilution_mask,
-            PM_PROJECT_PLATE_KEY].astype(str) + "_" + curr_dilution_suffix
+            PM_PROJECT_PLATE_KEY].map(str) + "_" + curr_dilution_suffix
         df.loc[dilution_mask, PM_COMPRESSED_PLATE_NAME_KEY] = a_plate_df.loc[
-            dilution_mask, PM_COMPRESSED_PLATE_NAME_KEY].astype(
+            dilution_mask, PM_COMPRESSED_PLATE_NAME_KEY].map(
             str) + "_" + curr_dilution_suffix
     # next dilution_suffix
 
@@ -1497,6 +1497,31 @@ def reformat_interleaved_to_columns(wells):
     return new_wells
 
 
+def _raise_on_missing_sample_names(counts_df, sample_column):
+    """Raise a LookupError naming the rows of counts_df whose sample name
+    in sample_column is empty or missing"""
+    names = counts_df[sample_column]
+    missing = names.isna() | (names.astype(object).map(str).str.strip() == '')
+    if missing.any():
+        rows = ', '.join(str(i) for i in counts_df.index[missing])
+        raise LookupError(
+            f'missing sample name in {sample_column} at row(s): {rows}')
+
+
+def split_trimmed_read_counts(read_counts_df, sample_column):
+    """Split read counts into raw and quality-trimmed counts
+
+    :param read_counts_df: A DataFrame of read counts, one row per file.
+    :param sample_column: The column holding each row's file or sample name;
+    names containing 'trimmed' are quality-trimmed counts.
+    :return: A (raw, trimmed) tuple of DataFrame copies.
+    """
+    _raise_on_missing_sample_names(read_counts_df, sample_column)
+    trimmed_mask = read_counts_df[sample_column].str.contains('trimmed')
+    return (read_counts_df.loc[~trimmed_mask].copy(),
+            read_counts_df.loc[trimmed_mask].copy())
+
+
 def merge_read_counts(plate_df, counts_df, reads_column_name="Filtered Reads",
                       fastqc_sample_colname=None):
     """Merges reads counts from FASTQC report or per_sample_FASTQ summary
@@ -1534,6 +1559,7 @@ def merge_read_counts(plate_df, counts_df, reads_column_name="Filtered Reads",
             raise Exception("Unsupported input file type.")
 
     if file_type != 'prep_file':
+        _raise_on_missing_sample_names(counts_df, sample_column)
         # Parse table to find sample names, and sum forward and rev reads.
         for i in counts_df.index:
             filename = counts_df.loc[i, sample_column]
@@ -2151,10 +2177,16 @@ def _merge_accession_to_compressed_plate_df(
     # sets the info in compressed df for anything *different* from the default.
     # NB: 'update()' won't ADD new columns from the temp df, and the
     # compressed df doesn't come with a sample name column, so we first add
-    # a placeholder for that column, of a type that can be nan but is not float
-    compressed_plate_df_merged[SAMPLE_NAME_KEY] = np.nan
-    compressed_plate_df_merged[SAMPLE_NAME_KEY] = \
-        compressed_plate_df_merged[SAMPLE_NAME_KEY].astype('object')
+    # a placeholder for that column, of a type that can be nan but not float:
+    # str when the accession names are text (as every caller reads them), so
+    # the column matches a str read; otherwise object, which accepts anything.
+    if pd.api.types.is_string_dtype(sample_accession_df[SAMPLE_NAME_KEY]):
+        placeholder_dtype = "str"
+    else:
+        placeholder_dtype = "object"
+    compressed_plate_df_merged[SAMPLE_NAME_KEY] = pd.Series(
+        np.nan, index=compressed_plate_df_merged.index,
+        dtype=placeholder_dtype)
     compressed_plate_df_merged.update(temp_merged_df)
     return compressed_plate_df_merged
 
@@ -2325,9 +2357,9 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None,
                 get_plate_num_from_plate_name)
             + "."
             + plate_df["Row"]
-            + plate_df["Col"].astype(str)
+            + plate_df["Col"].map(str)
             + "."
-            + plate_df["number_of_cells"].astype(str),
+            + plate_df["number_of_cells"].map(str),
             plate_df["Sample"]
         )
 
@@ -2350,7 +2382,7 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None,
         + plate_df[PM_PROJECT_PLATE_KEY].apply(get_plate_num_from_plate_name)
         + "."
         + plate_df["Row"]
-        + plate_df["Col"].astype(str))
+        + plate_df["Col"].map(str))
 
     # Set PM_BLANK_KEY to True for all blanks, False for all other samples
     plate_df[PM_BLANK_KEY] = False
@@ -2464,10 +2496,12 @@ def validate_plate_df(plate_df, metadata, sample_accession_df, blanks_dir,
         control_samples = set()
     else:
         pat = "positive_control|negative_control"
+        # a missing description is not a control. na=False says so for both
+        # the object and str dtypes; an `| isna()` here would flag every
+        # undescribed sample as a control under pandas 3's str dtype.
         control_samples = set(
             plate_df.loc[
-                (plate_df[CONTROLS_DESCRIPTION_KEY].str.contains(pat))
-                | (plate_df[CONTROLS_DESCRIPTION_KEY].isna()),
+                plate_df[CONTROLS_DESCRIPTION_KEY].str.contains(pat, na=False),
                 "Sample",
             ]
         )
@@ -2495,7 +2529,7 @@ def validate_plate_df(plate_df, metadata, sample_accession_df, blanks_dir,
     if missing_samples.empty:
         warnings.warn("All samples have associated metadata :D")
     else:
-        missing_str = "', '".join(missing_samples.astype(str))
+        missing_str = "', '".join(missing_samples.map(str))
         warning_message = ("The following samples are missing metadata: "
                            f"'{missing_str}'")
         raise ValueError(warning_message)
@@ -2535,7 +2569,7 @@ def validate_plate_df(plate_df, metadata, sample_accession_df, blanks_dir,
     if missing_samples_tubecode.empty:
         warnings.warn("All TubeCodes have associated data :D")
     else:
-        missing_samples_str = ", ".join(missing_samples_tubecode.astype(str))
+        missing_samples_str = ", ".join(missing_samples_tubecode.map(str))
         warning_message = (
             "The following plate_df TubeCodes are missing sample"
             + f" accession information: {missing_samples_str}"

@@ -4,6 +4,7 @@ from glob import glob
 from metapool.mp_strings import get_short_name_and_id, \
     PM_WELL_ID_384_KEY, SS_SAMPLE_ID_KEY
 from metapool.plate import PlateReplication
+from metapool.util import set_unique_index
 from metapool.sequencers import\
      get_sequencer_type_name_and_run_center_by_instrument_code, \
      get_key_value_by_sequencer_type_name, MODEL_NAME_KEY, PLATFORM_KEY, \
@@ -621,7 +622,7 @@ def parse_prep(prep_path):
     prep = pd.read_csv(prep_path, sep='\t', dtype=str, keep_default_na=False,
                        na_values=[])
 
-    prep.set_index('sample_name', verify_integrity=True, inplace=True)
+    prep = set_unique_index(prep, 'sample_name')
 
     return prep
 

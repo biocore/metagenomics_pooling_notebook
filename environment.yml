@@ -12,9 +12,9 @@ dependencies:
   - matplotlib
   - numpy
   - openpyxl
-  - pandas
+  - pandas>=3
   - pip
-  - python=3.10
+  - python=3.11
   - seaborn[version='>=0.13.2']
   - seqtk[version='>=1.4']
   - scikit-learn

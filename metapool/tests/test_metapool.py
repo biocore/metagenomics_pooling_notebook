@@ -1,4 +1,5 @@
 from unittest import TestCase, main
+import io
 import pandas as pd
 import numpy as np
 import numpy.testing as npt
@@ -23,6 +24,7 @@ from metapool.metapool import (read_plate_map_csv, read_pico_csv,
                                reformat_interleaved_to_columns,
                                extract_stats_metadata, sum_lanes,
                                merge_read_counts, read_survival,
+                               split_trimmed_read_counts,
                                linear_transform, estimate_read_depth,
                                calculate_iseqnorm_pooling_volumes,
                                identify_invalid_sample_names,
@@ -1633,6 +1635,37 @@ class Tests(TestCase):
         obs_filt = merge_read_counts(plate_df_, counts_df_prep)
 
         pd.testing.assert_frame_equal(exp_filt, obs_filt)
+
+    def test_merge_read_counts_err_missing_sample_name(self):
+        counts_df = self.counts_df.copy()
+        counts_df.loc[1, 'Category'] = None
+        with self.assertRaisesRegex(
+                LookupError,
+                r'missing sample name in Category at row\(s\): 1'):
+            merge_read_counts(self.plate_df, counts_df)
+
+    def test_split_trimmed_read_counts(self):
+        counts_df = pd.DataFrame({
+            'Category': ['a_S1_L001_R1_001.trimmed.fastq.gz',
+                         'a_S1_L001_R1_001.fastq.gz',
+                         'b_S2_L001_R1_001.fastq.gz'],
+            'Unique Reads': [1, 2, 3]})
+        obs_raw, obs_trimmed = split_trimmed_read_counts(counts_df,
+                                                         'Category')
+        pd.testing.assert_frame_equal(obs_raw, counts_df.loc[[1, 2]])
+        pd.testing.assert_frame_equal(obs_trimmed, counts_df.loc[[0]])
+
+    def test_split_trimmed_read_counts_err_missing_sample_name(self):
+        # read from text, as the notebooks do, so the blank is a real NaN
+        counts_df = pd.read_csv(io.StringIO(
+            'Category,Unique Reads\n'
+            'a_S1_L001_R1_001.trimmed.fastq.gz,1\n'
+            ',2\n'
+            'b_S2_L001_R1_001.fastq.gz,3\n'))
+        with self.assertRaisesRegex(
+                LookupError,
+                r'missing sample name in Category at row\(s\): 1'):
+            split_trimmed_read_counts(counts_df, 'Category')
 
     def test_merge_read_counts_w_explicit_fastqc_sample_col(self):
         exp_fp = os.path.join(self.fp, 'data/test_output_merge.tsv')

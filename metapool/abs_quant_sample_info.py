@@ -104,7 +104,7 @@ def add_abs_quant_metadata(
 
     # ensure that the lot "number" (really lot ID) is stored a string
     calc_df[STORAGE_LIQUID_LOT_NUM_STR_KEY] = calc_df[
-        STORAGE_LIQUID_LOT_NUM_STR_KEY].astype(str)
+        STORAGE_LIQUID_LOT_NUM_STR_KEY].map(str)
 
     config_dict = _read_config_metadata(config_fp)
     calc_df = _add_config_metadata(

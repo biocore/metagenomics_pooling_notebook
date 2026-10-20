@@ -5,7 +5,7 @@ import os
 from unittest import TestCase
 from metapool.util import join_dfs_from_files, \
     extend_sample_accession_df, extend_compression_layout_info, \
-    _check_for_missing_df_ids, drop_unnamed_nan_columns
+    _check_for_missing_df_ids, drop_unnamed_nan_columns, set_unique_index
 
 
 class NotebookSupportTests(TestCase):
@@ -399,3 +399,21 @@ class NotebookSupportTests(TestCase):
         self.assertIsNone(convert_to_bool(''))
         self.assertIsNone(convert_to_bool(1))
         self.assertIsNone(convert_to_bool("yes"))
+
+    def test_set_unique_index(self):
+        df = pandas.DataFrame({'a': ['x', 'y'], 'b': [1, 2]})
+        obs = set_unique_index(df, 'a')
+        exp = pandas.DataFrame({'b': [1, 2]},
+                               index=pandas.Index(['x', 'y'], name='a'))
+        assert_frame_equal(obs, exp)
+        # the input is left as it was
+        self.assertListEqual(list(df.columns), ['a', 'b'])
+
+    def test_set_unique_index_err(self):
+        df = pandas.DataFrame({'a': ['x', 'x', 'y'], 'b': [1, 1, 2]})
+        with self.assertRaisesRegex(ValueError,
+                                    r"Index has duplicate keys: \['x'\]"):
+            set_unique_index(df, 'a')
+        with self.assertRaisesRegex(
+                ValueError, r"Index has duplicate keys: \[\('x', 1\)\]"):
+            set_unique_index(df, ['a', 'b'])
